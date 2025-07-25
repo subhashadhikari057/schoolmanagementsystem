@@ -164,7 +164,7 @@ npm start
 
 ### Access Points
 - **Frontend Application**: http://localhost:3000
-- **Backend API**: http://localhost:3001
+- **Backend API**: http://localhost:8080
 - **API Health Check**: http://localhost:3001/ (returns "Hello World!")
 
 ## 🧪 Testing
