@@ -114,8 +114,8 @@ A comprehensive school management solution designed for single-school environmen
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/school-management-system.git
-   cd school-management-system
+   git clone https://github.com/subhashadhikari057/schoolmanagementsystem.git
+   cd schoolmanagementsystem
    ```
 
 2. **Install backend dependencies**
