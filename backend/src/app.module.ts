@@ -1,10 +1,8 @@
+// backend/src/app.module.ts
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { PrismaModule } from './shared/prisma/prisma.module'; 
+import { AuthModule } from './modules/auth/auth.module';
+
 @Module({
-  imports: [PrismaModule], 
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [AuthModule],
 })
 export class AppModule {}

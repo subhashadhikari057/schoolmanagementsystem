@@ -8,9 +8,152 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  fullName     String
+  id           String  @id @default(uuid())
+  email        String  @unique
+  phone        String? @unique
   passwordHash String
-  createdAt    DateTime @default(now())
+  fullName     String
+
+  isActive           Boolean   @default(true)
+  lastLoginAt        DateTime?
+  lastPasswordChange DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  roles     UserRole[]
+  sessions  UserSession[]
+  auditLogs AuditLog[] // ✅ link to audit logs
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Role {
+  id           String  @id @default(uuid())
+  name         String  @unique
+  description  String?
+  isSystemRole Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Permission {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  description String?
+  module      String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  roles RolePermission[]
+
+  @@index([code])
+  @@index([module])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model UserRole {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId String
+
+  assignedAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model RolePermission {
+  id     String @id @default(uuid())
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId String
+
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId String
+
+  grantedAt DateTime @default(now())
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model UserSession {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  tokenHash         String
+  userAgent         String?
+  ipAddress         String?
+  deviceFingerprint String?
+
+  loginAt   DateTime  @default(now())
+  expiresAt DateTime?
+  revokedAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String 
+  module    String? 
+  status    String   @default("SUCCESS") 
+  details   Json?                       
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([module])
+  @@index([timestamp])
 }
