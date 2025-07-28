@@ -13,12 +13,14 @@ import { LoginDto } from '../dto/auth.dto';
 import { setAuthCookies, COOKIE_OPTIONS } from '../../../shared/auth/cookie';
 import { verifyToken } from '../../../shared/auth/jwt.util';
 
-@Controller('auth')
+@Controller('api/auth') // ✅ Traditional route prefix (no RouterModule)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
-   * 🔐 Login endpoint: issues tokens via cookies
+   * 🔐 Login endpoint
+   * Issues access & refresh tokens as HTTP-only cookies
+   * Logs user login via audit logger inside AuthService
    */
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -30,16 +32,21 @@ export class AuthController {
     const ip = req.ip || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    const { accessToken, refreshToken } = await this.authService.login(body, ip, userAgent);
+    const { accessToken, refreshToken } = await this.authService.login(
+      body,
+      ip,
+      userAgent,
+    );
 
-    // ✅ Set cookies
+    // ✅ Set cookies in browser
     setAuthCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({ message: 'Login successful' });
   }
 
   /**
-   * 🔁 Refresh endpoint: rotates token pair via cookies
+   * 🔁 Refresh token endpoint
+   * Rotates token pair and reissues new cookies
    */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
@@ -64,7 +71,8 @@ export class AuthController {
   }
 
   /**
-   * 🚪 Logout endpoint: revokes session + clears cookies
+   * 🚪 Logout endpoint
+   * Revokes session, clears cookies, logs out user
    */
   @Post('logout')
   @HttpCode(HttpStatus.OK)
@@ -82,7 +90,7 @@ export class AuthController {
       return res.status(400).json({ message: 'Invalid refresh token' });
     }
 
-    // ✅ Revoke session
+    // ✅ Revoke session and log it
     await this.authService.logout(decoded.sessionId, ip, userAgent);
 
     // ❌ Clear cookies

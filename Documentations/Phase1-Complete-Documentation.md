@@ -29,7 +29,7 @@ The backend follows a **Modular Monolith** pattern with **Domain-Driven Design**
 
 | **Layer**             | **Technology**          | **Purpose**                        |
 |----------------------|--------------------------|------------------------------------|
-| Backend Framework    | NestJS 11.0.1            | Node.js framework with TypeScript  |
+| Backend Framework    | NestJS 11.0.1            | Node.js framework with TypeScript  |wha
 | Database             | PostgreSQL               | Primary relational database        |
 | ORM                  | Prisma 6.12.0            | Type-safe database client          |
 | Authentication       | JWT (RS256)              | Asymmetric token-based auth        |

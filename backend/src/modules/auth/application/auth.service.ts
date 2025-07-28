@@ -26,21 +26,26 @@ export class AuthService {
   async login(data: LoginDtoType, ip: string, userAgent: string) {
     const user = await this.prisma.user.findUnique({
       where: { email: data.email },
+      include: { roles: true }, // optional: useful for future role checks/logs
     });
-
-    if (!user || !user.isActive) {
+  
+    // ❌ Block login if user not found, inactive, or soft-deleted
+    if (!user || !user.isActive || user.deletedAt) {
       await this.auditService.record({
         action: 'LOGIN_ATTEMPT',
         status: 'FAIL',
         module: 'AUTH',
         ipAddress: ip,
         userAgent,
-        details: { email: data.email },
+        details: {
+          email: data.email,
+          reason: user ? 'User is inactive or soft-deleted' : 'User not found',
+        },
       });
-
-      throw new UnauthorizedException('Invalid credentials');
+  
+      throw new UnauthorizedException('Invalid credentials or account disabled');
     }
-
+  
     const match = await verifyPassword(data.password, user.passwordHash);
     if (!match) {
       await this.auditService.record({
@@ -52,15 +57,15 @@ export class AuthService {
         userId: user.id,
         details: { reason: 'Incorrect password' },
       });
-
+  
       throw new UnauthorizedException('Invalid credentials');
     }
-
+  
     const sessionId = randomUUID();
     const refreshToken = signRefreshToken({ userId: user.id, sessionId });
     const accessToken = signAccessToken({ userId: user.id, sessionId });
     const tokenHash = await hashToken(refreshToken);
-
+  
     await this.prisma.userSession.create({
       data: {
         id: sessionId,
@@ -70,7 +75,7 @@ export class AuthService {
         ipAddress: ip,
       },
     });
-
+  
     await this.auditService.record({
       action: 'LOGIN_SUCCESS',
       status: 'SUCCESS',
@@ -80,9 +85,10 @@ export class AuthService {
       userAgent,
       details: { sessionId },
     });
-
+  
     return { accessToken, refreshToken };
   }
+  
 
   async refresh(refreshToken: string, ip: string, userAgent: string) {
     const decoded = verifyToken(refreshToken);

@@ -97,6 +97,8 @@ CREATE TABLE "AuditLog" (
     "userId" TEXT,
     "action" TEXT NOT NULL,
     "module" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'SUCCESS',
+    "details" JSONB,
     "ipAddress" TEXT,
     "userAgent" TEXT,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
