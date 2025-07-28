@@ -4,7 +4,7 @@ import { AuthController } from './infrastructure/auth.controller';
 import { AuthService } from './application/auth.service';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { LoggerModule } from '../../shared/logger/logger.module';
-import { AuthRateLimiter } from '../../shared/middlewares/rate-limit.middleware'; 
+import { AuthRateLimiter } from '../../shared/middlewares/rate-limit.middleware';
 
 @Module({
   imports: [LoggerModule],
@@ -13,8 +13,6 @@ import { AuthRateLimiter } from '../../shared/middlewares/rate-limit.middleware'
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(AuthRateLimiter)
-      .forRoutes('auth'); // ✅ applies to all /auth/* routes
+    consumer.apply(AuthRateLimiter).forRoutes('auth'); // ✅ applies to all /auth/* routes
   }
 }

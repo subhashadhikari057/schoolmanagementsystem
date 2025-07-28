@@ -12,7 +12,7 @@ export async function hashToken(token: string): Promise<string> {
  */
 export async function verifyTokenHash(
   token: string,
-  hash: string
+  hash: string,
 ): Promise<boolean> {
   return await argon2.verify(hash, token);
 }

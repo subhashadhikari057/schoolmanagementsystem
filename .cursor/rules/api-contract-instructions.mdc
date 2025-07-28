@@ -1,0 +1,17 @@
+---
+alwaysApply: true
+---
+📌 Refer to: `/Dev docs/5. API Contract Documentation Modular, Typed, and Secure.md`
+
+- All APIs must match structure:
+  - Endpoint URL
+  - HTTP method
+  - Typed `Request` and `Response`
+  - Error shape
+  - Auth required
+  - Role-specific access levels
+
+- Suggest only documented endpoints — never guess.
+
+Examples:
+- If `POST /students` is defined with `CreateStudentDto`, use exactly that.

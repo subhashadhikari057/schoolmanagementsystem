@@ -29,12 +29,25 @@ export async function createApp() {
   return app;
 }
 
-async function bootstrap() {
-  const app = await createApp();
-  const port = process.env.PORT ?? 8080;
-  await app.listen(port);
-  console.log(`🚀 Server ready at http://localhost:${port}`);
-  console.log('📚 School Management System Backend Started');
+async function bootstrap(): Promise<void> {
+  try {
+    // Validate environment variables before starting the app
+    const { validateEnvironment } = await import(
+      './shared/config/env.validation'
+    );
+    const envConfig = validateEnvironment();
+
+    const app = await createApp();
+    await app.listen(envConfig.PORT);
+    console.log(`🚀 Server ready at http://localhost:${envConfig.PORT}`);
+    console.log('📚 School Management System Backend Started');
+  } catch (error) {
+    console.error(
+      '❌ Failed to start server:',
+      error instanceof Error ? error.message : String(error),
+    );
+    process.exit(1);
+  }
 }
 
-bootstrap();
+void bootstrap();

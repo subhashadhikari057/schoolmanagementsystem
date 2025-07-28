@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
 import { LoginDtoType } from '../dto/auth.dto';
@@ -23,7 +24,11 @@ export class AuthService {
     private readonly auditService: AuditService, // ✅ Injected
   ) {}
 
-  async login(data: LoginDtoType, ip: string, userAgent: string) {
+  async login(
+    data: LoginDtoType,
+    ip: string,
+    userAgent: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -56,10 +61,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const sessionId = randomUUID();
-    const refreshToken = signRefreshToken({ userId: user.id, sessionId });
-    const accessToken = signAccessToken({ userId: user.id, sessionId });
-    const tokenHash = await hashToken(refreshToken);
+    const sessionId: string = randomUUID();
+    const refreshToken: string = signRefreshToken({
+      userId: user.id,
+      sessionId,
+    });
+    const accessToken: string = signAccessToken({ userId: user.id, sessionId });
+    const tokenHash: string = await hashToken(refreshToken);
 
     await this.prisma.userSession.create({
       data: {
@@ -84,8 +92,12 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async refresh(refreshToken: string, ip: string, userAgent: string) {
-    const decoded = verifyToken(refreshToken);
+  async refresh(
+    refreshToken: string,
+    ip: string,
+    userAgent: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const decoded = verifyToken(refreshToken) as any;
     if (!decoded?.userId || !decoded?.sessionId) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
@@ -98,7 +110,10 @@ export class AuthService {
       throw new ForbiddenException('Session not found or revoked');
     }
 
-    const isValid = await verifyTokenHash(refreshToken, session.tokenHash);
+    const isValid: boolean = await verifyTokenHash(
+      refreshToken,
+      session.tokenHash,
+    );
     if (!isValid) {
       throw new UnauthorizedException('Refresh token does not match session');
     }
@@ -111,7 +126,7 @@ export class AuthService {
       userId: decoded.userId,
       sessionId: session.id,
     });
-    const newTokenHash = await hashToken(newRefreshToken);
+    const newTokenHash: string = await hashToken(newRefreshToken);
 
     await this.prisma.userSession.update({
       where: { id: session.id },
@@ -128,20 +143,24 @@ export class AuthService {
     };
   }
 
-  async logout(sessionId: string, ip?: string, userAgent?: string) {
+  async logout(
+    sessionId: string,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<void> {
     const session = await this.prisma.userSession.findUnique({
       where: { id: sessionId },
     });
-  
+
     if (!session || session.revokedAt) {
       throw new BadRequestException('Session not found or already revoked');
     }
-  
+
     await this.prisma.userSession.update({
       where: { id: sessionId },
       data: { revokedAt: new Date() },
     });
-  
+
     await this.auditService.record({
       action: 'LOGOUT',
       status: 'SUCCESS',
@@ -151,5 +170,5 @@ export class AuthService {
       userAgent,
       details: { sessionId },
     });
-  } 
+  }
 }

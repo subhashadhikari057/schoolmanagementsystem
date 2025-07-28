@@ -26,11 +26,15 @@ export class AuthController {
     @Body() body: LoginDto,
     @Req() req: Request,
     @Res() res: Response,
-  ) {
-    const ip = req.ip || 'unknown';
-    const userAgent = req.headers['user-agent'] || 'unknown';
+  ): Promise<Response> {
+    const ip: string = req.ip || 'unknown';
+    const userAgent: string = req.headers['user-agent'] || 'unknown';
 
-    const { accessToken, refreshToken } = await this.authService.login(body, ip, userAgent);
+    const { accessToken, refreshToken } = await this.authService.login(
+      body,
+      ip,
+      userAgent,
+    );
 
     // ✅ Set cookies
     setAuthCookies(res, accessToken, refreshToken);
@@ -43,19 +47,17 @@ export class AuthController {
    */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Req() req: Request, @Res() res: Response) {
-    const refreshToken = req.cookies?.refreshToken;
-    const ip = req.ip || 'unknown';
-    const userAgent = req.headers['user-agent'] || 'unknown';
+  async refresh(@Req() req: Request, @Res() res: Response): Promise<Response> {
+    const refreshToken: string | undefined = req.cookies?.refreshToken;
+    const ip: string = req.ip || 'unknown';
+    const userAgent: string = req.headers['user-agent'] || 'unknown';
 
     if (!refreshToken) {
       return res.status(401).json({ message: 'Missing refresh token' });
     }
 
-    const {
-      accessToken,
-      refreshToken: newRefreshToken,
-    } = await this.authService.refresh(refreshToken, ip, userAgent);
+    const tokens = await this.authService.refresh(refreshToken, ip, userAgent);
+    const { accessToken, refreshToken: newRefreshToken } = tokens;
 
     // ✅ Set new cookies
     setAuthCookies(res, accessToken, newRefreshToken);
@@ -68,22 +70,22 @@ export class AuthController {
    */
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Req() req: Request, @Res() res: Response) {
-    const refreshToken = req.cookies?.refreshToken;
-    const ip = req.ip || 'unknown';
-    const userAgent = req.headers['user-agent'] || 'unknown';
+  async logout(@Req() req: Request, @Res() res: Response): Promise<Response> {
+    const refreshToken: string | undefined = req.cookies?.refreshToken;
+    const ip: string = req.ip || 'unknown';
+    const userAgent: string = req.headers['user-agent'] || 'unknown';
 
     if (!refreshToken) {
       return res.status(400).json({ message: 'Missing refresh token' });
     }
 
-    const decoded = verifyToken(refreshToken);
+    const decoded = verifyToken(refreshToken) as any;
     if (!decoded?.sessionId) {
       return res.status(400).json({ message: 'Invalid refresh token' });
     }
 
     // ✅ Revoke session
-    await this.authService.logout(decoded.sessionId, ip, userAgent);
+    await this.authService.logout(decoded.sessionId as string, ip, userAgent);
 
     // ❌ Clear cookies
     res.clearCookie('accessToken', COOKIE_OPTIONS.accessToken);

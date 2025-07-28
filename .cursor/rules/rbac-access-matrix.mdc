@@ -1,0 +1,12 @@
+---
+alwaysApply: true
+---
+📌 Refer to: `/feature List/*.md` + `1. Auth API Contract.md`
+
+- Every role (SuperAdmin, Teacher, Parent...) has explicit access
+- Access types: C (create), E (edit), V (view), A (approve), D (delete), N (notified)
+
+Examples:
+- Teacher cannot edit exam results unless feature matrix grants 'E' access to `Exams & Results`
+- API suggestions must enforce this access level
+

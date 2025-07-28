@@ -10,7 +10,7 @@ interface RecordAuditOptions {
   status?: 'SUCCESS' | 'FAIL' | 'BLOCKED';
   ipAddress?: string;
   userAgent?: string;
-  details?: Record<string, any>;
+  details?: any;
 }
 
 @Injectable()
