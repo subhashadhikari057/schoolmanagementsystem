@@ -196,8 +196,9 @@ model Teacher {
   updatedById String? @db.Uuid
   deletedById String? @db.Uuid
 
-  profile  TeacherProfile?
-  subjects TeacherSubject[]
+  profile          TeacherProfile?
+  subjects         TeacherSubject[]
+  classAssignments TeacherClass[]
 
   @@index([userId])
   @@index([createdById])
@@ -273,6 +274,51 @@ model TeacherSubject {
   @@unique([teacherId, subjectId])
   @@index([teacherId])
   @@index([subjectId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Class {
+  id      String  @id @default(uuid())
+  name    String // e.g., "Grade 10"
+  section String? // optional, e.g., "A", "B", or null
+
+  teacherAssignments TeacherClass[] // relation to join table
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([name])
+  @@index([section])
+}
+
+model TeacherClass {
+  id        String @id @default(uuid())
+  teacherId String
+  classId   String
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([teacherId, classId])
+  @@index([teacherId])
+  @@index([classId])
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])

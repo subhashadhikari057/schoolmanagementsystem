@@ -4,6 +4,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { SubjectModule } from './modules/subject/subject.module';
 import { TeacherModule } from './modules/teacher/teacher.module';
+import { ClassModule } from './modules/class/class.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { TeacherModule } from './modules/teacher/teacher.module';
     AdminModule, // ✅ Directly imported
     SubjectModule,
     TeacherModule,
+    ClassModule,
   ],
 })
 export class AppModule {}

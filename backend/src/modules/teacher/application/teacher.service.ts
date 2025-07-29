@@ -1,93 +1,94 @@
+// src/modules/teacher/application/teacher.service.ts
+
 import {
-    Injectable,
-    NotFoundException,
-    ConflictException,
-  } from '@nestjs/common';
-  import { PrismaService } from '../../../infrastructure/database/prisma.service';
-  import { AuditService } from '../../../shared/logger/audit.service';
-  import {
-    CreateTeacherDtoType,
-    UpdateTeacherByAdminDtoType,
-    UpdateTeacherSelfDtoType,
-  } from '../dto/teacher.dto';
-  import { hashPassword } from '../../../shared/auth/hash.util';
-  import { generateRandomPassword } from '../../../shared/utils/password.util';
-  
-  @Injectable()
-  export class TeacherService {
-    constructor(
-      private readonly prisma: PrismaService,
-      private readonly audit: AuditService,
-    ) {}
-    async create(dto: CreateTeacherDtoType, createdBy: string, ip?: string, userAgent?: string) {
-        const { user, profile } = dto;
-    
-        const existingUser = await this.prisma.user.findUnique({
-          where: { email: user.email },
-        });
-        if (existingUser) throw new ConflictException('Email already exists');
-    
-        const rawPassword = user.password || generateRandomPassword();
-        const passwordHash = await hashPassword(rawPassword);
-    
-        const newUser = await this.prisma.user.create({
-          data: {
-            email: user.email,
-            phone: user.phone,
-            fullName: user.fullName,
-            passwordHash,
-            createdById: createdBy,
-            roles: {
-              create: { role: { connect: { name: 'TEACHER' } } },
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
+import { PrismaService } from '../../../infrastructure/database/prisma.service';
+import { AuditService } from '../../../shared/logger/audit.service';
+import {
+  CreateTeacherDtoType,
+  UpdateTeacherByAdminDtoType,
+  UpdateTeacherSelfDtoType,
+} from '../dto/teacher.dto';
+import { hashPassword } from '../../../shared/auth/hash.util';
+import { generateRandomPassword } from '../../../shared/utils/password.util';
+
+@Injectable()
+export class TeacherService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
+
+  async create(dto: CreateTeacherDtoType, createdBy: string, ip?: string, userAgent?: string) {
+    const { user, profile } = dto;
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: user.email },
+    });
+    if (existingUser) throw new ConflictException('Email already exists');
+
+    const rawPassword = user.password || generateRandomPassword();
+    const passwordHash = await hashPassword(rawPassword);
+
+    const newUser = await this.prisma.user.create({
+      data: {
+        email: user.email,
+        phone: user.phone,
+        fullName: user.fullName,
+        passwordHash,
+        createdById: createdBy,
+        roles: {
+          create: { role: { connect: { name: 'TEACHER' } } },
+        },
+      },
+    });
+
+    const newTeacher = await this.prisma.teacher.create({
+      data: {
+        userId: newUser.id,
+        qualification: profile.qualification,
+        designation: profile.designation,
+        employmentDate: new Date(profile.dateOfJoining),
+        createdById: createdBy,
+        profile: {
+          create: {
+            bio: profile.bio,
+            contactInfo: {
+              phone: user.phone,
+              email: user.email,
             },
-          },
-        });
-    
-        const newTeacher = await this.prisma.teacher.create({
-          data: {
-            userId: newUser.id,
-            qualification: profile.qualification,
-            designation: profile.designation,
-            employmentDate: new Date(profile.dateOfJoining),
+            socialLinks: profile.socialLinks || {},
             createdById: createdBy,
-            profile: {
-              create: {
-                bio: profile.bio,
-                contactInfo: {
-                  phone: user.phone,
-                  email: user.email,
-                },
-                socialLinks: profile.socialLinks || {},
-                createdById: createdBy,
-              },
-            },
           },
-          include: { profile: true },
-        });
-    
-        await this.audit.record({
-          userId: createdBy,
-          action: 'CREATE_TEACHER',
-          module: 'teacher',
-          status: 'SUCCESS',
-          details: { teacherId: newTeacher.id, userId: newUser.id },
-          ipAddress: ip,
-          userAgent,
-        });
-    
-        return {
-          teacher: {
-            id: newTeacher.id,
-            fullName: newUser.fullName,
-            email: newUser.email,
-            phone: newUser.phone,
-          },
-          temporaryPassword: user.password ? undefined : rawPassword,
-        };
-      }
-        /**
-   * Get list of all active teachers (for admin use)
-   */
+        },
+      },
+      include: { profile: true },
+    });
+
+    await this.audit.record({
+      userId: createdBy,
+      action: 'CREATE_TEACHER',
+      module: 'teacher',
+      status: 'SUCCESS',
+      details: { teacherId: newTeacher.id, userId: newUser.id },
+      ipAddress: ip,
+      userAgent,
+    });
+
+    return {
+      teacher: {
+        id: newTeacher.id,
+        fullName: newUser.fullName,
+        email: newUser.email,
+        phone: newUser.phone,
+      },
+      temporaryPassword: user.password ? undefined : rawPassword,
+    };
+  }
+
   async findAll() {
     return this.prisma.teacher.findMany({
       where: { deletedAt: null },
@@ -106,9 +107,6 @@ import {
     });
   }
 
-  /**
-   * Get teacher by teacher ID (for admin/teacher/student)
-   */
   async findById(id: string) {
     const teacher = await this.prisma.teacher.findUnique({
       where: { id },
@@ -117,22 +115,30 @@ import {
         profile: true,
         subjects: {
           include: {
-            // Add subject relation here when model is defined
+            subject: true, // ✅ Include full subject details
+          },
+        },
+        classAssignments: {
+          include: {
+            class: true, // ✅ Optional: include class details
           },
         },
       },
     });
-
+  
     if (!teacher || teacher.deletedAt) {
       throw new NotFoundException('Teacher not found');
     }
-
-    return teacher;
+  
+    const { classAssignments, ...rest } = teacher;
+  
+    return {
+      ...rest,
+      assignedClasses: classAssignments, 
+    };
   }
+  
 
-  /**
-   * Get teacher by logged-in user ID (for /me)
-   */
   async findByUserId(userId: string) {
     const teacher = await this.prisma.teacher.findFirst({
       where: { userId, deletedAt: null },
@@ -142,16 +148,10 @@ import {
         subjects: true,
       },
     });
-
-    if (!teacher) {
-      throw new NotFoundException('Teacher not found');
-    }
-
+    if (!teacher) throw new NotFoundException('Teacher not found');
     return teacher;
   }
-  /**
-   * Admin or Superadmin updates any teacher
-   */
+
   async updateByAdmin(
     id: string,
     dto: UpdateTeacherByAdminDtoType,
@@ -160,9 +160,7 @@ import {
     userAgent?: string,
   ) {
     const teacher = await this.prisma.teacher.findUnique({ where: { id } });
-    if (!teacher || teacher.deletedAt) {
-      throw new NotFoundException('Teacher not found');
-    }
+    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
 
     if (dto.fullName || dto.email || dto.phone) {
       await this.prisma.user.update({
@@ -201,18 +199,13 @@ import {
     return { message: 'Teacher updated successfully', id };
   }
 
-  /**
-   * Logged-in teacher updates their own limited profile
-   */
   async updateSelf(
     userId: string,
     dto: UpdateTeacherSelfDtoType,
     ip?: string,
     userAgent?: string,
   ) {
-    const teacher = await this.prisma.teacher.findFirst({
-      where: { userId, deletedAt: null },
-    });
+    const teacher = await this.prisma.teacher.findFirst({ where: { userId, deletedAt: null } });
     if (!teacher) throw new NotFoundException('Teacher not found');
 
     if (dto.fullName || dto.phone) {
@@ -249,19 +242,9 @@ import {
     return { message: 'Profile updated successfully' };
   }
 
-  /**
-   * Soft delete teacher and user, revoke sessions
-   */
-  async softDelete(
-    id: string,
-    deletedBy: string,
-    ip?: string,
-    userAgent?: string,
-  ) {
+  async softDelete(id: string, deletedBy: string, ip?: string, userAgent?: string) {
     const teacher = await this.prisma.teacher.findUnique({ where: { id } });
-    if (!teacher || teacher.deletedAt) {
-      throw new NotFoundException('Teacher not found or already deleted');
-    }
+    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found or already deleted');
 
     await this.prisma.teacher.update({
       where: { id },
@@ -297,31 +280,16 @@ import {
 
     return { message: 'Teacher soft-deleted', id };
   }
-  /**
-   * Get subjects assigned to a teacher
-   */
+
   async getSubjects(id: string) {
     const teacher = await this.prisma.teacher.findUnique({
       where: { id },
-      include: {
-        subjects: {
-          include: {
-            // You can later join actual subject details if Subject model exists
-          },
-        },
-      },
+      include: { subjects: true },
     });
-
-    if (!teacher || teacher.deletedAt) {
-      throw new NotFoundException('Teacher not found');
-    }
-
+    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
     return teacher.subjects;
   }
 
-  /**
-   * Assign one or more subjects to a teacher (Admin only)
-   */
   async assignSubjects(
     teacherId: string,
     subjectIds: string[],
@@ -330,9 +298,7 @@ import {
     userAgent?: string,
   ) {
     const teacher = await this.prisma.teacher.findUnique({ where: { id: teacherId } });
-    if (!teacher || teacher.deletedAt) {
-      throw new NotFoundException('Teacher not found');
-    }
+    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
 
     const data = subjectIds.map((subjectId) => ({
       teacherId,
@@ -355,16 +321,9 @@ import {
       userAgent,
     });
 
-    return {
-      message: 'Subjects assigned successfully',
-      teacherId,
-      subjectIds,
-    };
+    return { message: 'Subjects assigned successfully', teacherId, subjectIds };
   }
 
-  /**
-   * Remove a subject assignment from a teacher
-   */
   async removeSubject(
     teacherId: string,
     subjectId: string,
@@ -372,12 +331,7 @@ import {
     ip?: string,
     userAgent?: string,
   ) {
-    await this.prisma.teacherSubject.deleteMany({
-      where: {
-        teacherId,
-        subjectId,
-      },
-    });
+    await this.prisma.teacherSubject.deleteMany({ where: { teacherId, subjectId } });
 
     await this.audit.record({
       userId: actorId,
@@ -392,29 +346,97 @@ import {
     return { message: 'Subject unassigned successfully' };
   }
 
-  /**
-   * Get classes assigned to teacher (stubbed for now)
-   */
-  async getAssignedClasses(teacherId: string) {
-    return { message: 'Class assignment not implemented yet' };
-  }
-
-  /**
-   * Get teacher profile only
-   */
   async getProfileOnly(id: string) {
     const teacher = await this.prisma.teacher.findUnique({
       where: { id },
-      include: {
-        profile: true,
-      },
+      include: { profile: true },
     });
-  
-    if (!teacher || teacher.deletedAt || !teacher.profile) {
-      throw new NotFoundException('Teacher or profile not found');
-    }
-  
+    if (!teacher || teacher.deletedAt || !teacher.profile) throw new NotFoundException('Teacher or profile not found');
     return teacher.profile;
   }
+
+  async assignClasses(
+    teacherId: string,
+    classIds: string[],
+    actorId: string,
+    ip?: string,
+    userAgent?: string,
+  ) {
+    const teacher = await this.prisma.teacher.findUnique({ where: { id: teacherId } });
+    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
+
+    const data = classIds.map((classId) => ({
+      teacherId,
+      classId,
+      createdById: actorId,
+    }));
+
+    await this.prisma.teacherClass.createMany({ data, skipDuplicates: true });
+
+    await this.audit.record({
+      userId: actorId,
+      action: 'ASSIGN_CLASSES',
+      module: 'teacher',
+      status: 'SUCCESS',
+      details: { teacherId, classIds },
+      ipAddress: ip,
+      userAgent,
+    });
+
+    return { message: 'Classes assigned successfully', teacherId, classIds };
+  }
+
+  async getAssignedClasses(teacherId: string) {
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { id: teacherId },
+      include: {
+        classAssignments: { include: { class: true } },
+      },
+    });
+    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
+    return teacher.classAssignments.map((a) => a.class);
+  }
+
+  async removeClass(
+    teacherId: string,
+    classId: string,
+    actorId: string,
+    ip?: string,
+    userAgent?: string,
+  ) {
+    await this.prisma.teacherClass.deleteMany({ where: { teacherId, classId } });
+
+    await this.audit.record({
+      userId: actorId,
+      action: 'REMOVE_CLASS',
+      module: 'teacher',
+      status: 'SUCCESS',
+      details: { teacherId, classId },
+      ipAddress: ip,
+      userAgent,
+    });
+
+    return { message: 'Class unassigned successfully' };
+  }
+
+  async removeAllClasses(
+    teacherId: string,
+    actorId: string,
+    ip?: string,
+    userAgent?: string,
+  ) {
+    await this.prisma.teacherClass.deleteMany({ where: { teacherId } });
+
+    await this.audit.record({
+      userId: actorId,
+      action: 'REMOVE_ALL_CLASSES',
+      module: 'teacher',
+      status: 'SUCCESS',
+      details: { teacherId },
+      ipAddress: ip,
+      userAgent,
+    });
+
+    return { message: 'All classes unassigned successfully' };
+  }
 }
-  
