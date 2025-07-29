@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =========================
+// 🔐 Core User Management
+// =========================
+
 model User {
   id           String  @id @default(uuid())
   email        String  @unique
@@ -29,6 +33,8 @@ model User {
   roles     UserRole[]
   sessions  UserSession[]
   auditLogs AuditLog[] // ✅ link to audit logs
+
+  teacher Teacher? // 👈 linked if user is a teacher
 
   @@index([createdById])
   @@index([updatedById])
@@ -142,10 +148,10 @@ model UserSession {
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String?
-  action    String 
-  module    String? 
-  status    String   @default("SUCCESS") 
-  details   Json?                       
+  action    String
+  module    String?
+  status    String   @default("SUCCESS")
+  details   Json?
   ipAddress String?
   userAgent String?
   timestamp DateTime @default(now())
@@ -156,4 +162,118 @@ model AuditLog {
   @@index([action])
   @@index([module])
   @@index([timestamp])
+}
+
+// =========================
+// 🧑‍🏫 Teacher Module
+// =========================
+
+enum TeacherEmploymentStatus {
+  active
+  on_leave
+  resigned
+  terminated
+}
+
+model Teacher {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  designation      String?
+  qualification    String?
+  employmentDate   DateTime?
+  employmentStatus TeacherEmploymentStatus @default(active)
+
+  department         String?
+  additionalMetadata Json?   @default("{}")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  profile  TeacherProfile?
+  subjects TeacherSubject[]
+
+  @@index([userId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model TeacherProfile {
+  id        String  @id @default(uuid())
+  teacherId String  @unique
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  bio             String?
+  profilePhotoUrl String?
+  contactInfo     Json    @default("{}")
+  socialLinks     Json    @default("{}")
+  additionalData  Json    @default("{}")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([teacherId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Subject {
+  id          String  @id @default(uuid())
+  name        String
+  code        String  @unique
+  description String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  teacherSubjects TeacherSubject[]
+
+  @@index([code])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model TeacherSubject {
+  id        String  @id @default(uuid())
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade) // ✅ Link Subject
+
+  assignedAt DateTime @default(now())
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([teacherId, subjectId])
+  @@index([teacherId])
+  @@index([subjectId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
 }
