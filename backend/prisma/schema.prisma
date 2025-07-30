@@ -32,9 +32,9 @@ model User {
 
   roles     UserRole[]
   sessions  UserSession[]
-  auditLogs AuditLog[] // ✅ link to audit logs
+  auditLogs AuditLog[]
 
-  teacher Teacher? // 👈 linked if user is a teacher
+  teacher Teacher?
 
   @@index([createdById])
   @@index([updatedById])
@@ -259,7 +259,7 @@ model TeacherSubject {
   teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   subjectId String
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade) // ✅ Link Subject
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   assignedAt DateTime @default(now())
 
@@ -279,12 +279,16 @@ model TeacherSubject {
   @@index([deletedById])
 }
 
+// =========================
+// 🏫 Class & Section Module
+// =========================
+
 model Class {
   id      String  @id @default(uuid())
-  name    String // e.g., "Grade 10"
-  section String? // optional, e.g., "A", "B", or null
+  name    String  // e.g., "Grade 10"
 
-  teacherAssignments TeacherClass[] // relation to join table
+  sections Section[]
+  teacherAssignments TeacherClass[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -295,16 +299,43 @@ model Class {
   deletedById String? @db.Uuid
 
   @@index([name])
-  @@index([section])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Section {
+  id      String  @id @default(uuid())
+  name    String
+  classId String
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  teacherAssignments TeacherClass[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([name, classId])
+  @@index([classId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
 }
 
 model TeacherClass {
   id        String @id @default(uuid())
   teacherId String
   classId   String
+  sectionId String?
 
   teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
 
   assignedAt DateTime @default(now())
 
@@ -316,9 +347,10 @@ model TeacherClass {
   updatedById String? @db.Uuid
   deletedById String? @db.Uuid
 
-  @@unique([teacherId, classId])
+  @@unique([teacherId, classId, sectionId])
   @@index([teacherId])
   @@index([classId])
+  @@index([sectionId])
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
