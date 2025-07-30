@@ -5,7 +5,6 @@ import { z } from 'zod';
 // ---------------------------
 export const CreateClassDto = z.object({
   name: z.string().min(1, 'Class name is required'), // e.g. "Grade 10"
-  section: z.string().min(1).max(10).optional(),     // e.g. "A", "B", or undefined
 });
 
 export type CreateClassDtoType = z.infer<typeof CreateClassDto>;
@@ -15,7 +14,6 @@ export type CreateClassDtoType = z.infer<typeof CreateClassDto>;
 // ---------------------------
 export const UpdateClassDto = z.object({
   name: z.string().min(1).optional(),
-  section: z.string().min(1).max(10).optional(),
 });
 
 export type UpdateClassDtoType = z.infer<typeof UpdateClassDto>;

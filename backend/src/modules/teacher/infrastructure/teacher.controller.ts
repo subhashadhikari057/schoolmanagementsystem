@@ -1,5 +1,3 @@
-// src/modules/teacher/infrastructure/teacher.controller.ts
-
 import {
   Controller,
   Post,
@@ -12,6 +10,7 @@ import {
   UseGuards,
   HttpStatus,
   HttpCode,
+  Query,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { TeacherService } from '../application/teacher.service';
@@ -26,6 +25,7 @@ import {
 import {
   AssignTeacherClassesDto,
   AssignTeacherClassesDtoType,
+  RemoveTeacherClassDto,
 } from '../dto/teacher-classes.dto.ts';
 import {
   AssignSubjectsDto,
@@ -189,7 +189,7 @@ export class TeacherController {
   ) {
     return this.teacherService.assignClasses(
       id,
-      body.classIds,
+      body.assignments, // ✅ updated field from new DTO
       user.id,
       req.ip,
       req.headers['user-agent'],
@@ -201,6 +201,7 @@ export class TeacherController {
   async unassignClass(
     @Param('id') id: string,
     @Param('classId') classId: string,
+    @Query('sectionId') sectionId: string | undefined,
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
@@ -210,6 +211,7 @@ export class TeacherController {
       user.id,
       req.ip,
       req.headers['user-agent'],
+      sectionId,
     );
   }
 
@@ -217,6 +219,8 @@ export class TeacherController {
   @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
   async unassignAllClasses(
     @Param('id') id: string,
+    @Query('classId') classId: string | undefined,
+    @Query('sectionId') sectionId: string | undefined,
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
@@ -225,6 +229,8 @@ export class TeacherController {
       user.id,
       req.ip,
       req.headers['user-agent'],
+      classId,
+      sectionId,
     );
   }
 

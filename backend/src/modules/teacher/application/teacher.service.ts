@@ -357,45 +357,104 @@ export class TeacherService {
 
   async assignClasses(
     teacherId: string,
-    classIds: string[],
+    assignments: { classId: string; sectionId?: string }[],
     actorId: string,
     ip?: string,
     userAgent?: string,
   ) {
-    const teacher = await this.prisma.teacher.findUnique({ where: { id: teacherId } });
-    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
-
-    const data = classIds.map((classId) => ({
-      teacherId,
-      classId,
-      createdById: actorId,
-    }));
-
-    await this.prisma.teacherClass.createMany({ data, skipDuplicates: true });
-
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { id: teacherId },
+    });
+  
+    if (!teacher || teacher.deletedAt) {
+      throw new NotFoundException('Teacher not found');
+    }
+  
+    // Validate and prepare data
+    const validatedAssignments: {
+      teacherId: string;
+      classId: string;
+      sectionId?: string | null;
+      createdById: string;
+    }[] = [];
+  
+    for (const { classId, sectionId } of assignments) {
+      const classRecord = await this.prisma.class.findUnique({
+        where: { id: classId },
+      });
+      if (!classRecord || classRecord.deletedAt) {
+        throw new NotFoundException(`Class not found: ${classId}`);
+      }
+  
+      if (sectionId) {
+        const sectionRecord = await this.prisma.section.findUnique({
+          where: { id: sectionId },
+        });
+        if (!sectionRecord || sectionRecord.deletedAt) {
+          throw new NotFoundException(`Section not found: ${sectionId}`);
+        }
+        if (sectionRecord.classId !== classId) {
+          throw new ConflictException(`Section ${sectionId} does not belong to Class ${classId}`);
+        }
+      }
+  
+      validatedAssignments.push({
+        teacherId,
+        classId,
+        sectionId: sectionId ?? null,
+        createdById: actorId,
+      });
+    }
+  
+    // Perform bulk insert
+    await this.prisma.teacherClass.createMany({
+      data: validatedAssignments,
+      skipDuplicates: true,
+    });
+  
+    // Record audit
     await this.audit.record({
       userId: actorId,
       action: 'ASSIGN_CLASSES',
       module: 'teacher',
       status: 'SUCCESS',
-      details: { teacherId, classIds },
+      details: { teacherId, assignments },
       ipAddress: ip,
       userAgent,
     });
-
-    return { message: 'Classes assigned successfully', teacherId, classIds };
+  
+    return {
+      message: 'Classes assigned successfully',
+      teacherId,
+      assignments,
+    };
   }
+  
+
 
   async getAssignedClasses(teacherId: string) {
     const teacher = await this.prisma.teacher.findUnique({
       where: { id: teacherId },
       include: {
-        classAssignments: { include: { class: true } },
+        classAssignments: {
+          where: { deletedAt: null },
+          include: {
+            class: true,
+            section: true, // ✅ Include section info
+          },
+        },
       },
     });
-    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
-    return teacher.classAssignments.map((a) => a.class);
+  
+    if (!teacher || teacher.deletedAt)
+      throw new NotFoundException('Teacher not found');
+  
+    return teacher.classAssignments.map((assignment) => ({
+      class: assignment.class,
+      section: assignment.section ?? null, // may be null
+    }));
   }
+  
 
   async removeClass(
     teacherId: string,
@@ -403,40 +462,57 @@ export class TeacherService {
     actorId: string,
     ip?: string,
     userAgent?: string,
+    sectionId?: string, // ✅ optional
   ) {
-    await this.prisma.teacherClass.deleteMany({ where: { teacherId, classId } });
-
+    await this.prisma.teacherClass.deleteMany({
+      where: {
+        teacherId,
+        classId,
+        sectionId: sectionId ?? null, // ✅ match null if not provided
+      },
+    });
+  
     await this.audit.record({
       userId: actorId,
       action: 'REMOVE_CLASS',
       module: 'teacher',
       status: 'SUCCESS',
-      details: { teacherId, classId },
+      details: { teacherId, classId, sectionId },
       ipAddress: ip,
       userAgent,
     });
-
+  
     return { message: 'Class unassigned successfully' };
   }
+  
 
   async removeAllClasses(
     teacherId: string,
     actorId: string,
     ip?: string,
     userAgent?: string,
+    classId?: string,
+    sectionId?: string,
   ) {
-    await this.prisma.teacherClass.deleteMany({ where: { teacherId } });
-
+    const where: any = { teacherId };
+    if (classId) where.classId = classId;
+    if (sectionId) where.sectionId = sectionId;
+  
+    await this.prisma.teacherClass.deleteMany({ where });
+  
     await this.audit.record({
       userId: actorId,
       action: 'REMOVE_ALL_CLASSES',
       module: 'teacher',
       status: 'SUCCESS',
-      details: { teacherId },
+      details: { teacherId, classId, sectionId },
       ipAddress: ip,
       userAgent,
     });
-
-    return { message: 'All classes unassigned successfully' };
-  }
+  
+    return {
+      message: 'Classes unassigned successfully',
+      filters: { classId, sectionId },
+    };
+  }  
 }
