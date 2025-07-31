@@ -11,8 +11,8 @@ import { StudentModule } from './modules/student/student.module';
 @Module({
   imports: [
     DatabaseModule,
-    AuthModule,  // ✅ Directly imported
-    AdminModule, // ✅ Directly imported
+    AuthModule,
+    AdminModule,
     SubjectModule,
     TeacherModule,
     ClassModule,

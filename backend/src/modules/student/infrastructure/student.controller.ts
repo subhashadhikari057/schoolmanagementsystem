@@ -89,6 +89,41 @@ export class StudentController {
     return this.studentService.findAll(query);
   }
 
+  // 🔹 Get all parents (paginated) - MOVED UP before parameterized routes
+  @Get('parents')
+  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  async getAllParents(
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+    @Query('search') search?: string,
+  ) {
+    return this.studentService.getAllParents(Number(page), Number(limit), search);
+  }
+
+  // 🔹 Get children (for parent user) - MOVED UP before parameterized routes
+  @Get('me/children')
+  @UseGuards(hasRole('PARENT'))
+  async getChildren(@CurrentUser() user: any) {
+    return this.studentService.findChildrenOfParent(user.id);
+  }
+
+  // 🔹 Student self-update (basic info) - MOVED UP before parameterized routes
+  @Patch('me')
+  @UseGuards(hasRole('STUDENT'))
+  async updateSelf(
+    @Body(new ZodValidationPipe(CombinedSelfUpdateDto))
+    body: CombinedSelfUpdateDtoType,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ) {
+    return this.studentService.updateSelf(
+      user.id,
+      body,
+      req.ip,
+      req.headers['user-agent'],
+    );
+  }
+
   // 🔹 Get single student by ID
   @Get(':id')
   @UseGuards(hasRole('SUPERADMIN', 'ADMIN', 'TEACHER', 'PARENT', 'STUDENT'))
@@ -109,33 +144,6 @@ export class StudentController {
     });
   }
 
-
-   // 🔹 Student self-update (basic info)
-@Patch('me')
-@UseGuards(hasRole('STUDENT'))
-async updateSelf(
-  @Body(new ZodValidationPipe(CombinedSelfUpdateDto))
-  body: CombinedSelfUpdateDtoType,
-  @CurrentUser() user: any,
-  @Req() req: Request,
-) {
-  return this.studentService.updateSelf(
-    user.id,
-    body,
-    req.ip,
-    req.headers['user-agent'],
-  );
-}
-    // 🔹 Get all parents (paginated)
-    @Get('/parents')
-    @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
-    async getAllParents(
-      @Query('page') page = '1',
-      @Query('limit') limit = '20',
-      @Query('search') search?: string,
-    ) {
-      return this.studentService.getAllParents(Number(page), Number(limit), search);
-    }
 
   // 🔹 Admin update student
   @Patch(':id')
@@ -194,12 +202,7 @@ async updateSelf(
     );
   }
 
-  // 🔹 Get children (for parent user)
-  @Get('me/children')
-  @UseGuards(hasRole('PARENT'))
-  async getChildren(@CurrentUser() user: any) {
-    return this.studentService.findChildrenOfParent(user.id);
-  }
+
 
   // 🔹 Get linked parents
   @Get(':id/parents')

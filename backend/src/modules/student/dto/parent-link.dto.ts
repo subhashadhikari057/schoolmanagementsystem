@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const CreateParentLinkDto = z.object({
   parentId: z.string().uuid({ message: 'Invalid parent ID' }),
+  relationship: z.string().min(1, 'Relationship is required'),
   isPrimary: z.boolean().optional().default(false),
 });
 

@@ -429,8 +429,9 @@ model StudentProfile {
 model ParentStudentLink {
   id String @id @default(uuid())
 
-  parentId String
-  parent   User   @relation("ParentLink", fields: [parentId], references: [id], onDelete: Cascade)
+  // ✅ Make parentId optional
+  parentId String?
+  parent   User?   @relation("ParentLink", fields: [parentId], references: [id], onDelete: Cascade)
 
   studentId String
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -438,6 +439,11 @@ model ParentStudentLink {
   relationship String?
   isPrimary    Boolean  @default(false)
   linkedAt     DateTime @default(now())
+
+  // ✅ New fields to support non-primary parent contact
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -454,3 +460,4 @@ model ParentStudentLink {
   @@index([updatedById])
   @@index([deletedById])
 }
+

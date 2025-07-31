@@ -67,7 +67,7 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
         },
       });
     
-      // ✅ 5. Optionally create student profile
+      // 5. Create profile if provided
       if (
         profile &&
         (profile.bio ||
@@ -89,24 +89,20 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
         });
       }
     
-      // 6. Handle parent creation + linking
+      // 6. Handle parents
       let primaryParentUser: any = null;
       let primaryParentPassword: string | undefined = undefined;
     
       for (const parent of parents) {
-        const existingParentUser = await this.prisma.user.findUnique({
-          where: { email: parent.email },
-        });
+        if (parent.isPrimary) {
+          const existingParentUser = await this.prisma.user.findUnique({
+            where: { email: parent.email },
+          });
     
-        let parentUserId: string | undefined;
-    
-        if (existingParentUser) {
-          parentUserId = existingParentUser.id;
-        } else if (parent.isPrimary) {
           const rawPassword = generateRandomPassword();
           const hashedPassword = await hashPassword(rawPassword);
     
-          const newParentUser = await this.prisma.user.create({
+          const parentUser = existingParentUser || await this.prisma.user.create({
             data: {
               email: parent.email,
               phone: parent.phone,
@@ -122,33 +118,36 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
             },
           });
     
-          parentUserId = newParentUser.id;
-          primaryParentUser = newParentUser;
-          primaryParentPassword = rawPassword;
-        }
-    
-        // Link parent to student if parentUserId exists
-        if (parentUserId) {
-          await this.prisma.parentStudentLink.upsert({
-            where: {
-              parentId_studentId: {
-                parentId: parentUserId,
-                studentId: newStudent.id,
-              },
-            },
-            update: {},
-            create: {
-              parentId: parentUserId,
+          await this.prisma.parentStudentLink.create({
+            data: {
+              parentId: parentUser.id,
               studentId: newStudent.id,
               relationship: parent.relationship,
-              isPrimary: parent.isPrimary,
+              isPrimary: true,
+              createdById: createdBy,
+            },
+          });
+    
+          primaryParentUser = parentUser;
+          primaryParentPassword = rawPassword;
+        } else {
+          // Store as contact-only parent (no User)
+          await this.prisma.parentStudentLink.create({
+            data: {
+              parentId: null,
+              studentId: newStudent.id,
+              relationship: parent.relationship,
+              isPrimary: false,
+              contactName: parent.fullName,
+              contactEmail: parent.email,
+              contactPhone: parent.phone,
               createdById: createdBy,
             },
           });
         }
       }
     
-      // 7. Audit
+      // 7. Audit log
       await this.audit.record({
         userId: createdBy,
         action: 'CREATE_STUDENT',
@@ -242,7 +241,20 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
             },
             class: true,
             section: true,
-            profile: true, // include profile if exists
+            profile: true,
+            parents: {
+              where: { deletedAt: null },
+              include: {
+                parent: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                    phone: true,
+                  },
+                },
+              },
+            },
           },
         });
       
@@ -250,13 +262,10 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
           throw new NotFoundException('Student not found');
       
         const { id: userId, roleNames } = currentUser;
-      
         const isAdminOrTeacher = roleNames.some((r) =>
           ['SUPERADMIN', 'ADMIN', 'TEACHER'].includes(r),
         );
-      
         const isSelf = student.userId === userId;
-      
         const isParent = roleNames.includes('PARENT');
         const isLinkedParent = isParent
           ? await this.prisma.parentStudentLink.findFirst({
@@ -273,14 +282,23 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
           email: student.user.email,
           phone: student.user.phone,
           rollNumber: student.rollNumber,
-          class: student.class,
-          section: student.section,
           dob: student.dob,
           gender: student.gender,
+          class: student.class,
+          section: student.section,
           profile: student.profile,
           additionalMetadata: student.additionalMetadata,
+          parents: student.parents.map((link) => ({
+            id: link.parent?.id ?? null,
+            fullName: link.parent?.fullName ?? link.contactName ?? 'Unknown',
+            email: link.parent?.email ?? link.contactEmail ?? 'Unknown',
+            phone: link.parent?.phone ?? link.contactPhone ?? 'Unknown',
+            relationship: link.relationship,
+            isPrimary: link.isPrimary,
+          })),
         };
       }
+      
       
 
 
@@ -491,7 +509,7 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
 
   //parents links
 
-  async addParentToStudent(
+    async addParentToStudent(
     studentId: string,
     dto: CreateParentLinkDtoType,
     actorId: string,
@@ -503,28 +521,29 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
       include: { parents: true },
     });
     if (!student || student.deletedAt) throw new NotFoundException('Student not found');
-  
+
     const existingLink = await this.prisma.parentStudentLink.findFirst({
       where: { studentId, parentId: dto.parentId },
     });
     if (existingLink) throw new ConflictException('Parent already linked');
-  
+
     if (dto.isPrimary) {
       await this.prisma.parentStudentLink.updateMany({
         where: { studentId },
         data: { isPrimary: false },
       });
     }
-  
+
     await this.prisma.parentStudentLink.create({
       data: {
         studentId,
         parentId: dto.parentId,
+        relationship: dto.relationship,
         isPrimary: dto.isPrimary || false,
         createdById: actorId,
       },
     });
-  
+
     await this.audit.record({
       userId: actorId,
       action: 'ADD_PARENT_LINK',
@@ -534,7 +553,7 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
       ipAddress: ip,
       userAgent,
     });
-  
+
     return { message: 'Parent linked successfully' };
   }
 
@@ -624,12 +643,13 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
       throw new NotFoundException('Student not found');
   
     return student.parents.map((link) => ({
-      id: link.parent.id,
-      fullName: link.parent.fullName,
-      email: link.parent.email,
-      phone: link.parent.phone,
+      id: link.parent?.id ?? null,
+      fullName: link.parent?.fullName ?? link.contactName ?? 'Unknown',
+      email: link.parent?.email ?? link.contactEmail ?? 'Unknown',
+      phone: link.parent?.phone ?? link.contactPhone ?? 'Unknown',
+      relationship: link.relationship,
       isPrimary: link.isPrimary,
-    }));
+    }));    
   }
   
 
@@ -777,6 +797,22 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          parentLinks: {
+            select: {
+              studentId: true,
+              student: {
+                select: {
+                  user: {
+                    select: {
+                      fullName: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       }),
       this.prisma.user.count({ where }),
     ]);
