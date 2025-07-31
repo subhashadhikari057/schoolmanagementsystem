@@ -4,7 +4,7 @@ import * as argon2 from 'argon2';
 const prisma = new PrismaClient();
 
 async function main() {
-  const roleNames = ['SUPERADMIN', 'ADMIN', 'TEACHER'];
+  const roleNames = ['SUPERADMIN', 'ADMIN', 'TEACHER', 'STUDENT', 'PARENT'];
 
   // 1. Create roles
   for (const role of roleNames) {

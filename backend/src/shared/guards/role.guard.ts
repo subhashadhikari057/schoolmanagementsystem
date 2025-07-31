@@ -19,6 +19,9 @@ export function hasRole(...requiredRoles: string[]): any {
       const isAuthorized = userRoles.some((r) =>
         requiredRoles.includes(r.role?.name),
       );
+      console.log('🔐 Requiredd Roles:', requiredRoles);
+      console.log('👤 User Roles:', userRoles);
+
 
       if (!isAuthorized) {
         throw new ForbiddenException('You do not have permission');
