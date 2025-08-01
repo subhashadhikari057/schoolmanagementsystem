@@ -1,6 +1,6 @@
-﻿// templates/LoginPageLayout.tsx or pages/login.tsx
-import BannerSlider from "@/components/organisms/BannerSlider";
-import Form from "@/components/organisms/LoginForm";
+// templates/LoginPageLayout.tsx or pages/login.tsx
+import BannerSlider from "@/components/organisms/content/BannerSlider";
+import Form from "@/components/organisms/auth/LoginForm";
 import { authCarouselBanners } from "@/constants/carouselData";
 
 export default function ForgotPasswordPage() {
@@ -39,3 +39,6 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+
+
+

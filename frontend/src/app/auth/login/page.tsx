@@ -1,6 +1,6 @@
 // templates/LoginPageLayout.tsx or pages/login.tsx
-import LoginForm from "@/components/organisms/LoginForm";
-import BannerSlider from "@/components/organisms/BannerSlider";
+import LoginForm from "@/components/organisms/auth/LoginForm";
+import BannerSlider from "@/components/organisms/content/BannerSlider";
 import { authCarouselBanners } from "@/constants/carouselData";
 
 export default function LoginPage() {
@@ -33,3 +33,6 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
+
