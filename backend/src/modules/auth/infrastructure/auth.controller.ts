@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from '../application/auth.service';
-import { LoginDto } from '../dto/auth.dto';
+import { LoginDto, ForceChangePasswordDto } from '../dto/auth.dto';
 import { setAuthCookies, COOKIE_OPTIONS } from '../../../shared/auth/cookie';
 import { verifyToken } from '../../../shared/auth/jwt.util';
 
@@ -34,13 +34,24 @@ export class AuthController {
     const ip = req.ip || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    const { accessToken, refreshToken } = await this.authService.login(
+    const result = await this.authService.login(
       body,
       ip,
       userAgent,
     );
 
-    // ✅ Set cookies in browser
+    // ✅ Check if password change is required
+    if ('requirePasswordChange' in result && result.requirePasswordChange) {
+      return res.status(200).json({
+        message: result.message,
+        requirePasswordChange: true,
+        tempToken: result.tempToken,
+        userInfo: result.userInfo,
+      });
+    }
+
+    // ✅ Normal login - set cookies in browser
+    const { accessToken, refreshToken } = result;
     setAuthCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({ message: 'Login successful' });
@@ -98,5 +109,30 @@ export class AuthController {
     res.clearCookie('refreshToken', COOKIE_OPTIONS.refreshToken);
 
     return res.status(200).json({ message: 'Logged out successfully' });
+  }
+
+  /**
+   * 🔄 Force password change endpoint
+   * Allows users to change password when required after login with temp token
+   */
+  @Post('change-password-forced')
+  @HttpCode(HttpStatus.OK)
+  async forceChangePassword(
+    @Body() body: ForceChangePasswordDto,
+    @Req() req: Request,
+  ) {
+    const ip = req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    const result = await this.authService.forceChangePassword(
+      body,
+      ip,
+      userAgent,
+    );
+
+    return {
+      message: result.message,
+      success: result.success,
+    };
   }
 }

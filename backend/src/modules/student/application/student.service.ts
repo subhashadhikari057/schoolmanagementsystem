@@ -60,6 +60,7 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
               fullName: user.fullName,
               passwordHash,
               isActive: true,
+              needPasswordChange: user.password ? false : true, // ✅ Force change if auto-generated
               createdById: createdBy,
               roles: {
                 create: {
@@ -122,6 +123,7 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
                   fullName: parent.fullName,
                   passwordHash: parentPasswordHash,
                   isActive: true,
+                  needPasswordChange: parent.password ? false : true, // ✅ Force change if auto-generated
                   createdById: createdBy,
                   roles: {
                     create: {
@@ -311,6 +313,7 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
               fullName: user.fullName,
               passwordHash,
               isActive: true,
+              needPasswordChange: user.password ? false : true, // ✅ Force change if auto-generated
               createdById: createdBy,
               roles: {
                 create: {
@@ -1008,6 +1011,7 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
               fullName: targetParentLink.contactName || 'Unknown',
               passwordHash,
               isActive: true,
+              needPasswordChange: password ? false : true, // ✅ Force change if auto-generated
               createdById: actorId,
               roles: {
                 create: {
