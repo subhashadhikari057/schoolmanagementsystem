@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Controller,
   Post,
@@ -59,10 +61,8 @@ export class AuthController {
       return res.status(401).json({ message: 'Missing refresh token' });
     }
 
-    const {
-      accessToken,
-      refreshToken: newRefreshToken,
-    } = await this.authService.refresh(refreshToken, ip, userAgent);
+    const { accessToken, refreshToken: newRefreshToken } =
+      await this.authService.refresh(refreshToken, ip, userAgent);
 
     // ✅ Set new cookies
     setAuthCookies(res, accessToken, newRefreshToken);

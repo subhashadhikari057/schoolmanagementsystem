@@ -46,7 +46,7 @@ export class TeacherController {
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body(new ZodValidationPipe(CreateTeacherDto)) body: CreateTeacherDtoType,
-    @CurrentUser() user: any,
+    @CurrentUser() user: { id: string }, // FIXME: implement proper type definition for user
     @Req() req: Request,
   ) {
     const result = await this.teacherService.create(
