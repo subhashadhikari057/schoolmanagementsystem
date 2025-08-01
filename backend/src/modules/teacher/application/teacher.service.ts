@@ -1,19 +1,17 @@
-// src/modules/teacher/application/teacher.service.ts
-
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
-  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
+import { hashPassword } from '../../../shared/auth/hash.util';
 import { AuditService } from '../../../shared/logger/audit.service';
+import { generateRandomPassword } from '../../../shared/utils/password.util';
 import {
   CreateTeacherDtoType,
   UpdateTeacherByAdminDtoType,
   UpdateTeacherSelfDtoType,
 } from '../dto/teacher.dto';
-import { hashPassword } from '../../../shared/auth/hash.util';
-import { generateRandomPassword } from '../../../shared/utils/password.util';
 
 @Injectable()
 export class TeacherService {
@@ -22,68 +20,93 @@ export class TeacherService {
     private readonly audit: AuditService,
   ) {}
 
-  async create(dto: CreateTeacherDtoType, createdBy: string, ip?: string, userAgent?: string) {
+  async create(
+    dto: CreateTeacherDtoType,
+    createdBy: string,
+    ip?: string,
+    userAgent?: string,
+  ) {
     const { user, profile } = dto;
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email: user.email },
     });
-    if (existingUser) throw new ConflictException('Email already exists');
+    if (existingUser)
+      throw new ConflictException('User with this email already exists');
+
+    if (user.phone && user.phone !== '') {
+      const existingUserPhone = await this.prisma.user.findUnique({
+        where: { phone: user.phone },
+      });
+      if (existingUserPhone)
+        throw new ConflictException(
+          'User with this phone number already exists',
+        );
+    }
 
     const rawPassword = user.password || generateRandomPassword();
     const passwordHash = await hashPassword(rawPassword);
 
-    const newUser = await this.prisma.user.create({
-      data: {
-        email: user.email,
-        phone: user.phone,
-        fullName: user.fullName,
-        passwordHash,
-        createdById: createdBy,
-        roles: {
-          create: { role: { connect: { name: 'TEACHER' } } },
-        },
-      },
-    });
-
-    const newTeacher = await this.prisma.teacher.create({
-      data: {
-        userId: newUser.id,
-        qualification: profile.qualification,
-        designation: profile.designation,
-        employmentDate: new Date(profile.dateOfJoining),
-        createdById: createdBy,
-        profile: {
-          create: {
-            bio: profile.bio,
-            contactInfo: {
-              phone: user.phone,
-              email: user.email,
-            },
-            socialLinks: profile.socialLinks || {},
+    const { teacher, teacherUser } = await this.prisma.$transaction(
+      async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            email: user.email,
+            phone: user.phone,
+            fullName: user.fullName,
+            passwordHash,
             createdById: createdBy,
+            roles: {
+              create: { role: { connect: { name: 'TEACHER' } } },
+            },
+            needPasswordChange: user.password ? false : true, // in case of user created with temporary password
           },
-        },
+        });
+        const newTeacher = await tx.teacher.create({
+          data: {
+            userId: newUser.id,
+            qualification: profile.qualification,
+            designation: profile.designation,
+            employmentDate: new Date(profile.dateOfJoining),
+            createdById: createdBy,
+            profile: {
+              create: {
+                bio: profile.bio,
+                contactInfo: {
+                  phone: user.phone,
+                  email: user.email,
+                },
+                socialLinks: profile.socialLinks || {},
+                createdById: createdBy,
+              },
+            },
+          },
+          include: { profile: true },
+        });
+
+        return {
+          teacher: newTeacher,
+          teacherUser: newUser,
+        };
       },
-      include: { profile: true },
-    });
+    );
 
     await this.audit.record({
       userId: createdBy,
       action: 'CREATE_TEACHER',
       module: 'teacher',
       status: 'SUCCESS',
-      details: { teacherId: newTeacher.id, userId: newUser.id },
+      details: { teacherId: teacher.id, userId: teacherUser.id },
       ipAddress: ip,
       userAgent,
     });
 
     return {
       teacher: {
-        id: newTeacher.id,
-        fullName: newUser.fullName,
-        email: newUser.email,
-        phone: newUser.phone,
+        id: teacher.id,
+        fullName: teacherUser.fullName,
+        email: teacherUser.email,
+        phone: teacherUser.phone,
       },
       temporaryPassword: user.password ? undefined : rawPassword,
     };
@@ -125,19 +148,18 @@ export class TeacherService {
         },
       },
     });
-  
+
     if (!teacher || teacher.deletedAt) {
       throw new NotFoundException('Teacher not found');
     }
-  
+
     const { classAssignments, ...rest } = teacher;
-  
+
     return {
       ...rest,
-      assignedClasses: classAssignments, 
+      assignedClasses: classAssignments,
     };
   }
-  
 
   async findByUserId(userId: string) {
     const teacher = await this.prisma.teacher.findFirst({
@@ -160,7 +182,8 @@ export class TeacherService {
     userAgent?: string,
   ) {
     const teacher = await this.prisma.teacher.findUnique({ where: { id } });
-    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
+    if (!teacher || teacher.deletedAt)
+      throw new NotFoundException('Teacher not found');
 
     if (dto.fullName || dto.email || dto.phone) {
       await this.prisma.user.update({
@@ -205,7 +228,9 @@ export class TeacherService {
     ip?: string,
     userAgent?: string,
   ) {
-    const teacher = await this.prisma.teacher.findFirst({ where: { userId, deletedAt: null } });
+    const teacher = await this.prisma.teacher.findFirst({
+      where: { userId, deletedAt: null },
+    });
     if (!teacher) throw new NotFoundException('Teacher not found');
 
     if (dto.fullName || dto.phone) {
@@ -242,9 +267,15 @@ export class TeacherService {
     return { message: 'Profile updated successfully' };
   }
 
-  async softDelete(id: string, deletedBy: string, ip?: string, userAgent?: string) {
+  async softDelete(
+    id: string,
+    deletedBy: string,
+    ip?: string,
+    userAgent?: string,
+  ) {
     const teacher = await this.prisma.teacher.findUnique({ where: { id } });
-    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found or already deleted');
+    if (!teacher || teacher.deletedAt)
+      throw new NotFoundException('Teacher not found or already deleted');
 
     await this.prisma.teacher.update({
       where: { id },
@@ -286,7 +317,8 @@ export class TeacherService {
       where: { id },
       include: { subjects: true },
     });
-    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
+    if (!teacher || teacher.deletedAt)
+      throw new NotFoundException('Teacher not found');
     return teacher.subjects;
   }
 
@@ -297,8 +329,11 @@ export class TeacherService {
     ip?: string,
     userAgent?: string,
   ) {
-    const teacher = await this.prisma.teacher.findUnique({ where: { id: teacherId } });
-    if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { id: teacherId },
+    });
+    if (!teacher || teacher.deletedAt)
+      throw new NotFoundException('Teacher not found');
 
     const data = subjectIds.map((subjectId) => ({
       teacherId,
@@ -331,7 +366,9 @@ export class TeacherService {
     ip?: string,
     userAgent?: string,
   ) {
-    await this.prisma.teacherSubject.deleteMany({ where: { teacherId, subjectId } });
+    await this.prisma.teacherSubject.deleteMany({
+      where: { teacherId, subjectId },
+    });
 
     await this.audit.record({
       userId: actorId,
@@ -351,7 +388,8 @@ export class TeacherService {
       where: { id },
       include: { profile: true },
     });
-    if (!teacher || teacher.deletedAt || !teacher.profile) throw new NotFoundException('Teacher or profile not found');
+    if (!teacher || teacher.deletedAt || !teacher.profile)
+      throw new NotFoundException('Teacher or profile not found');
     return teacher.profile;
   }
 
@@ -365,11 +403,11 @@ export class TeacherService {
     const teacher = await this.prisma.teacher.findUnique({
       where: { id: teacherId },
     });
-  
+
     if (!teacher || teacher.deletedAt) {
       throw new NotFoundException('Teacher not found');
     }
-  
+
     // Validate and prepare data
     const validatedAssignments: {
       teacherId: string;
@@ -377,7 +415,7 @@ export class TeacherService {
       sectionId?: string | null;
       createdById: string;
     }[] = [];
-  
+
     for (const { classId, sectionId } of assignments) {
       const classRecord = await this.prisma.class.findUnique({
         where: { id: classId },
@@ -385,7 +423,7 @@ export class TeacherService {
       if (!classRecord || classRecord.deletedAt) {
         throw new NotFoundException(`Class not found: ${classId}`);
       }
-  
+
       if (sectionId) {
         const sectionRecord = await this.prisma.section.findUnique({
           where: { id: sectionId },
@@ -394,10 +432,12 @@ export class TeacherService {
           throw new NotFoundException(`Section not found: ${sectionId}`);
         }
         if (sectionRecord.classId !== classId) {
-          throw new ConflictException(`Section ${sectionId} does not belong to Class ${classId}`);
+          throw new ConflictException(
+            `Section ${sectionId} does not belong to Class ${classId}`,
+          );
         }
       }
-  
+
       validatedAssignments.push({
         teacherId,
         classId,
@@ -405,13 +445,13 @@ export class TeacherService {
         createdById: actorId,
       });
     }
-  
+
     // Perform bulk insert
     await this.prisma.teacherClass.createMany({
       data: validatedAssignments,
       skipDuplicates: true,
     });
-  
+
     // Record audit
     await this.audit.record({
       userId: actorId,
@@ -422,15 +462,13 @@ export class TeacherService {
       ipAddress: ip,
       userAgent,
     });
-  
+
     return {
       message: 'Classes assigned successfully',
       teacherId,
       assignments,
     };
   }
-  
-
 
   async getAssignedClasses(teacherId: string) {
     const teacher = await this.prisma.teacher.findUnique({
@@ -445,16 +483,15 @@ export class TeacherService {
         },
       },
     });
-  
+
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
-  
+
     return teacher.classAssignments.map((assignment) => ({
       class: assignment.class,
       section: assignment.section ?? null, // may be null
     }));
   }
-  
 
   async removeClass(
     teacherId: string,
@@ -471,7 +508,7 @@ export class TeacherService {
         sectionId: sectionId ?? null, // ✅ match null if not provided
       },
     });
-  
+
     await this.audit.record({
       userId: actorId,
       action: 'REMOVE_CLASS',
@@ -481,10 +518,9 @@ export class TeacherService {
       ipAddress: ip,
       userAgent,
     });
-  
+
     return { message: 'Class unassigned successfully' };
   }
-  
 
   async removeAllClasses(
     teacherId: string,
@@ -495,11 +531,14 @@ export class TeacherService {
     sectionId?: string,
   ) {
     const where: any = { teacherId };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (classId) where.classId = classId;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (sectionId) where.sectionId = sectionId;
-  
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     await this.prisma.teacherClass.deleteMany({ where });
-  
+
     await this.audit.record({
       userId: actorId,
       action: 'REMOVE_ALL_CLASSES',
@@ -509,10 +548,10 @@ export class TeacherService {
       ipAddress: ip,
       userAgent,
     });
-  
+
     return {
       message: 'Classes unassigned successfully',
       filters: { classId, sectionId },
     };
-  }  
+  }
 }
