@@ -21,6 +21,7 @@ model User {
   isActive           Boolean   @default(true)
   lastLoginAt        DateTime?
   lastPasswordChange DateTime?
+  needPasswordChange Boolean @default(false) // in case of user created with temporary password
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
