@@ -2,9 +2,11 @@ import {
     Injectable,
     ConflictException,
     NotFoundException,
+    BadRequestException,
+    InternalServerErrorException,
   } from '@nestjs/common';
   import { PrismaService } from '../../../infrastructure/database/prisma.service';
-  import { CreateStudentDtoType, UpdateStudentDtoType } from '../dto/student.dto';
+  import { CreateStudentDtoType, UpdateStudentDtoType, CreateStudentWithNewParentsDtoType, CreateStudentWithExistingParentsDtoType } from '../dto/student.dto'; 
   import { hashPassword } from '../../../shared/auth/hash.util';
   import { generateRandomPassword } from '../../../shared/utils/password.util';
   import { AuditService } from '../../../shared/logger/audit.service';
@@ -18,8 +20,9 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
       private readonly audit: AuditService,
     ) {}
   
-    async create(
-      dto: CreateStudentDtoType,
+    // ✅ Create student with new parents
+    async createStudentWithNewParents(
+      dto: CreateStudentWithNewParentsDtoType,
       createdBy: string,
       ip?: string,
       userAgent?: string,
@@ -32,153 +35,439 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
       });
       if (existingStudentUser) throw new ConflictException('Student email already exists');
     
-      // 2. Generate or hash password for student
-      const studentPassword = user.password || generateRandomPassword();
-      const passwordHash = await hashPassword(studentPassword);
-    
-      // 3. Create student user
-      const newStudentUser = await this.prisma.user.create({
-        data: {
-          email: user.email,
-          phone: user.phone,
-          fullName: user.fullName,
-          passwordHash,
-          isActive: true,
-          createdById: createdBy,
-          roles: {
-            create: {
-              role: { connect: { name: 'STUDENT' } },
-            },
-          },
-        },
-      });
-    
-      // 4. Create student record
-      const newStudent = await this.prisma.student.create({
-        data: {
-          userId: newStudentUser.id,
-          classId: studentData.classId,
-          sectionId: studentData.sectionId,
-          rollNumber: studentData.rollNumber,
-          dob: new Date(studentData.dob),
-          gender: studentData.gender,
-          additionalMetadata: studentData.additionalMetadata ?? {},
-          createdById: createdBy,
-        },
-      });
-    
-      // 5. Create profile if provided
-      if (
-        profile &&
-        (profile.bio ||
-          profile.profilePhotoUrl ||
-          profile.emergencyContact ||
-          profile.interests ||
-          profile.additionalData)
-      ) {
-        await this.prisma.studentProfile.create({
-          data: {
-            studentId: newStudent.id,
-            bio: profile.bio,
-            profilePhotoUrl: profile.profilePhotoUrl,
-            emergencyContact: profile.emergencyContact ?? {},
-            interests: profile.interests ?? {},
-            additionalData: profile.additionalData ?? {},
-            createdById: createdBy,
-          },
+      // 2. Check if any parent email already exists
+      for (const parent of parents) {
+        const existingParent = await this.prisma.user.findUnique({
+          where: { email: parent.email },
         });
+        if (existingParent) {
+          throw new ConflictException(`Parent with email ${parent.email} already exists. Use the existing parents API instead.`);
+        }
       }
     
-      // 6. Handle parents
-      let primaryParentUser: any = null;
-      let primaryParentPassword: string | undefined = undefined;
+      try {
+        // ✅ Begin transaction
+        const result = await this.prisma.$transaction(async (tx) => {
+          // 3. Generate or hash student password
+          const studentPassword = user.password || generateRandomPassword();
+          const passwordHash = await hashPassword(studentPassword);
     
-      for (const parent of parents) {
-        if (parent.isPrimary) {
-          const existingParentUser = await this.prisma.user.findUnique({
-            where: { email: parent.email },
-          });
-    
-          const rawPassword = generateRandomPassword();
-          const hashedPassword = await hashPassword(rawPassword);
-    
-          const parentUser = existingParentUser || await this.prisma.user.create({
+          // 4. Create student user
+          const newStudentUser = await tx.user.create({
             data: {
-              email: parent.email,
-              phone: parent.phone,
-              fullName: parent.fullName,
-              passwordHash: hashedPassword,
+              email: user.email,
+              phone: user.phone,
+              fullName: user.fullName,
+              passwordHash,
               isActive: true,
               createdById: createdBy,
               roles: {
                 create: {
-                  role: { connect: { name: 'PARENT' } },
+                  role: { connect: { name: 'STUDENT' } },
                 },
               },
             },
           });
     
-          await this.prisma.parentStudentLink.create({
+          // 5. Create student record
+          const newStudent = await tx.student.create({
             data: {
-              parentId: parentUser.id,
-              studentId: newStudent.id,
-              relationship: parent.relationship,
-              isPrimary: true,
+              userId: newStudentUser.id,
+              classId: studentData.classId,
+              sectionId: studentData.sectionId,
+              rollNumber: studentData.rollNumber,
+              dob: new Date(studentData.dob),
+              gender: studentData.gender,
+              additionalMetadata: studentData.additionalMetadata ?? {},
               createdById: createdBy,
             },
           });
     
-          primaryParentUser = parentUser;
-          primaryParentPassword = rawPassword;
+          // 6. Profile (optional)
+          if (
+            profile &&
+            (profile.bio ||
+              profile.profilePhotoUrl ||
+              profile.emergencyContact ||
+              profile.interests ||
+              profile.additionalData)
+          ) {
+            await tx.studentProfile.create({
+              data: {
+                studentId: newStudent.id,
+                bio: profile.bio,
+                profilePhotoUrl: profile.profilePhotoUrl,
+                emergencyContact: profile.emergencyContact ?? {},
+                interests: profile.interests ?? {},
+                additionalData: profile.additionalData ?? {},
+                createdById: createdBy,
+              },
+            });
+          }
+    
+          // 7. Create parents (user accounts + contact records)
+          const createdParents: any[] = [];
+          let primaryParentUser: any = null;
+    
+          for (const parent of parents) {
+            if (parent.isPrimary || parent.createUserAccount) {
+              // ✅ Create full user account for primary parent or if explicitly requested
+              const parentPassword = parent.password || generateRandomPassword();
+              const parentPasswordHash = await hashPassword(parentPassword);
+    
+              const newParentUser = await tx.user.create({
+                data: {
+                  email: parent.email,
+                  phone: parent.phone,
+                  fullName: parent.fullName,
+                  passwordHash: parentPasswordHash,
+                  isActive: true,
+                  createdById: createdBy,
+                  roles: {
+                    create: {
+                      role: { connect: { name: 'PARENT' } },
+                    },
+                  },
+                },
+              });
+    
+              // Link parent user to student
+              await tx.parentStudentLink.create({
+                data: {
+                  parentId: newParentUser.id,
+                  studentId: newStudent.id,
+                  relationship: parent.relationship,
+                  isPrimary: parent.isPrimary,
+                  createdById: createdBy,
+                },
+              });
+    
+              createdParents.push({
+                user: newParentUser,
+                temporaryPassword: parent.password ? undefined : parentPassword,
+                isUserAccount: true,
+              });
+    
+              if (parent.isPrimary) {
+                primaryParentUser = newParentUser;
+              }
+            } else {
+              // ✅ Create contact-only record for non-primary parents
+              await tx.parentStudentLink.create({
+                data: {
+                  parentId: null, // No user account
+                  studentId: newStudent.id,
+                  relationship: parent.relationship,
+                  isPrimary: false,
+                  contactName: parent.fullName,
+                  contactEmail: parent.email,
+                  contactPhone: parent.phone,
+                  createdById: createdBy,
+                },
+              });
+    
+              createdParents.push({
+                contact: {
+                  fullName: parent.fullName,
+                  email: parent.email,
+                  phone: parent.phone,
+                },
+                isUserAccount: false,
+              });
+            }
+          }
+    
+          return {
+            student: newStudent,
+            studentUser: newStudentUser,
+            studentPassword,
+            parents: createdParents,
+            primaryParentUser,
+          };
+        });
+    
+        // 8. Audit log (outside transaction)
+        await this.audit.record({
+          userId: createdBy,
+          action: 'CREATE_STUDENT_WITH_NEW_PARENTS',
+          module: 'student',
+          status: 'SUCCESS',
+          details: {
+            studentId: result.student.id,
+            userId: result.studentUser.id,
+            parentsCount: result.parents.length,
+          },
+          ipAddress: ip,
+          userAgent,
+        });
+    
+        // 9. Return clean result
+        return {
+          student: {
+            id: result.student.id,
+            fullName: result.studentUser.fullName,
+            email: result.studentUser.email,
+            phone: result.studentUser.phone,
+          },
+          studentTemporaryPassword: user.password ? undefined : result.studentPassword,
+          parents: result.parents.map(p => ({
+            ...(p.isUserAccount ? {
+              id: p.user.id,
+              fullName: p.user.fullName,
+              email: p.user.email,
+              phone: p.user.phone,
+              temporaryPassword: p.temporaryPassword,
+              hasUserAccount: true,
+            } : {
+              fullName: p.contact.fullName,
+              email: p.contact.email,
+              phone: p.contact.phone,
+              hasUserAccount: false,
+            })
+          })),
+        };
+      } catch (err) {
+        throw new InternalServerErrorException('Student and parent creation failed');
+      }
+    }
+
+    // ✅ Create student with existing parents 
+    async createStudentWithExistingParents(
+      dto: CreateStudentWithExistingParentsDtoType,
+      createdBy: string,
+      ip?: string,
+      userAgent?: string,
+    ) {
+      const { user, parents, profile, ...studentData } = dto;
+    
+      // 1. Check if student email already exists
+      const existingStudentUser = await this.prisma.user.findUnique({
+        where: { email: user.email },
+      });
+      if (existingStudentUser) throw new ConflictException('Student email already exists');
+    
+      // 2. Verify PRIMARY parent exists as user, others can be contacts
+      const primaryParent = parents.find(p => p.isPrimary);
+      if (!primaryParent) {
+        throw new BadRequestException('At least one parent must be marked as primary');
+      }
+
+      // Check if primary parent exists as user
+      const primaryParentUser = await this.prisma.user.findUnique({
+        where: { email: primaryParent.email },
+        include: { roles: { include: { role: true } } },
+      });
+      
+      if (!primaryParentUser) {
+        throw new BadRequestException(`Primary parent with email ${primaryParent.email} not found. Please create parent first or use the new parents creation API.`);
+      }
+      
+      // Verify primary parent has PARENT role
+      const hasParentRole = primaryParentUser.roles.some(r => r.role.name === 'PARENT');
+      if (!hasParentRole) {
+        throw new BadRequestException(`User ${primaryParent.email} is not a parent.`);
+      }
+
+      // Check other parents (can be users or new contacts)
+      const parentUsers: any[] = [{ ...primaryParentUser, relationship: primaryParent.relationship, isPrimary: true }];
+      
+      for (const parent of parents.filter(p => !p.isPrimary)) {
+        const existingParent = await this.prisma.user.findUnique({
+          where: { email: parent.email },
+          include: { roles: { include: { role: true } } },
+        });
+        
+        if (existingParent) {
+          // Existing user - verify parent role
+          const hasParentRole = existingParent.roles.some(r => r.role.name === 'PARENT');
+          if (!hasParentRole) {
+            throw new BadRequestException(`User ${parent.email} is not a parent.`);
+          }
+          parentUsers.push({ ...existingParent, relationship: parent.relationship, isPrimary: false });
         } else {
-          // Store as contact-only parent (no User)
-          await this.prisma.parentStudentLink.create({
-            data: {
-              parentId: null,
-              studentId: newStudent.id,
-              relationship: parent.relationship,
-              isPrimary: false,
-              contactName: parent.fullName,
-              contactEmail: parent.email,
-              contactPhone: parent.phone,
-              createdById: createdBy,
-            },
+          // New contact - will be created as contact-only
+          parentUsers.push({ 
+            email: parent.email,
+            fullName: parent.fullName || parent.email.split('@')[0], // Use provided name or extract from email
+            relationship: parent.relationship, 
+            isPrimary: false,
+            isNewContact: true 
           });
         }
       }
     
-      // 7. Audit log
-      await this.audit.record({
-        userId: createdBy,
-        action: 'CREATE_STUDENT',
-        module: 'student',
-        status: 'SUCCESS',
-        details: { studentId: newStudent.id, userId: newStudentUser.id },
-        ipAddress: ip,
-        userAgent,
-      });
+      try {
+        // ✅ Begin transaction
+        const result = await this.prisma.$transaction(async (tx) => {
+          // 3. Generate or hash student password
+          const studentPassword = user.password || generateRandomPassword();
+          const passwordHash = await hashPassword(studentPassword);
     
-      // 8. Return
-      return {
-        student: {
-          id: newStudent.id,
-          fullName: newStudentUser.fullName,
-          email: newStudentUser.email,
-          phone: newStudentUser.phone,
-        },
-        temporaryPassword: user.password ? undefined : studentPassword,
-        parentAccount: primaryParentUser && primaryParentPassword
-          ? {
-              fullName: primaryParentUser.fullName,
-              email: primaryParentUser.email,
-              phone: primaryParentUser.phone,
-              temporaryPassword: primaryParentPassword,
+          // 4. Create student user
+          const newStudentUser = await tx.user.create({
+            data: {
+              email: user.email,
+              phone: user.phone,
+              fullName: user.fullName,
+              passwordHash,
+              isActive: true,
+              createdById: createdBy,
+              roles: {
+                create: {
+                  role: { connect: { name: 'STUDENT' } },
+                },
+              },
+            },
+          });
+    
+          // 5. Create student record
+          const newStudent = await tx.student.create({
+            data: {
+              userId: newStudentUser.id,
+              classId: studentData.classId,
+              sectionId: studentData.sectionId,
+              rollNumber: studentData.rollNumber,
+              dob: new Date(studentData.dob),
+              gender: studentData.gender,
+              additionalMetadata: studentData.additionalMetadata ?? {},
+              createdById: createdBy,
+            },
+          });
+    
+          // 6. Profile (optional)
+          if (
+            profile &&
+            (profile.bio ||
+              profile.profilePhotoUrl ||
+              profile.emergencyContact ||
+              profile.interests ||
+              profile.additionalData)
+          ) {
+            await tx.studentProfile.create({
+              data: {
+                studentId: newStudent.id,
+                bio: profile.bio,
+                profilePhotoUrl: profile.profilePhotoUrl,
+                emergencyContact: profile.emergencyContact ?? {},
+                interests: profile.interests ?? {},
+                additionalData: profile.additionalData ?? {},
+                createdById: createdBy,
+              },
+            });
+          }
+    
+          // 7. Link parents to new student (both users and contacts)
+          let primaryParentUser: any = null;
+          
+          for (const parent of parentUsers) {
+            if (parent.isNewContact) {
+              // Create contact-only link for new contacts
+              await tx.parentStudentLink.create({
+                data: {
+                  parentId: null, // No user account
+                  studentId: newStudent.id,
+                  relationship: parent.relationship,
+                  isPrimary: false,
+                  contactName: parent.fullName,
+                  contactEmail: parent.email,
+                  contactPhone: null,
+                  createdById: createdBy,
+                },
+              });
+            } else {
+              // Link existing user
+              const existingLink = await tx.parentStudentLink.findFirst({
+                where: { parentId: parent.id, studentId: newStudent.id },
+              });
+              
+              if (!existingLink) {
+                await tx.parentStudentLink.create({
+                  data: {
+                    parentId: parent.id,
+                    studentId: newStudent.id,
+                    relationship: parent.relationship,
+                    isPrimary: parent.isPrimary,
+                    createdById: createdBy,
+                  },
+                });
+              }
+      
+              if (parent.isPrimary) {
+                primaryParentUser = parent;
+              }
             }
-          : undefined,
-      };
+          }
+    
+          return {
+            student: newStudent,
+            studentUser: newStudentUser,
+            studentPassword,
+            primaryParentUser,
+          };
+        });
+    
+        // 8. Audit log (outside transaction)
+        await this.audit.record({
+          userId: createdBy,
+          action: 'CREATE_STUDENT_WITH_EXISTING_PARENTS',
+          module: 'student',
+          status: 'SUCCESS',
+          details: {
+            studentId: result.student.id,
+            userId: result.studentUser.id,
+            linkedParentsCount: parentUsers.length,
+            primaryParentExists: true,
+            newContactsCreated: parentUsers.filter(p => p.isNewContact).length,
+          },
+          ipAddress: ip,
+          userAgent,
+        });
+    
+        // 9. Return clean result
+        return {
+          student: {
+            id: result.student.id,
+            fullName: result.studentUser.fullName,
+            email: result.studentUser.email,
+            phone: result.studentUser.phone,
+          },
+          studentTemporaryPassword: user.password ? undefined : result.studentPassword,
+          primaryParent: result.primaryParentUser
+            ? {
+                id: result.primaryParentUser.id,
+                fullName: result.primaryParentUser.fullName,
+                email: result.primaryParentUser.email,
+                phone: result.primaryParentUser.phone,
+              }
+            : undefined,
+        };
+      } catch (err) {
+        throw new InternalServerErrorException('Student creation with existing parents failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      }
+    }
+
+    // ✅ Legacy method (keeping for backward compatibility)
+    async create(
+      dto: CreateStudentDtoType,
+      createdBy: string,
+      ip?: string,
+      userAgent?: string,
+    ) {
+      // Delegate to the new method for backward compatibility
+      return this.createStudentWithNewParents(dto, createdBy, ip, userAgent);
+    }
+
+    // ✅ Alias for backward compatibility
+    async createSiblingStudent(
+      dto: CreateStudentWithExistingParentsDtoType,
+      createdBy: string,
+      ip?: string,
+      userAgent?: string,
+    ) {
+      return this.createStudentWithExistingParents(dto, createdBy, ip, userAgent);
     }
     
-      
+    
       
 
 
@@ -564,6 +853,37 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
     ip?: string,
     userAgent?: string,
   ) {
+    // ✅ Check if this would leave student with no parents
+    const totalParents = await this.prisma.parentStudentLink.count({
+      where: { studentId, deletedAt: null },
+    });
+  
+    if (totalParents <= 1) {
+      throw new BadRequestException('Cannot unlink parent. Student must have at least one parent linked.');
+    }
+  
+    // ✅ If unlinking primary parent, promote another parent to primary
+    const linkToRemove = await this.prisma.parentStudentLink.findFirst({
+      where: { studentId, parentId },
+    });
+  
+    if (linkToRemove?.isPrimary) {
+      const otherParent = await this.prisma.parentStudentLink.findFirst({
+        where: { 
+          studentId, 
+          parentId: { not: parentId },
+          deletedAt: null 
+        },
+      });
+  
+      if (otherParent) {
+        await this.prisma.parentStudentLink.update({
+          where: { id: otherParent.id },
+          data: { isPrimary: true },
+        });
+      }
+    }
+  
     await this.prisma.parentStudentLink.deleteMany({
       where: { studentId, parentId },
     });
@@ -619,6 +939,193 @@ import { CreateStudentProfileDtoType, UpdateStudentProfileDtoType } from '../dto
   }
 
   
+  // ✅ ONE API to rule them all: Set any parent as primary (handles all scenarios)
+  async setPrimaryParent(
+    studentId: string,
+    parentLinkId: string,
+    password?: string,
+    actorId?: string,
+    ip?: string,
+    userAgent?: string,
+  ) {
+    // Get the parent link to be promoted
+    const targetParentLink = await this.prisma.parentStudentLink.findFirst({
+      where: { 
+        id: parentLinkId, 
+        studentId,
+        deletedAt: null 
+      },
+      include: { parent: true },
+    });
+
+    if (!targetParentLink) {
+      throw new NotFoundException('Parent link not found');
+    }
+
+    // If already primary, do nothing
+    if (targetParentLink.isPrimary) {
+      return { message: 'Parent is already primary' };
+    }
+
+    // Get current primary parent
+    const currentPrimaryParent = await this.prisma.parentStudentLink.findFirst({
+      where: { 
+        studentId, 
+        isPrimary: true, 
+        deletedAt: null 
+      },
+      include: { parent: true },
+    });
+
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        let newPrimaryUser: any = null;
+        let temporaryPassword: string | undefined = undefined;
+
+        // SCENARIO 1: Contact → Primary User (create account)
+        if (!targetParentLink.parentId) {
+          if (!targetParentLink.contactEmail) {
+            throw new BadRequestException('Cannot set contact as primary without email');
+          }
+
+          // Check if user with this email already exists
+          const existingUser = await tx.user.findUnique({
+            where: { email: targetParentLink.contactEmail },
+          });
+
+          if (existingUser) {
+            throw new ConflictException(`User with email ${targetParentLink.contactEmail} already exists`);
+          }
+
+          // Create user account for contact
+          const parentPassword = password || generateRandomPassword();
+          const passwordHash = await hashPassword(parentPassword);
+
+          newPrimaryUser = await tx.user.create({
+            data: {
+              email: targetParentLink.contactEmail,
+              phone: targetParentLink.contactPhone,
+              fullName: targetParentLink.contactName || 'Unknown',
+              passwordHash,
+              isActive: true,
+              createdById: actorId,
+              roles: {
+                create: {
+                  role: { connect: { name: 'PARENT' } },
+                },
+              },
+            },
+          });
+
+          temporaryPassword = password ? undefined : parentPassword;
+
+          // Update contact to user link
+          await tx.parentStudentLink.update({
+            where: { id: parentLinkId },
+            data: {
+              parentId: newPrimaryUser.id,
+              contactName: null,
+              contactEmail: null,
+              contactPhone: null,
+              isPrimary: true,
+              updatedAt: new Date(),
+              updatedById: actorId,
+            },
+          });
+        } 
+        // SCENARIO 2: Existing User → Primary (just switch)
+        else {
+          // Enable target user account (in case it was disabled)
+          await tx.user.update({
+            where: { id: targetParentLink.parent!.id },
+            data: { 
+              isActive: true,
+              updatedAt: new Date(),
+              updatedById: actorId,
+            },
+          });
+
+          // Set as primary
+          await tx.parentStudentLink.update({
+            where: { id: parentLinkId },
+            data: { 
+              isPrimary: true,
+              updatedAt: new Date(),
+              updatedById: actorId,
+            },
+          });
+
+          newPrimaryUser = targetParentLink.parent!;
+        }
+
+        // ✅ ALWAYS disable previous primary user (if exists)
+        if (currentPrimaryParent?.parent) {
+          await tx.user.update({
+            where: { id: currentPrimaryParent.parent.id },
+            data: { 
+              isActive: false, // ✅ Disable login
+              updatedAt: new Date(),
+              updatedById: actorId,
+            },
+          });
+
+          // Demote to non-primary
+          await tx.parentStudentLink.update({
+            where: { id: currentPrimaryParent.id },
+            data: { 
+              isPrimary: false,
+              updatedAt: new Date(),
+              updatedById: actorId,
+            },
+          });
+        }
+
+        return { 
+          newPrimaryUser, 
+          temporaryPassword,
+          wasContact: !targetParentLink.parentId,
+          previousPrimaryDisabled: !!currentPrimaryParent?.parent,
+        };
+      });
+
+      if (actorId) {
+        await this.audit.record({
+          userId: actorId,
+          action: 'SET_PRIMARY_PARENT',
+          module: 'student',
+          status: 'SUCCESS',
+          details: { 
+            studentId, 
+            parentLinkId, 
+            newPrimaryUserId: result.newPrimaryUser.id,
+            wasContact: result.wasContact,
+            previousPrimaryDisabled: result.previousPrimaryDisabled,
+          },
+          ipAddress: ip,
+          userAgent,
+        });
+      }
+
+      return {
+        message: `${result.wasContact ? 'Contact promoted to' : 'Parent set as'} primary successfully`,
+        primaryParent: {
+          id: result.newPrimaryUser.id,
+          fullName: result.newPrimaryUser.fullName,
+          email: result.newPrimaryUser.email,
+          phone: result.newPrimaryUser.phone,
+        },
+        ...(result.temporaryPassword && {
+          temporaryPassword: result.temporaryPassword,
+        }),
+        ...(result.previousPrimaryDisabled && {
+          previousPrimaryDisabled: true,
+        }),
+      };
+    } catch (err) {
+      throw new InternalServerErrorException('Failed to set primary parent');
+    }
+  }
+
   async getStudentParents(studentId: string) {
     const student = await this.prisma.student.findUnique({
       where: { id: studentId },

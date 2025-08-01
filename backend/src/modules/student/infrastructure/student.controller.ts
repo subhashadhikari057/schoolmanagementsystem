@@ -25,8 +25,14 @@ import { z } from 'zod';
 import {
   CreateStudentDto,
   CreateStudentDtoType,
+  CreateStudentWithNewParentsDto,
+  CreateStudentWithNewParentsDtoType,
+  CreateStudentWithExistingParentsDto,
+  CreateStudentWithExistingParentsDtoType,
   UpdateStudentDto,
   UpdateStudentDtoType,
+  SetPrimaryParentDto,
+  SetPrimaryParentDtoType,
 } from '../dto/student.dto';
 import {
   CreateParentLinkDto,
@@ -51,7 +57,61 @@ type CombinedSelfUpdateDtoType = z.infer<typeof CombinedSelfUpdateDto>;
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
-  // 🔹 Create student (with parents)
+  // 🔹 Create student with new parents
+  @Post('create-with-new-parents')
+  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @HttpCode(HttpStatus.CREATED)
+  async createStudentWithNewParents(
+    @Body(new ZodValidationPipe(CreateStudentWithNewParentsDto)) body: CreateStudentWithNewParentsDtoType,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ) {
+    const result = await this.studentService.createStudentWithNewParents(
+      body,
+      user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+
+    return {
+      message: 'Student and parents created successfully',
+      student: result.student,
+      ...(result.studentTemporaryPassword && {
+        studentTemporaryPassword: result.studentTemporaryPassword,
+      }),
+      parents: result.parents,
+    };
+  }
+
+  // 🔹 Create student with existing parents
+  @Post('create-with-existing-parents')
+  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @HttpCode(HttpStatus.CREATED)
+  async createStudentWithExistingParents(
+    @Body(new ZodValidationPipe(CreateStudentWithExistingParentsDto)) body: CreateStudentWithExistingParentsDtoType,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ) {
+    const result = await this.studentService.createStudentWithExistingParents(
+      body,
+      user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+
+    return {
+      message: 'Student created and linked to existing parents successfully',
+      student: result.student,
+      ...(result.studentTemporaryPassword && {
+        studentTemporaryPassword: result.studentTemporaryPassword,
+      }),
+      ...(result.primaryParent && {
+        primaryParent: result.primaryParent,
+      }),
+    };
+  }
+
+  // 🔹 Create student (legacy endpoint - backward compatibility)
   @Post()
   @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
   @HttpCode(HttpStatus.CREATED)
@@ -70,12 +130,10 @@ export class StudentController {
     return {
       message: 'Student created successfully',
       student: result.student,
-      ...(result.temporaryPassword && {
-        temporaryPassword: result.temporaryPassword,
+      ...(result.studentTemporaryPassword && {
+        studentTemporaryPassword: result.studentTemporaryPassword,
       }),
-      ...(result.parentAccount && {
-        parentAccount: result.parentAccount,
-      }),
+      parents: result.parents,
     };
   }
 
@@ -211,55 +269,20 @@ export class StudentController {
     return this.studentService.getStudentParents(studentId);
   }
 
-  // 🔹 Link new parent
-  @Post(':id/parents')
+  // 🔹 Set primary parent (handles all scenarios: contact→primary, user→primary, switching)
+  @Patch(':id/parents/:linkId/set-primary')
   @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
-  @HttpCode(HttpStatus.CREATED)
-  async linkParent(
+  async setPrimaryParent(
     @Param('id') studentId: string,
-    @Body(new ZodValidationPipe(CreateParentLinkDto)) body: CreateParentLinkDtoType,
+    @Param('linkId') parentLinkId: string,
+    @Body(new ZodValidationPipe(SetPrimaryParentDto)) body: SetPrimaryParentDtoType,
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
-    return this.studentService.addParentToStudent(
+    return this.studentService.setPrimaryParent(
       studentId,
-      body,
-      user.id,
-      req.ip,
-      req.headers['user-agent'],
-    );
-  }
-
-  // 🔹 Unlink parent
-  @Delete(':id/parents/:parentId')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
-  async unlinkParent(
-    @Param('id') studentId: string,
-    @Param('parentId') parentId: string,
-    @CurrentUser() user: any,
-    @Req() req: Request,
-  ) {
-    return this.studentService.unlinkParent(
-      studentId,
-      parentId,
-      user.id,
-      req.ip,
-      req.headers['user-agent'],
-    );
-  }
-
-  // 🔹 Make parent primary
-  @Patch(':id/parents/:parentId/primary')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
-  async makePrimary(
-    @Param('id') studentId: string,
-    @Param('parentId') parentId: string,
-    @CurrentUser() user: any,
-    @Req() req: Request,
-  ) {
-    return this.studentService.makeParentPrimary(
-      studentId,
-      parentId,
+      parentLinkId,
+      body.password,
       user.id,
       req.ip,
       req.headers['user-agent'],
