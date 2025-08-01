@@ -28,7 +28,6 @@ export class IsAuthenticated implements CanActivate {
       throw new UnauthorizedException('Invalid token');
     }
 
-    // ✅ Fetch session and user with roles
     const session = await this.prisma.userSession.findUnique({
       where: { id: decoded.sessionId },
       include: {
@@ -36,7 +35,7 @@ export class IsAuthenticated implements CanActivate {
           include: {
             roles: {
               include: {
-                role: true, // 👈 includes role.name for RBAC
+                role: true,
               },
             },
           },
@@ -54,8 +53,18 @@ export class IsAuthenticated implements CanActivate {
       throw new UnauthorizedException('Session invalid or user revoked');
     }
 
-    // ✅ Attach to request for downstream use
-    req.user = session.user;
+    // ✅ Transform roles to match structure expected by guards
+    const transformedRoles = session.user.roles.map((r) => ({
+      id: r.id,
+      role: { name: r.role.name },
+    }));
+
+    // ✅ Attach to request
+    req.user = {
+      ...session.user,
+      roles: transformedRoles,
+    };
+
     req.session = session;
 
     return true;

@@ -6,16 +6,18 @@ import { SubjectModule } from './modules/subject/subject.module';
 import { TeacherModule } from './modules/teacher/teacher.module';
 import { ClassModule } from './modules/class/class.module';
 import { SectionModule } from './modules/section/section.module';
+import { StudentModule } from './modules/student/student.module';
 
 @Module({
   imports: [
     DatabaseModule,
-    AuthModule,  // ✅ Directly imported
-    AdminModule, // ✅ Directly imported
+    AuthModule,
+    AdminModule,
     SubjectModule,
     TeacherModule,
     ClassModule,
     SectionModule,
+    StudentModule,
   ],
 })
 export class AppModule {}

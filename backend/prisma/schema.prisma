@@ -34,7 +34,9 @@ model User {
   sessions  UserSession[]
   auditLogs AuditLog[]
 
-  teacher Teacher?
+  teacher     Teacher?
+  student     Student?
+  parentLinks ParentStudentLink[] @relation("ParentLink")
 
   @@index([createdById])
   @@index([updatedById])
@@ -284,19 +286,20 @@ model TeacherSubject {
 // =========================
 
 model Class {
-  id      String  @id @default(uuid())
-  name    String  // e.g., "Grade 10"
+  id   String @id @default(uuid())
+  name String // e.g., "Grade 10"
 
-  sections Section[]
+  sections           Section[]
   teacherAssignments TeacherClass[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
   deletedAt DateTime?
 
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+  Student     Student[]
 
   @@index([name])
   @@index([createdById])
@@ -305,10 +308,10 @@ model Class {
 }
 
 model Section {
-  id      String  @id @default(uuid())
+  id      String @id @default(uuid())
   name    String
   classId String
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   teacherAssignments TeacherClass[]
 
@@ -316,9 +319,10 @@ model Section {
   updatedAt DateTime?
   deletedAt DateTime?
 
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+  Student     Student[]
 
   @@unique([name, classId])
   @@index([classId])
@@ -328,13 +332,13 @@ model Section {
 }
 
 model TeacherClass {
-  id        String @id @default(uuid())
+  id        String  @id @default(uuid())
   teacherId String
   classId   String
   sectionId String?
 
-  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class   Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   section Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
 
   assignedAt DateTime @default(now())
@@ -355,3 +359,105 @@ model TeacherClass {
   @@index([updatedById])
   @@index([deletedById])
 }
+
+// =========================
+// 🎓 Student & Parent Module
+// =========================
+
+model Student {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  classId String
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  rollNumber String
+
+  dob                DateTime?
+  gender             String?
+  additionalMetadata Json?     @default("{}")
+
+  profile StudentProfile?
+  parents ParentStudentLink[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([classId, sectionId, rollNumber], name: "unique_roll_per_class_section")
+  @@index([userId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model StudentProfile {
+  id        String  @id @default(uuid())
+  studentId String  @unique
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  bio              String?
+  profilePhotoUrl  String?
+  emergencyContact Json?   @default("{}")
+  interests        Json?   @default("{}")
+  additionalData   Json?   @default("{}")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([studentId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ParentStudentLink {
+  id String @id @default(uuid())
+
+  // ✅ Make parentId optional
+  parentId String?
+  parent   User?   @relation("ParentLink", fields: [parentId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  relationship String?
+  isPrimary    Boolean  @default(false)
+  linkedAt     DateTime @default(now())
+
+  // ✅ New fields to support non-primary parent contact
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
