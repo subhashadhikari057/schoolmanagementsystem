@@ -15,6 +15,11 @@ export * from './core/system-status.enum';
 // Auth Module Enums
 export * from './auth/session-status.enum';
 
+// Audit Module Enums
+export * from './audit/audit-action.enum';
+export * from './audit/audit-module.enum';
+export * from './audit/audit-status.enum';
+
 // Academic Module Enums
 export * from './academic/assignment-status.enum';
 export * from './academic/submission-status.enum';

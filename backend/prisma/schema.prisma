@@ -119,10 +119,12 @@ model UserSession {
   userAgent         String?
   ipAddress         String?
   deviceFingerprint String?
+  revokeReason      String?
 
-  loginAt   DateTime  @default(now())
-  expiresAt DateTime?
-  revokedAt DateTime?
+  loginAt        DateTime  @default(now())
+  lastActivityAt DateTime? @default(now())
+  expiresAt      DateTime?
+  revokedAt      DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -134,21 +136,32 @@ model UserSession {
 
   @@index([userId])
   @@index([expiresAt])
+  @@index([lastActivityAt])
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
 }
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String?
-  action    String 
-  module    String? 
-  status    String   @default("SUCCESS") 
-  details   Json?                       
-  ipAddress String?
-  userAgent String?
-  timestamp DateTime @default(now())
+  id           String   @id @default(uuid())
+  userId       String?
+  action       String 
+  module       String? 
+  status       String   @default("SUCCESS") 
+  details      Json?                       
+  ipAddress    String?
+  userAgent    String?
+  timestamp    DateTime @default(now())
+  traceId      String?
+  sessionId    String?
+  resourceId   String?
+  resourceType String?
+  endpoint     String?
+  method       String?
+  statusCode   Int?
+  duration     Int?
+  errorCode    String?
+  errorMessage String?
 
   user User? @relation(fields: [userId], references: [id])
 
@@ -156,4 +169,7 @@ model AuditLog {
   @@index([action])
   @@index([module])
   @@index([timestamp])
+  @@index([traceId])
+  @@index([status])
+  @@index([resourceId])
 }

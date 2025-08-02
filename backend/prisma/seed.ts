@@ -42,7 +42,9 @@ async function main() {
   ];
 
   for (const user of users) {
-    const passwordHash = await argon2.hash(user.password, { type: argon2.argon2id });
+    const passwordHash = await argon2.hash(user.password, {
+      type: argon2.argon2id,
+    });
 
     const createdUser = await prisma.user.upsert({
       where: { email: user.email },
@@ -78,8 +80,10 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
+  .catch(e => {
     console.error('❌ Seed error:', e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => {
+    void prisma.$disconnect();
+  });

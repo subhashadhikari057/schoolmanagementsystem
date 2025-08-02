@@ -18,6 +18,9 @@ export * from './auth/register.dto';
 export * from './auth/password-reset.dto';
 export * from './auth/session.dto';
 
+// Audit Module DTOs
+export * from './audit/audit.dto';
+
 // User Module DTOs
 export * from './user/user.dto';
 export * from './user/profile.dto';

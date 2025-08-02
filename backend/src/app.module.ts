@@ -3,14 +3,30 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { AuthModule } from './modules/auth/auth.module';
 import { ErrorHandlingModule } from './shared/error-handling/error-handling.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
+import { AuditModule as SharedAuditModule } from './shared/logger/audit.module';
+import { AuthGuardModule } from './shared/auth/auth.module';
 import { TraceIdMiddleware } from './shared/middlewares/trace-id.middleware';
+import { AuditMiddleware } from './shared/middlewares/audit.middleware';
+import { SessionValidationMiddleware } from './shared/middlewares/session-validation.middleware';
 
 @Module({
-  imports: [DatabaseModule, ErrorHandlingModule, AuthModule],
+  imports: [
+    DatabaseModule,
+    SharedAuditModule,
+    ErrorHandlingModule,
+    AuthModule,
+    AuthGuardModule, // Add authentication guards
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // Apply trace ID middleware to all routes
+    // Apply trace ID middleware first to all routes
     consumer.apply(TraceIdMiddleware).forRoutes('*');
+
+    // Apply session validation middleware after authentication
+    consumer.apply(SessionValidationMiddleware).forRoutes('api/*');
+
+    // Apply audit middleware to all API routes
+    consumer.apply(AuditMiddleware).forRoutes('api/*');
   }
 }

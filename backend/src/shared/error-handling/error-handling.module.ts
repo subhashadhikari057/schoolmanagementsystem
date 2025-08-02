@@ -4,6 +4,7 @@ import { Module, Global } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { GlobalExceptionFilter } from '../filters/global-exception.filter';
 import { LoggerModule } from '../logger/logger.module';
+import { AuditModule } from '../logger/audit.module';
 import { ErrorHandlingService } from './error-handling.service';
 
 /**
@@ -12,7 +13,7 @@ import { ErrorHandlingService } from './error-handling.service';
  */
 @Global()
 @Module({
-  imports: [LoggerModule],
+  imports: [LoggerModule, AuditModule],
   providers: [
     ErrorHandlingService,
     {

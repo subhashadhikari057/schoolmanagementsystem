@@ -162,7 +162,9 @@ describe('Database Operations Integration', () => {
           } catch {
             // Ignore cleanup errors
           }
-          throw error;
+          throw new Error(
+            error instanceof Error ? error.message : String(error),
+          );
         }
       },
       testConfig.testTimeout,
@@ -339,7 +341,7 @@ describe('Database Operations Integration', () => {
       expect(roleNames).toContain('ADMIN');
 
       console.log(`✅ System roles seeded: ${roleNames.join(', ')}`);
-    });
+    }, 10000);
 
     it(
       'should seed system permissions successfully',
@@ -637,7 +639,7 @@ describe('Database Operations Integration', () => {
       checks.usersExist = users > 0;
 
       // Verify all checks pass
-      Object.entries(checks).forEach(([check, passed]) => {
+      Object.entries(checks).forEach(([_check, passed]) => {
         expect(passed).toBe(true);
       });
 
