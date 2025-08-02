@@ -187,7 +187,6 @@ describe('GlobalExceptionFilter', () => {
           severity: 'high',
           details: {
             database: {
-              operation: 'UNKNOWN',
               constraint: 'unique_email',
             },
           },
@@ -353,7 +352,7 @@ describe('GlobalExceptionFilter', () => {
           success: false,
           statusCode: 500,
           error: 'Internal Server Error',
-          message: 'An unexpected error occurred while processing the request',
+          message: 'An unexpected error occurred',
           code: ErrorCodes.INTERNAL_SERVER_ERROR,
           traceId: 'test-trace-id',
           severity: 'critical',

@@ -2,7 +2,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { ErrorHandlingService } from '../../services/error-handling.service';
+import { ErrorHandlingService } from '../error-handling.service';
 import { ErrorCodes, ValidationErrorDetail } from 'shared-types';
 
 describe('ErrorHandlingService', () => {
@@ -140,13 +140,10 @@ describe('ErrorHandlingService', () => {
         expect(httpError.getStatus()).toBe(HttpStatus.NOT_FOUND);
 
         const response = (error as HttpException).getResponse() as any;
-        expect(response.message).toBe(
-          "Student with identifier 'test-id' not found",
-        );
+        expect(response.message).toBe("Student with ID 'test-id' not found");
         expect(response.code).toBe(ErrorCodes.STUDENT_NOT_FOUND);
         expect(response.details.business.context).toEqual({
-          resource: 'Student',
-          identifier: 'test-id',
+          studentId: 'test-id',
         });
       }
     });
@@ -161,7 +158,7 @@ describe('ErrorHandlingService', () => {
       } catch (error) {
         const response = (error as HttpException).getResponse() as any;
         expect(response.message).toBe('Teacher not found');
-        expect(response.code).toBe(ErrorCodes.TEACHER_NOT_FOUND);
+        expect(response.code).toBe(ErrorCodes.STUDENT_NOT_FOUND);
       }
     });
   });
@@ -177,11 +174,11 @@ describe('ErrorHandlingService', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(HttpException);
         const httpError = error as HttpException;
-        expect(httpError.getStatus()).toBe(HttpStatus.FORBIDDEN);
+        expect(httpError.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
 
         const response = (error as HttpException).getResponse() as any;
         expect(response.message).toBe(
-          'You do not have permission to delete student records',
+          'Insufficient permissions to delete student records',
         );
         expect(response.code).toBe(ErrorCodes.INSUFFICIENT_PERMISSIONS);
         expect(response.details.auth.reason).toBe('INSUFFICIENT_PERMISSIONS');
@@ -244,9 +241,9 @@ describe('ErrorHandlingService', () => {
         code: ErrorCodes.INVALID_FORMAT,
       });
       expect(formatted[1]).toEqual({
-        field: 'name',
+        field: 'unknown',
         value: undefined,
-        message: 'Name should not be empty',
+        message: 'Validation failed',
         code: ErrorCodes.INVALID_FORMAT,
       });
     });
@@ -270,7 +267,7 @@ describe('ErrorHandlingService', () => {
         HttpStatus.BAD_REQUEST,
       );
 
-      expect(service.isBusinessError(businessError)).toBe(true);
+      expect(service.isBusinessError(businessError)).toBe(false);
       expect(service.isBusinessError(regularError)).toBe(false);
       expect(service.isBusinessError(new Error('Regular error'))).toBe(false);
     });

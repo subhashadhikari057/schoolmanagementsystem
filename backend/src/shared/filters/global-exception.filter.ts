@@ -43,7 +43,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       userId: (request as any).user?.id as string | undefined,
       userRole: (request as any).user?.role as string | undefined,
       endpoint: request.url,
-      method: request.method,
+      method: request.method as
+        | 'GET'
+        | 'POST'
+        | 'PUT'
+        | 'PATCH'
+        | 'DELETE'
+        | undefined,
       userAgent: request.get('User-Agent'),
       ip: this.getClientIp(request),
       requestId: traceId,

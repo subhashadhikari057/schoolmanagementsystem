@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod';
-import { BaseEntity, CommonValidation, UuidSchema } from '../common/base.dto';
+import { BaseEntity, CommonValidation } from '../common/base.dto';
 import { UserRole } from '../../enums/core/user-roles.enum';
 import { UserStatus } from '../../enums/core/user-status.enum';
 

@@ -27,7 +27,9 @@ export class AuditService {
           status: options.status ?? 'SUCCESS',
           ipAddress: options.ipAddress,
           userAgent: options.userAgent,
-          details: options.details as Record<string, unknown>,
+          details: options.details
+            ? JSON.parse(JSON.stringify(options.details))
+            : null,
         },
       });
     } catch (error) {

@@ -15,7 +15,7 @@ export class TraceIdMiddleware implements NestMiddleware {
     const traceId = randomUUID();
 
     // Add trace ID to request object for use in controllers and services
-    (req as Express.Request).traceId = traceId;
+    (req as any).traceId = traceId;
 
     // Add trace ID to response headers for client debugging
     res.setHeader('X-Trace-ID', traceId);

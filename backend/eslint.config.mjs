@@ -37,7 +37,9 @@ export default tseslint.config(
       '@typescript-eslint/unbound-method': 'warn',
       '@typescript-eslint/require-await': 'warn',
       '@typescript-eslint/no-redundant-type-constituents': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }]
+      '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
+      '@typescript-eslint/no-require-imports': 'warn',
+      'no-case-declarations': 'warn'
     },
   },
 );

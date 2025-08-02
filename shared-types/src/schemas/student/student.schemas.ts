@@ -9,7 +9,7 @@
 
 import { z } from 'zod';
 import { CommonValidation, BaseEntitySchema, MetadataSchema, PaginationRequestSchema, createPaginatedResponseSchema } from '../common/base.schemas';
-import { UserRole } from '../../enums/core/user-roles.enum';
+
 import { UserStatus } from '../../enums/core/user-status.enum';
 
 /**

@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod';
-import { BaseEntity, UuidSchema } from '../common/base.dto';
+import { BaseEntity } from '../common/base.dto';
 import { ForumPostStatus } from '../../enums/forum/post-status.enum';
 import { ModerationStatus } from '../../enums/forum/moderation-status.enum';
 

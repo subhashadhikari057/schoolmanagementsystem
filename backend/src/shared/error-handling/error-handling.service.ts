@@ -221,12 +221,12 @@ export class ErrorHandlingService {
     if (typeof response !== 'object' || response === null) return false;
 
     const responseObj = response as Record<string, unknown>;
-    return (
+    return Boolean(
       'details' in responseObj &&
-      responseObj.details &&
-      typeof responseObj.details === 'object' &&
-      responseObj.details !== null &&
-      'business' in responseObj.details
+        responseObj.details &&
+        typeof responseObj.details === 'object' &&
+        responseObj.details !== null &&
+        'business' in (responseObj.details as Record<string, unknown>),
     );
   }
 

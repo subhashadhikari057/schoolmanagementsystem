@@ -29,8 +29,14 @@ export class AuthService {
     ip: string,
     userAgent: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    // Determine if identifier is email or phone
+    const isEmail = data.identifier.includes('@');
+    const whereClause = isEmail
+      ? { email: data.identifier }
+      : { phone: data.identifier };
+
     const user = await this.prisma.user.findUnique({
-      where: { email: data.email },
+      where: whereClause,
     });
 
     if (!user || !user.isActive) {
@@ -40,7 +46,10 @@ export class AuthService {
         module: 'AUTH',
         ipAddress: ip,
         userAgent,
-        details: { email: data.email },
+        details: {
+          identifier: data.identifier,
+          type: isEmail ? 'email' : 'phone',
+        },
       });
 
       throw new UnauthorizedException('Invalid credentials');
