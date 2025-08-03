@@ -34,11 +34,7 @@ export class AuthController {
     const ip = req.ip || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    const result = await this.authService.login(
-      body,
-      ip,
-      userAgent,
-    );
+    const result = await this.authService.login(body, ip, userAgent);
 
     // ✅ Check if password change is required
     if ('requirePasswordChange' in result && result.requirePasswordChange) {
