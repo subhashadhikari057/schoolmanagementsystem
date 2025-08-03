@@ -27,15 +27,21 @@ export default function QuickActions({ actions }: QuickActionsProps) {
     <div className='bg-white rounded-xl border border-gray-200 p-6'>
       <SectionHeader title='Quick Actions' />
       <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
-        {actions.map(action => (
-          <QuickActionItems
-            key={action.id}
-            quickActions={{
-              ...action,
-              onClick: () => handleActionClick(action),
-            }}
-          />
-        ))}
+        {actions.length > 0 ? (
+          actions.map(action => (
+            <QuickActionItems
+              key={action.id}
+              quickActions={{
+                ...action,
+                onClick: () => handleActionClick(action),
+              }}
+            />
+          ))
+        ) : (
+          <div className='col-span-full text-center py-8 text-gray-500'>
+            <p>No quick actions available</p>
+          </div>
+        )}
       </div>
     </div>
   );

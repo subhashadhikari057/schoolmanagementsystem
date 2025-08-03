@@ -120,15 +120,6 @@ export const mockNotifications: Notification[] = [
     icon: React.createElement(BookOpen, { className: 'w-5 h-5' }),
     read: true,
   },
-  {
-    id: '6',
-    title: 'Low Attendance Alert',
-    description: 'Grade 8-B has attendance below 75% this week',
-    time: '1 day ago',
-    type: 'warning',
-    icon: React.createElement(AlertTriangle, { className: 'w-5 h-5' }),
-    read: false,
-  },
 ];
 
 // Mock Quick Actions Data
