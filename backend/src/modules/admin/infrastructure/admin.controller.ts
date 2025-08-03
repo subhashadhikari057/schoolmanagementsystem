@@ -22,12 +22,12 @@ import {
   UpdateAdminDtoType,
 } from '../dto/admin.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { IsAuthenticated } from '../../../shared/guards/is-authenticated.guard';
-import { hasRole } from '../../../shared/guards/role.guard';
 import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
+import { Roles } from '../../../shared/decorators/roles.decorator';
+import { UserRole } from '@sms/shared-types';
 
 @Controller('api/admin')
-@UseGuards(IsAuthenticated, hasRole('SUPERADMIN'))
+@Roles(UserRole.SUPER_ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -48,7 +48,9 @@ export class AdminController {
     return {
       message: 'Admin created successfully',
       admin: result.admin,
-      ...(result.temporaryPassword && { temporaryPassword: result.temporaryPassword }),
+      ...(result.temporaryPassword && {
+        temporaryPassword: result.temporaryPassword,
+      }),
     };
   }
 

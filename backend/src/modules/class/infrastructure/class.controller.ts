@@ -20,17 +20,17 @@ import {
   UpdateClassDto,
   UpdateClassDtoType,
 } from '../dto/class.dto';
-import { IsAuthenticated } from '../../../shared/guards/is-authenticated.guard';
-import { hasRole } from '../../../shared/guards/role.guard';
+
 import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
+import { Roles } from '../../../shared/decorators/roles.decorator';
+import { UserRole } from '@sms/shared-types';
 
 @Controller('api/v1/classes')
-@UseGuards(IsAuthenticated)
 export class ClassController {
   constructor(private readonly classService: ClassService) {}
 
   @Post()
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body(new ZodValidationPipe(CreateClassDto))
@@ -47,19 +47,19 @@ export class ClassController {
   }
 
   @Get()
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN', 'TEACHER'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findAll() {
     return this.classService.findAll(); // returns class + sections[]
   }
 
   @Get(':id')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN', 'TEACHER'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findById(@Param('id') id: string) {
     return this.classService.findById(id); // returns class + sections[]
   }
 
   @Patch(':id')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateClassDto))
@@ -77,7 +77,7 @@ export class ClassController {
   }
 
   @Delete(':id')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: any,

@@ -7,7 +7,12 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { UserRole, AuditAction, AuditModule, AuditStatus } from '@sms/shared-types';
+import {
+  UserRole,
+  AuditAction,
+  AuditModule,
+  AuditStatus,
+} from '@sms/shared-types';
 import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
@@ -33,12 +38,84 @@ async function main() {
 
   console.log('✅ Test roles created');
 
-  // Create test permissions (minimal set)
+  // Create test permissions (expanded set for new modules)
   const testPermissions = [
+    // User permissions
     { code: 'USER_VIEW', description: 'View users', module: 'USER' },
     { code: 'USER_CREATE', description: 'Create users', module: 'USER' },
     { code: 'USER_EDIT', description: 'Edit users', module: 'USER' },
     { code: 'USER_DELETE', description: 'Delete users', module: 'USER' },
+
+    // Teacher permissions
+    {
+      code: 'TEACHER_VIEW',
+      description: 'View teachers',
+      module: 'TEACHER',
+    },
+    {
+      code: 'TEACHER_CREATE',
+      description: 'Create teachers',
+      module: 'TEACHER',
+    },
+    {
+      code: 'TEACHER_EDIT',
+      description: 'Edit teachers',
+      module: 'TEACHER',
+    },
+    {
+      code: 'TEACHER_DELETE',
+      description: 'Delete teachers',
+      module: 'TEACHER',
+    },
+    {
+      code: 'TEACHER_ASSIGN_SUBJECTS',
+      description: 'Assign subjects to teachers',
+      module: 'TEACHER',
+    },
+    {
+      code: 'TEACHER_ASSIGN_CLASSES',
+      description: 'Assign classes to teachers',
+      module: 'TEACHER',
+    },
+
+    // Subject permissions
+    {
+      code: 'SUBJECT_VIEW',
+      description: 'View subjects',
+      module: 'SUBJECT',
+    },
+    {
+      code: 'SUBJECT_CREATE',
+      description: 'Create subjects',
+      module: 'SUBJECT',
+    },
+    {
+      code: 'SUBJECT_EDIT',
+      description: 'Edit subjects',
+      module: 'SUBJECT',
+    },
+    {
+      code: 'SUBJECT_DELETE',
+      description: 'Delete subjects',
+      module: 'SUBJECT',
+    },
+
+    // Auth permissions
+    {
+      code: 'AUTH_LOGIN',
+      description: 'Login access',
+      module: 'AUTH',
+    },
+    {
+      code: 'AUTH_REFRESH',
+      description: 'Refresh token access',
+      module: 'AUTH',
+    },
+    {
+      code: 'AUTH_LOGOUT',
+      description: 'Logout access',
+      module: 'AUTH',
+    },
   ];
 
   for (const permData of testPermissions) {
@@ -82,9 +159,13 @@ async function main() {
       });
     }
 
-    // Admin gets view and edit permissions
+    // Admin gets most permissions (excluding some super admin only)
     const adminPermissions = permissions.filter(
-      p => p.code.includes('VIEW') || p.code.includes('EDIT'),
+      p =>
+        p.code.includes('VIEW') ||
+        p.code.includes('EDIT') ||
+        p.code.includes('CREATE') ||
+        p.code.includes('ASSIGN'),
     );
     for (const permission of adminPermissions) {
       await prisma.rolePermission.upsert({
@@ -102,8 +183,14 @@ async function main() {
       });
     }
 
-    // Teacher gets view permissions only
-    const teacherPermissions = permissions.filter(p => p.code.includes('VIEW'));
+    // Teacher gets view permissions and auth permissions
+    const teacherPermissions = permissions.filter(
+      p =>
+        p.code.includes('VIEW') ||
+        p.code.includes('AUTH') ||
+        (p.code.includes('TEACHER') &&
+          (p.code.includes('EDIT') || p.code.includes('UPDATE'))),
+    );
     for (const permission of teacherPermissions) {
       await prisma.rolePermission.upsert({
         where: {
@@ -165,6 +252,7 @@ async function main() {
         fullName: userData.fullName,
         passwordHash: userData.passwordHash,
         isActive: userData.isActive,
+
         roles: {
           create: {
             roleId: role.id,
@@ -194,6 +282,13 @@ async function main() {
   });
 
   console.log('✅ Test audit log created');
+
+  // Note: Subject and Teacher modules will be added in future schema migrations
+  // For now, we only seed the basic auth and permission structure
+  console.log(
+    '📝 Note: Teacher and Subject modules will be available after schema migration',
+  );
+
   console.log('🎉 Test seed completed successfully!');
 }
 

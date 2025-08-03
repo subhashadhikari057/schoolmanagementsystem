@@ -14,6 +14,7 @@ import { AuthService } from '../application/auth.service';
 import { LoginDto, ForceChangePasswordDto } from '../dto/auth.dto';
 import { setAuthCookies, COOKIE_OPTIONS } from '../../../shared/auth/cookie';
 import { verifyToken } from '../../../shared/auth/jwt.util';
+import { Public } from '../../../shared/guards/jwt-auth.guard';
 
 @Controller('api/auth') // ✅ Traditional route prefix (no RouterModule)
 export class AuthController {
@@ -24,6 +25,7 @@ export class AuthController {
    * Issues access & refresh tokens as HTTP-only cookies
    * Logs user login via audit logger inside AuthService
    */
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -48,7 +50,10 @@ export class AuthController {
 
     // ✅ Normal login - set cookies in browser
     // TypeScript now knows result has accessToken and refreshToken
-    const { accessToken, refreshToken } = result as { accessToken: string; refreshToken: string };
+    const { accessToken, refreshToken } = result as {
+      accessToken: string;
+      refreshToken: string;
+    };
     setAuthCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({ message: 'Login successful' });
@@ -58,6 +63,7 @@ export class AuthController {
    * 🔁 Refresh token endpoint
    * Rotates token pair and reissues new cookies
    */
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(@Req() req: Request, @Res() res: Response): Promise<Response> {
@@ -82,6 +88,7 @@ export class AuthController {
    * 🚪 Logout endpoint
    * Revokes session, clears cookies, logs out user
    */
+  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: Request, @Res() res: Response): Promise<Response> {
@@ -112,6 +119,7 @@ export class AuthController {
    * 🔄 Force password change endpoint
    * Allows users to change password when required after login with temp token
    */
+  @Public()
   @Post('change-password-forced')
   @HttpCode(HttpStatus.OK)
   async forceChangePassword(

@@ -32,17 +32,17 @@ import {
   AssignSubjectsDtoType,
 } from '../dto/assign-subjects.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { IsAuthenticated } from '../../../shared/guards/is-authenticated.guard';
-import { hasRole } from '../../../shared/guards/role.guard';
+
+import { Roles } from '../../../shared/decorators/roles.decorator';
+import { UserRole } from '@sms/shared-types';
 import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
 
 @Controller('api/v1/teachers')
-@UseGuards(IsAuthenticated)
 export class TeacherController {
   constructor(private readonly teacherService: TeacherService) {}
 
   @Post()
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body(new ZodValidationPipe(CreateTeacherDto)) body: CreateTeacherDtoType,
@@ -65,25 +65,25 @@ export class TeacherController {
   }
 
   @Get()
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async findAll() {
     return this.teacherService.findAll();
   }
 
   @Get('me')
-  @UseGuards(hasRole('TEACHER'))
+  @Roles(UserRole.TEACHER)
   async getSelf(@CurrentUser() user: any) {
     return this.teacherService.findByUserId(user.id);
   }
 
   @Get(':id')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN', 'TEACHER'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findById(@Param('id') id: string) {
     return this.teacherService.findById(id);
   }
 
   @Patch('me')
-  @UseGuards(hasRole('TEACHER'))
+  @Roles(UserRole.TEACHER)
   async updateSelf(
     @Body(new ZodValidationPipe(UpdateTeacherSelfDto))
     body: UpdateTeacherSelfDtoType,
@@ -99,7 +99,7 @@ export class TeacherController {
   }
 
   @Patch(':id')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateTeacherByAdminDto))
@@ -117,7 +117,7 @@ export class TeacherController {
   }
 
   @Delete(':id')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -132,13 +132,13 @@ export class TeacherController {
   }
 
   @Get(':id/subjects')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN', 'TEACHER'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async getSubjects(@Param('id') id: string) {
     return this.teacherService.getSubjects(id);
   }
 
   @Post(':id/subjects')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async assignSubjects(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(AssignSubjectsDto))
@@ -156,7 +156,7 @@ export class TeacherController {
   }
 
   @Delete(':id/subjects/:subjectId')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async unassignSubject(
     @Param('id') id: string,
     @Param('subjectId') subjectId: string,
@@ -173,13 +173,13 @@ export class TeacherController {
   }
 
   @Get(':id/classes')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN', 'TEACHER'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async getAssignedClasses(@Param('id') id: string) {
     return this.teacherService.getAssignedClasses(id);
   }
 
   @Post(':id/classes')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async assignClasses(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(AssignTeacherClassesDto))
@@ -197,7 +197,7 @@ export class TeacherController {
   }
 
   @Delete(':id/classes/:classId')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async unassignClass(
     @Param('id') id: string,
     @Param('classId') classId: string,
@@ -216,7 +216,7 @@ export class TeacherController {
   }
 
   @Delete(':id/classes')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async unassignAllClasses(
     @Param('id') id: string,
     @Query('classId') classId: string | undefined,
@@ -235,7 +235,12 @@ export class TeacherController {
   }
 
   @Get(':id/profile')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN', 'TEACHER', 'STUDENT'))
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.TEACHER,
+    UserRole.STUDENT,
+  )
   async getProfile(@Param('id') id: string) {
     return this.teacherService.getProfileOnly(id);
   }

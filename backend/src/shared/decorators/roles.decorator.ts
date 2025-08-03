@@ -18,7 +18,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { UserRole, hasRolePermission } from '@sms/shared-types';
-import { AuthenticatedUser } from '../guards/jwt-auth.guard';
+import { AuthenticatedUser, IS_PUBLIC_KEY } from '../guards/jwt-auth.guard';
 
 /**
  * Metadata key for storing required roles
@@ -102,6 +102,16 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
+    // Check if route is marked as public
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<Request>();
     const user = request.user as AuthenticatedUser;
 
