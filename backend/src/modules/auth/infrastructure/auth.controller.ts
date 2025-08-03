@@ -34,11 +34,7 @@ export class AuthController {
     const ip = req.ip || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
 
-    const result = await this.authService.login(
-      body,
-      ip,
-      userAgent,
-    );
+    const result = await this.authService.login(body, ip, userAgent);
 
     // ✅ Check if password change is required
     if ('requirePasswordChange' in result && result.requirePasswordChange) {
@@ -52,6 +48,9 @@ export class AuthController {
 
     // ✅ Normal login - set cookies in browser
     const { accessToken, refreshToken } = result;
+    if (!accessToken || !refreshToken) {
+      return res.status(500).json({ message: 'Failed to generate tokens' });
+    }
     setAuthCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({ message: 'Login successful' });
