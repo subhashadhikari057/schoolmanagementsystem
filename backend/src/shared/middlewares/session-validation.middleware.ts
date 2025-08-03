@@ -57,9 +57,8 @@ export class SessionValidationMiddleware implements NestMiddleware {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
-    config?: Partial<SessionValidationConfig>,
   ) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = { ...DEFAULT_CONFIG };
   }
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {

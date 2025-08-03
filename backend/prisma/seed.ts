@@ -4,7 +4,7 @@ import * as argon2 from 'argon2';
 const prisma = new PrismaClient();
 
 async function main() {
-  const roleNames = ['SUPERADMIN', 'ADMIN', 'TEACHER', 'STUDENT', 'PARENT'];
+  const roleNames = ['super_admin', 'admin', 'teacher', 'student', 'parent'];
 
   // 1. Create roles
   for (const role of roleNames) {
@@ -14,7 +14,7 @@ async function main() {
       create: {
         name: role,
         description: `${role} role`,
-        isSystemRole: role === 'SUPERADMIN',
+        isSystemRole: role === 'super_admin',
       },
     });
   }
@@ -25,19 +25,19 @@ async function main() {
       email: 'superadmin@gmail.com',
       fullName: 'Super Admin',
       password: 'superadmin123',
-      role: 'SUPERADMIN',
+      role: 'super_admin',
     },
     {
       email: 'admin@gmail.com',
       fullName: 'Admin User',
       password: 'admin123',
-      role: 'ADMIN',
+      role: 'admin',
     },
     {
       email: 'teacher@gmail.com',
       fullName: 'Teacher User',
       password: 'teacher123',
-      role: 'TEACHER',
+      role: 'teacher',
     },
   ];
 

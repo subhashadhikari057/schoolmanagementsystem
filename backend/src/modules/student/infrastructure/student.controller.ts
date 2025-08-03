@@ -14,12 +14,12 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { IsAuthenticated } from '../../../shared/guards/is-authenticated.guard';
-import { hasRole } from '../../../shared/guards/role.guard';
+
+import { Roles } from '../../../shared/decorators/roles.decorator';
+import { UserRole } from '@sms/shared-types';
 import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
 import { StudentService } from '../application/student.service';
 import { z } from 'zod';
-
 
 // DTOs
 import {
@@ -53,16 +53,16 @@ const CombinedSelfUpdateDto = UpdateStudentDto.merge(UpdateStudentProfileDto);
 type CombinedSelfUpdateDtoType = z.infer<typeof CombinedSelfUpdateDto>;
 
 @Controller('api/v1/students')
-@UseGuards(IsAuthenticated)
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
   // 🔹 Create student with new parents
   @Post('create-with-new-parents')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async createStudentWithNewParents(
-    @Body(new ZodValidationPipe(CreateStudentWithNewParentsDto)) body: CreateStudentWithNewParentsDtoType,
+    @Body(new ZodValidationPipe(CreateStudentWithNewParentsDto))
+    body: CreateStudentWithNewParentsDtoType,
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
@@ -85,10 +85,11 @@ export class StudentController {
 
   // 🔹 Create student with existing parents
   @Post('create-with-existing-parents')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async createStudentWithExistingParents(
-    @Body(new ZodValidationPipe(CreateStudentWithExistingParentsDto)) body: CreateStudentWithExistingParentsDtoType,
+    @Body(new ZodValidationPipe(CreateStudentWithExistingParentsDto))
+    body: CreateStudentWithExistingParentsDtoType,
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
@@ -113,7 +114,7 @@ export class StudentController {
 
   // 🔹 Create student (legacy endpoint - backward compatibility)
   @Post()
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body(new ZodValidationPipe(CreateStudentDto)) body: CreateStudentDtoType,
@@ -139,7 +140,7 @@ export class StudentController {
 
   // 🔹 Get all students (paginated)
   @Get()
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async findAll(
     @Query(new ZodValidationPipe(GetAllStudentsQuerySchema))
     query: GetAllStudentsQueryDtoType,
@@ -149,25 +150,29 @@ export class StudentController {
 
   // 🔹 Get all parents (paginated) - MOVED UP before parameterized routes
   @Get('parents')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async getAllParents(
     @Query('page') page = '1',
     @Query('limit') limit = '20',
     @Query('search') search?: string,
   ) {
-    return this.studentService.getAllParents(Number(page), Number(limit), search);
+    return this.studentService.getAllParents(
+      Number(page),
+      Number(limit),
+      search,
+    );
   }
 
   // 🔹 Get children (for parent user) - MOVED UP before parameterized routes
   @Get('me/children')
-  @UseGuards(hasRole('PARENT'))
+  @Roles(UserRole.PARENT)
   async getChildren(@CurrentUser() user: any) {
     return this.studentService.findChildrenOfParent(user.id);
   }
 
   // 🔹 Student self-update (basic info) - MOVED UP before parameterized routes
   @Patch('me')
-  @UseGuards(hasRole('STUDENT'))
+  @Roles(UserRole.STUDENT)
   async updateSelf(
     @Body(new ZodValidationPipe(CombinedSelfUpdateDto))
     body: CombinedSelfUpdateDtoType,
@@ -184,28 +189,39 @@ export class StudentController {
 
   // 🔹 Get single student by ID
   @Get(':id')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN', 'TEACHER', 'PARENT', 'STUDENT'))
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.TEACHER,
+    UserRole.PARENT,
+    UserRole.STUDENT,
+  )
   async findById(@Param('id') id: string, @CurrentUser() user: any) {
     return this.studentService.findById(id, {
       id: user.id,
-      roleNames: user.roles.map((r) => r.role.name),
+      roleNames: user.roles.map(r => r.role.name),
     });
   }
 
   // 🔹 Get profile (alias of findById)
   @Get(':id/profile')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN', 'TEACHER', 'PARENT', 'STUDENT'))
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.TEACHER,
+    UserRole.PARENT,
+    UserRole.STUDENT,
+  )
   async getProfile(@Param('id') id: string, @CurrentUser() user: any) {
     return this.studentService.findById(id, {
       id: user.id,
-      roleNames: user.roles.map((r) => r.role.name),
+      roleNames: user.roles.map(r => r.role.name),
     });
   }
 
-
   // 🔹 Admin update student
   @Patch(':id')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateStudentDto))
@@ -222,12 +238,9 @@ export class StudentController {
     );
   }
 
- 
-
-
   // 🔹 Admin adds/updates student profile
   @Patch(':id/profile')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async upsertProfile(
     @Param('id') studentId: string,
     @Body(new ZodValidationPipe(CreateStudentProfileDto))
@@ -246,7 +259,7 @@ export class StudentController {
 
   // 🔹 Soft-delete student
   @Delete(':id')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -260,22 +273,21 @@ export class StudentController {
     );
   }
 
-
-
   // 🔹 Get linked parents
   @Get(':id/parents')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async getParents(@Param('id') studentId: string) {
     return this.studentService.getStudentParents(studentId);
   }
 
   // 🔹 Set primary parent (handles all scenarios: contact→primary, user→primary, switching)
   @Patch(':id/parents/:linkId/set-primary')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async setPrimaryParent(
     @Param('id') studentId: string,
     @Param('linkId') parentLinkId: string,
-    @Body(new ZodValidationPipe(SetPrimaryParentDto)) body: SetPrimaryParentDtoType,
+    @Body(new ZodValidationPipe(SetPrimaryParentDto))
+    body: SetPrimaryParentDtoType,
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
@@ -288,7 +300,4 @@ export class StudentController {
       req.headers['user-agent'],
     );
   }
-
-
-  
 }
