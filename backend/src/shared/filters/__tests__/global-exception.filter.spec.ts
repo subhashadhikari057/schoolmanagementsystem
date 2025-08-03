@@ -7,7 +7,7 @@ import { ZodError, ZodIssue } from 'zod';
 import { ThrottlerException } from '@nestjs/throttler';
 import { GlobalExceptionFilter } from '../global-exception.filter';
 import { AuditService } from '../../logger/audit.service';
-import { ErrorCodes } from 'shared-types';
+import { ErrorCodes } from '@sms/shared-types';
 
 describe('GlobalExceptionFilter', () => {
   let filter: GlobalExceptionFilter;

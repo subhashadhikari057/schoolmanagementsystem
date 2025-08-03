@@ -7,7 +7,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { UserRole, AuditAction, AuditModule, AuditStatus } from 'shared-types';
+import { UserRole, AuditAction, AuditModule, AuditStatus } from '@sms/shared-types';
 import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();

@@ -17,7 +17,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { UserRole, hasRolePermission } from 'shared-types';
+import { UserRole, hasRolePermission } from '@sms/shared-types';
 import { AuthenticatedUser } from '../guards/jwt-auth.guard';
 
 /**

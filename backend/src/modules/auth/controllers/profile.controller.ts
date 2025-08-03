@@ -28,7 +28,7 @@ import {
 } from '../../../shared/decorators/roles.decorator';
 import { Public } from '../../../shared/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../../../shared/guards/jwt-auth.guard';
-import { UserRole } from 'shared-types';
+import { UserRole } from '@sms/shared-types';
 
 // @ApiTags('Profile')
 // @ApiBearerAuth()

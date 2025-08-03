@@ -12,7 +12,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtAuthGuard, IS_PUBLIC_KEY } from '../jwt-auth.guard';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { verifyToken } from '../../auth/jwt.util';
-import { UserRole } from 'shared-types';
+import { UserRole } from '@sms/shared-types';
 
 // Mock the JWT utility
 jest.mock('../../auth/jwt.util');

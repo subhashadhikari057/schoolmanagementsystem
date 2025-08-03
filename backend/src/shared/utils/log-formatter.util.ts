@@ -19,6 +19,7 @@ interface ChalkInstance {
   green: (text: string) => string;
   white: (text: string) => string;
   dim: (text: string) => string;
+  bold: (text: string) => string;
 }
 
 let chalk: ChalkInstance;
@@ -37,6 +38,7 @@ try {
     green: (text: string) => text,
     white: (text: string) => text,
     dim: (text: string) => text,
+    bold: (text: string) => text,
   };
 }
 
@@ -187,7 +189,7 @@ export class LogFormatter {
     filteredEntries = filteredEntries.slice(-maxLines);
 
     console.log(
-      chalk.cyan.bold(`\n📋 Log Entries (${filteredEntries.length} shown)\n`),
+      chalk.bold(chalk.cyan(`\n📋 Log Entries (${filteredEntries.length} shown)\n`)),
     );
 
     filteredEntries.forEach((entry, index) => {

@@ -1,4 +1,3 @@
-// backend/src/modules/auth/auth.module.ts
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { AuthController } from './infrastructure/auth.controller';
 import { AuthService } from './application/auth.service';
@@ -12,6 +11,10 @@ import { AuthRateLimiter } from '../../shared/middlewares/rate-limit.middleware'
   providers: [AuthService, PrismaService],
 })
 export class AuthModule implements NestModule {
+  constructor() {
+    console.log('✅ AuthModule loaded'); // 👈 Debug statement
+  }
+
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(AuthRateLimiter).forRoutes('auth'); // ✅ applies to all /auth/* routes
   }

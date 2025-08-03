@@ -13,7 +13,7 @@ import { SessionValidationMiddleware } from '../session-validation.middleware';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../logger/audit.service';
 import { AuthenticatedUser } from '../../guards/jwt-auth.guard';
-import { UserRole } from 'shared-types';
+import { UserRole } from '@sms/shared-types';
 
 describe('SessionValidationMiddleware', () => {
   let middleware: SessionValidationMiddleware;

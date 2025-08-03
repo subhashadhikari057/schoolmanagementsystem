@@ -6,7 +6,7 @@ import {
   EnhancedAuditService,
   AuditContext,
 } from '../logger/enhanced-audit.service';
-import { AuditAction, AuditModule, AuditStatus, UserRole } from 'shared-types';
+import { AuditAction, AuditModule, AuditStatus, UserRole } from '@sms/shared-types';
 
 declare module 'express-serve-static-core' {
   interface Request {

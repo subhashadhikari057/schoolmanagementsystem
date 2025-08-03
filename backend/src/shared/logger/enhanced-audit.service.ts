@@ -3,14 +3,89 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import {
-  CreateAuditLogDto,
-  AuditLogQueryDto,
-  AuditLogResponseDto,
-  AuditStatsDto,
   AuditAction,
   AuditModule,
   AuditStatus,
-} from 'shared-types';
+} from '@sms/shared-types';
+
+// Simple interfaces for audit operations
+interface CreateAuditLogDto {
+  userId?: string;
+  action: string;
+  module?: string;
+  status?: string;
+  details?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  traceId?: string;
+  sessionId?: string;
+  resourceId?: string;
+  resourceType?: string;
+  endpoint?: string;
+  method?: string;
+  statusCode?: number;
+  executionTime?: number;
+  errorMessage?: string;
+  severity?: string;
+  duration?: number;
+  errorCode?: string;
+}
+
+interface AuditLogQueryDto {
+  userId?: string;
+  action?: string;
+  module?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  ipAddress?: string;
+  traceId?: string;
+  sessionId?: string;
+  resourceType?: string;
+  resourceId?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface AuditLogResponseDto {
+  id: string;
+  userId: string | null;
+  action: string;
+  module: string | null;
+  status: string;
+  details: Record<string, any> | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  timestamp: Date;
+  traceId: string | null;
+  sessionId: string | null;
+  resourceId: string | null;
+  resourceType: string | null;
+  endpoint: string | null;
+  method: string | null;
+  statusCode: number | null;
+  executionTime: number | null;
+  errorMessage: string | null;
+  severity: string | null;
+  user?: { id: string; email: string; fullName: string } | null;
+}
+
+interface AuditStatsDto {
+  totalLogs: number;
+  successCount: number;
+  failureCount: number;
+  errorCount: number;
+  uniqueUsers: number;
+  topActions: Array<{ action: string; count: number }>;
+  topModules: Array<{ module: string; count: number }>;
+  timeRange: {
+    startDate: string;
+    endDate: string;
+  };
+  recentActivity?: AuditLogResponseDto[];
+}
 import { randomUUID } from 'crypto';
 
 export interface AuditContext {
@@ -172,20 +247,20 @@ export class EnhancedAuditService {
           },
         },
         orderBy: {
-          [sortBy]: sortOrder,
+          [sortBy || 'timestamp']: sortOrder,
         },
-        skip: (page - 1) * limit,
+        skip: ((page || 1) - 1) * (limit || 20),
         take: limit,
       }),
       this.prisma.auditLog.count({ where }),
     ]);
 
     return {
-      logs: logs as AuditLogResponseDto[],
+      logs: logs as unknown as AuditLogResponseDto[],
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: page || 1,
+      limit: limit || 20,
+      totalPages: Math.ceil(total / (limit || 20)),
     };
   }
 
@@ -277,7 +352,11 @@ export class EnhancedAuditService {
         module: item.module as AuditModule,
         count: item._count.module,
       })),
-      recentActivity: recentActivity as AuditLogResponseDto[],
+      recentActivity: recentActivity as unknown as AuditLogResponseDto[],
+      timeRange: {
+        startDate: (startDate instanceof Date ? startDate.toISOString() : startDate) || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        endDate: (endDate instanceof Date ? endDate.toISOString() : endDate) || new Date().toISOString(),
+      },
     };
   }
 

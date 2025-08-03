@@ -15,7 +15,7 @@ import {
   BusinessLogicErrorDetail,
   AuthErrorDetail,
   DetailedErrorResponseDto,
-} from 'shared-types';
+} from '@sms/shared-types';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface BusinessErrorParams {

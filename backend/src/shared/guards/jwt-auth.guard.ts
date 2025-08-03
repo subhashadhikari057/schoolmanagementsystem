@@ -18,7 +18,7 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { verifyToken } from '../auth/jwt.util';
-import { UserRole } from 'shared-types';
+import { UserRole } from '@sms/shared-types';
 
 /**
  * JWT payload structure expected from tokens

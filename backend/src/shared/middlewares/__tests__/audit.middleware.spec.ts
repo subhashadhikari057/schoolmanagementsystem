@@ -4,7 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Request, Response, NextFunction } from 'express';
 import { AuditMiddleware } from '../audit.middleware';
 import { EnhancedAuditService } from '../../logger/enhanced-audit.service';
-import { AuditAction, AuditModule, AuditStatus, UserRole } from 'shared-types';
+import { AuditAction, AuditModule, AuditStatus, UserRole } from '@sms/shared-types';
 import type { AuthenticatedUser } from '../../guards/jwt-auth.guard';
 
 describe('AuditMiddleware', () => {

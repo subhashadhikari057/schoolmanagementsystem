@@ -16,6 +16,10 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+
+    // ✅ ADD THESE TWO LINES BELOW
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["node", "express"]
   }
 }

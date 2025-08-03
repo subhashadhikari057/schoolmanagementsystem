@@ -103,7 +103,7 @@ export const SessionId = createParamDecorator(
  * }
  * ```
  */
-export const HasRole = (targetRole: import('shared-types').UserRole) =>
+export const HasRole = (targetRole: import('@sms/shared-types').UserRole) =>
   createParamDecorator((data: unknown, ctx: ExecutionContext): boolean => {
     const request = ctx.switchToHttp().getRequest<Request>();
     const user = request.user as AuthenticatedUser;

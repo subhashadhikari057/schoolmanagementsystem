@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RolesGuard /* ROLES_KEY, MIN_ROLE_KEY */ } from '../roles.decorator';
-import { UserRole } from 'shared-types';
+import { UserRole } from '@sms/shared-types';
 import { AuthenticatedUser } from '../../guards/jwt-auth.guard';
 
 describe('RolesGuard', () => {

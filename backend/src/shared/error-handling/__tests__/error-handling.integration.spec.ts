@@ -18,7 +18,7 @@ import { GlobalExceptionFilter } from '../../filters/global-exception.filter';
 import { ErrorHandlingModule } from '../error-handling.module';
 import { TraceIdMiddleware } from '../../middlewares/trace-id.middleware';
 import { AuditService } from '../../logger/audit.service';
-import { ErrorCodes } from 'shared-types';
+import { ErrorCodes } from '@sms/shared-types';
 
 // Test DTO schema
 const TestDtoSchema = z.object({

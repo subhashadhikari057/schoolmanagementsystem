@@ -3,7 +3,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ErrorHandlingService } from '../error-handling.service';
-import { ErrorCodes, ValidationErrorDetail } from 'shared-types';
+import { ErrorCodes, ValidationErrorDetail } from '@sms/shared-types';
 
 describe('ErrorHandlingService', () => {
   let service: ErrorHandlingService;

@@ -25,7 +25,7 @@ import {
 import { User, UserId, UserRole } from '../../decorators/user.decorator';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { signAccessToken } from '../jwt.util';
-import { UserRole as UserRoleEnum } from 'shared-types';
+import { UserRole as UserRoleEnum } from '@sms/shared-types';
 import { DatabaseModule } from '../../../infrastructure/database/database.module';
 import { AuditModule } from '../../logger/audit.module';
 

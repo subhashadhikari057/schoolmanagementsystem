@@ -7,12 +7,14 @@ import {
 
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
-import { LoginDtoType } from '../dto/auth.dto';
-import { verifyPassword } from '../../../shared/auth/hash.util';
+import { LoginDtoType, ForceChangePasswordDtoType } from '../dto/auth.dto';
+import { verifyPassword, hashPassword } from '../../../shared/auth/hash.util';
 import {
   signAccessToken,
   signRefreshToken,
+  signTempToken,
   verifyToken,
+  verifyTempToken,
 } from '../../../shared/auth/jwt.util';
 import { hashToken, verifyTokenHash } from '../../../shared/auth/token.util';
 import { randomUUID } from 'crypto';
@@ -28,7 +30,17 @@ export class AuthService {
     data: LoginDtoType,
     ip: string,
     userAgent: string,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  ): Promise<
+    | { accessToken: string; refreshToken: string }
+    | {
+        accessToken: string;
+        refreshToken: string;
+        message: string;
+        requirePasswordChange: boolean;
+        tempToken: string;
+        userInfo: { id: string; fullName: string; email: string };
+      }
+  > {
     // Determine if identifier is email or phone
     const isEmail = data.identifier.includes('@');
     const whereClause = isEmail
@@ -38,8 +50,9 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: whereClause,
     });
-
-    if (!user || !user.isActive) {
+  
+    // ❌ Block login if user not found, inactive, or soft-deleted
+    if (!user || !user.isActive || user.deletedAt) {
       await this.auditService.record({
         action: 'LOGIN_ATTEMPT',
         status: 'FAIL',
@@ -48,13 +61,13 @@ export class AuthService {
         userAgent,
         details: {
           identifier: data.identifier,
-          type: isEmail ? 'email' : 'phone',
+          reason: user ? 'User is inactive or soft-deleted' : 'User not found',
         },
       });
-
-      throw new UnauthorizedException('Invalid credentials');
+  
+      throw new UnauthorizedException('Invalid credentials or account disabled');
     }
-
+  
     const match = await verifyPassword(data.password, user.passwordHash);
     if (!match) {
       await this.auditService.record({
@@ -66,10 +79,38 @@ export class AuthService {
         userId: user.id,
         details: { reason: 'Incorrect password' },
       });
-
+  
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // ✅ NEW: Check if password change is required
+    if (user.needPasswordChange) {
+      // Issue special token that only allows password change
+      const tempToken = signTempToken({ userId: user.id, purpose: 'PASSWORD_CHANGE' });
+      
+      await this.auditService.record({
+        action: 'LOGIN_PASSWORD_CHANGE_REQUIRED',
+        status: 'SUCCESS',
+        module: 'AUTH',
+        userId: user.id,
+        ipAddress: ip,
+        userAgent,
+      });
+
+      return {
+        accessToken: '',
+        refreshToken: '',
+        message: 'Password change required',
+        requirePasswordChange: true,
+        tempToken,
+        userInfo: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+        }
+      };
+    }
+  
     const sessionId: string = randomUUID();
     const refreshToken: string = signRefreshToken({
       userId: user.id,
@@ -87,7 +128,7 @@ export class AuthService {
         ipAddress: ip,
       },
     });
-
+  
     await this.auditService.record({
       action: 'LOGIN_SUCCESS',
       status: 'SUCCESS',
@@ -97,9 +138,10 @@ export class AuthService {
       userAgent,
       details: { sessionId },
     });
-
+  
     return { accessToken, refreshToken };
   }
+  
 
   async refresh(
     refreshToken: string,
@@ -179,5 +221,98 @@ export class AuthService {
       userAgent,
       details: { sessionId },
     });
+  } 
+
+  // ✅ Force password change method
+  async forceChangePassword(
+    data: ForceChangePasswordDtoType,
+    ip: string,
+    userAgent: string,
+  ) {
+    // Verify temp token
+    const decoded = verifyTempToken(data.tempToken);
+    if (!decoded || decoded.purpose !== 'PASSWORD_CHANGE') {
+      await this.auditService.record({
+        action: 'FORCE_PASSWORD_CHANGE_ATTEMPT',
+        status: 'FAIL',
+        module: 'AUTH',
+        ipAddress: ip,
+        userAgent,
+        details: { reason: 'Invalid or expired temp token' },
+      });
+
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: decoded.userId },
+    });
+
+    if (!user || !user.needPasswordChange || !user.isActive || user.deletedAt) {
+      await this.auditService.record({
+        action: 'FORCE_PASSWORD_CHANGE_ATTEMPT',
+        status: 'FAIL',
+        module: 'AUTH',
+        userId: decoded.userId,
+        ipAddress: ip,
+        userAgent,
+        details: { 
+          reason: !user ? 'User not found' : 
+                  !user.needPasswordChange ? 'Password change not required' :
+                  !user.isActive || user.deletedAt ? 'User inactive or deleted' : 'Unknown'
+        },
+      });
+
+      throw new BadRequestException('Password change not required or user not found');
+    }
+
+    // Validate new password (different from current)
+    const isSamePassword = await verifyPassword(data.newPassword, user.passwordHash);
+    if (isSamePassword) {
+      await this.auditService.record({
+        action: 'FORCE_PASSWORD_CHANGE_ATTEMPT',
+        status: 'FAIL',
+        module: 'AUTH',
+        userId: user.id,
+        ipAddress: ip,
+        userAgent,
+        details: { reason: 'New password same as current password' },
+      });
+
+      throw new BadRequestException('New password must be different from current password');
+    }
+
+    // Update password and clear force flag
+    const newPasswordHash = await hashPassword(data.newPassword);
+    
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: newPasswordHash,
+        needPasswordChange: false,           // ✅ Clear the flag
+        lastPasswordChange: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // Revoke all existing sessions (security)
+    await this.prisma.userSession.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    await this.auditService.record({
+      action: 'FORCE_PASSWORD_CHANGE',
+      status: 'SUCCESS',
+      module: 'AUTH',
+      userId: user.id,
+      ipAddress: ip,
+      userAgent,
+    });
+
+    return {
+      message: 'Password changed successfully. Please login with your new password.',
+      success: true,
+    };
   }
 }

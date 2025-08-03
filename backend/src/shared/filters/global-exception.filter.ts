@@ -18,7 +18,7 @@ import {
   createRateLimitErrorResponse,
   ErrorCodes,
   ValidationErrorDetail,
-} from 'shared-types';
+} from '@sms/shared-types';
 import { AuditService } from '../logger/audit.service';
 
 /**
