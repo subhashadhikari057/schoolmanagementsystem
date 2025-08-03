@@ -1,0 +1,11 @@
+---
+alwaysApply: true
+---
+📌 Refer to: `/Dev docs/2. Project Structure & Conventions.md` + `9. TypeScript Enums & Status Definitions.md`
+
+- Use `zod` for all schema validations.
+- Statuses, roles, tags should be imported from centralized enum file.
+- DTOs must be Zod-validated at controller or service entrypoint.
+
+Examples:
+- `z.object({ studentId: z.string().uuid(), status: StatusEnum })`

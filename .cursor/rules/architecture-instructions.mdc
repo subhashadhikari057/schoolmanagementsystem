@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+📌 Refer to: `/Dev docs/1. Technical Requirements & Architecture.md`
+
+- Follow modular hexagonal architecture.
+- Each module must expose clean contracts.
+- Use dependency injection and interface boundaries.
+- State is not shared between modules.
+- DB access must go through service layer, never directly from controller.
+
+Examples:
+- Student module can access Attendance data via exposed AttendanceService interface, not DB calls.

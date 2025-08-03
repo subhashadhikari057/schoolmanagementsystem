@@ -1,5 +1,4 @@
-
-import { Banner } from "../../types/banner";
+import { Banner } from "@/types/banner";
 import Carousel from "./Carousels";
 
 interface BannerSliderProps {
@@ -14,7 +13,7 @@ export default function BannerSlider({
   autoSlideInterval = 5000,
 }: BannerSliderProps) {
   return (
-    <div className="h-full w-full p-4 sm:p-6 md:px-8 lg:px-12 xl:px-16 2xl:px-[114px] py-8 md:py-12 lg:py-15">
+    <div className="p-4 sm:p-6 md:px-8 lg:px-12 2xl:px-[114px] xl:px-16 py-8 md:py-12 lg:py-15 w-full h-full">
       <Carousel
         slides={banners}
         autoSlide={autoSlide}

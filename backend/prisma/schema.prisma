@@ -1,15 +1,480 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// =========================
+// 🔐 Core User Management
+// =========================
+
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  phone        String? @unique
+  passwordHash String
+  fullName     String
+
+  isActive           Boolean   @default(true)
+  lastLoginAt        DateTime?
+  lastPasswordChange DateTime?
+  needPasswordChange Boolean @default(false) // in case of user created with temporary password
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  roles     UserRole[]
+  sessions  UserSession[]
+  auditLogs AuditLog[]
+
+  teacher     Teacher?
+  student     Student?
+  parentLinks ParentStudentLink[] @relation("ParentLink")
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Role {
+  id           String  @id @default(uuid())
+  name         String  @unique
+  description  String?
+  isSystemRole Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Permission {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  description String?
+  module      String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  roles RolePermission[]
+
+  @@index([code])
+  @@index([module])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model UserRole {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId String
+
+  assignedAt DateTime @default(now())
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model RolePermission {
+  id     String @id @default(uuid())
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId String
+
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId String
+
+  grantedAt DateTime @default(now())
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model UserSession {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  tokenHash         String
+  userAgent         String?
+  ipAddress         String?
+  deviceFingerprint String?
+  revokeReason      String?
+
+  loginAt        DateTime  @default(now())
+  lastActivityAt DateTime? @default(now())
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([lastActivityAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  action       String
+  module       String?
+  status       String   @default("SUCCESS")
+  details      Json?
+  ipAddress    String?
+  userAgent    String?
+  timestamp    DateTime @default(now())
+  traceId      String?
+  sessionId    String?
+  resourceId   String?
+  resourceType String?
+  endpoint     String?
+  method       String?
+  statusCode   Int?
+  duration     Int?
+  errorCode    String?
+  errorMessage String?
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([module])
+  @@index([timestamp])
+  @@index([traceId])
+  @@index([status])
+  @@index([resourceId])
+}
+
+// =========================
+// 🧑‍🏫 Teacher Module
+// =========================
+
+enum TeacherEmploymentStatus {
+  active
+  on_leave
+  resigned
+  terminated
+}
+
+model Teacher {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  designation      String?
+  qualification    String?
+  employmentDate   DateTime?
+  employmentStatus TeacherEmploymentStatus @default(active)
+
+  department         String?
+  additionalMetadata Json?   @default("{}")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  profile          TeacherProfile?
+  subjects         TeacherSubject[]
+  classAssignments TeacherClass[]
+
+  @@index([userId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model TeacherProfile {
+  id        String  @id @default(uuid())
+  teacherId String  @unique
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  bio             String?
+  profilePhotoUrl String?
+  contactInfo     Json    @default("{}")
+  socialLinks     Json    @default("{}")
+  additionalData  Json    @default("{}")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([teacherId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Subject {
+  id          String  @id @default(uuid())
+  name        String
+  code        String  @unique
+  description String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  teacherSubjects TeacherSubject[]
+
+  @@index([code])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model TeacherSubject {
+  id        String  @id @default(uuid())
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([teacherId, subjectId])
+  @@index([teacherId])
+  @@index([subjectId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+// =========================
+// 🏫 Class & Section Module
+// =========================
+
+model Class {
+  id   String @id @default(uuid())
+  name String // e.g., "Grade 10"
+
+  sections           Section[]
+  teacherAssignments TeacherClass[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+  Student     Student[]
+
+  @@index([name])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Section {
+  id      String @id @default(uuid())
+  name    String
+  classId String
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  teacherAssignments TeacherClass[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+  Student     Student[]
+
+  @@unique([name, classId])
+  @@index([classId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model TeacherClass {
+  id        String  @id @default(uuid())
+  teacherId String
+  classId   String
+  sectionId String?
+
+  teacher Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class   Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  assignedAt DateTime @default(now())
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([teacherId, classId, sectionId])
+  @@index([teacherId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+// =========================
+// 🎓 Student & Parent Module
+// =========================
+
+model Student {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  classId String
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  rollNumber String
+
+  dob                DateTime?
+  gender             String?
+  additionalMetadata Json?     @default("{}")
+
+  profile StudentProfile?
+  parents ParentStudentLink[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([classId, sectionId, rollNumber], name: "unique_roll_per_class_section")
+  @@index([userId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model StudentProfile {
+  id        String  @id @default(uuid())
+  studentId String  @unique
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  bio              String?
+  profilePhotoUrl  String?
+  emergencyContact Json?   @default("{}")
+  interests        Json?   @default("{}")
+  additionalData   Json?   @default("{}")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([studentId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ParentStudentLink {
+  id String @id @default(uuid())
+
+  // ✅ Make parentId optional
+  parentId String?
+  parent   User?   @relation("ParentLink", fields: [parentId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  relationship String?
+  isPrimary    Boolean  @default(false)
+  linkedAt     DateTime @default(now())
+
+  // ✅ New fields to support non-primary parent contact
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+

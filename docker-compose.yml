@@ -1,0 +1,165 @@
+# =============================================================================
+# School Management System - Docker Development Stack
+# =============================================================================
+# This docker-compose.yml provides a complete development environment with:
+# - PostgreSQL 15: Primary database with persistent storage
+# - Redis 7: Caching and session storage
+# - MailHog: Email testing and debugging
+# - pgAdmin: Database administration interface (optional)
+# =============================================================================
+
+services:
+  # 🗄️ PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: sms_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: school_management_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+      - ./docker/postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf
+    networks:
+      - sms_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d school_management_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c random_page_cost=1.1
+      -c temp_file_limit=2GB
+      -c log_min_duration_statement=1000
+      -c log_checkpoints=on
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_lock_waits=on
+
+  # 🔴 Redis Cache & Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: sms_redis
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/etc/redis/redis.conf
+    networks:
+      - sms_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      redis-server /etc/redis/redis.conf
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --timeout 300
+      --tcp-keepalive 60
+
+  # 📧 MailHog - Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: sms_mailhog
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web interface
+    networks:
+      - sms_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # 🔧 pgAdmin - Database Administration (Optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: sms_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@schoolsystem.local
+      PGADMIN_DEFAULT_PASSWORD: admin_dev_password
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+      TZ: UTC
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json
+    networks:
+      - sms_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - admin-tools
+
+  # 📊 Redis Commander - Redis Administration (Optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: sms_redis_commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: "local:redis:6379"
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin_dev_password
+      TZ: UTC
+    ports:
+      - "8081:8081"
+    networks:
+      - sms_network
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - admin-tools
+
+# 📦 Persistent Volumes
+volumes:
+  postgres_data:
+    driver: local
+    name: sms_postgres_data
+  redis_data:
+    driver: local
+    name: sms_redis_data
+  pgadmin_data:
+    driver: local
+    name: sms_pgadmin_data
+
+# 🌐 Networks
+networks:
+  sms_network:
+    driver: bridge
+    name: sms_network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

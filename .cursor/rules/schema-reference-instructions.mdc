@@ -1,0 +1,14 @@
+---
+alwaysApply: true
+---
+📌 Refer to: `/Schemas/*.md` files
+
+- Cursor must reference these for DB structure:
+  - Table names
+  - Column types
+  - Relations (1:M, M:M)
+  - Constraints (nullable, unique, default)
+
+Examples:
+- For `students`, use the structure defined in `2. Student.md`
+- Suggest only the fields documented in schema.

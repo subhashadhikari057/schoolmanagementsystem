@@ -1,0 +1,47 @@
+---
+alwaysApply: true
+---
+# 🧠 Cursor Project Rules for School Management System (SMS)
+
+## 🔒 Documentation-First Principle
+Always consult `Pre-documents/Dev docs/`, `API Contract/`, and `Schemas/` before generating or editing code.
+
+- ✅ Respect all architectural constraints defined in:
+  - `1. Technical Requirements & Architecture.md`
+  - `2. Project Structure & Conventions.md`
+  - `5. API Contract Documentation Modular, Typed, and Secure.md`
+
+## 🧱 Modular Boundaries
+- All feature logic must stay within its module boundary (Student, Teacher, etc.).
+- Cross-module interaction must happen only via contracts or service interfaces.
+
+## 📑 Source of Truth
+Cursor must never invent types, fields, or endpoints — always reference:
+- Schemas → `/Schemas/*.md`
+- API Contracts → `/API Contract/*.md`
+- TypeScript Enums → `9. TypeScript Enums & Status Definitions.md`
+- Role Access → See `feature List/` for permission scopes.
+
+## 🧪 Test Strategy
+- Unit tests go inside each module.
+- Cursor should suggest tests using `Jest`, `zod`, and mocks for DB and services.
+
+## 🏛️ Design Philosophy
+- Use strict typing (never `any`).
+- Validate all inputs with `zod`.
+- Use DTOs and Interfaces (`CreateXDto`, `IXService`) as per the naming conventions.
+- Inject services, don’t instantiate them manually.
+
+## 🧮 RBAC & Auth
+Always check role-permission logic as per:
+- `1. Auth API Contract.md`
+- `feature List/*.md`
+- `6. Security Blueprint.md`
+
+## ⚠️ Never Do This
+- ❌ Never hardcode roles, status enums, or database fields.
+- ❌ Never skip validation or type safety.
+- ❌ Never break encapsulation of a module.
+- ❌ Never bypass `Dev docs` or `API Contract` when editing or suggesting.
+
+---

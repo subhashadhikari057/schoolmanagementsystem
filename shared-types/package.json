@@ -1,0 +1,67 @@
+{
+  "name": "@sms/shared-types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types, DTOs, and enums for School Management System",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "typescript",
+    "types",
+    "dto",
+    "enums",
+    "shared",
+    "school-management"
+  ],
+  "author": "School Management System Team",
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.8",
+    "@types/node": "^20.9.0",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "eslint": "^8.54.0",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.5",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.2"
+  },
+  "peerDependencies": {
+    "zod": "^3.22.4"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/schoolmanagementsystem.git",
+    "directory": "shared-types"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/schoolmanagementsystem/issues"
+  },
+  "homepage": "https://github.com/your-org/schoolmanagementsystem#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

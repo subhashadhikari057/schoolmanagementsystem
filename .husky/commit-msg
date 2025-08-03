@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Validate commit message format
+cd backend && npx commitlint --edit $1 

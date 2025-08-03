@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+# Run lint-staged for backend
+cd backend && npx lint-staged
+cd ..
+
+# Run lint-staged for frontend
+cd frontend && npx lint-staged
