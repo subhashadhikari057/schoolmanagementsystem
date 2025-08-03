@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:dev": "rm -rf .dist && next build && next start",
     "lint": "next lint",
     "test": "vitest",
     "test:ui": "vitest --ui",
