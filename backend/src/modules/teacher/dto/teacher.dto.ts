@@ -54,7 +54,9 @@ export const UpdateTeacherByAdminDto = z.object({
   profile: CreateTeacherProfileSchema.partial().optional(),
 });
 
-export type UpdateTeacherByAdminDtoType = z.infer<typeof UpdateTeacherByAdminDto>;
+export type UpdateTeacherByAdminDtoType = z.infer<
+  typeof UpdateTeacherByAdminDto
+>;
 
 // ---------------------------
 // UpdateTeacherSelf DTO

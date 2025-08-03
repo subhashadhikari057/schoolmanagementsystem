@@ -48,7 +48,7 @@ export class TeacherService {
     const passwordHash = await hashPassword(rawPassword);
 
     const { teacher, teacherUser } = await this.prisma.$transaction(
-      async (tx) => {
+      async tx => {
         const newUser = await tx.user.create({
           data: {
             email: user.email,
@@ -335,7 +335,7 @@ export class TeacherService {
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
 
-    const data = subjectIds.map((subjectId) => ({
+    const data = subjectIds.map(subjectId => ({
       teacherId,
       subjectId,
       createdById: actorId,
@@ -487,7 +487,7 @@ export class TeacherService {
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
 
-    return teacher.classAssignments.map((assignment) => ({
+    return teacher.classAssignments.map(assignment => ({
       class: assignment.class,
       section: assignment.section ?? null, // may be null
     }));

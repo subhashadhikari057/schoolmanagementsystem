@@ -2,11 +2,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
-import {
-  AuditAction,
-  AuditModule,
-  AuditStatus,
-} from '@sms/shared-types';
+import { AuditAction, AuditModule, AuditStatus } from '@sms/shared-types';
 
 // Simple interfaces for audit operations
 interface CreateAuditLogDto {
@@ -354,8 +350,12 @@ export class EnhancedAuditService {
       })),
       recentActivity: recentActivity as unknown as AuditLogResponseDto[],
       timeRange: {
-        startDate: (startDate instanceof Date ? startDate.toISOString() : startDate) || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        endDate: (endDate instanceof Date ? endDate.toISOString() : endDate) || new Date().toISOString(),
+        startDate:
+          (startDate instanceof Date ? startDate.toISOString() : startDate) ||
+          new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        endDate:
+          (endDate instanceof Date ? endDate.toISOString() : endDate) ||
+          new Date().toISOString(),
       },
     };
   }

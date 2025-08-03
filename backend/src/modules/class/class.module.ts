@@ -9,4 +9,3 @@ import { AuditService } from '../../shared/logger/audit.service';
   providers: [ClassService, PrismaService, AuditService],
 })
 export class ClassModule {}
-

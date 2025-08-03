@@ -94,9 +94,33 @@ export function getRefreshToken(): string | null {
  * Remove all stored authentication data
  */
 export function clearAuthData(): void {
+  // Clear localStorage
   localStorage.removeItem(AUTH_CONFIG.ACCESS_TOKEN_KEY);
   localStorage.removeItem(AUTH_CONFIG.REFRESH_TOKEN_KEY);
   localStorage.removeItem(AUTH_CONFIG.USER_KEY);
+
+  // Clear sessionStorage
+  sessionStorage.clear();
+
+  // Clear all authentication-related cookies
+  if (typeof document !== 'undefined') {
+    const cookies = [
+      'access_token',
+      'refresh_token',
+      'session_id',
+      'auth_token',
+    ];
+    cookies.forEach(cookieName => {
+      // Clear for current domain
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+      // Clear for localhost domain
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=localhost`;
+      // Clear for current hostname
+      if (window.location.hostname !== 'localhost') {
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
+      }
+    });
+  }
 }
 
 /**
@@ -152,8 +176,10 @@ export function hasPermission(
 /**
  * Get allowed routes for user role
  */
-export function getAllowedRoutes(userRole: UserRole): string[] {
-  return ROLE_BASED_ROUTES[userRole] || [];
+export function getAllowedRoutes(userRole: UserRole): readonly string[] {
+  // Convert userRole to the correct key format (super_admin -> SUPER_ADMIN)
+  const roleKey = userRole.toUpperCase() as keyof typeof ROLE_BASED_ROUTES;
+  return ROLE_BASED_ROUTES[roleKey] || [];
 }
 
 /**

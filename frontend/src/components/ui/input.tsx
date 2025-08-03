@@ -80,8 +80,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             className={cn(
               inputVariants({ variant: finalVariant }),
-              leftIcon && 'pl-10',
-              rightIcon && 'pr-10',
+              leftIcon ? 'pl-10' : '',
+              rightIcon ? 'pr-10' : '',
               className,
             )}
             ref={ref}

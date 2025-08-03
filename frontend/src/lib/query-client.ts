@@ -47,16 +47,6 @@ const queryConfig: DefaultOptions = {
 
 export const queryClient = new QueryClient({
   defaultOptions: queryConfig,
-  logger: {
-    log: console.log,
-    warn: console.warn,
-    error: error => {
-      // Don't log auth errors to avoid spam
-      if (!isAuthError(error)) {
-        console.error('Query Error:', getErrorMessage(error));
-      }
-    },
-  },
 });
 
 export default queryClient;

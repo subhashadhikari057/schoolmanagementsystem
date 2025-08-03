@@ -1,13 +1,17 @@
-import React from 'react'
-import Image from 'next/image'
+import React from 'react';
+import { User } from 'lucide-react';
 
-export default function Avatar({src,className}:{src: string,className?: string}) {
+interface AvatarProps {
+  src?: string;
+  className?: string;
+}
+
+export default function Avatar({ className }: AvatarProps) {
   return (
-    <div className={className}>
-        <Image src={src} height={100} width={100} alt="User"/>
+    <div
+      className={`${className} bg-gray-100 border border-gray-200 flex items-center justify-center`}
+    >
+      <User className='w-1/2 h-1/2 text-gray-500' />
     </div>
   );
 }
-
-
-

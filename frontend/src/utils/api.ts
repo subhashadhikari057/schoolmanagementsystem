@@ -39,8 +39,8 @@ export function generateTraceId(): string {
  * Check if error is an API error
  */
 export function isApiError(error: unknown): error is ApiError {
-  return (
-    error && typeof error === 'object' && 'code' in error && 'message' in error
+  return Boolean(
+    error && typeof error === 'object' && 'code' in error && 'message' in error,
   );
 }
 
@@ -67,10 +67,14 @@ export function getErrorMessage(error: unknown): string {
  * Check if error is a network error
  */
 export function isNetworkError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const errorObj = error as Record<string, unknown>;
   return (
-    error?.code === 'NETWORK_ERROR' ||
-    error?.message?.includes('Network Error') ||
-    error?.message?.includes('fetch')
+    errorObj.code === 'NETWORK_ERROR' ||
+    (typeof errorObj.message === 'string' &&
+      errorObj.message.includes('Network Error')) ||
+    (typeof errorObj.message === 'string' && errorObj.message.includes('fetch'))
   );
 }
 
@@ -78,10 +82,20 @@ export function isNetworkError(error: unknown): boolean {
  * Check if error is an authentication error
  */
 export function isAuthError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const axiosError = error as any;
+  const status = axiosError?.response?.status || axiosError?.status;
+  const code = axiosError?.response?.data?.code || axiosError?.code;
+
   return (
-    error?.status === 401 ||
-    error?.code === 'UNAUTHORIZED' ||
-    error?.code === 'TOKEN_EXPIRED'
+    status === 401 || // Unauthorized
+    status === 400 || // Bad Request (validation errors - don't retry)
+    status === 403 || // Forbidden (don't retry)
+    code === 'UNAUTHORIZED' ||
+    code === 'TOKEN_EXPIRED' ||
+    code === 'VALIDATION_ERROR' ||
+    code === 'AUTHENTICATION_FAILED'
   );
 }
 
@@ -89,10 +103,13 @@ export function isAuthError(error: unknown): boolean {
  * Check if error is a validation error
  */
 export function isValidationError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const errorObj = error as Record<string, unknown>;
   return (
-    error?.status === 400 ||
-    error?.code === 'VALIDATION_ERROR' ||
-    error?.code === 'BAD_REQUEST'
+    errorObj.status === 400 ||
+    errorObj.code === 'VALIDATION_ERROR' ||
+    errorObj.code === 'BAD_REQUEST'
   );
 }
 
@@ -100,10 +117,13 @@ export function isValidationError(error: unknown): boolean {
  * Check if error is a permission error
  */
 export function isPermissionError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  const errorObj = error as Record<string, unknown>;
   return (
-    error?.status === 403 ||
-    error?.code === 'FORBIDDEN' ||
-    error?.code === 'INSUFFICIENT_PERMISSIONS'
+    errorObj.status === 403 ||
+    errorObj.code === 'FORBIDDEN' ||
+    errorObj.code === 'INSUFFICIENT_PERMISSIONS'
   );
 }
 

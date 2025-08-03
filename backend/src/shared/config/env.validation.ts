@@ -92,12 +92,63 @@ const envSchema = z.object({
   ALLOWED_FILE_TYPES: z.string().optional().describe('Allowed file extensions'),
   UPLOAD_PATH: z.string().optional().describe('File upload directory path'),
 
+  // Redis Configuration
+  REDIS_HOST: z.string().default('localhost').describe('Redis server hostname'),
+  REDIS_PORT: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('6379')
+    .describe('Redis server port'),
+  REDIS_PASSWORD: z.string().optional().describe('Redis server password'),
+  REDIS_DB: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('0')
+    .describe('Redis database number'),
+  CACHE_TTL: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('300')
+    .describe('Default cache TTL in seconds'),
+  CACHE_MAX_ITEMS: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default('1000')
+    .describe('Maximum cached items'),
+
   // Logging Configuration
   LOG_LEVEL: z
-    .enum(['error', 'warn', 'info', 'debug'])
-    .optional()
+    .enum(['error', 'warn', 'info', 'debug', 'verbose'])
+    .default('info')
     .describe('Application log level'),
-  LOG_FILE: z.string().optional().describe('Log file path'),
+  LOG_FORMAT: z
+    .enum(['json', 'simple'])
+    .default('json')
+    .describe('Log output format'),
+  LOG_DIRECTORY: z.string().default('./logs').describe('Log files directory'),
+  LOG_MAX_FILE_SIZE: z
+    .string()
+    .default('10mb')
+    .describe('Maximum log file size'),
+  LOG_MAX_FILES: z
+    .string()
+    .regex(/^\d+$/)
+    .default('5')
+    .describe('Maximum number of log files to keep'),
+  ENABLE_FILE_LOGGING: z
+    .string()
+    .transform(val => val === 'true')
+    .default('true')
+    .describe('Enable file logging'),
+  ENABLE_DB_LOGGING: z
+    .string()
+    .transform(val => val !== 'false')
+    .default('true')
+    .describe('Enable database audit logging'),
 
   // Security Configuration
   RATE_LIMIT_WINDOW_MS: z
@@ -140,7 +191,7 @@ export function validateEnvironment(): EnvConfig {
     dotenvSafe.config({
       path: path.resolve(process.cwd(), '.env'),
       example: path.resolve(process.cwd(), '.env.example'),
-      allowEmptyValues: false,
+      allowEmptyValues: true,
     });
 
     // Validate the environment variables using Zod schema

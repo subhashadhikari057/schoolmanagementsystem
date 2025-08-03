@@ -34,6 +34,7 @@ model User {
   roles     UserRole[]
   sessions  UserSession[]
   auditLogs AuditLog[]
+  passwordResetTokens PasswordResetToken[] @relation("PasswordResetTokens")
 
   teacher     Teacher?
   student     Student?
@@ -218,6 +219,7 @@ model Teacher {
   profile          TeacherProfile?
   subjects         TeacherSubject[]
   classAssignments TeacherClass[]
+  assignments      Assignment[]
 
   @@index([userId])
   @@index([createdById])
@@ -265,6 +267,8 @@ model Subject {
   deletedById String? @db.Uuid
 
   teacherSubjects TeacherSubject[]
+  assignments     Assignment[]
+  examSessions    ExamSession[]
 
   @@index([code])
   @@index([createdById])
@@ -308,6 +312,10 @@ model Class {
 
   sections           Section[]
   teacherAssignments TeacherClass[]
+  assignments        Assignment[]
+  examSessions       ExamSession[]
+  attendanceRecords  AttendanceRecord[]
+  feeStructures      FeeStructure[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -331,6 +339,9 @@ model Section {
   class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   teacherAssignments TeacherClass[]
+  assignments        Assignment[]
+  examSessions       ExamSession[]
+  attendanceRecords  AttendanceRecord[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -400,6 +411,10 @@ model Student {
 
   profile StudentProfile?
   parents ParentStudentLink[]
+  assignmentSubmissions AssignmentSubmission[]
+  examResults           ExamResult[]
+  attendanceRecords     AttendanceRecord[]
+  feePayments           FeePayment[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -473,6 +488,402 @@ model ParentStudentLink {
   @@unique([parentId, studentId])
   @@index([parentId])
   @@index([studentId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+// =========================
+// 🔐 Password Reset & OTP
+// =========================
+
+model PasswordResetToken {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation("PasswordResetTokens", fields: [userId], references: [id], onDelete: Cascade)
+
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+// =========================
+// 🏫 Academic Configuration
+// =========================
+
+model AcademicYear {
+  id         String    @id @default(uuid())
+  name       String    @unique // e.g., "2024-2025"
+  startDate  DateTime
+  endDate    DateTime
+  isActive   Boolean   @default(false)
+  isCurrent  Boolean   @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  // Relations
+  assignments Assignment[]
+  exams       Exam[]
+  feeStructures FeeStructure[]
+
+  @@index([isActive])
+  @@index([isCurrent])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+// =========================
+// 📚 Assignments Module
+// =========================
+
+enum AssignmentStatus {
+  draft
+  published
+  submitted
+  graded
+  archived
+}
+
+model Assignment {
+  id          String           @id @default(uuid())
+  title       String
+  description String?
+  status      AssignmentStatus @default(draft)
+
+  classId   String
+  class     Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  dueDate     DateTime?
+  maxMarks    Int?      @default(100)
+  attachments Json?     @default("[]")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  submissions AssignmentSubmission[]
+
+  @@index([classId])
+  @@index([sectionId])
+  @@index([subjectId])
+  @@index([teacherId])
+  @@index([academicYearId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+enum SubmissionStatus {
+  pending
+  submitted
+  late
+  graded
+  returned
+}
+
+model AssignmentSubmission {
+  id           String           @id @default(uuid())
+  assignmentId String
+  assignment   Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  status      SubmissionStatus @default(pending)
+  content     String?
+  attachments Json?            @default("[]")
+  
+  submittedAt DateTime?
+  gradedAt    DateTime?
+  marksObtained Int?
+  feedback    String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
+  @@index([status])
+  @@index([submittedAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+// =========================
+// 📝 Exams Module
+// =========================
+
+enum ExamStatus {
+  scheduled
+  ongoing
+  completed
+  cancelled
+}
+
+model Exam {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  status      ExamStatus @default(scheduled)
+
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  term      String    // e.g., "First", "Second", "Final"
+  startDate DateTime
+  endDate   DateTime
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  sessions ExamSession[]
+
+  @@index([academicYearId])
+  @@index([term])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ExamSession {
+  id     String @id @default(uuid())
+  examId String
+  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  classId   String
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  sessionDate DateTime
+  duration    Int      // in minutes
+  maxMarks    Int      @default(100)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  results ExamResult[]
+
+  @@index([examId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([subjectId])
+  @@index([sessionDate])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ExamResult {
+  id            String      @id @default(uuid())
+  examSessionId String
+  examSession   ExamSession @relation(fields: [examSessionId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  marksObtained Int
+  grade         String?
+  remarks       String?
+  isAbsent      Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([examSessionId, studentId])
+  @@index([examSessionId])
+  @@index([studentId])
+  @@index([grade])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+// =========================
+// 📅 Attendance Module
+// =========================
+
+enum AttendanceStatus {
+  present
+  absent
+  late
+  excused
+}
+
+model AttendanceRecord {
+  id        String           @id @default(uuid())
+  studentId String
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId   String
+  class     Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  sectionId String
+  section   Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  date   DateTime
+  status AttendanceStatus
+
+  remarks String?
+  markedBy String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([studentId, date])
+  @@index([studentId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([date])
+  @@index([status])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+// =========================
+// 💰 Finance Module
+// =========================
+
+enum FeeType {
+  tuition
+  library
+  transport
+  exam
+  activity
+  other
+}
+
+model FeeStructure {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  feeType     FeeType
+  amount      Decimal @db.Decimal(10, 2)
+  isActive    Boolean @default(true)
+
+  classId String?
+  class   Class?  @relation(fields: [classId], references: [id], onDelete: SetNull)
+
+  academicYearId String?
+  academicYear   AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  payments FeePayment[]
+
+  @@index([feeType])
+  @@index([isActive])
+  @@index([classId])
+  @@index([academicYearId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  overdue
+  cancelled
+}
+
+model FeePayment {
+  id             String        @id @default(uuid())
+  studentId      String
+  student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeStructureId String
+  feeStructure   FeeStructure  @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+
+  amountDue  Decimal       @db.Decimal(10, 2)
+  amountPaid Decimal       @default(0) @db.Decimal(10, 2)
+  status     PaymentStatus @default(pending)
+
+  dueDate  DateTime
+  paidDate DateTime?
+
+  transactionId String?
+  paymentMethod String?
+  remarks       String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([studentId])
+  @@index([feeStructureId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([paidDate])
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])

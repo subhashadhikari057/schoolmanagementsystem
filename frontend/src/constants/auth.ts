@@ -26,16 +26,30 @@ export const AUTH_CONFIG = {
 } as const;
 
 export const AUTH_ROUTES = {
-  LOGIN: '/login',
+  LOGIN: '/auth/login',
   LOGOUT: '/logout',
   DASHBOARD: '/dashboard',
   UNAUTHORIZED: '/unauthorized',
   FORBIDDEN: '/forbidden',
 } as const;
 
+export const DASHBOARD_ROUTES = {
+  SUPER_ADMIN: '/dashboard/admin',
+  ADMIN: '/dashboard/admin',
+  TEACHER: '/dashboard/teacher',
+  STUDENT: '/dashboard/student',
+  PARENT: '/dashboard/parent',
+} as const;
+
 export const PUBLIC_ROUTES = [
   '/',
   '/login',
+  '/auth/login',
+  '/auth/forgot-password',
+  '/auth/forgotpassword',
+  '/auth/reset-password',
+  '/auth/verify',
+  '/auth/setpassword',
   '/forgot-password',
   '/reset-password',
   '/unauthorized',

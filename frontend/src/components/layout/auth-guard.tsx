@@ -32,6 +32,41 @@ export function AuthGuard({
   const router = useRouter();
   const pathname = usePathname();
 
+  // Check if current route is public
+  const isPublicRoute = PUBLIC_ROUTES.includes(
+    pathname as (typeof PUBLIC_ROUTES)[number],
+  );
+
+  // Always call hooks in the same order - no conditional hooks
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Handle unauthenticated users on protected routes
+    if (!isLoading && !isAuthenticated && !isPublicRoute) {
+      router.push(redirectTo || AUTH_ROUTES.LOGIN);
+      return;
+    }
+
+    // Handle role-based access control
+    if (
+      !isLoading &&
+      isAuthenticated &&
+      requiredRole &&
+      !hasRole(requiredRole)
+    ) {
+      router.push(AUTH_ROUTES.FORBIDDEN);
+      return;
+    }
+  }, [
+    isLoading,
+    isAuthenticated,
+    isPublicRoute,
+    requiredRole,
+    hasRole,
+    router,
+    redirectTo,
+  ]);
+
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
@@ -43,29 +78,24 @@ export function AuthGuard({
     );
   }
 
-  // Check if current route is public
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-
-  // If route is public, render children
+  // If route is public, render children immediately
   if (isPublicRoute) {
     return <>{children}</>;
   }
 
-  // If not authenticated, redirect to login
+  // If not authenticated on protected route, show redirecting message
   if (!isAuthenticated) {
-    router.push(redirectTo || AUTH_ROUTES.LOGIN);
     return (
       fallback || (
         <div className='flex items-center justify-center min-h-screen'>
-          <LoadingSpinner size='lg' label='Redirecting...' />
+          <LoadingSpinner size='lg' label='Redirecting to login...' />
         </div>
       )
     );
   }
 
-  // If role is required but user doesn't have it, show forbidden
+  // If role is required but user doesn't have it, show access denied
   if (requiredRole && !hasRole(requiredRole)) {
-    router.push(AUTH_ROUTES.FORBIDDEN);
     return (
       fallback || (
         <div className='flex items-center justify-center min-h-screen'>

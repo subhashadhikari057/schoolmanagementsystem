@@ -7,6 +7,8 @@ import {
 
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
+import { LoggerService } from '../../../shared/logger/logger.service';
+import { SessionCacheService } from '../../../shared/cache/session-cache.service';
 import { LoginDtoType, ForceChangePasswordDtoType } from '../dto/auth.dto';
 import { verifyPassword, hashPassword } from '../../../shared/auth/hash.util';
 import {
@@ -21,17 +23,23 @@ import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AuthService {
+  private logger: LoggerService;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService, // ✅ Injected
-  ) {}
+    private readonly loggerService: LoggerService,
+    private readonly sessionCache: SessionCacheService,
+  ) {
+    this.logger = this.loggerService.child({ module: 'AuthService' });
+  }
 
   async login(
     data: LoginDtoType,
     ip: string,
     userAgent: string,
   ): Promise<
-    | { accessToken: string; refreshToken: string }
+    | { accessToken: string; refreshToken: string; user: any }
     | {
         accessToken: string;
         refreshToken: string;
@@ -49,8 +57,15 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: whereClause,
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
     });
-  
+
     // ❌ Block login if user not found, inactive, or soft-deleted
     if (!user || !user.isActive || user.deletedAt) {
       await this.auditService.record({
@@ -64,10 +79,12 @@ export class AuthService {
           reason: user ? 'User is inactive or soft-deleted' : 'User not found',
         },
       });
-  
-      throw new UnauthorizedException('Invalid credentials or account disabled');
+
+      throw new UnauthorizedException(
+        'Invalid credentials or account disabled',
+      );
     }
-  
+
     const match = await verifyPassword(data.password, user.passwordHash);
     if (!match) {
       await this.auditService.record({
@@ -79,15 +96,18 @@ export class AuthService {
         userId: user.id,
         details: { reason: 'Incorrect password' },
       });
-  
+
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // ✅ NEW: Check if password change is required
     if (user.needPasswordChange) {
       // Issue special token that only allows password change
-      const tempToken = signTempToken({ userId: user.id, purpose: 'PASSWORD_CHANGE' });
-      
+      const tempToken = signTempToken({
+        userId: user.id,
+        purpose: 'PASSWORD_CHANGE',
+      });
+
       await this.auditService.record({
         action: 'LOGIN_PASSWORD_CHANGE_REQUIRED',
         status: 'SUCCESS',
@@ -107,10 +127,10 @@ export class AuthService {
           id: user.id,
           fullName: user.fullName,
           email: user.email,
-        }
+        },
       };
     }
-  
+
     const sessionId: string = randomUUID();
     const refreshToken: string = signRefreshToken({
       userId: user.id,
@@ -128,7 +148,7 @@ export class AuthService {
         ipAddress: ip,
       },
     });
-  
+
     await this.auditService.record({
       action: 'LOGIN_SUCCESS',
       status: 'SUCCESS',
@@ -138,10 +158,9 @@ export class AuthService {
       userAgent,
       details: { sessionId },
     });
-  
-    return { accessToken, refreshToken };
+
+    return { accessToken, refreshToken, user };
   }
-  
 
   async refresh(
     refreshToken: string,
@@ -221,7 +240,7 @@ export class AuthService {
       userAgent,
       details: { sessionId },
     });
-  } 
+  }
 
   // ✅ Force password change method
   async forceChangePassword(
@@ -256,18 +275,27 @@ export class AuthService {
         userId: decoded.userId,
         ipAddress: ip,
         userAgent,
-        details: { 
-          reason: !user ? 'User not found' : 
-                  !user.needPasswordChange ? 'Password change not required' :
-                  !user.isActive || user.deletedAt ? 'User inactive or deleted' : 'Unknown'
+        details: {
+          reason: !user
+            ? 'User not found'
+            : !user.needPasswordChange
+              ? 'Password change not required'
+              : !user.isActive || user.deletedAt
+                ? 'User inactive or deleted'
+                : 'Unknown',
         },
       });
 
-      throw new BadRequestException('Password change not required or user not found');
+      throw new BadRequestException(
+        'Password change not required or user not found',
+      );
     }
 
     // Validate new password (different from current)
-    const isSamePassword = await verifyPassword(data.newPassword, user.passwordHash);
+    const isSamePassword = await verifyPassword(
+      data.newPassword,
+      user.passwordHash,
+    );
     if (isSamePassword) {
       await this.auditService.record({
         action: 'FORCE_PASSWORD_CHANGE_ATTEMPT',
@@ -279,17 +307,19 @@ export class AuthService {
         details: { reason: 'New password same as current password' },
       });
 
-      throw new BadRequestException('New password must be different from current password');
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
     }
 
     // Update password and clear force flag
     const newPasswordHash = await hashPassword(data.newPassword);
-    
+
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
         passwordHash: newPasswordHash,
-        needPasswordChange: false,           // ✅ Clear the flag
+        needPasswordChange: false, // ✅ Clear the flag
         lastPasswordChange: new Date(),
         updatedAt: new Date(),
       },
@@ -311,7 +341,8 @@ export class AuthService {
     });
 
     return {
-      message: 'Password changed successfully. Please login with your new password.',
+      message:
+        'Password changed successfully. Please login with your new password.',
       success: true,
     };
   }

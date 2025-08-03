@@ -2,6 +2,8 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { AuthModule } from './modules/auth/auth.module';
 import { ErrorHandlingModule } from './shared/error-handling/error-handling.module';
 import { AuditModule as SharedAuditModule } from './shared/logger/audit.module';
+import { LoggerModule } from './shared/logger/logger.module';
+import { CacheModule } from './shared/cache/cache.module';
 import { AuthGuardModule } from './shared/auth/auth.module';
 import { TraceIdMiddleware } from './shared/middlewares/trace-id.middleware';
 import { AuditMiddleware } from './shared/middlewares/audit.middleware';
@@ -17,6 +19,8 @@ import { StudentModule } from './modules/student/student.module';
 @Module({
   imports: [
     DatabaseModule,
+    LoggerModule, // Centralized logging system
+    CacheModule, // Redis caching layer
     SharedAuditModule,
     ErrorHandlingModule,
     AuthModule,

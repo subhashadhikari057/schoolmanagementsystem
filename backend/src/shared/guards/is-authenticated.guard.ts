@@ -54,7 +54,7 @@ export class IsAuthenticated implements CanActivate {
     }
 
     // ✅ Transform roles to match structure expected by guards
-    const transformedRoles = session.user.roles.map((r) => ({
+    const transformedRoles = session.user.roles.map(r => ({
       id: r.id,
       role: { name: r.role.name },
     }));

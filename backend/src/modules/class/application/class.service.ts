@@ -5,10 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
-import {
-  CreateClassDtoType,
-  UpdateClassDtoType,
-} from '../dto/class.dto';
+import { CreateClassDtoType, UpdateClassDtoType } from '../dto/class.dto';
 
 @Injectable()
 export class ClassService {

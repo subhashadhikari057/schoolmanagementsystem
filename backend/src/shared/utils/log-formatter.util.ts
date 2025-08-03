@@ -98,7 +98,7 @@ export class LogFormatter {
         if (entry) {
           entries.push(entry);
         }
-      } catch (_error) {
+      } catch {
         // Skip malformed lines
         console.warn(
           `Skipping malformed log line: ${line.substring(0, 100)}...`,
@@ -115,19 +115,25 @@ export class LogFormatter {
   static parseLogLine(line: string): ParsedLogEntry | null {
     try {
       // Try to parse as JSON first (structured logs)
-      const jsonEntry = JSON.parse(line);
+      const jsonEntry: any = JSON.parse(line);
       return {
         timestamp: new Date(
-          jsonEntry.timestamp || jsonEntry.time || Date.now(),
+          (jsonEntry.timestamp as string | number) ||
+            (jsonEntry.time as string | number) ||
+            Date.now(),
         ),
-        level: jsonEntry.level || 'INFO',
-        context: jsonEntry.context || jsonEntry.logger || 'APP',
-        message: jsonEntry.message || jsonEntry.msg || '',
-        metadata: jsonEntry.metadata || {},
-        traceId: jsonEntry.traceId,
-        userId: jsonEntry.userId,
-        requestId: jsonEntry.requestId,
-        duration: jsonEntry.duration,
+        level: (jsonEntry.level as string) || 'INFO',
+        context:
+          (jsonEntry.context as string) ||
+          (jsonEntry.logger as string) ||
+          'APP',
+        message:
+          (jsonEntry.message as string) || (jsonEntry.msg as string) || '',
+        metadata: (jsonEntry.metadata as Record<string, any>) || {},
+        traceId: jsonEntry.traceId as string,
+        userId: jsonEntry.userId as string,
+        requestId: jsonEntry.requestId as string,
+        duration: jsonEntry.duration as number,
       };
     } catch {
       // Try to parse as standard log format
@@ -189,7 +195,9 @@ export class LogFormatter {
     filteredEntries = filteredEntries.slice(-maxLines);
 
     console.log(
-      chalk.bold(chalk.cyan(`\n📋 Log Entries (${filteredEntries.length} shown)\n`)),
+      chalk.bold(
+        chalk.cyan(`\n📋 Log Entries (${filteredEntries.length} shown)\n`),
+      ),
     );
 
     filteredEntries.forEach((entry, index) => {

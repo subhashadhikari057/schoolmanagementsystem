@@ -35,7 +35,7 @@ export function useAuth() {
         authStore.logout();
         router.push(AUTH_ROUTES.LOGIN);
       } else if (authStore.needsTokenRefresh()) {
-        authStore.refreshToken().catch(() => {
+        void authStore.refreshToken().catch(() => {
           router.push(AUTH_ROUTES.LOGIN);
         });
       }
@@ -107,7 +107,7 @@ export function useRouteGuard() {
 
   const checkRouteAccess = (pathname: string): boolean => {
     // Public routes are always accessible
-    if (PUBLIC_ROUTES.includes(pathname)) {
+    if (PUBLIC_ROUTES.includes(pathname as any)) {
       return true;
     }
 

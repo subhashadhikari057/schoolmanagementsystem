@@ -51,7 +51,10 @@ export function verifyToken(token: string): JwtPayload | null {
 }
 
 // ✅ Temp token functions for force password change
-export function signTempToken(payload: { userId: string; purpose: string }, options: SignOptions = {}): string {
+export function signTempToken(
+  payload: { userId: string; purpose: string },
+  options: SignOptions = {},
+): string {
   loadKeysFromEnv();
   return jwt.sign(payload, privateKey, {
     algorithm: 'RS256',
@@ -62,7 +65,9 @@ export function signTempToken(payload: { userId: string; purpose: string }, opti
   });
 }
 
-export function verifyTempToken(token: string): { userId: string; purpose: string } | null {
+export function verifyTempToken(
+  token: string,
+): { userId: string; purpose: string } | null {
   try {
     loadKeysFromEnv();
     const decoded = jwt.verify(token, publicKey, {
@@ -70,7 +75,7 @@ export function verifyTempToken(token: string): { userId: string; purpose: strin
       issuer: 'school-management',
       audience: 'temp-action',
     }) as JwtPayload;
-    
+
     if (decoded.userId && decoded.purpose) {
       return {
         userId: decoded.userId as string,

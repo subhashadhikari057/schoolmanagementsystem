@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Sidebar from "../organisms/navigation/Sidebar";
-import Navbar from "../organisms/navigation/Navbar";
-import { useAuth } from '@/hooks/useAuth';
-import LabeledInputField from "../molecules/forms/LabeledInputField";
-type UserRole = 'Superadmin' | 'teacher' | 'student' | 'parent';
+import Sidebar from '../organisms/navigation/Sidebar';
+import Navbar from '../organisms/navigation/Navbar';
+import { useAuth } from '@/hooks/use-auth';
+import LabeledInputField from '../molecules/forms/LabeledInputField';
 
 export default function DashboardLayout({
   children,
@@ -16,14 +15,16 @@ export default function DashboardLayout({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const {role} = useAuth();
+  const { user } = useAuth();
+  // Role extracted for potential future use
+  // const role = user?.role || null;
 
   // Track if we're on mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -32,7 +33,8 @@ export default function DashboardLayout({
   // Close mobile sidebar when window is resized to desktop size
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768) { // md breakpoint
+      if (window.innerWidth >= 768) {
+        // md breakpoint
         setIsMobileSidebarOpen(false);
       }
     };
@@ -67,23 +69,20 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex h-screen">
+    <div className='flex h-screen'>
       {/* Sidebar - Hidden on mobile by default, overlay when open */}
-      <Sidebar
-        isOpen={isMobileSidebarOpen}
-        onToggle={toggleMobileSidebar}
-      />
-      
+      <Sidebar isOpen={isMobileSidebarOpen} onToggle={toggleMobileSidebar} />
+
       {/* Main content area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className='flex-1 flex flex-col min-w-0 overflow-hidden'>
         {/* Navbar should always be clear */}
-        <Navbar 
+        <Navbar
           onMenuClick={toggleMobileSidebar}
           onSearchClick={toggleSearch}
         />
-        
+
         {/* Main content with blur effect when sidebar is open on mobile only */}
-        <div 
+        <div
           className={`flex-1 overflow-auto transition-all duration-300 ${
             isMobileSidebarOpen && isMobile ? 'blur-sm' : ''
           }`}
@@ -94,27 +93,27 @@ export default function DashboardLayout({
             }
           }}
         >
-          <main className="px-4 sm:px-6 py-4 sm:py-6 bg-background">
+          <main className='px-4 sm:px-6 py-4 sm:py-6 bg-background'>
             {children}
           </main>
         </div>
-        
+
         {/* Mobile Search Overlay */}
         {isSearchOpen && (
-          <div className="md:hidden fixed inset-0 backdrop-blur-sm bg-opacity-50 z-50 flex items-start justify-center pt-20">
-            <div className="bg-white w-full max-w-md mx-4 rounded-lg p-6 shadow-lg">
-              <div className="mb-6">
+          <div className='md:hidden fixed inset-0 backdrop-blur-sm bg-opacity-50 z-50 flex items-start justify-center pt-20'>
+            <div className='bg-white w-full max-w-md mx-4 rounded-lg p-6 shadow-lg'>
+              <div className='mb-6'>
                 <LabeledInputField
-                  label="Search"
-                  type="search"
-                  value=""
+                  label='Search'
+                  type='search'
+                  value=''
                   onChange={() => {}}
-                  placeholder="Search..."
+                  placeholder='Search...'
                 />
               </div>
               <button
                 onClick={toggleSearch}
-                className="w-full py-3 text-center text-secondary text-sm hover:text-primary transition-colors border border-gray-200 rounded-lg"
+                className='w-full py-3 text-center text-secondary text-sm hover:text-primary transition-colors border border-gray-200 rounded-lg'
               >
                 Cancel
               </button>
@@ -125,5 +124,3 @@ export default function DashboardLayout({
     </div>
   );
 }
-
-

@@ -7,11 +7,11 @@
  */
 
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
   VERSION: 'v1',
   TIMEOUT: 10000, // 10 seconds
-  RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000, // 1 second
+  RETRY_ATTEMPTS: 1, // Reduced for faster error feedback
+  RETRY_DELAY: 500, // Reduced delay
 } as const;
 
 export const API_ENDPOINTS = {

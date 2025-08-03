@@ -6,7 +6,12 @@ import {
   EnhancedAuditService,
   AuditContext,
 } from '../logger/enhanced-audit.service';
-import { AuditAction, AuditModule, AuditStatus, UserRole } from '@sms/shared-types';
+import {
+  AuditAction,
+  AuditModule,
+  AuditStatus,
+  UserRole,
+} from '@sms/shared-types';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -33,7 +38,7 @@ export class AuditMiddleware implements NestMiddleware {
       ipAddress: this.getClientIp(req),
       userAgent: req.get('User-Agent'),
       endpoint: req.url,
-      method: req.method as any,
+      method: req.method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     };
 
     req.auditContext = auditContext;
@@ -54,12 +59,12 @@ export class AuditMiddleware implements NestMiddleware {
       // Determine if this request should be audited
       if (shouldAuditRequest(req, res)) {
         setImmediate(() => {
-          auditRequest(req, res, auditContext, auditService, logger);
+          void auditRequest(req, res, auditContext, auditService, logger);
         });
       }
 
       // Call original end method
-      return originalEnd.call(res, chunk, encoding, cb);
+      return originalEnd.call(this, chunk, encoding, cb);
     };
 
     next();

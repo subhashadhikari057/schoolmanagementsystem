@@ -6,7 +6,7 @@
  * =============================================================================
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { API_CONFIG, API_HEADERS, CONTENT_TYPES } from '@/constants';
 import {
   ApiResponse,
@@ -17,7 +17,6 @@ import {
 } from '@/types';
 import {
   generateTraceId,
-  isApiError,
   isAuthError,
   getAccessToken,
   getRefreshToken,
@@ -57,12 +56,21 @@ class ApiClient {
         }
 
         // Apply custom request interceptors
-        let modifiedConfig = config;
+        const modifiedConfig = config;
         for (const interceptor of this.requestInterceptors) {
           if (interceptor.onRequest) {
-            modifiedConfig = await interceptor.onRequest(
-              modifiedConfig as ApiRequestConfig,
-            );
+            const apiConfig: ApiRequestConfig = {
+              method: config.method as ApiRequestConfig['method'],
+              url: config.url || '',
+              data: config.data,
+              params: config.params,
+              headers: config.headers as Record<string, string> | undefined,
+              timeout: config.timeout,
+              requiresAuth: true,
+            };
+            const updatedConfig = await interceptor.onRequest(apiConfig);
+            // Convert back to axios config
+            Object.assign(modifiedConfig, updatedConfig);
           }
         }
 
@@ -83,17 +91,24 @@ class ApiClient {
     this.client.interceptors.response.use(
       async (response: AxiosResponse) => {
         // Apply custom response interceptors
-        let modifiedResponse = response;
+        const modifiedResponse = response;
         for (const interceptor of this.responseInterceptors) {
           if (interceptor.onResponse) {
-            modifiedResponse = await interceptor.onResponse(modifiedResponse);
+            const apiResponse: ApiResponse<unknown> = {
+              success: true,
+              data: response.data,
+              message: response.statusText,
+              timestamp: new Date().toISOString(),
+              traceId: response.headers['x-trace-id'] || '',
+            };
+            await interceptor.onResponse(apiResponse);
           }
         }
 
         return modifiedResponse;
       },
       async error => {
-        const apiError = this.transformError(error);
+        const apiError = this.transformError(error as Record<string, unknown>);
 
         // Handle authentication errors
         if (
@@ -103,8 +118,8 @@ class ApiClient {
           try {
             await this.refreshToken();
             // Retry the original request
-            return this.client.request(error.config);
-          } catch (refreshError) {
+            return this.client.request((error as any).config);
+          } catch {
             // Refresh failed, clear auth data and redirect to login
             clearAuthData();
             window.location.href = '/login';
@@ -124,7 +139,7 @@ class ApiClient {
     );
   }
 
-  private transformError(error: AxiosErrorWithResponse): ApiError {
+  private transformError(error: any): ApiError {
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;
@@ -175,8 +190,8 @@ class ApiClient {
 
     try {
       const response = await axios.post(
-        `${API_CONFIG.BASE_URL}/auth/refresh-token`,
-        { refreshToken },
+        `${API_CONFIG.BASE_URL}/auth/refresh`,
+        { refresh_token: refreshToken },
         {
           headers: {
             [API_HEADERS.CONTENT_TYPE]: CONTENT_TYPES.JSON,
@@ -185,9 +200,18 @@ class ApiClient {
         },
       );
 
-      const { tokens } = response.data.data;
+      const { access_token, refresh_token, expires_in } = response.data.data;
+
+      const tokens = {
+        accessToken: access_token,
+        refreshToken: refresh_token,
+        expiresAt: Date.now() + expires_in * 1000,
+        tokenType: 'Bearer' as const,
+      };
+
       storeTokens(tokens);
-    } catch (error) {
+    } catch (refreshError) {
+      console.error('Token refresh failed:', refreshError);
       throw new Error('Failed to refresh token');
     }
   }
@@ -277,7 +301,7 @@ class ApiClient {
       method: 'DELETE',
       url,
       ...config,
-    });
+    } as ApiRequestConfig);
   }
 
   public async upload<T>(
@@ -295,15 +319,15 @@ class ApiClient {
       headers: {
         [API_HEADERS.CONTENT_TYPE]: CONTENT_TYPES.FORM_DATA,
       },
-      onUploadProgress: progressEvent => {
-        if (onProgress && progressEvent.total) {
+      onUploadProgress: (progressEvent: ProgressEvent) => {
+        if (onProgress && progressEvent.lengthComputable) {
           const progress = Math.round(
             (progressEvent.loaded * 100) / progressEvent.total,
           );
           onProgress(progress);
         }
       },
-    } as Partial<ApiRequestConfig>);
+    } as ApiRequestConfig);
   }
 }
 

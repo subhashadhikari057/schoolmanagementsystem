@@ -7,9 +7,10 @@ interface RecordAuditOptions {
   userId?: string;
   action: string;
   module?: string;
-  status?: 'SUCCESS' | 'FAIL' | 'BLOCKED';
+  status?: 'SUCCESS' | 'FAIL' | 'BLOCKED' | 'PENDING';
   ipAddress?: string;
   userAgent?: string;
+  traceId?: string;
   details?: any;
 }
 
@@ -27,6 +28,7 @@ export class AuditService {
           status: options.status ?? 'SUCCESS',
           ipAddress: options.ipAddress,
           userAgent: options.userAgent,
+          traceId: options.traceId || null,
           details: options.details
             ? JSON.parse(JSON.stringify(options.details))
             : null,

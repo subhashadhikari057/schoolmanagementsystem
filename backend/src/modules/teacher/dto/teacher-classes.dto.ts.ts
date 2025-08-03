@@ -7,17 +7,15 @@ export const AssignTeacherClassesDto = z.object({
     .array(
       z.object({
         classId: z.string().uuid({ message: 'Invalid classId' }),
-        sectionId: z
-          .string()
-          .uuid({ message: 'Invalid sectionId' })
-          .optional(),
+        sectionId: z.string().uuid({ message: 'Invalid sectionId' }).optional(),
       }),
     )
     .min(1, 'At least one class assignment is required'),
 });
 
-export type AssignTeacherClassesDtoType = z.infer<typeof AssignTeacherClassesDto>;
-
+export type AssignTeacherClassesDtoType = z.infer<
+  typeof AssignTeacherClassesDto
+>;
 
 // ✅ Remove a specific class-section assignment from a teacher
 export const RemoveTeacherClassDto = z.object({

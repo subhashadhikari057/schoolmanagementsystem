@@ -8,4 +8,6 @@ export const GetAllStudentsQuerySchema = z.object({
   search: z.string().trim().optional(),
 });
 
-export type GetAllStudentsQueryDtoType = z.infer<typeof GetAllStudentsQuerySchema>;
+export type GetAllStudentsQueryDtoType = z.infer<
+  typeof GetAllStudentsQuerySchema
+>;

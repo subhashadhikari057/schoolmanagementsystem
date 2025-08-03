@@ -4,13 +4,15 @@ import { z } from 'zod';
 const JsonRecordSchema = z.record(z.any()).optional();
 
 // ✅ Profile schema for create (inline inside CreateStudentDto)
-const StudentProfileInput = z.object({
-  bio: z.string().optional(),
-  profilePhotoUrl: z.string().url().optional(),
-  emergencyContact: JsonRecordSchema,
-  interests: JsonRecordSchema,
-  additionalData: JsonRecordSchema,
-}).optional();
+const StudentProfileInput = z
+  .object({
+    bio: z.string().optional(),
+    profilePhotoUrl: z.string().url().optional(),
+    emergencyContact: JsonRecordSchema,
+    interests: JsonRecordSchema,
+    additionalData: JsonRecordSchema,
+  })
+  .optional();
 
 // ✅ CreateStudentDto for completely new student with new parents
 export const CreateStudentWithNewParentsDto = z.object({
@@ -29,25 +31,27 @@ export const CreateStudentWithNewParentsDto = z.object({
   profile: StudentProfileInput,
 
   // ✅ New parents (primary gets user account, others are contacts)
-  parents: z.array(
-    z.object({
-      fullName: z.string().min(1, 'Parent full name is required'),
-      email: z.string().email('Invalid parent email'),
-      phone: z.string().optional(),
-      password: z.string().optional(), // Only for primary parent
-      relationship: z.string().min(1, 'Relationship is required'),
-      isPrimary: z.boolean(),
-      createUserAccount: z.boolean().optional().default(false), // Only primary should have this true
-    })
-  ).min(1, 'At least one parent is required')
-  .refine(
-    (parents) => parents.filter(p => p.isPrimary).length === 1,
-    { message: 'Exactly one parent must be marked as primary' }
-  )
-
+  parents: z
+    .array(
+      z.object({
+        fullName: z.string().min(1, 'Parent full name is required'),
+        email: z.string().email('Invalid parent email'),
+        phone: z.string().optional(),
+        password: z.string().optional(), // Only for primary parent
+        relationship: z.string().min(1, 'Relationship is required'),
+        isPrimary: z.boolean(),
+        createUserAccount: z.boolean().optional().default(false), // Only primary should have this true
+      }),
+    )
+    .min(1, 'At least one parent is required')
+    .refine(parents => parents.filter(p => p.isPrimary).length === 1, {
+      message: 'Exactly one parent must be marked as primary',
+    }),
 });
 
-export type CreateStudentWithNewParentsDtoType = z.infer<typeof CreateStudentWithNewParentsDto>;
+export type CreateStudentWithNewParentsDtoType = z.infer<
+  typeof CreateStudentWithNewParentsDto
+>;
 
 // ✅ CreateStudentDto for student with existing parents
 export const CreateStudentWithExistingParentsDto = z.object({
@@ -66,24 +70,29 @@ export const CreateStudentWithExistingParentsDto = z.object({
   profile: StudentProfileInput,
 
   // ✅ Existing parents (primary must exist, others can be new contacts)
-  parents: z.array(
-    z.object({
-      email: z.string().email('Parent email is required'),
-      relationship: z.string().min(1, 'Relationship is required'),
-      isPrimary: z.boolean(),
-      fullName: z.string().optional(), // Optional for non-primary parents (new contacts)
-    })
-  ).min(1, 'At least one parent is required'),
+  parents: z
+    .array(
+      z.object({
+        email: z.string().email('Parent email is required'),
+        relationship: z.string().min(1, 'Relationship is required'),
+        isPrimary: z.boolean(),
+        fullName: z.string().optional(), // Optional for non-primary parents (new contacts)
+      }),
+    )
+    .min(1, 'At least one parent is required'),
 });
 
-export type CreateStudentWithExistingParentsDtoType = z.infer<typeof CreateStudentWithExistingParentsDto>;
+export type CreateStudentWithExistingParentsDtoType = z.infer<
+  typeof CreateStudentWithExistingParentsDto
+>;
 
 // ✅ Legacy DTOs (keeping for backward compatibility if needed)
 export const CreateStudentDto = CreateStudentWithNewParentsDto;
 export type CreateStudentDtoType = CreateStudentWithNewParentsDtoType;
 
 export const CreateSiblingStudentDto = CreateStudentWithExistingParentsDto;
-export type CreateSiblingStudentDtoType = CreateStudentWithExistingParentsDtoType;
+export type CreateSiblingStudentDtoType =
+  CreateStudentWithExistingParentsDtoType;
 
 // ✅ Update DTO
 export const UpdateStudentDto = z.object({
@@ -93,7 +102,10 @@ export const UpdateStudentDto = z.object({
   classId: z.string().uuid().optional(),
   sectionId: z.string().uuid().optional(),
   rollNumber: z.string().optional(),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dob: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   gender: z.enum(['male', 'female', 'other']).optional(),
   additionalMetadata: JsonRecordSchema,
 });
