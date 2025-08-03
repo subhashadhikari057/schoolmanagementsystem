@@ -51,7 +51,8 @@ export class AuthController {
     }
 
     // ✅ Normal login - set cookies in browser
-    const { accessToken, refreshToken } = result;
+    // TypeScript now knows result has accessToken and refreshToken
+    const { accessToken, refreshToken } = result as { accessToken: string; refreshToken: string };
     setAuthCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({ message: 'Login successful' });
