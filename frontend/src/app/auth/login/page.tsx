@@ -1,9 +1,17 @@
+'use client';
+
 // templates/LoginPageLayout.tsx or pages/login.tsx
 import LoginForm from "@/components/organisms/auth/LoginForm";
 import BannerSlider from "@/components/organisms/content/BannerSlider";
 import { authCarouselBanners } from "@/constants/carouselData";
 
 export default function LoginPage() {
+  const handleLogin = (data: any) => {
+    console.log('Login submitted:', data);
+    // Handle login logic here
+    // e.g., call API to authenticate user
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen h-screen w-full overflow-hidden" 
     style={{
@@ -25,6 +33,7 @@ export default function LoginPage() {
           subtitle="Welcome,"
           emailLabel="Email"
           passwordLabel="Password"
+          onSubmit={handleLogin}
         />
       </div>
       <div className="hidden lg:block">

@@ -1,9 +1,17 @@
+'use client';
+
 // Set Password Page
 import LoginForm from "@/components/organisms/auth/LoginForm";
 import BannerSlider from "@/components/organisms/content/BannerSlider";
 import { authCarouselBanners } from "@/constants/carouselData";
 
 export default function SetPasswordPage() {
+  const handleSetPassword = (data: any) => {
+    console.log('Set password submitted:', data);
+    // Handle set password logic here
+    // e.g., call API to update password
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen h-screen w-full overflow-hidden" 
     style={{
@@ -36,6 +44,7 @@ export default function SetPasswordPage() {
           showBackButton={false}
           backButtonText="Back"
           backButtonHref="/auth/verify"
+          onSubmit={handleSetPassword}
         />
       </div>
       <div className="hidden lg:block">
