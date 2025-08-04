@@ -24,7 +24,10 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
 
   // Convert UserRole enum to sidebar key
   const getSidebarRole = (userRole: string | undefined): SidebarRole => {
-    switch (userRole) {
+    // Normalize the role to handle backend inconsistencies (e.g., SUPER_ADMIN -> superadmin)
+    const normalizedRole = userRole?.toLowerCase().replace(/_/g, '');
+
+    switch (normalizedRole) {
       case 'admin':
       case 'superadmin':
         return 'Superadmin'; // Admin and superadmin users get Superadmin sidebar
