@@ -8,7 +8,7 @@ import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import ProfileDropdown from '@/components/molecules/interactive/Dropdown';
 import { useAuth } from '@/hooks/useAuth';
 
-type SidebarRole = 'Superadmin' | 'teacher' | 'student' | 'parent';
+type SidebarRole = 'Superadmin' | 'teacher' | 'student' | 'parent' | 'staff';
 
 interface SidebarProps {
   role?: SidebarRole;
@@ -20,29 +20,37 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHoveringLogo, setIsHoveringLogo] = useState(false);
 
-  const { role } = useAuth();
+  const { user } = useAuth();
 
   // Convert UserRole enum to sidebar key
-  const getSidebarRole = (userRole: any): SidebarRole => {
+  const getSidebarRole = (userRole: string | undefined): SidebarRole => {
     switch (userRole) {
-      case 'Superadmin':
-        return 'Superadmin';
+      case 'admin':
+      case 'superadmin':
+        return 'Superadmin'; // Admin and superadmin users get Superadmin sidebar
       case 'teacher':
         return 'teacher';
       case 'student':
         return 'student';
       case 'parent':
         return 'parent';
+      case 'staff':
+        return 'staff';
       default:
         return 'student'; // fallback
     }
   };
 
-  const sidebarRole = getSidebarRole(role);
+  const sidebarRole = getSidebarRole(user?.role);
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
+
+  // Early return if no user or no sidebar items for role
+  if (!user || !sidebarItems[sidebarRole]) {
+    return null;
+  }
 
   return (
     <>
@@ -124,47 +132,57 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
 
         {/* Navigation Sections */}
         <nav className='space-y-6'>
-          {sidebarItems[sidebarRole].map((section: any, index: number) => (
-            <div key={index} className='mb-4'>
-              <h3 className='mb-2 text-xs font-semibold text-gray-500 uppercase'>
-                {isCollapsed && !isOpen ? '' : section.title}
-              </h3>
-              <ul className='space-y-2'>
-                {section.items.map((item: any, itemIndex: number) => {
-                  const Icon =
-                    (
-                      Icons as unknown as Record<
-                        string,
-                        React.ComponentType<{
-                          size?: number;
-                          className?: string;
-                        }>
-                      >
-                    )[item.icon] || Icons.Circle;
-                  return (
-                    <li key={item.label}>
-                      <Link
-                        href={item.path}
-                        onClick={onToggle} // Close sidebar when navigation link is clicked on mobile
-                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
+          {sidebarItems[sidebarRole]?.map(
+            (
+              section: {
+                title: string;
+                items: Array<{ label: string; icon: string; path: string }>;
+              },
+              index: number,
+            ) => (
+              <div key={index} className='mb-4'>
+                <h3 className='mb-2 text-xs font-semibold text-gray-500 uppercase'>
+                  {isCollapsed && !isOpen ? '' : section.title}
+                </h3>
+                <ul className='space-y-2'>
+                  {section.items.map(
+                    (item: { label: string; icon: string; path: string }) => {
+                      const Icon =
+                        (
+                          Icons as unknown as Record<
+                            string,
+                            React.ComponentType<{
+                              size?: number;
+                              className?: string;
+                            }>
+                          >
+                        )[item.icon] || Icons.Circle;
+                      return (
+                        <li key={item.label}>
+                          <Link
+                            href={item.path}
+                            onClick={onToggle} // Close sidebar when navigation link is clicked on mobile
+                            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
                              text-foreground hover:bg-muted-hover hover:font-bold
                          ${isCollapsed ? 'justify-center' : ''}`}
-                        title={isCollapsed ? item.label : ''}
-                      >
-                        <Icon
-                          size={16}
-                          className={`flex-shrink-0 text-gray-500`}
-                        />
-                        {!isCollapsed && (
-                          <span className='truncate'>{item.label}</span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+                            title={isCollapsed ? item.label : ''}
+                          >
+                            <Icon
+                              size={16}
+                              className={`flex-shrink-0 text-gray-500`}
+                            />
+                            {!isCollapsed && (
+                              <span className='truncate'>{item.label}</span>
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    },
+                  )}
+                </ul>
+              </div>
+            ),
+          )}
         </nav>
       </aside>
     </>

@@ -302,4 +302,68 @@ export const sidebarItems = {
       ],
     },
   ],
+  staff: [
+    {
+      title: 'GENERAL',
+      items: [
+        { label: 'Dashboard', icon: 'Home', path: '/dashboard/staff' },
+        {
+          label: 'My Tasks',
+          icon: 'CheckSquare',
+          path: '/dashboard/staff/tasks',
+        },
+        {
+          label: 'Leave Requests',
+          icon: 'CalendarMinus',
+          path: '/dashboard/staff/leave-requests',
+        },
+        {
+          label: 'Work Schedule',
+          icon: 'Calendar',
+          path: '/dashboard/staff/schedule',
+        },
+        { label: 'Account', icon: 'User', path: '/dashboard/staff/account' },
+      ],
+    },
+    {
+      title: 'OPERATIONS',
+      items: [
+        {
+          label: 'Maintenance',
+          icon: 'Wrench',
+          path: '/dashboard/staff/maintenance',
+        },
+        {
+          label: 'Inventory',
+          icon: 'Package',
+          path: '/dashboard/staff/inventory',
+        },
+        {
+          label: 'Facilities',
+          icon: 'Building',
+          path: '/dashboard/staff/facilities',
+        },
+        {
+          label: 'Reports',
+          icon: 'FileText',
+          path: '/dashboard/staff/reports',
+        },
+      ],
+    },
+    {
+      title: 'COMMUNICATION',
+      items: [
+        {
+          label: 'Notices',
+          icon: 'Megaphone',
+          path: '/dashboard/staff/notices',
+        },
+        {
+          label: 'Messages',
+          icon: 'MessageSquare',
+          path: '/dashboard/staff/messages',
+        },
+      ],
+    },
+  ],
 };
