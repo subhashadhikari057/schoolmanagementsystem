@@ -27,6 +27,7 @@ export * from './student/student.dto';
 
 // Teacher Module DTOs
 export * from './teacher/teacher.dto';
+export * from './staff/staff.dto';
 
 // Academic Module DTOs
 export * from './academic/assignment.dto';

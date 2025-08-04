@@ -29,6 +29,9 @@ export enum UserRole {
   
   /** Parent with access to their children's data */
   PARENT = 'parent',
+  
+  /** Staff member with limited administrative access */
+  STAFF = 'staff',
 }
 
 /**
@@ -49,6 +52,7 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   [UserRole.ADMIN]: 80,
   [UserRole.ACCOUNTANT]: 60,
   [UserRole.TEACHER]: 40,
+  [UserRole.STAFF]: 30,
   [UserRole.PARENT]: 20,
   [UserRole.STUDENT]: 10,
 };

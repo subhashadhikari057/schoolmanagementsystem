@@ -13,6 +13,7 @@ import { TeacherModule } from './modules/teacher/teacher.module';
 import { ClassModule } from './modules/class/class.module';
 import { SectionModule } from './modules/section/section.module';
 import { StudentModule } from './modules/student/student.module';
+import { StaffModule } from './modules/staff/staff.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { StudentModule } from './modules/student/student.module';
     ClassModule,
     SectionModule,
     StudentModule,
+    StaffModule,
   ],
 })
 export class AppModule implements NestModule {

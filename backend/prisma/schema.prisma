@@ -37,6 +37,7 @@ model User {
 
   teacher     Teacher?
   student     Student?
+  staff       Staff?
   parentLinks ParentStudentLink[] @relation("ParentLink")
 
   @@index([createdById])
@@ -473,6 +474,88 @@ model ParentStudentLink {
   @@unique([parentId, studentId])
   @@index([parentId])
   @@index([studentId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+// =========================
+// 👨‍💼 Staff Module
+// =========================
+
+enum StaffEmploymentStatus {
+  active
+  on_leave
+  resigned
+  terminated
+}
+
+enum StaffDepartment {
+  administration
+  finance
+  hr
+  maintenance
+  security
+  library
+  canteen
+  transport
+  it_support
+  academic_support
+}
+
+model Staff {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  designation         String?
+  qualification       String?
+  employmentDate      DateTime?
+  employmentStatus    StaffEmploymentStatus @default(active)
+  department          StaffDepartment?
+  experienceYears     Int?
+  salary              Decimal?             @db.Decimal(10, 2)
+  additionalMetadata  Json?                @default("{}")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  profile StaffProfile?
+
+  @@index([userId])
+  @@index([department])
+  @@index([employmentStatus])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model StaffProfile {
+  id      String @id @default(uuid())
+  staffId String @unique
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  bio                String?
+  profilePhotoUrl    String?
+  emergencyContact   Json    @default("{}")
+  address            Json    @default("{}")
+  socialLinks        Json    @default("{}")
+  additionalData     Json    @default("{}")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([staffId])
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
