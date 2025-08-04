@@ -82,50 +82,6 @@ export function useAuth() {
     authService.setAccessToken(null);
   }, []);
 
-  // Initialize authentication state from stored data (don't call API)
-  useEffect(() => {
-    const initializeAuth = () => {
-      try {
-        // Check if we have stored user data from previous session
-        const storedUser = getStoredUser();
-
-        if (storedUser) {
-          // User was previously authenticated, try to verify session
-          setAuthState({
-            isAuthenticated: true,
-            user: storedUser,
-            accessToken: null, // Tokens are in cookies
-            refreshToken: null, // Tokens are in cookies
-            isLoading: false,
-            error: null,
-          });
-        } else {
-          // No stored user data, user is not authenticated
-          setAuthState({
-            isAuthenticated: false,
-            user: null,
-            accessToken: null,
-            refreshToken: null,
-            isLoading: false,
-            error: null,
-          });
-        }
-      } catch (error) {
-        console.log('Auth initialization error:', error);
-        setAuthState({
-          isAuthenticated: false,
-          user: null,
-          accessToken: null,
-          refreshToken: null,
-          isLoading: false,
-          error: null,
-        });
-      }
-    };
-
-    initializeAuth();
-  }, []);
-
   // Login function
   const login = useCallback(async (credentials: LoginRequest) => {
     try {
@@ -207,6 +163,85 @@ export function useAuth() {
         error: null,
       });
     }
+  }, [clearStoredAuth]);
+
+  // Initialize authentication state from stored data (don't call API)
+  useEffect(() => {
+    const initializeAuth = () => {
+      try {
+        // Check if we have stored user data from previous session
+        const storedUser = getStoredUser();
+
+        if (storedUser) {
+          // User was previously authenticated, try to verify session
+          setAuthState({
+            isAuthenticated: true,
+            user: storedUser,
+            accessToken: null, // Tokens are in cookies
+            refreshToken: null, // Tokens are in cookies
+            isLoading: false,
+            error: null,
+          });
+        } else {
+          // No stored user data, user is not authenticated
+          setAuthState({
+            isAuthenticated: false,
+            user: null,
+            accessToken: null,
+            refreshToken: null,
+            isLoading: false,
+            error: null,
+          });
+        }
+      } catch (error) {
+        console.log('Auth initialization error:', error);
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isLoading: false,
+          error: null,
+        });
+      }
+    };
+
+    // Listen for session expiry events from HTTP client
+    const handleSessionExpired = () => {
+      console.log('🔄 Session expired event received, logging out user');
+      // Call logout directly to avoid dependency issues
+      clearStoredAuth();
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        accessToken: null,
+        refreshToken: null,
+        isLoading: false,
+        error: null,
+      });
+
+      // Redirect to login
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      }
+    };
+
+    // Set up event listener
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth:session-expired', handleSessionExpired);
+    }
+
+    initializeAuth();
+
+    // Cleanup event listener
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(
+          'auth:session-expired',
+          handleSessionExpired,
+        );
+      }
+    };
   }, [clearStoredAuth]);
 
   // Refresh access token

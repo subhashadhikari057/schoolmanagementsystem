@@ -323,6 +323,7 @@ model Class {
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
+  @@map("Class")
 }
 
 model Section {
@@ -342,7 +343,6 @@ model Section {
   deletedById String?   @db.Uuid
   Student     Student[]
 
-  @@unique([name, classId])
   @@index([classId])
   @@index([createdById])
   @@index([updatedById])

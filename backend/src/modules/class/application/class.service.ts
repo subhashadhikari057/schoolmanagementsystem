@@ -5,10 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
-import {
-  CreateClassDtoType,
-  UpdateClassDtoType,
-} from '../dto/class.dto';
+import { CreateClassDtoType, UpdateClassDtoType } from '../dto/class.dto';
 
 @Injectable()
 export class ClassService {
@@ -63,7 +60,12 @@ export class ClassService {
   async findAll() {
     return this.prisma.class.findMany({
       where: { deletedAt: null },
-      include: { sections: true }, // ✅ include linked sections
+      include: {
+        sections: {
+          where: { deletedAt: null }, // 🔧 Only include active sections
+          orderBy: { name: 'asc' },
+        },
+      },
       orderBy: { name: 'asc' },
     });
   }
@@ -74,7 +76,12 @@ export class ClassService {
   async findById(id: string) {
     const classRecord = await this.prisma.class.findUnique({
       where: { id },
-      include: { sections: true }, // ✅ include linked sections
+      include: {
+        sections: {
+          where: { deletedAt: null }, // 🔧 Only include active sections
+          orderBy: { name: 'asc' },
+        },
+      },
     });
 
     if (!classRecord || classRecord.deletedAt) {
@@ -98,6 +105,21 @@ export class ClassService {
 
     if (!classRecord || classRecord.deletedAt) {
       throw new NotFoundException('Class not found');
+    }
+
+    // Check for duplicate name if name is being updated
+    if (dto.name && dto.name !== classRecord.name) {
+      const exists = await this.prisma.class.findFirst({
+        where: {
+          name: dto.name,
+          deletedAt: null,
+          id: { not: id }, // Exclude current class from check
+        },
+      });
+
+      if (exists) {
+        throw new ConflictException('Class with this name already exists');
+      }
     }
 
     const updated = await this.prisma.class.update({

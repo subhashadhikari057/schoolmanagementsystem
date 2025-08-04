@@ -26,7 +26,7 @@ export interface HttpClientConfig {
 }
 
 const DEFAULT_CONFIG: HttpClientConfig = {
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
   timeout: 10000, // 10 seconds
   retries: 3,
   retryDelay: 1000, // 1 second
@@ -37,7 +37,7 @@ const DEFAULT_CONFIG: HttpClientConfig = {
 };
 
 // Debug log for API URL
-console.log('🔗 API Base URL:', DEFAULT_CONFIG.baseURL);
+// console.log('🔗 API Base URL:', DEFAULT_CONFIG.baseURL);
 
 // ============================================================================
 // HTTP Client Class
@@ -46,6 +46,17 @@ console.log('🔗 API Base URL:', DEFAULT_CONFIG.baseURL);
 export class HttpClient {
   private config: HttpClientConfig;
   private accessToken: string | null = null;
+  private isRefreshing: boolean = false;
+  private failedQueue: Array<{
+    resolve: (value: any) => void;
+    reject: (error: any) => void;
+    config: {
+      method: HttpMethod;
+      url: string;
+      data?: any;
+      requestConfig?: RequestConfig;
+    };
+  }> = [];
 
   constructor(config: Partial<HttpClientConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -164,7 +175,6 @@ export class HttpClient {
             status: response.status,
             statusText: response.statusText,
             url: fullUrl,
-            responseData,
           });
 
           const apiError: ApiError = {
@@ -177,6 +187,12 @@ export class HttpClient {
             details: responseData?.details,
             context: responseData?.context,
           };
+
+          // Handle 401 Unauthorized - session expired
+          if (response.status === 401 && !url.includes('/auth/')) {
+            return this.handleUnauthorized(method, url, data, config);
+          }
+
           throw apiError;
         }
 
@@ -224,6 +240,86 @@ export class HttpClient {
     }
 
     throw new Error('Request failed after all retry attempts');
+  }
+
+  // Handle 401 Unauthorized - session refresh
+  private async handleUnauthorized<T>(
+    method: HttpMethod,
+    url: string,
+    data?: any,
+    config: RequestConfig = {},
+  ): Promise<ApiResponse<T>> {
+    // If already refreshing, add request to queue
+    if (this.isRefreshing) {
+      return new Promise((resolve, reject) => {
+        this.failedQueue.push({
+          resolve,
+          reject,
+          config: { method, url, data, requestConfig: config },
+        });
+      });
+    }
+
+    this.isRefreshing = true;
+
+    try {
+      // Try to refresh the session by calling the refresh endpoint
+      const refreshResponse = await fetch(
+        `${this.config.baseURL}/api/v1/auth/refresh`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (refreshResponse.ok) {
+        // Session refreshed successfully
+
+        // Process failed queue
+        this.failedQueue.forEach(({ resolve, config: queuedConfig }) => {
+          resolve(
+            this.makeRequest(
+              queuedConfig.method,
+              queuedConfig.url,
+              queuedConfig.data,
+              queuedConfig.requestConfig,
+            ),
+          );
+        });
+
+        this.failedQueue = [];
+        this.isRefreshing = false;
+
+        // Retry the original request
+        return this.makeRequest<T>(method, url, data, config);
+      } else {
+        throw new Error('Session refresh failed');
+      }
+    } catch (error) {
+      console.warn('Session refresh failed, redirecting to login');
+
+      // Process failed queue with rejections
+      this.failedQueue.forEach(({ reject }) => {
+        reject(new Error('Session expired. Please login again.'));
+      });
+
+      this.failedQueue = [];
+      this.isRefreshing = false;
+
+      // Trigger logout via custom event so useAuth can handle it
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:session-expired'));
+      }
+
+      throw {
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Session expired. Please login again.',
+      };
+    }
   }
 
   // HTTP method helpers
