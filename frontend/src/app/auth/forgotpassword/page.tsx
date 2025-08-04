@@ -8,8 +8,10 @@ import { authCarouselBanners } from '@/constants/carouselData';
 export default function ForgotPasswordPage() {
   const handleForgotPassword = (data: Record<string, unknown>) => {
     console.log('Forgot password submitted:', data);
-    // Handle forgot password logic here
-    // e.g., call API to send reset email
+    // TODO: Implement forgot password functionality
+    alert(
+      'Forgot password functionality will be implemented in a future release.',
+    );
   };
 
   return (

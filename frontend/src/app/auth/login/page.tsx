@@ -1,15 +1,32 @@
 'use client';
 
-// templates/LoginPageLayout.tsx or pages/login.tsx
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import LoginForm from '@/components/organisms/auth/LoginForm';
 import BannerSlider from '@/components/organisms/content/BannerSlider';
 import { authCarouselBanners } from '@/constants/carouselData';
+import { LoginRequest } from '@/api/types/auth';
 
 export default function LoginPage() {
-  const handleLogin = (data: Record<string, unknown>) => {
-    console.log('Login submitted:', data);
-    // Handle login logic here
-    // e.g., call API to authenticate user
+  const router = useRouter();
+  const { login, isLoading, error } = useAuth();
+
+  const handleLogin = async (data: Record<string, unknown>) => {
+    try {
+      // Prepare login credentials according to API contract
+      const credentials: LoginRequest = {
+        identifier: data.email as string, // email or phone
+        password: data.password as string,
+      };
+
+      await login(credentials);
+
+      // Redirect to dashboard on successful login
+      router.push('/dashboard/admin');
+    } catch (error) {
+      console.error('Login failed:', error);
+      // Error is handled by useAuth hook and displayed in the form
+    }
   };
 
   return (
@@ -34,8 +51,14 @@ export default function LoginPage() {
           subtitle='Welcome,'
           emailLabel='Email'
           passwordLabel='Password'
+          buttonLabel={isLoading ? 'Signing in...' : 'Login'}
           onSubmit={handleLogin}
         />
+        {error && (
+          <div className='mt-4 p-3 bg-red-50 border border-red-200 rounded-md'>
+            <p className='text-sm text-red-600'>{error}</p>
+          </div>
+        )}
       </div>
       <div className='hidden lg:block'>
         <BannerSlider banners={authCarouselBanners} />

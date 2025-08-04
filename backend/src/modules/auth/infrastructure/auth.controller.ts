@@ -16,7 +16,7 @@ import { setAuthCookies, COOKIE_OPTIONS } from '../../../shared/auth/cookie';
 import { verifyToken } from '../../../shared/auth/jwt.util';
 import { Public } from '../../../shared/guards/jwt-auth.guard';
 
-@Controller('api/auth') // ✅ Traditional route prefix (no RouterModule)
+@Controller('api/v1/auth') // ✅ Route prefix with global prefix api/v1
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

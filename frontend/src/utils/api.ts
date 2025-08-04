@@ -1,18 +1,12 @@
 /**
  * =============================================================================
- * export function isClientError(error: any): boolean {
-  return (
-    error?.status === 400 ||
-    error?.code === 'VALIDATION_ERROR' ||
-    error?.code === 'BAD_REQUEST'
-  ) as boolean;
-}lities
+ * API Utilities
  * =============================================================================
  * Helper functions for API requests, error handling, and data transformation
  * =============================================================================
  */
 
-import { ApiError, QueryParams } from '@/types';
+import { ApiError, QueryParams } from '@/api/types';
 
 /**
  * Build query string from parameters
@@ -100,6 +94,15 @@ export function isValidationError(error: any): boolean {
     error?.code === 'VALIDATION_ERROR' ||
     error?.code === 'BAD_REQUEST'
   );
+}
+
+/**
+ * Check if error is a client error
+ */
+export function isClientError(error: any): boolean {
+  return (error?.status === 400 ||
+    error?.code === 'VALIDATION_ERROR' ||
+    error?.code === 'BAD_REQUEST') as boolean;
 }
 
 /**

@@ -8,6 +8,24 @@ import { Express } from 'express';
 export async function createApp() {
   const app = await NestFactory.create(AppModule);
 
+  // ✅ Enable CORS for frontend communication
+  app.enableCors({
+    origin: [
+      'http://localhost:3000', // Next.js default port
+      'http://localhost:3001', // Alternative frontend port
+      'http://127.0.0.1:3000', // Alternative localhost format
+      'http://127.0.0.1:3001', // Alternative localhost format
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-API-Version',
+      'X-Trace-ID',
+    ],
+    credentials: true, // Allow cookies and credentials
+  });
+
   // ✅ Enable JSON body parsing
   app.use(json());
 
