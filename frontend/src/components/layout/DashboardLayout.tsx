@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '../organisms/navigation/Sidebar';
 import Navbar from '../organisms/navigation/Navbar';
-import { useAuth } from '@/hooks/useAuth';
 import LabeledInputField from '../molecules/forms/LabeledInputField';
+import { usePathname } from 'next/navigation';
 
 export default function DashboardLayout({
   children,
@@ -15,7 +15,14 @@ export default function DashboardLayout({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const {} = useAuth();
+  const pathname = usePathname();
+
+  // Hide search bar on admin, teacher, parent, student, and staff pages
+  const hideSearchBar =
+    pathname.startsWith('/dashboard/admin/teachers') ||
+    pathname.startsWith('/dashboard/admin/students') ||
+    pathname.startsWith('/dashboard/admin/parents') ||
+    pathname.startsWith('/dashboard/admin/staff');
 
   // Track if we're on mobile
   useEffect(() => {
@@ -97,7 +104,7 @@ export default function DashboardLayout({
         </div>
 
         {/* Mobile Search Overlay */}
-        {isSearchOpen && (
+        {isSearchOpen && !hideSearchBar && (
           <div className='md:hidden fixed inset-0 backdrop-blur-sm bg-opacity-50 z-50 flex items-start justify-center pt-20'>
             <div className='bg-white w-full max-w-md mx-4 rounded-lg p-6 shadow-lg'>
               <div className='mb-6'>

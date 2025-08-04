@@ -1,17 +1,22 @@
 import { Bell, Mail, Menu, Search } from 'lucide-react';
 import ProfileDropdown from '@/components/molecules/interactive/Dropdown';
-import { useAuth } from '@/hooks/useAuth';
-import { UserRole } from '@/types/user-role';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
+import { usePathname } from 'next/navigation';
 
 interface NavbarProps {
-  role?: UserRole;
   onMenuClick?: () => void;
   onSearchClick?: () => void;
 }
 
 export default function Navbar({ onMenuClick, onSearchClick }: NavbarProps) {
-  const {} = useAuth();
+  const pathname = usePathname();
+
+  // Hide search bar on admin, teacher, parent, student, and staff pages
+  const hideSearchBar =
+    pathname.startsWith('/dashboard/admin/teachers') ||
+    pathname.startsWith('/dashboard/admin/students') ||
+    pathname.startsWith('/dashboard/admin/parents') ||
+    pathname.startsWith('/dashboard/admin/staff');
   return (
     <header className='flex justify-between items-center px-3 md:px-6  bg-white shadow-sm z-10'>
       {/* Mobile Left Section - Hamburger */}
@@ -28,13 +33,15 @@ export default function Navbar({ onMenuClick, onSearchClick }: NavbarProps) {
       {/* Desktop Search Bar */}
       <div className='hidden md:flex items-center gap-3 flex-1 max-w-sm'>
         <div className='flex-1'>
-          <LabeledInputField
-            type='search'
-            placeholder='Search'
-            value={''}
-            onChange={() => {}}
-            icon={<Search className='text-primary cursor-pointer' />}
-          />
+          {!hideSearchBar && (
+            <LabeledInputField
+              type='search'
+              placeholder='Search'
+              value={''}
+              onChange={() => {}}
+              icon={<Search className='text-primary cursor-pointer' />}
+            />
+          )}
         </div>
       </div>
 
@@ -46,13 +53,15 @@ export default function Navbar({ onMenuClick, onSearchClick }: NavbarProps) {
       {/* Right Section */}
       <div className='flex items-center gap-2'>
         {/* Mobile Search Icon */}
-        <button
-          onClick={onSearchClick}
-          className='md:hidden p-2 rounded-lg hover:bg-muted-hover text-primary transition-colors'
-          aria-label='Search'
-        >
-          <Search className='w-5 h-5' />
-        </button>
+        {!hideSearchBar && (
+          <button
+            onClick={onSearchClick}
+            className='md:hidden p-2 rounded-lg hover:bg-muted-hover text-primary transition-colors'
+            aria-label='Search'
+          >
+            <Search className='w-5 h-5' />
+          </button>
+        )}
 
         {/* Desktop Notifications */}
         <div className='hidden sm:flex items-center gap-3'>

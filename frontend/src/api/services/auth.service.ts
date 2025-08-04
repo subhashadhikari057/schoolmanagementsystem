@@ -17,7 +17,6 @@ import {
   PasswordResetRequest,
   ChangePasswordRequest,
   RegisterRequest,
-  AuthErrorResponse,
 } from '../types/auth';
 import { ApiResponse } from '../types/common';
 
