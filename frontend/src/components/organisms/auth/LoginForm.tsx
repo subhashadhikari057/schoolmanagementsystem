@@ -1,7 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { loginSchema, forgotPasswordSchema, setPasswordSchema, verifyOtpSchema, flexibleFormSchema, LoginFormData, ForgotPasswordFormData, SetPasswordFormData, VerifyOtpFormData, FlexibleFormData } from '@/lib/validations/auth';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import RememberAndForgotRow from '@/components/molecules/forms/RememberAndForgotRow';
 import ReusableButton from '@/components/atoms/form-controls/Button';
@@ -22,6 +24,8 @@ interface FormProps {
   emailLabel?: string; // NEW - separate email field label
   passwordLabel?: string; // NEW - separate password field label
   confirmPasswordLabel?: string; // NEW - separate confirm password field label
+  otpLabel?: string; // NEW - OTP field label
+  otpPlaceholder?: string; // NEW - OTP field placeholder
 
   // Back button props
   showBackButton?: boolean;
@@ -48,12 +52,8 @@ interface FormProps {
   showPasswordField?: boolean;
   showEmailField?: boolean;
   showConfirmPasswordField?: boolean; // NEW
-  onSubmit?: (data: {
-    email: string;
-    password: string;
-    confirmPassword?: string;
-    rememberMe: boolean;
-  }) => void;
+  showOtpField?: boolean; // NEW - show OTP field
+  onSubmit?: (data: FlexibleFormData) => void;
 }
 
 export default function Form({
@@ -78,37 +78,126 @@ export default function Form({
   showEmailField = true,
   showPasswordField = true,
   showConfirmPasswordField = false, // NEW
+  showOtpField = false, // NEW
   emailPlaceholder = 'Enter your email',
   passwordPlaceholder = 'Enter your password',
   confirmPasswordPlaceholder = 'Re-enter your password', // NEW
   emailLabel = 'Email', // NEW - default email field label
   passwordLabel = 'Password', // NEW - default password field label
   confirmPasswordLabel = 'Confirm Password', // NEW
+  otpLabel = 'Verification Code', // NEW
+  otpPlaceholder = 'Enter 6-digit code', // NEW
   onSubmit,
 }: FormProps) {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState(''); // NEW
-  const [rememberMe, setRememberMe] = useState(false);
+  
+  // Use simple form without schema validation - we'll handle validation manually
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+    setError,
+    clearErrors,
+  } = useForm<FlexibleFormData>({
+    mode: 'onChange',
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      rememberMe: false,
+      otp: '',
+    },
+  });
 
-  const handleLogin = () => {
-    console.log('Login clicked');
-    const formData = { email, password, confirmPassword, rememberMe };
-    console.log(formData);
+  const rememberMe = watch('rememberMe');
+  const password = watch('password');
+  const confirmPassword = watch('confirmPassword');
+  const email = watch('email');
+  const otp = watch('otp');
 
-    // Call custom onSubmit if provided
-    if (onSubmit) {
-      onSubmit(formData);
-    } else {
-      // For preview purposes, redirect to super admin dashboard on login
-      router.push('/dashboard/admin');
+  // Custom validation function
+  const validateForm = (data: FlexibleFormData) => {
+    let isValid = true;
+    
+    // Clear previous errors
+    clearErrors();
+
+    // Email validation
+    if (showEmailField && (!data.email || data.email.trim() === '')) {
+      setError('email', { message: 'Email is required' });
+      isValid = false;
+    } else if (showEmailField && data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      setError('email', { message: 'Please enter a valid email address' });
+      isValid = false;
+    }
+
+    // Password validation
+    if (showPasswordField && (!data.password || data.password.trim() === '')) {
+      setError('password', { message: 'Password is required' });
+      isValid = false;
+    } else if (showPasswordField && data.password && data.password.length < 6) {
+      setError('password', { message: 'Password must be at least 6 characters long' });
+      isValid = false;
+    }
+
+    // Strong password validation for set password form
+    if (showConfirmPasswordField && data.password) {
+      if (data.password.length < 8) {
+        setError('password', { message: 'Password must be at least 8 characters long' });
+        isValid = false;
+      } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(data.password)) {
+        setError('password', { message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' });
+        isValid = false;
+      }
+    }
+
+    // Confirm password validation
+    if (showConfirmPasswordField && (!data.confirmPassword || data.confirmPassword.trim() === '')) {
+      setError('confirmPassword', { message: 'Please confirm your password' });
+      isValid = false;
+    } else if (showConfirmPasswordField && data.password !== data.confirmPassword) {
+      setError('confirmPassword', { message: "Passwords don't match" });
+      isValid = false;
+    }
+
+    // OTP validation
+    if (showOtpField && (!data.otp || data.otp.trim() === '')) {
+      setError('otp', { message: 'OTP is required' });
+      isValid = false;
+    } else if (showOtpField && data.otp && (data.otp.length !== 6 || !/^\d+$/.test(data.otp))) {
+      setError('otp', { message: 'OTP must be exactly 6 digits' });
+      isValid = false;
+    }
+
+    return isValid;
+  };
+
+  const handleFormSubmit: SubmitHandler<FlexibleFormData> = async (data) => {
+    try {
+      // Perform custom validation
+      if (!validateForm(data)) {
+        return;
+      }
+
+      console.log('Form submitted with data:', data);
+      
+      // Call custom onSubmit if provided
+      if (onSubmit) {
+        onSubmit(data);
+      } else {
+        // Default behavior - redirect to admin dashboard
+        router.push('/dashboard/admin');
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
     }
   };
 
   return (
     <div className='w-full max-w-md'>
-      <div className='space-y-5'>
+      <form onSubmit={handleSubmit(handleFormSubmit)} className='space-y-5' noValidate>
         {/* Header with Icon and Title */}
         <div className='space-y-10'>
           <div className='flex items-center justify-start space-x-2'>
@@ -160,55 +249,69 @@ export default function Form({
         {/* Form Fields */}
         {showEmailField && (
           <LabeledInputField
-            label={emailLabel} // Using separate emailLabel
-            type='email'
-            value={email}
-            onChange={e => setEmail(e.target.value)}
+            {...register('email')}
+            label={emailLabel}
+            type='text'
             placeholder={emailPlaceholder}
             className='bg-white'
+            error={errors.email?.message}
           />
         )}
 
         {showPasswordField && (
           <LabeledInputField
-            label={passwordLabel} // Using separate passwordLabel
+            {...register('password')}
+            label={passwordLabel}
             type='password'
-            value={password}
-            onChange={e => setPassword(e.target.value)}
             placeholder={passwordPlaceholder}
             className='bg-white'
+            error={errors.password?.message}
           />
         )}
 
         {showConfirmPasswordField && (
           <LabeledInputField
-            label={confirmPasswordLabel} // Using separate confirmPasswordLabel
+            {...register('confirmPassword')}
+            label={confirmPasswordLabel}
             type='password'
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
             placeholder={confirmPasswordPlaceholder}
             className='bg-white'
+            error={errors.confirmPassword?.message}
+          />
+        )}
+
+        {showOtpField && (
+          <LabeledInputField
+            {...register('otp')}
+            label={otpLabel}
+            type='text'
+            placeholder={otpPlaceholder}
+            className='bg-white text-center tracking-widest'
+            error={errors.otp?.message}
+            maxLength={6}
           />
         )}
 
         {/* Conditional Remember Me Row */}
         {showRememberMe && (
           <RememberAndForgotRow
-            remember={rememberMe}
-            onRememberChange={setRememberMe}
+            remember={rememberMe || false}
+            onRememberChange={(checked) => setValue('rememberMe', checked)}
           />
         )}
 
         {/* Submit Button */}
-        <ReusableButton
-          label={buttonLabel}
-          onClick={handleLogin}
-          className={buttonClassName}
-        />
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={`${buttonClassName} ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+        >
+          {isSubmitting ? 'Please wait...' : buttonLabel}
+        </button>
 
         {/* Conditional Support Link */}
         {showSupportLink && <LoginFooterSupportLink />}
-      </div>
+      </form>
     </div>
   );
 }

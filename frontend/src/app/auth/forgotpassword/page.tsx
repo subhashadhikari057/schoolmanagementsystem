@@ -1,9 +1,17 @@
+'use client';
+
 // templates/LoginPageLayout.tsx or pages/login.tsx
 import BannerSlider from "@/components/organisms/content/BannerSlider";
 import Form from "@/components/organisms/auth/LoginForm";
 import { authCarouselBanners } from "@/constants/carouselData";
 
 export default function ForgotPasswordPage() {
+  const handleForgotPassword = (data: any) => {
+    console.log('Forgot password submitted:', data);
+    // Handle forgot password logic here
+    // e.g., call API to send reset email
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen h-screen w-full overflow-hidden" 
     style={{
@@ -31,6 +39,8 @@ export default function ForgotPasswordPage() {
           showRememberMe={false}
           emailLabel="Email Address"
           emailPlaceholder="Enter your email"
+          buttonLabel="Send Reset Link"
+          onSubmit={handleForgotPassword}
         />
       </div>
       <div className="hidden lg:block">

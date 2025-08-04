@@ -1,5 +1,5 @@
 // molecules/LabeledInputField.tsx
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, forwardRef } from "react";
 import Label from "@/components/atoms/display/Label";
 import Input from "@/components/atoms/form-controls/Input";
 import Icon from "@/components/atoms/display/Icon";
@@ -8,15 +8,17 @@ import { Eye, EyeOff } from "lucide-react";
 interface Props {
   label?: string;
   type?: "text" | "email" | "password" | "number" | "search";
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   name?: string;
   icon?: ReactNode; // custom icon on right
   className?: string;
+  error?: string; // Add error prop for validation messages
+  maxLength?: number; // Add maxLength prop
 }
 
-export default function LabeledInputField({
+const LabeledInputField = forwardRef<HTMLInputElement, Props>(({
   label,
   type = "text",
   value,
@@ -25,7 +27,9 @@ export default function LabeledInputField({
   name,
   icon,
   className = "",
-}: Props) {
+  error,
+  ...props
+}, ref) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const isPassword = type === "password";
 
@@ -37,12 +41,14 @@ export default function LabeledInputField({
         </Label>
       )}
       <Input
+        ref={ref}
         name={name}
         type={isPassword ? (isPasswordVisible ? "text" : "password") : type}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`pr-10 pl-4 py-3 ${className}`}
+        className={`pr-10 pl-4 py-3 ${error ? 'border-red-500 focus:border-red-500' : ''} ${className}`}
+        {...props}
       />
 
       {/* Right-side icon */}
@@ -57,9 +63,20 @@ export default function LabeledInputField({
       ) : icon ? (
         <div className="absolute right-3 inset-y-0 flex items-center">{icon}</div>
       ) : null}
+
+      {/* Error message */}
+      {error && (
+        <p className="mt-1 text-sm text-red-600 font-medium">
+          {error}
+        </p>
+      )}
     </div>
   );
-}
+});
+
+LabeledInputField.displayName = 'LabeledInputField';
+
+export default LabeledInputField;
 
 
 

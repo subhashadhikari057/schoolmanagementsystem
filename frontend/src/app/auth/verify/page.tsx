@@ -1,9 +1,17 @@
+'use client';
+
 // templates/LoginPageLayout.tsx or pages/login.tsx
 import Form from "@/components/organisms/auth/LoginForm";
 import BannerSlider from "@/components/organisms/content/BannerSlider";
 import { authCarouselBanners } from "@/constants/carouselData";
 
-export default function ForgotPasswordPage() {
+export default function VerifyPage() {
+  const handleVerifyOtp = (data: any) => {
+    console.log('OTP verification submitted:', data);
+    // Handle OTP verification logic here
+    // e.g., call API to verify OTP
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen h-screen w-full overflow-hidden" 
     style={{
@@ -25,12 +33,16 @@ export default function ForgotPasswordPage() {
           subtitle="Verify Code" 
           descriptionClassName="text-[1rem] font-normal leading-[1.5rem] mt-8"
           showBackButton={true}
+          backButtonHref="/auth/forgotpassword"
           subtitleClassName="text-[2.5rem] font-normal leading-[34px] lining-nums proportional-numstext-[#313131]"
           showPasswordField={false}
-          showEmailField={true}
+          showEmailField={false}
+          showOtpField={true}
           showRememberMe={false}
-          emailLabel="Verification Code"
-          emailPlaceholder="Enter your email"
+          otpLabel="Verification Code"
+          otpPlaceholder="Enter 6-digit code"
+          buttonLabel="Verify Code"
+          onSubmit={handleVerifyOtp}
         />
       </div>
       <div className="hidden lg:block">
