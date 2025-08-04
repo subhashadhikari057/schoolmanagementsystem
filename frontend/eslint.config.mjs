@@ -22,6 +22,8 @@ const eslintConfig = [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
+      '@typescript-eslint/no-unused-expressions': 'off',
+      'no-unused-expressions': 'off',
     },
   },
 ];

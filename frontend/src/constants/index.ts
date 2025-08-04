@@ -7,7 +7,51 @@
  */
 
 export * from './api';
-export * from './auth';
+
+// Auth configuration
+export const AUTH_CONFIG = {
+  ACCESS_TOKEN_KEY: 'sms_access_token',
+  REFRESH_TOKEN_KEY: 'sms_refresh_token',
+  USER_KEY: 'sms_user',
+  ACCESS_TOKEN_EXPIRY: 15 * 60 * 1000, // 15 minutes
+  REFRESH_TOKEN_EXPIRY: 7 * 24 * 60 * 60 * 1000, // 7 days
+  SESSION_CHECK_INTERVAL: 5 * 60 * 1000, // 5 minutes
+  TOKEN_REFRESH_THRESHOLD: 2 * 60 * 1000, // 2 minutes before expiry
+  MAX_LOGIN_ATTEMPTS: 5,
+  LOCKOUT_DURATION: 15 * 60 * 1000, // 15 minutes
+} as const;
+
+// Auth routes
+export const AUTH_ROUTES = {
+  LOGIN: '/login',
+  LOGOUT: '/logout',
+  DASHBOARD: '/dashboard',
+  FORBIDDEN: '/forbidden',
+  REGISTER: '/register',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
+} as const;
+
+// Public routes that don't require authentication
+export const PUBLIC_ROUTES = [
+  '/',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/about',
+  '/contact',
+] as const;
+
+// Role based routes
+export const ROLE_BASED_ROUTES = {
+  Superadmin: ['/dashboard', '/admin', '/settings'],
+  Admin: ['/dashboard', '/admin'],
+  teacher: ['/dashboard', '/classes'],
+  student: ['/dashboard', '/grades'],
+  parent: ['/dashboard', '/children'],
+  Accountant: ['/dashboard', '/finance'],
+} as const;
 
 // Application-wide constants
 export const APP_CONFIG = {

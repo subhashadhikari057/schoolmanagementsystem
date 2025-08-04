@@ -1,25 +1,28 @@
-import { useState } from "react";
+import { useState } from 'react';
+import { UserRole } from '@/types/user-role';
 
-export type UserRole = 'Superadmin' | 'teacher' | 'student' | 'parent';
-
-type User ={
-    name : string;
-    email: string;
-    role : UserRole;
-}
+type User = {
+  name: string;
+  email: string;
+  role: UserRole;
+};
 
 const users: User[] = [
-     { name: 'Animesh Poudel', email: 'animesh@example.com', role: 'Superadmin' },
-  { name: 'Peris Kc', email: 'peris@example.com', role: 'teacher' },
-  { name: 'Asmit Shah', email: 'asmit@example.com', role: 'student' },
-  { name: 'Nabin Poudel', email: 'nabin@example.com', role: 'parent' },
-]
+  {
+    name: 'Animesh Poudel',
+    email: 'animesh@example.com',
+    role: UserRole.SUPER_ADMIN,
+  },
+  { name: 'Peris Kc', email: 'peris@example.com', role: UserRole.TEACHER },
+  { name: 'Asmit Shah', email: 'asmit@example.com', role: UserRole.STUDENT },
+  { name: 'Nabin Poudel', email: 'nabin@example.com', role: UserRole.PARENT },
+];
 
 export function useAuth() {
- const [currentUserIndex, setCurrentUserIndex] = useState(0);
+  const [currentUserIndex] = useState(0);
 
- const User = users[currentUserIndex];
- const role = User.role;
+  const User = users[currentUserIndex];
+  const role = User.role;
 
-  return{role, User};
+  return { role, User };
 }

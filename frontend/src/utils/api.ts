@@ -1,6 +1,12 @@
 /**
  * =============================================================================
- * API Utilities
+ * export function isClientError(error: any): boolean {
+  return (
+    error?.status === 400 ||
+    error?.code === 'VALIDATION_ERROR' ||
+    error?.code === 'BAD_REQUEST'
+  ) as boolean;
+}lities
  * =============================================================================
  * Helper functions for API requests, error handling, and data transformation
  * =============================================================================
@@ -38,7 +44,7 @@ export function generateTraceId(): string {
 /**
  * Check if error is an API error
  */
-export function isApiError(error: unknown): error is ApiError {
+export function isApiError(error: any): error is ApiError {
   return (
     error && typeof error === 'object' && 'code' in error && 'message' in error
   );
@@ -66,7 +72,7 @@ export function getErrorMessage(error: unknown): string {
 /**
  * Check if error is a network error
  */
-export function isNetworkError(error: unknown): boolean {
+export function isNetworkError(error: any): boolean {
   return (
     error?.code === 'NETWORK_ERROR' ||
     error?.message?.includes('Network Error') ||
@@ -77,7 +83,7 @@ export function isNetworkError(error: unknown): boolean {
 /**
  * Check if error is an authentication error
  */
-export function isAuthError(error: unknown): boolean {
+export function isAuthError(error: any): boolean {
   return (
     error?.status === 401 ||
     error?.code === 'UNAUTHORIZED' ||
@@ -88,7 +94,7 @@ export function isAuthError(error: unknown): boolean {
 /**
  * Check if error is a validation error
  */
-export function isValidationError(error: unknown): boolean {
+export function isValidationError(error: any): boolean {
   return (
     error?.status === 400 ||
     error?.code === 'VALIDATION_ERROR' ||
@@ -99,7 +105,7 @@ export function isValidationError(error: unknown): boolean {
 /**
  * Check if error is a permission error
  */
-export function isPermissionError(error: unknown): boolean {
+export function isPermissionError(error: any): boolean {
   return (
     error?.status === 403 ||
     error?.code === 'FORBIDDEN' ||

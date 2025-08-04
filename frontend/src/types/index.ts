@@ -6,18 +6,9 @@
  * =============================================================================
  */
 
-export * from './auth';
+export * from './user-role';
 export * from './api';
-
-// Re-export commonly used types from shared-types
-export type {
-  UserRole,
-  AuditAction,
-  AuditModule,
-  AuditStatus,
-  BaseErrorResponseDto,
-  DetailedErrorResponseDto,
-} from '@sms/shared-types';
+export * from './auth';
 
 // Common UI types
 export interface ComponentProps {
