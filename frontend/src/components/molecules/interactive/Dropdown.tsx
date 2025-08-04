@@ -30,6 +30,40 @@ interface DropdownProps {
   icon?: React.ReactNode;
 }
 
+// Helper functions for user display
+const getUserDisplayName = (user: any) => {
+  if (!user) return 'Guest User';
+
+  // If we have a full name, extract first name or use full name
+  if (user.full_name) {
+    const nameParts = user.full_name.trim().split(' ');
+    return nameParts.length > 1 ? nameParts[0] : user.full_name;
+  }
+
+  // Fallback to email (extract name part before @)
+  if (user.email) {
+    const emailName = user.email.split('@')[0];
+    return emailName.charAt(0).toUpperCase() + emailName.slice(1);
+  }
+
+  return 'Guest User';
+};
+
+const getUserRole = (role: string) => {
+  if (!role) return 'guest';
+
+  // Convert role to readable format
+  const roleMap: Record<string, string> = {
+    SUPER_ADMIN: 'Super Admin',
+    admin: 'Admin',
+    teacher: 'Teacher',
+    student: 'Student',
+    parent: 'Parent',
+  };
+
+  return roleMap[role] || role.toLowerCase();
+};
+
 export default function Dropdown({
   className,
   type = 'profile',
@@ -40,7 +74,7 @@ export default function Dropdown({
   placeholder = 'Select option',
   icon,
 }: DropdownProps) {
-  const { User, role } = useAuth();
+  const { user, isLoading } = useAuth();
 
   const dropdownBg = 'bg-background';
   const hoverBg = 'bg-muted-hover';
@@ -92,15 +126,16 @@ export default function Dropdown({
               }`}
             >
               <Avatar
-                src='/avatar.jpg'
+                name={user?.full_name || user?.email || 'Guest User'}
                 className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
+                showInitials={true}
               />
               <div className='text-left flex-1 min-w-0 hidden sm:block'>
                 <p className='text-sm font-semibold text-foreground truncate'>
-                  {User.name}
+                  {isLoading ? 'Loading...' : getUserDisplayName(user)}
                 </p>
                 <p className='text-xs text-secondary truncate capitalize'>
-                  {role}
+                  {isLoading ? 'Loading...' : getUserRole(user?.role)}
                 </p>
               </div>
               {open ? (

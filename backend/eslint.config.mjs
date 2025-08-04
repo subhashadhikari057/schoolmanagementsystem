@@ -39,7 +39,13 @@ export default tseslint.config(
       '@typescript-eslint/no-redundant-type-constituents': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
       '@typescript-eslint/no-require-imports': 'warn',
-      'no-case-declarations': 'warn'
+      '@typescript-eslint/no-unused-expressions': ['error', { 
+        'allowShortCircuit': true, 
+        'allowTernary': true,
+        'allowTaggedTemplates': true
+      }],
+      'no-case-declarations': 'warn',
+      'no-unused-expressions': 'off'
     },
   },
 );

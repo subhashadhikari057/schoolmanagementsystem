@@ -196,8 +196,6 @@ export default function Form({
         return;
       }
 
-      console.log('Form submitted with data:', data);
-
       // Call custom onSubmit if provided
       if (onSubmit) {
         onSubmit(data);

@@ -5,12 +5,13 @@ const prisma = new PrismaClient();
 
 async function main() {
   const roleNames = [
-    'super_admin',
-    'admin',
-    'teacher',
-    'student',
-    'parent',
-    'staff',
+    'SUPER_ADMIN',
+    'ADMIN',
+    'ACCOUNTANT',
+    'TEACHER',
+    'STUDENT',
+    'PARENT',
+    'STAFF',
   ];
 
   // 1. Create roles
@@ -21,7 +22,7 @@ async function main() {
       create: {
         name: role,
         description: `${role} role`,
-        isSystemRole: role === 'super_admin',
+        isSystemRole: role === 'SUPER_ADMIN',
       },
     });
   }
@@ -32,37 +33,37 @@ async function main() {
       email: 'superadmin@gmail.com',
       fullName: 'Super Admin',
       password: 'superadmin123',
-      role: 'super_admin',
+      role: 'SUPER_ADMIN',
     },
     {
       email: 'admin@gmail.com',
       fullName: 'Admin User',
       password: 'admin123',
-      role: 'admin',
+      role: 'ADMIN',
     },
     {
       email: 'teacher@gmail.com',
       fullName: 'Teacher User',
       password: 'teacher123',
-      role: 'teacher',
+      role: 'TEACHER',
     },
     {
       email: 'student@gmail.com',
       fullName: 'John Doe',
       password: 'student123',
-      role: 'student',
+      role: 'STUDENT',
     },
     {
       email: 'parent@gmail.com',
       fullName: 'Jane Doe',
       password: 'parent123',
-      role: 'parent',
+      role: 'PARENT',
     },
     {
       email: 'staff@gmail.com',
       fullName: 'Staff User',
       password: 'staff123',
-      role: 'staff',
+      role: 'STAFF',
     },
   ];
 

@@ -1,5 +1,6 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { AuthController } from './infrastructure/auth.controller';
+import { ProfileController } from './controllers/profile.controller';
 import { AuthService } from './application/auth.service';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { LoggerModule } from '../../shared/logger/logger.module';
@@ -7,7 +8,7 @@ import { AuthRateLimiter } from '../../shared/middlewares/rate-limit.middleware'
 
 @Module({
   imports: [LoggerModule],
-  controllers: [AuthController],
+  controllers: [AuthController, ProfileController],
   providers: [AuthService, PrismaService],
 })
 export class AuthModule implements NestModule {

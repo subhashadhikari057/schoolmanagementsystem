@@ -74,104 +74,6 @@ export function useAuth() {
     error: null,
   });
 
-  // Initialize authentication state from stored tokens
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const storedAccessToken = getStoredToken(
-          TOKEN_STORAGE_KEYS.ACCESS_TOKEN,
-        );
-        const storedRefreshToken = getStoredToken(
-          TOKEN_STORAGE_KEYS.REFRESH_TOKEN,
-        );
-        const storedUser = getStoredUser();
-
-        if (storedAccessToken && storedUser) {
-          // Set token in auth service
-          authService.setAccessToken(storedAccessToken);
-
-          // Try to verify token by getting current user
-          try {
-            const response = await authService.getCurrentUser();
-
-            setAuthState({
-              isAuthenticated: true,
-              user: response.data,
-              accessToken: storedAccessToken,
-              refreshToken: storedRefreshToken,
-              isLoading: false,
-              error: null,
-            });
-          } catch (error) {
-            // Token might be expired, try to refresh if we have refresh token
-            if (storedRefreshToken) {
-              try {
-                const refreshResponse = await authService.refreshToken({
-                  refresh_token: storedRefreshToken,
-                });
-
-                const newAccessToken = refreshResponse.data.access_token;
-                setStoredToken(TOKEN_STORAGE_KEYS.ACCESS_TOKEN, newAccessToken);
-
-                // Get user info with new token
-                const userResponse = await authService.getCurrentUser();
-
-                setAuthState({
-                  isAuthenticated: true,
-                  user: userResponse.data,
-                  accessToken: newAccessToken,
-                  refreshToken: storedRefreshToken,
-                  isLoading: false,
-                  error: null,
-                });
-              } catch (refreshError) {
-                // Both tokens are invalid, clear storage
-                clearStoredAuth();
-                setAuthState({
-                  isAuthenticated: false,
-                  user: null,
-                  accessToken: null,
-                  refreshToken: null,
-                  isLoading: false,
-                  error: null,
-                });
-              }
-            } else {
-              // No refresh token, clear storage
-              clearStoredAuth();
-              setAuthState({
-                isAuthenticated: false,
-                user: null,
-                accessToken: null,
-                refreshToken: null,
-                isLoading: false,
-                error: null,
-              });
-            }
-          }
-        } else {
-          // No stored tokens
-          setAuthState(prev => ({
-            ...prev,
-            isLoading: false,
-          }));
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        setAuthState({
-          isAuthenticated: false,
-          user: null,
-          accessToken: null,
-          refreshToken: null,
-          isLoading: false,
-          error: 'Failed to initialize authentication',
-        });
-      }
-    };
-
-    initializeAuth();
-  }, []);
-
   // Clear stored authentication data
   const clearStoredAuth = useCallback(() => {
     removeStoredToken(TOKEN_STORAGE_KEYS.ACCESS_TOKEN);
@@ -180,25 +82,82 @@ export function useAuth() {
     authService.setAccessToken(null);
   }, []);
 
+  // Initialize authentication state from stored data (don't call API)
+  useEffect(() => {
+    const initializeAuth = () => {
+      try {
+        // Check if we have stored user data from previous session
+        const storedUser = getStoredUser();
+
+        if (storedUser) {
+          // User was previously authenticated, try to verify session
+          setAuthState({
+            isAuthenticated: true,
+            user: storedUser,
+            accessToken: null, // Tokens are in cookies
+            refreshToken: null, // Tokens are in cookies
+            isLoading: false,
+            error: null,
+          });
+        } else {
+          // No stored user data, user is not authenticated
+          setAuthState({
+            isAuthenticated: false,
+            user: null,
+            accessToken: null,
+            refreshToken: null,
+            isLoading: false,
+            error: null,
+          });
+        }
+      } catch (error) {
+        console.log('Auth initialization error:', error);
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isLoading: false,
+          error: null,
+        });
+      }
+    };
+
+    initializeAuth();
+  }, []);
+
   // Login function
   const login = useCallback(async (credentials: LoginRequest) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      const response = await authService.login(credentials);
-      const { access_token, refresh_token, user } = response.data;
+      // Backend sets cookies automatically on successful login
+      await authService.login(credentials);
 
-      // Store tokens and user data
-      setStoredToken(TOKEN_STORAGE_KEYS.ACCESS_TOKEN, access_token);
-      setStoredToken(TOKEN_STORAGE_KEYS.REFRESH_TOKEN, refresh_token);
+      // Get user data after successful login (this should work because cookies are set)
+      const userResponse = await authService.getCurrentUser();
+      const userData = userResponse.data;
+
+      // Transform MeResponse to AuthUser
+      const user: AuthUser = {
+        id: userData.id,
+        email: userData.email,
+        role: userData.role,
+        isActive: userData.isActive,
+        full_name: userData.full_name,
+        phone: userData.phone,
+        permissions: userData.permissions,
+      };
+
+      // Store user data locally for faster app initialization
       setStoredUser(user);
 
       // Update state
       setAuthState({
         isAuthenticated: true,
         user,
-        accessToken: access_token,
-        refreshToken: refresh_token,
+        accessToken: null, // Tokens are in cookies
+        refreshToken: null, // Tokens are in cookies
         isLoading: false,
         error: null,
       });
@@ -218,7 +177,7 @@ export function useAuth() {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
 
-      // Call logout API (even if it fails, we'll clear local state)
+      // Call logout API (backend will clear cookies)
       try {
         await authService.logout();
       } catch (error) {
@@ -302,6 +261,46 @@ export function useAuth() {
     setAuthState(prev => ({ ...prev, error: null }));
   }, []);
 
+  // Verify session function - call this when you need to check if session is still valid
+  const verifySession = useCallback(async () => {
+    try {
+      const response = await authService.getCurrentUser();
+      const userData = response.data;
+
+      // Transform MeResponse to AuthUser
+      const user: AuthUser = {
+        id: userData.id,
+        email: userData.email,
+        role: userData.role,
+        isActive: userData.isActive,
+        full_name: userData.full_name,
+        phone: userData.phone,
+        permissions: userData.permissions,
+      };
+
+      setAuthState(prev => ({
+        ...prev,
+        isAuthenticated: true,
+        user,
+      }));
+
+      setStoredUser(user);
+      return user;
+    } catch (error) {
+      // Session expired or invalid, logout user
+      clearStoredAuth();
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        accessToken: null,
+        refreshToken: null,
+        isLoading: false,
+        error: null,
+      });
+      throw error;
+    }
+  }, [clearStoredAuth]);
+
   return {
     // State
     ...authState,
@@ -311,6 +310,7 @@ export function useAuth() {
     logout,
     refreshAccessToken,
     getCurrentUser,
+    verifySession,
     clearError,
   };
 }

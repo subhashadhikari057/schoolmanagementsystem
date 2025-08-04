@@ -1,7 +1,7 @@
-"use client";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Banner } from "@/types/banner";
-import CarouselSlide from "@/components/molecules/interactive/CarouselSlides";
+'use client';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Banner } from '@/types/banner';
+import CarouselSlide from '@/components/molecules/interactive/CarouselSlides';
 
 interface CarouselProps {
   autoSlide?: boolean;
@@ -20,11 +20,11 @@ export default function Carousel({
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const prev = () =>
-    setCurr((curr) => (curr === 0 ? slides.length - 1 : curr - 1));
-  
-  const next = useCallback(() =>
-    setCurr((curr) => (curr === slides.length - 1 ? 0 : curr + 1)),
-    [slides.length]
+    setCurr(curr => (curr === 0 ? slides.length - 1 : curr - 1));
+
+  const next = useCallback(
+    () => setCurr(curr => (curr === slides.length - 1 ? 0 : curr + 1)),
+    [slides.length],
   );
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function Carousel({
     if (!isDragging) return;
     const currentX = e.touches[0].clientX;
     const diff = startX - currentX;
-    
+
     if (carouselRef.current) {
       carouselRef.current.style.transition = 'none';
       const percentage = (diff / window.innerWidth) * 100;
@@ -58,17 +58,17 @@ export default function Carousel({
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (!isDragging) return;
     setIsDragging(false);
-    
+
     const endX = e.changedTouches[0].clientX;
     const diff = startX - endX;
     const threshold = window.innerWidth / 5;
-    
+
     if (diff > threshold) {
       next();
     } else if (diff < -threshold) {
       prev();
     }
-    
+
     if (carouselRef.current) {
       carouselRef.current.style.transition = 'transform 0.5s ease-out';
       carouselRef.current.style.transform = `translateX(-${curr * 100}%)`;
@@ -76,28 +76,28 @@ export default function Carousel({
   };
 
   return (
-    <div className="rounded-3xl relative w-full h-full mx-auto overflow-hidden">
+    <div className='rounded-3xl relative w-full h-full mx-auto overflow-hidden'>
       <div
         ref={carouselRef}
-        className="flex transition-transform ease-out duration-500 h-full"
+        className='flex transition-transform ease-out duration-500 h-full'
         style={{ transform: `translateX(-${curr * 100}%)` }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {slides.map((slide) => (
-          <CarouselSlide key={slide.id} slide={slide} />
+        {slides.map((slide, index) => (
+          <CarouselSlide key={slide.id} slide={slide} priority={index === 0} />
         ))}
       </div>
-      
+
       {/* Dot Indicators */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+      <div className='absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2'>
         {slides.map((_, index) => (
           <button
             key={index}
             className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              index === curr 
-                ? 'bg-blue-600 w-6' 
+              index === curr
+                ? 'bg-blue-600 w-6'
                 : 'bg-white/50 hover:bg-white/80'
             }`}
             onClick={() => setCurr(index)}
@@ -108,5 +108,3 @@ export default function Carousel({
     </div>
   );
 }
-
-

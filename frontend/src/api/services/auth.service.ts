@@ -26,14 +26,14 @@ import { ApiResponse } from '../types/common';
 // ============================================================================
 
 const AUTH_ENDPOINTS = {
-  LOGIN: '/api/v1/auth/login',
-  LOGOUT: '/api/v1/auth/logout',
-  REFRESH: '/api/v1/auth/refresh',
-  ME: '/api/v1/auth/me',
-  REGISTER: '/api/v1/auth/register',
-  REQUEST_PASSWORD_RESET: '/api/v1/auth/password/request-reset',
-  RESET_PASSWORD: '/api/v1/auth/password/reset',
-  CHANGE_PASSWORD: '/api/v1/auth/password/change',
+  LOGIN: 'api/v1/auth/login',
+  LOGOUT: 'api/v1/auth/logout',
+  REFRESH: 'api/v1/auth/refresh',
+  ME: 'api/v1/profile', // Fixed: backend uses /profile not /auth/me
+  REGISTER: 'api/v1/auth/register',
+  REQUEST_PASSWORD_RESET: 'api/v1/auth/password/request-reset',
+  RESET_PASSWORD: 'api/v1/auth/password/reset',
+  CHANGE_PASSWORD: 'api/v1/auth/password/change',
 } as const;
 
 // ============================================================================
@@ -44,19 +44,17 @@ export class AuthService {
   /**
    * Login with email/phone and password
    */
-  async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
+  async login(
+    credentials: LoginRequest,
+  ): Promise<ApiResponse<{ message: string }>> {
     try {
-      const response = await httpClient.post<LoginResponse>(
+      const response = await httpClient.post<{ message: string }>(
         AUTH_ENDPOINTS.LOGIN,
         credentials,
         { requiresAuth: false },
       );
 
-      // Set access token in HTTP client for future requests
-      if (response.data?.access_token) {
-        httpClient.setAccessToken(response.data.access_token);
-      }
-
+      // Backend sets cookies automatically, no need to handle tokens manually
       return response;
     } catch (error) {
       console.error('Login error:', error);
@@ -72,17 +70,12 @@ export class AuthService {
       const response = await httpClient.post<void>(
         AUTH_ENDPOINTS.LOGOUT,
         {},
-        { requiresAuth: true },
+        { requiresAuth: false }, // Auth is handled by cookies
       );
-
-      // Clear access token from HTTP client
-      httpClient.setAccessToken(null);
 
       return response;
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if logout fails on server, clear local token
-      httpClient.setAccessToken(null);
       throw error;
     }
   }
@@ -118,10 +111,20 @@ export class AuthService {
   async getCurrentUser(): Promise<ApiResponse<MeResponse>> {
     try {
       return await httpClient.get<MeResponse>(AUTH_ENDPOINTS.ME, undefined, {
-        requiresAuth: true,
+        requiresAuth: false, // Auth is handled by cookies, not Bearer token
       });
     } catch (error) {
       console.error('Get current user error:', error);
+
+      // Log the full error for debugging
+      if (error && typeof error === 'object') {
+        console.error('Error details:', {
+          status: (error as any).statusCode,
+          message: (error as any).message,
+          error: (error as any).error,
+          full: error,
+        });
+      }
       throw error;
     }
   }

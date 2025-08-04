@@ -36,6 +36,9 @@ const DEFAULT_CONFIG: HttpClientConfig = {
   },
 };
 
+// Debug log for API URL
+console.log('🔗 API Base URL:', DEFAULT_CONFIG.baseURL);
+
 // ============================================================================
 // HTTP Client Class
 // ============================================================================
@@ -105,12 +108,15 @@ export class HttpClient {
     // Build full URL
     const fullUrl = url.startsWith('http')
       ? url
-      : `${this.config.baseURL}${url}`;
+      : `${this.config.baseURL}/${url}`
+          .replace(/\/+/g, '/')
+          .replace('http:/', 'http://');
 
     // Request options
     const requestOptions: RequestInit = {
       method,
       headers,
+      credentials: 'include', // Include cookies in requests
     };
 
     // Add body for non-GET requests
@@ -154,10 +160,19 @@ export class HttpClient {
 
         // Handle HTTP errors
         if (!response.ok) {
+          console.error('HTTP Error Response:', {
+            status: response.status,
+            statusText: response.statusText,
+            url: fullUrl,
+            responseData,
+          });
+
           const apiError: ApiError = {
             statusCode: response.status,
             error: response.statusText,
-            message: responseData?.message || 'An error occurred',
+            message:
+              responseData?.message ||
+              `HTTP ${response.status}: ${response.statusText}`,
             code: responseData?.code,
             details: responseData?.details,
             context: responseData?.context,

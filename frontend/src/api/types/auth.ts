@@ -46,11 +46,12 @@ export interface RefreshTokenResponse {
 
 export interface MeResponse {
   id: string;
-  full_name: string;
   email: string;
-  phone?: string;
   role: 'admin' | 'student' | 'teacher' | 'parent' | 'superadmin';
-  permissions: string[]; // optional future use
+  isActive: boolean;
+  full_name?: string; // Not in backend response, will need to get from other source
+  phone?: string;
+  permissions?: string[]; // optional future use
 }
 
 // ============================================================================
@@ -101,10 +102,11 @@ export interface AuthErrorResponse {
 
 export interface AuthUser {
   id: string;
-  full_name: string;
   email: string;
-  phone?: string;
   role: 'admin' | 'student' | 'teacher' | 'parent' | 'superadmin';
+  isActive: boolean;
+  full_name?: string; // Optional - not in backend response
+  phone?: string;
   permissions?: string[];
 }
 

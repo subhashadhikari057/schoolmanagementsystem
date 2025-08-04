@@ -18,24 +18,25 @@ import {
 describe('UserRole Enum', () => {
   describe('Enum Values', () => {
     test('should have all expected role values', () => {
-      expect(UserRole.SUPER_ADMIN).toBe('super_admin');
-      expect(UserRole.ADMIN).toBe('admin');
-      expect(UserRole.ACCOUNTANT).toBe('accountant');
-      expect(UserRole.TEACHER).toBe('teacher');
-      expect(UserRole.STUDENT).toBe('student');
-      expect(UserRole.PARENT).toBe('parent');
+      expect(UserRole.SUPER_ADMIN).toBe('SUPER_ADMIN');
+      expect(UserRole.ADMIN).toBe('ADMIN');
+      expect(UserRole.ACCOUNTANT).toBe('ACCOUNTANT');
+      expect(UserRole.TEACHER).toBe('TEACHER');
+      expect(UserRole.STUDENT).toBe('STUDENT');
+      expect(UserRole.PARENT).toBe('PARENT');
     });
 
     test('should export USER_ROLES array with all values', () => {
       expect(USER_ROLES).toEqual([
-        'super_admin',
-        'admin',
-        'accountant',
-        'teacher',
-        'student',
-        'parent',
+        'SUPER_ADMIN',
+        'ADMIN',
+        'ACCOUNTANT',
+        'TEACHER',
+        'STUDENT',
+        'PARENT',
+        'STAFF',
       ]);
-      expect(USER_ROLES).toHaveLength(6);
+      expect(USER_ROLES).toHaveLength(7);
     });
   });
 

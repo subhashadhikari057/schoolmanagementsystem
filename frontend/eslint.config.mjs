@@ -1,30 +1,64 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import js from '@eslint/js';
+import tseslint from '@typescript-eslint/eslint-plugin';
+import tsparser from '@typescript-eslint/parser';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import next from '@next/eslint-plugin-next';
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  js.configs.recommended,
   {
+    files: ['**/*.{ts,tsx,js,jsx}'],
     languageOptions: {
+      parser: tsparser,
+      ecmaVersion: 'latest',
+      sourceType: 'module',
       parserOptions: {
-        project: "./tsconfig.json",
-        tsconfigRootDir: __dirname,
+        ecmaFeatures: {
+          jsx: true,
+        },
       },
     },
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/no-unused-expressions': 'off',
-      'no-unused-expressions': 'off',
+    plugins: {
+      '@typescript-eslint': tseslint,
+      'react': react,
+      'react-hooks': reactHooks,
+      '@next/next': next,
     },
+    rules: {
+      // Basic rules
+      'no-unused-vars': 'off',
+      'no-undef': 'off',
+      
+      // TypeScript rules
+      '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-expressions': 'off',
+      
+      // React rules
+      'react/react-in-jsx-scope': 'off',
+      'react/prop-types': 'off',
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+      
+      // Next.js rules
+      '@next/next/no-html-link-for-pages': 'error',
+      '@next/next/no-img-element': 'warn',
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
+    },
+  },
+  {
+    ignores: [
+      '.next/**',
+      'node_modules/**',
+      'out/**',
+      'build/**',
+      'dist/**',
+    ],
   },
 ];
 

@@ -13,25 +13,25 @@
  */
 export enum UserRole {
   /** System super administrator with full access */
-  SUPER_ADMIN = 'super_admin',
+  SUPER_ADMIN = 'SUPER_ADMIN',
   
   /** School administrator with management access */
-  ADMIN = 'admin',
+  ADMIN = 'ADMIN',
   
   /** School accountant with financial access */
-  ACCOUNTANT = 'accountant',
+  ACCOUNTANT = 'ACCOUNTANT',
   
   /** Teacher with class and subject management access */
-  TEACHER = 'teacher',
+  TEACHER = 'TEACHER',
   
   /** Student with limited access to their own data */
-  STUDENT = 'student',
+  STUDENT = 'STUDENT',
   
   /** Parent with access to their children's data */
-  PARENT = 'parent',
+  PARENT = 'PARENT',
   
   /** Staff member with limited administrative access */
-  STAFF = 'staff',
+  STAFF = 'STAFF',
 }
 
 /**
