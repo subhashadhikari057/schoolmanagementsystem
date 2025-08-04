@@ -1,12 +1,10 @@
 'use client';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { loginSchema, forgotPasswordSchema, setPasswordSchema, verifyOtpSchema, flexibleFormSchema, LoginFormData, ForgotPasswordFormData, SetPasswordFormData, VerifyOtpFormData, FlexibleFormData } from '@/lib/validations/auth';
+import { FlexibleFormData } from '@/lib/validations/auth';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import RememberAndForgotRow from '@/components/molecules/forms/RememberAndForgotRow';
-import ReusableButton from '@/components/atoms/form-controls/Button';
 import LoginFooterSupportLink from '@/components/molecules/forms/LoginFooterSupportLink';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import IconContainer from '@/components/molecules/interactive/IconContainer';
@@ -90,7 +88,7 @@ export default function Form({
   onSubmit,
 }: FormProps) {
   const router = useRouter();
-  
+
   // Use simple form without schema validation - we'll handle validation manually
   const {
     register,
@@ -112,15 +110,11 @@ export default function Form({
   });
 
   const rememberMe = watch('rememberMe');
-  const password = watch('password');
-  const confirmPassword = watch('confirmPassword');
-  const email = watch('email');
-  const otp = watch('otp');
 
   // Custom validation function
   const validateForm = (data: FlexibleFormData) => {
     let isValid = true;
-    
+
     // Clear previous errors
     clearErrors();
 
@@ -128,7 +122,11 @@ export default function Form({
     if (showEmailField && (!data.email || data.email.trim() === '')) {
       setError('email', { message: 'Email is required' });
       isValid = false;
-    } else if (showEmailField && data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    } else if (
+      showEmailField &&
+      data.email &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)
+    ) {
       setError('email', { message: 'Please enter a valid email address' });
       isValid = false;
     }
@@ -138,26 +136,39 @@ export default function Form({
       setError('password', { message: 'Password is required' });
       isValid = false;
     } else if (showPasswordField && data.password && data.password.length < 6) {
-      setError('password', { message: 'Password must be at least 6 characters long' });
+      setError('password', {
+        message: 'Password must be at least 6 characters long',
+      });
       isValid = false;
     }
 
     // Strong password validation for set password form
     if (showConfirmPasswordField && data.password) {
       if (data.password.length < 8) {
-        setError('password', { message: 'Password must be at least 8 characters long' });
+        setError('password', {
+          message: 'Password must be at least 8 characters long',
+        });
         isValid = false;
       } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(data.password)) {
-        setError('password', { message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' });
+        setError('password', {
+          message:
+            'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+        });
         isValid = false;
       }
     }
 
     // Confirm password validation
-    if (showConfirmPasswordField && (!data.confirmPassword || data.confirmPassword.trim() === '')) {
+    if (
+      showConfirmPasswordField &&
+      (!data.confirmPassword || data.confirmPassword.trim() === '')
+    ) {
       setError('confirmPassword', { message: 'Please confirm your password' });
       isValid = false;
-    } else if (showConfirmPasswordField && data.password !== data.confirmPassword) {
+    } else if (
+      showConfirmPasswordField &&
+      data.password !== data.confirmPassword
+    ) {
       setError('confirmPassword', { message: "Passwords don't match" });
       isValid = false;
     }
@@ -166,7 +177,11 @@ export default function Form({
     if (showOtpField && (!data.otp || data.otp.trim() === '')) {
       setError('otp', { message: 'OTP is required' });
       isValid = false;
-    } else if (showOtpField && data.otp && (data.otp.length !== 6 || !/^\d+$/.test(data.otp))) {
+    } else if (
+      showOtpField &&
+      data.otp &&
+      (data.otp.length !== 6 || !/^\d+$/.test(data.otp))
+    ) {
       setError('otp', { message: 'OTP must be exactly 6 digits' });
       isValid = false;
     }
@@ -174,7 +189,7 @@ export default function Form({
     return isValid;
   };
 
-  const handleFormSubmit: SubmitHandler<FlexibleFormData> = async (data) => {
+  const handleFormSubmit: SubmitHandler<FlexibleFormData> = async data => {
     try {
       // Perform custom validation
       if (!validateForm(data)) {
@@ -182,7 +197,7 @@ export default function Form({
       }
 
       console.log('Form submitted with data:', data);
-      
+
       // Call custom onSubmit if provided
       if (onSubmit) {
         onSubmit(data);
@@ -197,7 +212,11 @@ export default function Form({
 
   return (
     <div className='w-full max-w-md'>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className='space-y-5' noValidate>
+      <form
+        onSubmit={handleSubmit(handleFormSubmit)}
+        className='space-y-5'
+        noValidate
+      >
         {/* Header with Icon and Title */}
         <div className='space-y-10'>
           <div className='flex items-center justify-start space-x-2'>
@@ -296,13 +315,13 @@ export default function Form({
         {showRememberMe && (
           <RememberAndForgotRow
             remember={rememberMe || false}
-            onRememberChange={(checked) => setValue('rememberMe', checked)}
+            onRememberChange={checked => setValue('rememberMe', checked)}
           />
         )}
 
         {/* Submit Button */}
         <button
-          type="submit"
+          type='submit'
           disabled={isSubmitting}
           className={`${buttonClassName} ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
         >

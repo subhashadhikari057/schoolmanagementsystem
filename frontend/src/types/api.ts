@@ -6,10 +6,16 @@
  * =============================================================================
  */
 
-import {
-  BaseErrorResponseDto,
-  DetailedErrorResponseDto,
-} from '@sms/shared-types';
+export interface BaseErrorResponseDto {
+  message: string;
+  code?: string;
+  status?: number;
+}
+
+export interface DetailedErrorResponseDto extends BaseErrorResponseDto {
+  details?: Record<string, any>;
+  context?: Record<string, any>;
+}
 
 export interface ApiResponse<T = unknown> {
   success: boolean;

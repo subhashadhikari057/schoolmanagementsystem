@@ -1,4 +1,4 @@
-import { Clock, MapPin, MoreVertical } from 'lucide-react';
+import { Clock, MapPin } from 'lucide-react';
 import StatusBadge from '@/components/atoms/data/StatusBadge';
 import { Event } from '@/types/EventTypes';
 

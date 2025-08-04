@@ -3,9 +3,6 @@ import { Event } from '@/types/EventTypes';
 import { Notification } from '@/types/NotficationItemsTypes';
 import { QuickAction } from '@/types/QuickActionItems';
 import {
-  Calendar,
-  Bell,
-  Users,
   GraduationCap,
   IdCard,
   CalendarPlus,

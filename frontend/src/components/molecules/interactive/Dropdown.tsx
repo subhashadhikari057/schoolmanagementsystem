@@ -1,8 +1,14 @@
 'use client';
 
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronUp, ChevronDown, User as UserIcon, Key, LogOut } from 'lucide-react';
-import Avatar from "@/components/atoms/display/Avatar";
+import {
+  ChevronUp,
+  ChevronDown,
+  User as UserIcon,
+  Key,
+  LogOut,
+} from 'lucide-react';
+import Avatar from '@/components/atoms/display/Avatar';
 import { Fragment } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -24,15 +30,15 @@ interface DropdownProps {
   icon?: React.ReactNode;
 }
 
-export default function Dropdown({ 
-  className, 
+export default function Dropdown({
+  className,
   type = 'profile',
   title,
   options = [],
   selectedValue,
   onSelect,
-  placeholder = "Select option",
-  icon
+  placeholder = 'Select option',
+  icon,
 }: DropdownProps) {
   const { User, role } = useAuth();
 
@@ -45,30 +51,38 @@ export default function Dropdown({
       value: 'profile',
       label: 'View Profile',
       icon: <UserIcon size={16} />,
-      onClick: () => console.log('View Profile')
+      onClick: () => console.log('View Profile'),
     },
     {
       value: 'password',
       label: 'Change Password',
       icon: <Key size={16} />,
-      onClick: () => console.log('Change Password')
+      onClick: () => console.log('Change Password'),
     },
     {
       value: 'logout',
       label: 'Logout',
       icon: <LogOut size={16} />,
-      onClick: () => console.log('Logout')
-    }
+      onClick: () => console.log('Logout'),
+    },
   ];
 
   const currentOptions = type === 'profile' ? profileOptions : options;
-  const selectedOption = type === 'filter' ? 
-    options.find(option => option.value === selectedValue) || { label: placeholder } :
-    null;
+  const selectedOption =
+    type === 'filter'
+      ? options.find(option => option.value === selectedValue) || {
+          label: placeholder,
+        }
+      : null;
 
   if (type === 'profile') {
     return (
-      <Menu as="div" className={`relative inline-block text-left w-full ${className}`}>
+      // @ts-expect-error - Headless UI compatibility
+      <Menu
+        as='div'
+        className={`relative inline-block text-left w-full ${className}`}
+      >
+        {/* @ts-expect-error - Headless UI compatibility */}
         {({ open }) => (
           <>
             {/* === Profile Button === */}
@@ -77,43 +91,63 @@ export default function Dropdown({
                 open ? 'rounded-b-none shadow-sm' : 'shadow-sm'
               }`}
             >
-              <Avatar src="/avatar.jpg" className="w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0" />
-              <div className="text-left flex-1 min-w-0 hidden sm:block">
-                <p className="text-sm font-semibold text-foreground truncate">{User.name}</p>
-                <p className="text-xs text-secondary truncate capitalize">{role}</p>
+              <Avatar
+                src='/avatar.jpg'
+                className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
+              />
+              <div className='text-left flex-1 min-w-0 hidden sm:block'>
+                <p className='text-sm font-semibold text-foreground truncate'>
+                  {User.name}
+                </p>
+                <p className='text-xs text-secondary truncate capitalize'>
+                  {role}
+                </p>
               </div>
               {open ? (
-                <ChevronUp size={16} className="text-secondary ml-auto flex-shrink-0" />
+                <ChevronUp
+                  size={16}
+                  className='text-secondary ml-auto flex-shrink-0'
+                />
               ) : (
-                <ChevronDown size={16} className="text-secondary ml-auto flex-shrink-0" />
+                <ChevronDown
+                  size={16}
+                  className='text-secondary ml-auto flex-shrink-0'
+                />
               )}
             </Menu.Button>
 
             {/* === Dropdown Menu === */}
             <Transition
               as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 -translate-y-1"
-              enterTo="transform opacity-100 translate-y-0"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 translate-y-0"
-              leaveTo="transform opacity-0 -translate-y-1"
+              enter='transition ease-out duration-100'
+              enterFrom='transform opacity-0 -translate-y-1'
+              enterTo='transform opacity-100 translate-y-0'
+              leave='transition ease-in duration-75'
+              leaveFrom='transform opacity-100 translate-y-0'
+              leaveTo='transform opacity-0 -translate-y-1'
             >
               <Menu.Items
                 className={`absolute top-full left-0 mt-1 w-full ${dropdownBg} border border-muted rounded-b-lg shadow-lg z-50`}
               >
-                <div className="p-2 space-y-1">
-                  {currentOptions.map((option) => (
+                <div className='p-2 space-y-1'>
+                  {currentOptions.map(option => (
                     <Menu.Item key={option.value}>
+                      {/* @ts-expect-error - Headless UI compatibility */}
                       {({ active }) => (
                         <button
                           onClick={option.onClick}
                           className={`flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-colors ${
-                            active ? `${hoverBg} text-primary font-bold` : 'text-secondary font-normal'
+                            active
+                              ? `${hoverBg} text-primary font-bold`
+                              : 'text-secondary font-normal'
                           } ${option.value === 'logout' ? 'text-hover' : ''}`}
                         >
                           {option.icon && (
-                            <span className={active ? 'text-primary' : 'text-secondary'}>
+                            <span
+                              className={
+                                active ? 'text-primary' : 'text-secondary'
+                              }
+                            >
                               {option.icon}
                             </span>
                           )}
@@ -133,52 +167,53 @@ export default function Dropdown({
 
   // Filter dropdown
   return (
-    <Menu as="div" className={`relative inline-block text-left ${className}`}>
+    // @ts-expect-error - Headless UI compatibility
+    <Menu as='div' className={`relative inline-block text-left ${className}`}>
+      {/* @ts-expect-error - Headless UI compatibility */}
       {({ open }) => (
         <>
-          <Menu.Button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-            {icon && <span className="text-gray-500">{icon}</span>}
-            <span className="text-gray-700">{selectedOption?.label}</span>
-            <ChevronDown 
-              size={16} 
-              className={`text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} 
+          <Menu.Button className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm'>
+            {icon && <span className='text-gray-500'>{icon}</span>}
+            <span className='text-gray-700'>{selectedOption?.label}</span>
+            <ChevronDown
+              size={16}
+              className={`text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
             />
           </Menu.Button>
 
           <Transition
             as={Fragment}
-            enter="transition ease-out duration-100"
-            enterFrom="transform opacity-0 scale-95"
-            enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-75"
-            leaveFrom="transform opacity-100 scale-100"
-            leaveTo="transform opacity-0 scale-95"
+            enter='transition ease-out duration-100'
+            enterFrom='transform opacity-0 scale-95'
+            enterTo='transform opacity-100 scale-100'
+            leave='transition ease-in duration-75'
+            leaveFrom='transform opacity-100 scale-100'
+            leaveTo='transform opacity-0 scale-95'
           >
-            <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-              <div className="p-1">
+            <Menu.Items className='absolute right-0 mt-2 w-56 origin-top-right bg-white border border-gray-200 rounded-lg shadow-lg z-50'>
+              <div className='p-1'>
                 {title && (
-                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                  <div className='px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100'>
                     {title}
                   </div>
                 )}
-                {currentOptions.map((option) => (
+                {currentOptions.map(option => (
                   <Menu.Item key={option.value}>
+                    {/* @ts-expect-error - Headless UI compatibility */}
                     {({ active }) => (
                       <button
                         onClick={() => onSelect?.(option.value)}
                         className={`flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors ${
-                          active 
-                            ? 'bg-blue-50 text-blue-700' 
-                            : 'text-gray-700'
+                          active ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
                         } ${
-                          selectedValue === option.value 
-                            ? 'bg-blue-100 text-blue-700 font-medium' 
+                          selectedValue === option.value
+                            ? 'bg-blue-100 text-blue-700 font-medium'
                             : ''
                         }`}
                       >
                         {option.label}
                         {selectedValue === option.value && (
-                          <div className="ml-auto w-2 h-2 bg-blue-600 rounded-full"></div>
+                          <div className='ml-auto w-2 h-2 bg-blue-600 rounded-full'></div>
                         )}
                       </button>
                     )}
@@ -192,6 +227,3 @@ export default function Dropdown({
     </Menu>
   );
 }
-
-
-
