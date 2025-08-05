@@ -34,131 +34,187 @@ export interface Staff extends BaseItem {
   status: 'Active' | 'On Leave' | 'Inactive';
 }
 
+export interface Subject extends BaseItem {
+  id: number;
+  name: string;
+  code: string;
+  faculty: string;
+  credits: number;
+  status: 'Active' | 'Inactive';
+  gradeClasses: string[];
+  teachers: string[];
+  scheduleInfo: string;
+  studentsCount: number;
+  examConfig: string;
+}
+
 // All list configurations in one place
 export const LIST_CONFIGS: Record<string, ListConfiguration> = {
   students: {
-    title: "Students List",
-    searchPlaceholder: "Search Students...",
+    title: 'Students List',
+    searchPlaceholder: 'Search Students...',
     primaryFilter: {
-      title: "All Faculty",
+      title: 'All Faculty',
       options: [
         { value: 'all', label: 'All Faculty' },
         { value: 'science', label: 'Science' },
         { value: 'engineering', label: 'Engineering' },
-        { value: 'arts', label: 'Arts' }
-      ]
+        { value: 'arts', label: 'Arts' },
+      ],
     },
     secondaryFilter: {
-      title: "All Grades",
+      title: 'All Grades',
       options: [
         { value: 'all', label: 'All Grades' },
         { value: 'class-5-a', label: 'Class 5-A' },
         { value: 'class-4-b', label: 'Class 4-B' },
         { value: 'class-3-c', label: 'Class 3-C' },
-        { value: 'class-4-a', label: 'Class 4-A' }
-      ]
+        { value: 'class-4-a', label: 'Class 4-A' },
+      ],
     },
     columns: [
       { key: 'name', header: 'Student', mobileLabel: 'Student' },
       { key: 'rollNo', header: 'Roll No.', mobileLabel: 'Roll' },
       { key: 'class', header: 'Class' },
       { key: 'parent', header: 'Parent' },
-      { key: 'status', header: 'Status' }
+      { key: 'status', header: 'Status' },
     ],
-    emptyMessage: "No students found"
+    emptyMessage: 'No students found',
   },
 
   teachers: {
-    title: "Teachers List",
-    searchPlaceholder: "Search Teachers...",
+    title: 'Teachers List',
+    searchPlaceholder: 'Search Teachers...',
     primaryFilter: {
-      title: "All Faculty",
+      title: 'All Faculty',
       options: [
         { value: 'all', label: 'All Faculty' },
         { value: 'science', label: 'Science' },
         { value: 'engineering', label: 'Engineering' },
         { value: 'arts', label: 'Arts' },
-        { value: 'mathematics', label: 'Mathematics' }
-      ]
+        { value: 'mathematics', label: 'Mathematics' },
+      ],
     },
     secondaryFilter: {
-      title: "All Status",
+      title: 'All Status',
       options: [
         { value: 'all', label: 'All Status' },
         { value: 'active', label: 'Active' },
         { value: 'on-leave', label: 'On Leave' },
-        { value: 'inactive', label: 'Inactive' }
-      ]
+        { value: 'inactive', label: 'Inactive' },
+      ],
     },
     columns: [
       { key: 'name', header: 'Teacher', mobileLabel: 'Teacher' },
       { key: 'faculty', header: 'Faculty', mobileLabel: 'Faculty' },
       { key: 'subjects', header: 'Subjects' },
-      { key: 'status', header: 'Status' }
+      { key: 'status', header: 'Status' },
     ],
-    emptyMessage: "No teachers found"
+    emptyMessage: 'No teachers found',
   },
 
   parents: {
-    title: "Parents List",
-    searchPlaceholder: "Search Parents...",
+    title: 'Parents List',
+    searchPlaceholder: 'Search Parents...',
     primaryFilter: {
-      title: "All Faculty",
+      title: 'All Faculty',
       options: [
         { value: 'all', label: 'All Faculty' },
         { value: 'science', label: 'Science' },
         { value: 'engineering', label: 'Engineering' },
-        { value: 'arts', label: 'Arts' }
-      ]
+        { value: 'arts', label: 'Arts' },
+      ],
     },
     secondaryFilter: {
-      title: "All Status",
+      title: 'All Status',
       options: [
         { value: 'all', label: 'All Status' },
         { value: 'active', label: 'Active' },
         { value: 'inactive', label: 'Inactive' },
-        { value: 'pending', label: 'Pending' }
-      ]
+        { value: 'pending', label: 'Pending' },
+      ],
     },
     columns: [
       { key: 'name', header: 'Parent', mobileLabel: 'Parent' },
-      { key: 'linkedStudents', header: 'Linked Students', mobileLabel: 'Students' },
+      {
+        key: 'linkedStudents',
+        header: 'Linked Students',
+        mobileLabel: 'Students',
+      },
       { key: 'contact', header: 'Contact' },
-      { key: 'accountStatus', header: 'Status' }
+      { key: 'accountStatus', header: 'Status' },
     ],
-    emptyMessage: "No parents found"
+    emptyMessage: 'No parents found',
   },
 
   staff: {
-    title: "Staff List",
-    searchPlaceholder: "Search Staff...",
+    title: 'Staff List',
+    searchPlaceholder: 'Search Staff...',
     primaryFilter: {
-      title: "All Departments",
+      title: 'All Departments',
       options: [
         { value: 'all', label: 'All Departments' },
         { value: 'administration', label: 'Administration' },
         { value: 'maintenance', label: 'Maintenance' },
         { value: 'library', label: 'Library' },
-        { value: 'canteen', label: 'Canteen' }
-      ]
+        { value: 'canteen', label: 'Canteen' },
+      ],
     },
     secondaryFilter: {
-      title: "All Status",
+      title: 'All Status',
       options: [
         { value: 'all', label: 'All Status' },
         { value: 'active', label: 'Active' },
         { value: 'on-leave', label: 'On Leave' },
-        { value: 'inactive', label: 'Inactive' }
-      ]
+        { value: 'inactive', label: 'Inactive' },
+      ],
     },
     columns: [
       { key: 'name', header: 'Staff', mobileLabel: 'Staff' },
       { key: 'department', header: 'Department', mobileLabel: 'Dept' },
       { key: 'position', header: 'Position' },
-      { key: 'status', header: 'Status' }
+      { key: 'status', header: 'Status' },
     ],
-    emptyMessage: "No staff found"
-  }
+    emptyMessage: 'No staff found',
+  },
+
+  subjects: {
+    title: 'Subjects List',
+    searchPlaceholder: 'Search Subjects...',
+    primaryFilter: {
+      title: 'All Faculty',
+      options: [
+        { value: 'all', label: 'All Faculty' },
+        { value: 'science', label: 'Science' },
+        { value: 'engineering', label: 'Engineering' },
+        { value: 'arts', label: 'Arts' },
+        { value: 'mathematics', label: 'Mathematics' },
+        { value: 'social-studies', label: 'Social Studies' },
+      ],
+    },
+    secondaryFilter: {
+      title: 'All Status',
+      options: [
+        { value: 'all', label: 'All Status' },
+        { value: 'active', label: 'Active' },
+        { value: 'inactive', label: 'Inactive' },
+      ],
+    },
+    columns: [
+      { key: 'name', header: 'Subject Details', mobileLabel: 'Subject' },
+      {
+        key: 'gradeClasses',
+        header: 'Grade & Classes',
+        mobileLabel: 'Classes',
+      },
+      { key: 'teachers', header: 'Teachers', mobileLabel: 'Teachers' },
+      { key: 'scheduleInfo', header: 'Schedule Info', mobileLabel: 'Schedule' },
+      { key: 'studentsCount', header: 'Students', mobileLabel: 'Students' },
+      { key: 'examConfig', header: 'Exam Config', mobileLabel: 'Exam' },
+      { key: 'status', header: 'Actions' },
+    ],
+    emptyMessage: 'No subjects found',
+  },
 };
 
 // Helper function to get configuration by type
