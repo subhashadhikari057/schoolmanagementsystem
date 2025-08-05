@@ -36,7 +36,7 @@ export default function NotificationItem({
         <span className='text-xs text-gray-400'>{notification.time}</span>
       </div>
 
-      {/* @ts-expect-error - Headless UI compatibility */}
+      {/* @ts-ignore - Headless UI v2 typing issue */}
       <Menu
         as='div'
         className='relative opacity-0 group-hover:opacity-100 transition-opacity'
@@ -56,8 +56,7 @@ export default function NotificationItem({
           <Menu.Items className='absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10'>
             <div className='px-1 py-1'>
               <Menu.Item>
-                {/* @ts-expect-error - Headless UI compatibility */}
-                {({ active }) => (
+                {({ active }: { active: boolean }) => (
                   <button
                     onClick={() => onMarkAsRead(notification.id)}
                     className={`${
@@ -69,8 +68,7 @@ export default function NotificationItem({
                 )}
               </Menu.Item>
               <Menu.Item>
-                {/* @ts-expect-error - Headless UI compatibility */}
-                {({ active }) => (
+                {({ active }: { active: boolean }) => (
                   <button
                     className={`${
                       active ? 'bg-red-500 text-white' : 'text-gray-900'

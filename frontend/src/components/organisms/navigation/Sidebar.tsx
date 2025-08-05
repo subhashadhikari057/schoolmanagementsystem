@@ -50,10 +50,19 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
     setIsCollapsed(!isCollapsed);
   };
 
-  // Early return if no user or no sidebar items for role
-  if (!user || !sidebarItems[sidebarRole]) {
+  // Development mode bypass
+  const showInDev =
+    process.env.NODE_ENV === 'development' &&
+    process.env.NEXT_PUBLIC_DEV_SIDEBAR === 'true';
+  const devRole = 'Superadmin'; // Default role for development
+
+  // Early return if no user or no sidebar items for role (unless in dev mode)
+  if (!showInDev && (!user || !sidebarItems[sidebarRole])) {
     return null;
   }
+
+  // Use dev role if in development mode without user
+  const effectiveRole = showInDev && !user ? devRole : sidebarRole;
 
   return (
     <>
@@ -135,7 +144,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
 
         {/* Navigation Sections */}
         <nav className='space-y-6'>
-          {sidebarItems[sidebarRole]?.map(
+          {sidebarItems[effectiveRole]?.map(
             (
               section: {
                 title: string;

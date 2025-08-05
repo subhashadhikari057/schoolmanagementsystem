@@ -7,10 +7,7 @@ import {
   Subject,
 } from '@/components/templates/listConfigurations';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
-import ShortcutsPanel from '@/components/organisms/dashboard/ShortcutsPanel';
 import { Users, UserCheck, AlertCircle, GraduationCap } from 'lucide-react';
-import AcademicStatsPanel from '@/components/organisms/dashboard/AcademicStatsPanel';
-import RecentActivityPanel from '@/components/organisms/dashboard/RecentActivityPanel';
 
 const SubjectManagementPage = () => {
   // Subject-specific stats data
@@ -42,41 +39,7 @@ const SubjectManagementPage = () => {
       change: '5.2%',
       isPositive: false,
     },
-    {
-      icon: GraduationCap,
-      bgColor: 'bg-red-50',
-      iconColor: 'text-red-600',
-      value: '1',
-      label: 'Class Covered',
-      change: '2.1%',
-      isPositive: false,
-    },
   ];
-
-  // Academic stats data
-  const academicStats = {
-    totalSubjects: 42,
-    totalTeachers: 18,
-    activeClasses: 28,
-    examScheduled: 8,
-  };
-
-  // Shortcut handlers
-  const handleAddSubject = () => {
-    console.log('Add Subject clicked');
-  };
-
-  const handleAssignTeacher = () => {
-    console.log('Assign Teacher clicked');
-  };
-
-  const handleScheduleExam = () => {
-    console.log('Schedule Exam clicked');
-  };
-
-  const handleManageClasses = () => {
-    console.log('Manage Classes clicked');
-  };
 
   // Sample subjects data
   const subjectsData: Subject[] = [
@@ -147,50 +110,6 @@ const SubjectManagementPage = () => {
     },
   ];
 
-  // Subject-related recent activities
-  const subjectActivities = [
-    {
-      id: '1',
-      user: 'Dr. Sarah Wilson',
-      action: 'created new subject "Advanced Calculus"',
-      description: '1 hour ago',
-      time: '1 hour ago',
-      type: 'assignment' as const,
-    },
-    {
-      id: '2',
-      user: 'John Smith',
-      action: 'assigned to Mathematics subject',
-      description: '3 hours ago',
-      time: '3 hours ago',
-      type: 'approval' as const,
-    },
-    {
-      id: '3',
-      user: 'Emily Davis',
-      action: 'updated English Literature schedule',
-      description: '5 hours ago',
-      time: '5 hours ago',
-      type: 'profile' as const,
-    },
-    {
-      id: '4',
-      user: 'Alex Thompson',
-      action: 'uploaded CS101 exam materials',
-      description: 'Yesterday',
-      time: 'Yesterday',
-      type: 'upload' as const,
-    },
-    {
-      id: '5',
-      user: 'Admin',
-      action: 'activated 3 new subjects',
-      description: '2 days ago',
-      time: '2 days ago',
-      type: 'general' as const,
-    },
-  ];
-
   return (
     <div className='min-h-screen bg-background'>
       {/* Header */}
@@ -212,56 +131,18 @@ const SubjectManagementPage = () => {
         </div>
       </div>
 
-      {/* Main Content Grid */}
+      {/* Main Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
         <div className='max-w-7xl mx-auto'>
-          <div className='grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-5'>
-            {/* Main Content Area */}
-            <div className='xl:col-span-3 space-y-4 sm:space-y-6 mr-4 lg:mr-0'>
-              {/* Subjects List - Now using Generic List */}
-              <GenericList<Subject>
-                config={getListConfig('subjects')}
-                data={subjectsData}
-                currentPage={1}
-                totalPages={32}
-                totalItems={156}
-                itemsPerPage={5}
-              />
-            </div>
-
-            {/* Sidebar */}
-            <div className='xl:col-span-1 space-y-4 sm:space-y-6'>
-              {/* Combined Academic Stats and Shortcuts Panel */}
-              <div className='bg-white p-4 rounded-lg shadow space-y-6'>
-                {/* Academic Stats Panel */}
-                <AcademicStatsPanel
-                  data={{
-                    totalSubjects: academicStats.totalSubjects,
-                    totalFaculties: academicStats.totalTeachers,
-                    scheduledExams: academicStats.examScheduled,
-                    sections: academicStats.activeClasses,
-                  }}
-                />
-
-                {/* Shortcuts Panel */}
-                <ShortcutsPanel
-                  onAssignSubject={handleAddSubject}
-                  onAssignFaculty={handleAssignTeacher}
-                  onComplainBox={handleScheduleExam}
-                  onDownloadBulkData={handleManageClasses}
-                  labels={{
-                    assignSubject: 'Add New Subject',
-                    assignFaculty: 'Assign Teacher',
-                    complainBox: 'Schedule Exam',
-                    downloadBulkData: 'Manage Classes',
-                  }}
-                />
-              </div>
-
-              {/* Recent Activity Panel */}
-              <RecentActivityPanel activities={subjectActivities} />
-            </div>
-          </div>
+          {/* Subjects List - Now using Generic List */}
+          <GenericList<Subject>
+            config={getListConfig('subjects')}
+            data={subjectsData}
+            currentPage={1}
+            totalPages={32}
+            totalItems={156}
+            itemsPerPage={5}
+          />
         </div>
       </div>
     </div>
