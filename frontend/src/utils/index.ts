@@ -7,6 +7,7 @@
  */
 
 export * from './api';
+export * from './confirmation-toast';
 
 // Common utility functions
 export function cn(
