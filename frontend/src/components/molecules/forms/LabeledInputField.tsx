@@ -37,9 +37,11 @@ const LabeledInputField = forwardRef<HTMLInputElement, Props>(
     const isPassword = type === 'password';
 
     return (
-      <div className='relative w-full'>
+      <div className='relative w-full group'>
         {label && (
-          <Label className='absolute -top-2 left-3 bg-white px-1 text-sm text-gray-600 font-medium z-10'>
+          <Label
+            className={`absolute border-4 border-t border-l border-r border-b-0 ${error ? 'border-red-500 group-focus-within:border-red-500' : 'border-gray-300 group-focus-within:border-primary'} -top-2 h-2.25 left-3 rounded-t-sm bg-white px-1 text-sm text-gray-600 font-medium z-10 transition-colors duration-200`}
+          >
             {label}
           </Label>
         )}
@@ -50,7 +52,7 @@ const LabeledInputField = forwardRef<HTMLInputElement, Props>(
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className={`pr-10 pl-4 py-3 ${error ? 'border-red-500 focus:border-red-500' : ''} ${className}`}
+          className={`pr-10 pl-6 py-4 text-base ${error ? 'border-red-500 focus:border-red-500' : ''} ${className}`}
           {...props}
         />
 
