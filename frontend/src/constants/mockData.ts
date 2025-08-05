@@ -1,6 +1,5 @@
 // Mock data for Super Admin Dashboard
 import { Event } from '@/types/EventTypes';
-import { Notification } from '@/types/NotficationItemsTypes';
 import { QuickAction } from '@/types/QuickActionItems';
 import {
   GraduationCap,
@@ -9,11 +8,6 @@ import {
   FileText,
   Settings,
   UserPlus,
-  BookOpen,
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  Clock,
 } from 'lucide-react';
 import React from 'react';
 
@@ -66,56 +60,6 @@ export const mockEvents: Event[] = [
     time: '03:30 PM',
     location: 'Conference Room',
     status: 'Scheduled',
-  },
-];
-
-// Mock Notifications Data
-export const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    title: 'New Student Registration',
-    description: '15 new students registered for the upcoming semester',
-    time: '2 hours ago',
-    type: 'success',
-    icon: React.createElement(CheckCircle, { className: 'w-5 h-5' }),
-    read: false,
-  },
-  {
-    id: '2',
-    title: 'Fee Payment Reminder',
-    description: 'Monthly fee collection deadline is approaching',
-    time: '4 hours ago',
-    type: 'warning',
-    icon: React.createElement(AlertTriangle, { className: 'w-5 h-5' }),
-    read: false,
-  },
-  {
-    id: '3',
-    title: 'System Maintenance',
-    description:
-      'Scheduled maintenance on Feb 20, 2024 from 2:00 AM to 4:00 AM',
-    time: '6 hours ago',
-    type: 'info',
-    icon: React.createElement(Info, { className: 'w-5 h-5' }),
-    read: true,
-  },
-  {
-    id: '4',
-    title: 'Teacher Leave Request',
-    description: 'Mrs. Sarah Johnson has requested leave for Feb 22-24',
-    time: '8 hours ago',
-    type: 'info',
-    icon: React.createElement(Clock, { className: 'w-5 h-5' }),
-    read: false,
-  },
-  {
-    id: '5',
-    title: 'Exam Results Published',
-    description: 'Mid-term exam results are now available for Grade 10',
-    time: '1 day ago',
-    type: 'success',
-    icon: React.createElement(BookOpen, { className: 'w-5 h-5' }),
-    read: true,
   },
 ];
 

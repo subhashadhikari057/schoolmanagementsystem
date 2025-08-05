@@ -24,14 +24,14 @@ export interface UpdateClassRequest {
 export interface ClassResponse {
   id: string;
   name: string;
-  sections: SectionResponse[];
+  sections: ClassSectionResponse[];
   createdAt: string;
   updatedAt?: string;
   createdById?: string;
   updatedById?: string;
 }
 
-export interface SectionResponse {
+export interface ClassSectionResponse {
   id: string;
   name: string;
   classId: string;
