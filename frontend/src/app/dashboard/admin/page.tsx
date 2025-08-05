@@ -3,19 +3,15 @@
 import React, { useState } from 'react';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { Users, GraduationCap, DollarSign, CreditCard } from 'lucide-react';
-import UpcomingEvents from '@/components/organisms/dashboard/UpcomingEvents';
-import Notifications from '@/components/organisms/dashboard/Notification';
+import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
+import NotificationPanel from '@/components/organisms/dashboard/NotificationPanel';
 import QuickActions from '@/components/organisms/dashboard/QuickAction';
 import ExpensesBreakdownChart from '@/components/organisms/dashboard/ExpensesBreakdownChart';
 import ExamPerformanceChart from '@/components/organisms/dashboard/ExamPerformanceChart';
 import FeeCollectionChart from '@/components/organisms/dashboard/FeeCollectionChart';
 import AttendanceOverview from '@/components/organisms/dashboard/AttendanceOverview';
 import SystemHealthOverview from '@/components/organisms/dashboard/SystemHealthOverview';
-import {
-  mockEvents,
-  mockNotifications,
-  mockQuickActions,
-} from '@/constants/mockData';
+import { mockQuickActions } from '@/constants/mockData';
 
 const statsData = [
   {
@@ -79,10 +75,10 @@ export default function AdminDashboard() {
           {/* Main Content Grid - Mobile: Stacked with proper spacing */}
           <div className='space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6'>
             <div className='lg:col-span-8'>
-              <UpcomingEvents events={mockEvents} className='w-full' />
+              <UpcomingEventsPanel />
             </div>
             <div className='lg:col-span-4'>
-              <Notifications notifications={mockNotifications} />
+              <NotificationPanel />
             </div>
             <div className='lg:col-span-12 mt-4 lg:mt-0'>
               <QuickActions actions={mockQuickActions} />

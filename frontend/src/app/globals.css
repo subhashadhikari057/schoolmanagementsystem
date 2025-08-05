@@ -114,3 +114,48 @@ body {
 .sidebar-scroll::-webkit-scrollbar-track {
   background-color: transparent;
 }
+
+/* Modal scrollbar styles - blend with sidebar design */
+.modal-scroll-blend {
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid rgba(156, 163, 175, 0.2); /* Subtle border matching sidebar */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Subtle shadow like sidebar */
+}
+
+.modal-scroll-blend::-webkit-scrollbar {
+  width: 4px; /* Thinner scrollbar */
+  background-color: transparent;
+}
+
+.modal-scroll-blend::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.12); /* Subtle thumb */
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.modal-scroll-blend::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.2); /* Darker on hover */
+}
+
+.modal-scroll-blend::-webkit-scrollbar-track {
+  background-color: transparent; /* Completely transparent track */
+  margin: 4px 0; /* Smaller margin */
+}
+
+/* Firefox scrollbar for modal */
+.modal-scroll-blend {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+
+/* Enhance modal appearance to blend with sidebar */
+.modal-sidebar-blend {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.98); /* Slightly transparent white */
+  border: 1px solid rgba(229, 231, 235, 0.8); /* Light gray border */
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+    0 10px 10px -5px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.05); /* Multi-layer shadow for depth */
+}
