@@ -11,7 +11,11 @@ import {
   HttpStatus,
   HttpCode,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 import { TeacherService } from '../application/teacher.service';
 import {
@@ -32,6 +36,10 @@ import {
   AssignSubjectsDtoType,
 } from '../dto/assign-subjects.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
+import {
+  createMulterConfig,
+  UPLOAD_PATHS,
+} from '../../../shared/utils/file-upload.util';
 
 import { Roles } from '../../../shared/decorators/roles.decorator';
 import { UserRole } from '@sms/shared-types';
@@ -44,24 +52,53 @@ export class TeacherController {
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FileInterceptor('photo', createMulterConfig(UPLOAD_PATHS.TEACHER_PROFILES)),
+  )
   async create(
-    @Body(new ZodValidationPipe(CreateTeacherDto)) body: CreateTeacherDtoType,
-    @CurrentUser() user: { id: string }, // FIXME: implement proper type definition for user
+    @Body() body: any, // We'll parse and validate this manually due to multipart form data
+    @UploadedFile() profilePicture: Express.Multer.File,
+    @CurrentUser() user: { id: string },
     @Req() req: Request,
   ) {
-    const result = await this.teacherService.create(
-      body,
-      user.id,
-      req.ip,
-      req.headers['user-agent'],
-    );
-    return {
-      message: 'Teacher created successfully',
-      teacher: result.teacher,
-      ...(result.temporaryPassword && {
-        temporaryPassword: result.temporaryPassword,
-      }),
-    };
+    try {
+      // Parse the nested JSON data from form-data
+      const parsedData = {
+        user: body.user ? JSON.parse(body.user) : {},
+        personal: body.personal ? JSON.parse(body.personal) : undefined,
+        professional: body.professional ? JSON.parse(body.professional) : {},
+        subjects: body.subjects ? JSON.parse(body.subjects) : undefined,
+        salary: body.salary ? JSON.parse(body.salary) : undefined,
+        additional: body.additional ? JSON.parse(body.additional) : undefined,
+      };
+
+      // Validate using Zod
+      const validatedData = CreateTeacherDto.parse(parsedData);
+
+      const result = await this.teacherService.create(
+        validatedData,
+        user.id,
+        profilePicture,
+        req.ip,
+        req.headers['user-agent'],
+      );
+
+      return {
+        message: 'Teacher created successfully',
+        teacher: result.teacher,
+        ...(result.temporaryPassword && {
+          temporaryPassword: result.temporaryPassword,
+        }),
+      };
+    } catch (error) {
+      if (error.name === 'ZodError') {
+        throw new BadRequestException({
+          message: 'Validation failed',
+          errors: error.errors,
+        });
+      }
+      throw error;
+    }
   }
 
   @Get()

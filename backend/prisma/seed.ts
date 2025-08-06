@@ -217,8 +217,226 @@ async function main() {
     });
   }
 
+  // 8. Create sample subjects
+  const subjects = [
+    {
+      name: 'Mathematics',
+      code: 'MATH',
+      description: 'Mathematical concepts and problem solving',
+    },
+    {
+      name: 'Physics',
+      code: 'PHY',
+      description: 'Laws of physics and scientific principles',
+    },
+    {
+      name: 'Chemistry',
+      code: 'CHEM',
+      description: 'Chemical reactions and properties',
+    },
+    {
+      name: 'Biology',
+      code: 'BIO',
+      description: 'Life sciences and biological processes',
+    },
+    {
+      name: 'English',
+      code: 'ENG',
+      description: 'Language arts and literature',
+    },
+    {
+      name: 'History',
+      code: 'HIST',
+      description: 'Historical events and analysis',
+    },
+  ];
+
+  const createdSubjects = [];
+  for (const subject of subjects) {
+    const createdSubject = await prisma.subject.upsert({
+      where: { code: subject.code },
+      update: {},
+      create: {
+        name: subject.name,
+        code: subject.code,
+        description: subject.description,
+        createdById: superAdminUser.id,
+      },
+    });
+    createdSubjects.push(createdSubject);
+  }
+
+  // 9. Create sample teachers
+  const teachers = [
+    {
+      fullName: 'Dr. Sarah Mitchell',
+      email: 'sarah.mitchell@school.edu',
+      phone: '+1555123456',
+      employeeId: 'EMP001',
+      designation: 'Senior Teacher',
+      department: 'Mathematics',
+      qualification: 'PhD in Mathematics',
+      specialization: 'Advanced Mathematics',
+      experienceYears: 15,
+      basicSalary: 75000,
+      allowances: 5000,
+      totalSalary: 80000,
+    },
+    {
+      fullName: 'Prof. Michael Chen',
+      email: 'michael.chen@school.edu',
+      phone: '+1555234567',
+      employeeId: 'EMP002',
+      designation: 'Teacher',
+      department: 'Science',
+      qualification: 'MSc Physics',
+      specialization: 'Physics',
+      experienceYears: 8,
+      basicSalary: 68000,
+      allowances: 4000,
+      totalSalary: 72000,
+    },
+    {
+      fullName: 'Ms. Emma Thompson',
+      email: 'emma.thompson@school.edu',
+      phone: '+1555345678',
+      employeeId: 'EMP003',
+      designation: 'Assistant Teacher',
+      department: 'English',
+      qualification: 'MA English Literature',
+      specialization: 'Literature',
+      experienceYears: 5,
+      basicSalary: 58000,
+      allowances: 3000,
+      totalSalary: 61000,
+    },
+  ];
+
+  const createdTeachers = [];
+  for (const teacherData of teachers) {
+    // Create user for teacher
+    const teacherUser = await prisma.user.upsert({
+      where: { email: teacherData.email },
+      update: {},
+      create: {
+        email: teacherData.email,
+        phone: teacherData.phone,
+        fullName: teacherData.fullName,
+        passwordHash: await import('bcrypt').then(bcrypt =>
+          bcrypt.hash('teacher123', 10),
+        ),
+        needPasswordChange: true,
+        createdById: superAdminUser.id,
+        roles: {
+          create: {
+            role: { connect: { name: 'TEACHER' } },
+          },
+        },
+      },
+    });
+
+    // Create teacher record
+    const teacher = await prisma.teacher.upsert({
+      where: { userId: teacherUser.id },
+      update: {},
+      create: {
+        userId: teacherUser.id,
+        employeeId: teacherData.employeeId,
+        designation: teacherData.designation,
+        qualification: teacherData.qualification,
+        specialization: teacherData.specialization,
+        department: teacherData.department,
+        experienceYears: teacherData.experienceYears,
+        employmentDate: new Date(),
+        basicSalary: teacherData.basicSalary,
+        allowances: teacherData.allowances,
+        totalSalary: teacherData.totalSalary,
+        createdById: superAdminUser.id,
+        profile: {
+          create: {
+            bio: `Experienced ${teacherData.department} teacher with ${teacherData.experienceYears} years of teaching experience.`,
+            contactInfo: {
+              phone: teacherData.phone,
+              email: teacherData.email,
+            },
+            socialLinks: {},
+            createdById: superAdminUser.id,
+          },
+        },
+      },
+    });
+
+    createdTeachers.push(teacher);
+  }
+
+  // Assign subjects to teachers
+  if (createdTeachers.length > 0 && createdSubjects.length > 0) {
+    // Math teacher gets Math subject
+    await prisma.teacherSubject.upsert({
+      where: {
+        teacherId_subjectId: {
+          teacherId: createdTeachers[0].id,
+          subjectId: createdSubjects[0].id, // Mathematics
+        },
+      },
+      update: {},
+      create: {
+        teacherId: createdTeachers[0].id,
+        subjectId: createdSubjects[0].id,
+        createdById: superAdminUser.id,
+      },
+    });
+
+    // Science teacher gets Physics and Chemistry
+    await prisma.teacherSubject.upsert({
+      where: {
+        teacherId_subjectId: {
+          teacherId: createdTeachers[1].id,
+          subjectId: createdSubjects[1].id, // Physics
+        },
+      },
+      update: {},
+      create: {
+        teacherId: createdTeachers[1].id,
+        subjectId: createdSubjects[1].id,
+        createdById: superAdminUser.id,
+      },
+    });
+
+    await prisma.teacherSubject.upsert({
+      where: {
+        teacherId_subjectId: {
+          teacherId: createdTeachers[1].id,
+          subjectId: createdSubjects[2].id, // Chemistry
+        },
+      },
+      update: {},
+      create: {
+        teacherId: createdTeachers[1].id,
+        subjectId: createdSubjects[2].id,
+        createdById: superAdminUser.id,
+      },
+    });
+
+    // English teacher gets English subject
+    await prisma.teacherSubject.upsert({
+      where: {
+        teacherId_subjectId: {
+          teacherId: createdTeachers[2].id,
+          subjectId: createdSubjects[4].id, // English
+        },
+      },
+      update: {},
+      create: {
+        teacherId: createdTeachers[2].id,
+        subjectId: createdSubjects[4].id,
+        createdById: superAdminUser.id,
+      },
+    });
+  }
+
   console.log(
-    '✅ Seeded roles, 6 users, class, section, student, staff and parent successfully.',
+    '✅ Seeded roles, 6 users, class, section, student, staff, parent, subjects, and 3 teachers successfully.',
   );
 }
 

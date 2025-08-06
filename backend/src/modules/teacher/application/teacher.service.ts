@@ -7,6 +7,7 @@ import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { hashPassword } from '../../../shared/auth/hash.util';
 import { AuditService } from '../../../shared/logger/audit.service';
 import { generateRandomPassword } from '../../../shared/utils/password.util';
+import { getFileUrl } from '../../../shared/utils/file-upload.util';
 import {
   CreateTeacherDtoType,
   UpdateTeacherByAdminDtoType,
@@ -23,18 +24,21 @@ export class TeacherService {
   async create(
     dto: CreateTeacherDtoType,
     createdBy: string,
+    profilePicture?: Express.Multer.File,
     ip?: string,
     userAgent?: string,
   ) {
-    const { user, profile } = dto;
+    const { user, personal, professional, subjects, salary, additional } = dto;
 
+    // Check for existing email
     const existingUser = await this.prisma.user.findUnique({
       where: { email: user.email },
     });
     if (existingUser)
       throw new ConflictException('User with this email already exists');
 
-    if (user.phone && user.phone !== '') {
+    // Check for existing phone
+    if (user.phone) {
       const existingUserPhone = await this.prisma.user.findUnique({
         where: { phone: user.phone },
       });
@@ -44,45 +48,112 @@ export class TeacherService {
         );
     }
 
+    // Check for existing employee ID
+    if (professional.employeeId) {
+      const existingEmployee = await this.prisma.teacher.findFirst({
+        where: { employeeId: professional.employeeId },
+      });
+      if (existingEmployee)
+        throw new ConflictException('Employee ID already exists');
+    }
+
     const rawPassword = user.password || generateRandomPassword();
     const passwordHash = await hashPassword(rawPassword);
+    const fullName = `${user.firstName} ${user.lastName}`;
+
+    // Generate profile picture URL if file is uploaded
+    const profilePhotoUrl = profilePicture
+      ? getFileUrl(profilePicture.filename, 'teachers')
+      : undefined;
 
     const { teacher, teacherUser } = await this.prisma.$transaction(
-      async (tx) => {
+      async tx => {
+        // Create user
         const newUser = await tx.user.create({
           data: {
             email: user.email,
             phone: user.phone,
-            fullName: user.fullName,
+            fullName,
             passwordHash,
             createdById: createdBy,
             roles: {
               create: { role: { connect: { name: 'TEACHER' } } },
             },
-            needPasswordChange: user.password ? false : true, // in case of user created with temporary password
+            needPasswordChange: user.password ? false : true,
           },
         });
+
+        // Create teacher
         const newTeacher = await tx.teacher.create({
           data: {
             userId: newUser.id,
-            qualification: profile.qualification,
-            designation: profile.designation,
-            employmentDate: new Date(profile.dateOfJoining),
+            // Professional Information
+            employeeId: professional.employeeId,
+            qualification: professional.highestQualification,
+            specialization: professional.specialization,
+            designation: professional.designation,
+            department: professional.department,
+            employmentDate: new Date(professional.joiningDate),
+            experienceYears: professional.experienceYears,
+
+            // Personal Information
+            dateOfBirth: personal?.dateOfBirth
+              ? new Date(personal.dateOfBirth)
+              : undefined,
+            gender: personal?.gender,
+            bloodGroup: personal?.bloodGroup,
+            address: personal?.address,
+
+            // Salary Information
+            basicSalary: salary?.basicSalary,
+            allowances: salary?.allowances,
+            totalSalary: salary?.totalSalary,
+
+            // Class Teacher Assignment
+            isClassTeacher: subjects?.isClassTeacher || false,
+
+            // Additional Information
+            languagesKnown: additional?.languagesKnown || [],
+            certifications: additional?.certifications,
+            previousExperience: additional?.previousExperience,
+
             createdById: createdBy,
             profile: {
               create: {
-                bio: profile.bio,
+                bio: additional?.bio,
+                profilePhotoUrl,
                 contactInfo: {
                   phone: user.phone,
                   email: user.email,
                 },
-                socialLinks: profile.socialLinks || {},
+                socialLinks: additional?.socialLinks || {},
                 createdById: createdBy,
               },
             },
           },
           include: { profile: true },
         });
+
+        // Assign subjects if provided
+        if (subjects?.subjects && subjects.subjects.length > 0) {
+          const subjectAssignments = subjects.subjects.map(subjectId => ({
+            teacherId: newTeacher.id,
+            subjectId,
+            createdById: createdBy,
+          }));
+
+          await tx.teacherSubject.createMany({
+            data: subjectAssignments,
+            skipDuplicates: true,
+          });
+        }
+
+        // Assign class teacher role if provided
+        if (subjects?.isClassTeacher && dto.professional) {
+          // For now, we'll store class/section in additional data
+          // Later when class/section IDs are provided, we can create TeacherClass records
+          // Note: Frontend form data has class/section but we need to handle the mapping
+        }
 
         return {
           teacher: newTeacher,
@@ -96,7 +167,12 @@ export class TeacherService {
       action: 'CREATE_TEACHER',
       module: 'teacher',
       status: 'SUCCESS',
-      details: { teacherId: teacher.id, userId: teacherUser.id },
+      details: {
+        teacherId: teacher.id,
+        userId: teacherUser.id,
+        hasProfilePicture: !!profilePicture,
+        subjectsAssigned: subjects?.subjects?.length || 0,
+      },
       ipAddress: ip,
       userAgent,
     });
@@ -107,13 +183,15 @@ export class TeacherService {
         fullName: teacherUser.fullName,
         email: teacherUser.email,
         phone: teacherUser.phone,
+        employeeId: teacher.employeeId,
+        profilePhotoUrl: teacher.profile?.profilePhotoUrl,
       },
       temporaryPassword: user.password ? undefined : rawPassword,
     };
   }
 
   async findAll() {
-    return this.prisma.teacher.findMany({
+    const teachers = await this.prisma.teacher.findMany({
       where: { deletedAt: null },
       include: {
         user: {
@@ -122,12 +200,117 @@ export class TeacherService {
             fullName: true,
             email: true,
             phone: true,
+            isActive: true,
+            lastLoginAt: true,
           },
         },
-        profile: true,
+        profile: {
+          select: {
+            profilePhotoUrl: true,
+            bio: true,
+            contactInfo: true,
+            socialLinks: true,
+          },
+        },
+        subjects: {
+          include: {
+            subject: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
+        classAssignments: {
+          include: {
+            class: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            section: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Transform to match TeacherListResponse interface
+    return teachers.map(teacher => ({
+      id: teacher.id,
+      fullName: teacher.user.fullName,
+      email: teacher.user.email,
+      phone: teacher.user.phone,
+      employeeId: teacher.employeeId,
+      designation: teacher.designation,
+      department: teacher.department,
+      qualification: teacher.qualification,
+      specialization: teacher.specialization,
+      employmentStatus: teacher.employmentStatus,
+      employmentDate: teacher.employmentDate?.toISOString(),
+      experienceYears: teacher.experienceYears,
+
+      // Personal Information
+      dateOfBirth: teacher.dateOfBirth?.toISOString(),
+      gender: teacher.gender,
+      bloodGroup: teacher.bloodGroup,
+      address: teacher.address,
+
+      // Salary Information (for admin view)
+      basicSalary: teacher.basicSalary
+        ? parseFloat(teacher.basicSalary.toString())
+        : undefined,
+      allowances: teacher.allowances
+        ? parseFloat(teacher.allowances.toString())
+        : undefined,
+      totalSalary: teacher.totalSalary
+        ? parseFloat(teacher.totalSalary.toString())
+        : undefined,
+
+      // Class Teacher Status
+      isClassTeacher: teacher.isClassTeacher,
+
+      // Additional Information
+      languagesKnown: Array.isArray(teacher.languagesKnown)
+        ? (teacher.languagesKnown as string[])
+        : [],
+      certifications: teacher.certifications,
+      previousExperience: teacher.previousExperience,
+
+      // Profile Information
+      profilePhotoUrl: teacher.profile?.profilePhotoUrl,
+      bio: teacher.profile?.bio,
+      contactInfo: teacher.profile?.contactInfo as any,
+      socialLinks: teacher.profile?.socialLinks as any,
+
+      // System fields
+      isActive: teacher.user.isActive,
+      lastLoginAt: teacher.user.lastLoginAt?.toISOString(),
+      createdAt: teacher.createdAt.toISOString(),
+      updatedAt: teacher.updatedAt?.toISOString(),
+
+      // Subject assignments
+      subjects: teacher.subjects.map(ts => ({
+        id: ts.subject.id,
+        name: ts.subject.name,
+        code: ts.subject.code,
+      })),
+
+      // Class assignments (if class teacher)
+      classAssignments: teacher.classAssignments.map(ca => ({
+        id: ca.id,
+        className: ca.class.name,
+        sectionName: ca.section?.name || 'No Section',
+      })),
+    }));
   }
 
   async findById(id: string) {
@@ -185,24 +368,98 @@ export class TeacherService {
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
 
-    if (dto.fullName || dto.email || dto.phone) {
+    // Update user information
+    if (dto.user) {
+      const fullName =
+        dto.user.firstName && dto.user.lastName
+          ? `${dto.user.firstName} ${dto.user.lastName}`
+          : undefined;
+
       await this.prisma.user.update({
         where: { id: teacher.userId },
         data: {
-          fullName: dto.fullName,
-          email: dto.email,
-          phone: dto.phone,
+          fullName,
+          email: dto.user.email,
+          phone: dto.user.phone,
           updatedById: updatedBy,
           updatedAt: new Date(),
         },
       });
     }
 
-    if (dto.profile) {
+    // Update teacher fields
+    const teacherUpdateData: any = {};
+
+    if (dto.personal) {
+      if (dto.personal.dateOfBirth)
+        teacherUpdateData.dateOfBirth = new Date(dto.personal.dateOfBirth);
+      if (dto.personal.gender) teacherUpdateData.gender = dto.personal.gender;
+      if (dto.personal.bloodGroup)
+        teacherUpdateData.bloodGroup = dto.personal.bloodGroup;
+      if (dto.personal.address)
+        teacherUpdateData.address = dto.personal.address;
+    }
+
+    if (dto.professional) {
+      if (dto.professional.employeeId)
+        teacherUpdateData.employeeId = dto.professional.employeeId;
+      if (dto.professional.designation)
+        teacherUpdateData.designation = dto.professional.designation;
+      if (dto.professional.highestQualification)
+        teacherUpdateData.qualification = dto.professional.highestQualification;
+      if (dto.professional.specialization)
+        teacherUpdateData.specialization = dto.professional.specialization;
+      if (dto.professional.department)
+        teacherUpdateData.department = dto.professional.department;
+      if (dto.professional.joiningDate)
+        teacherUpdateData.employmentDate = new Date(
+          dto.professional.joiningDate,
+        );
+      if (dto.professional.experienceYears)
+        teacherUpdateData.experienceYears = dto.professional.experienceYears;
+    }
+
+    if (dto.salary) {
+      if (dto.salary.basicSalary !== undefined)
+        teacherUpdateData.basicSalary = dto.salary.basicSalary;
+      if (dto.salary.allowances !== undefined)
+        teacherUpdateData.allowances = dto.salary.allowances;
+      if (dto.salary.totalSalary !== undefined)
+        teacherUpdateData.totalSalary = dto.salary.totalSalary;
+    }
+
+    if (dto.subjects) {
+      if (dto.subjects.isClassTeacher !== undefined)
+        teacherUpdateData.isClassTeacher = dto.subjects.isClassTeacher;
+    }
+
+    if (dto.additional) {
+      if (dto.additional.languagesKnown)
+        teacherUpdateData.languagesKnown = dto.additional.languagesKnown;
+      if (dto.additional.certifications)
+        teacherUpdateData.certifications = dto.additional.certifications;
+      if (dto.additional.previousExperience)
+        teacherUpdateData.previousExperience =
+          dto.additional.previousExperience;
+    }
+
+    if (Object.keys(teacherUpdateData).length > 0) {
+      teacherUpdateData.updatedById = updatedBy;
+      teacherUpdateData.updatedAt = new Date();
+
+      await this.prisma.teacher.update({
+        where: { id },
+        data: teacherUpdateData,
+      });
+    }
+
+    // Update teacher profile
+    if (dto.additional && (dto.additional.bio || dto.additional.socialLinks)) {
       await this.prisma.teacherProfile.update({
         where: { teacherId: teacher.id },
         data: {
-          ...dto.profile,
+          bio: dto.additional.bio,
+          socialLinks: dto.additional.socialLinks,
           updatedById: updatedBy,
           updatedAt: new Date(),
         },
@@ -233,22 +490,41 @@ export class TeacherService {
     });
     if (!teacher) throw new NotFoundException('Teacher not found');
 
-    if (dto.fullName || dto.phone) {
+    // Update user information
+    if (dto.user) {
+      const fullName =
+        dto.user.firstName && dto.user.lastName
+          ? `${dto.user.firstName} ${dto.user.lastName}`
+          : undefined;
+
       await this.prisma.user.update({
         where: { id: userId },
         data: {
-          fullName: dto.fullName,
-          phone: dto.phone,
+          fullName,
+          phone: dto.user.phone,
           updatedAt: new Date(),
         },
       });
     }
 
-    if (dto.profile) {
+    // Update teacher address
+    if (dto.personal?.address) {
+      await this.prisma.teacher.update({
+        where: { id: teacher.id },
+        data: {
+          address: dto.personal.address,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    // Update teacher profile
+    if (dto.additional && (dto.additional.bio || dto.additional.socialLinks)) {
       await this.prisma.teacherProfile.update({
         where: { teacherId: teacher.id },
         data: {
-          ...dto.profile,
+          bio: dto.additional.bio,
+          socialLinks: dto.additional.socialLinks,
           updatedAt: new Date(),
         },
       });
@@ -335,7 +611,7 @@ export class TeacherService {
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
 
-    const data = subjectIds.map((subjectId) => ({
+    const data = subjectIds.map(subjectId => ({
       teacherId,
       subjectId,
       createdById: actorId,
@@ -487,7 +763,7 @@ export class TeacherService {
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
 
-    return teacher.classAssignments.map((assignment) => ({
+    return teacher.classAssignments.map(assignment => ({
       class: assignment.class,
       section: assignment.section ?? null, // may be null
     }));

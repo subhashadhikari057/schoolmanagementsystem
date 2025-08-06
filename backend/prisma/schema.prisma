@@ -200,13 +200,35 @@ model Teacher {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Professional Information
+  employeeId       String?
   designation      String?
   qualification    String?
+  specialization   String?
   employmentDate   DateTime?
   employmentStatus TeacherEmploymentStatus @default(active)
+  department       String?
+  experienceYears  Int?
 
-  department         String?
-  additionalMetadata Json?   @default("{}")
+  // Personal Information
+  dateOfBirth DateTime?
+  gender      String?
+  bloodGroup  String?
+  address     String?
+
+  // Salary Information
+  basicSalary Decimal? @db.Decimal(10, 2)
+  allowances  Decimal? @db.Decimal(10, 2)
+  totalSalary Decimal? @db.Decimal(10, 2)
+
+  // Class Teacher Assignment
+  isClassTeacher Boolean @default(false)
+
+  // Additional Information
+  languagesKnown     Json?    @default("[]")
+  certifications     String?
+  previousExperience String?
+  additionalMetadata Json?    @default("{}")
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -221,6 +243,7 @@ model Teacher {
   classAssignments TeacherClass[]
 
   @@index([userId])
+  @@index([employeeId])
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])

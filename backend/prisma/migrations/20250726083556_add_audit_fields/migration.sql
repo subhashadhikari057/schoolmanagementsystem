@@ -1,3 +1,0 @@
--- Migration for audit fields (placeholder)
--- This migration was missing and has been recreated
--- CreateTable for audit fields if they don't exist

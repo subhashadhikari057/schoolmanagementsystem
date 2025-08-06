@@ -1,0 +1,223 @@
+/**
+ * =============================================================================
+ * Teacher Service
+ * =============================================================================
+ * Service for handling teacher-related API calls
+ * =============================================================================
+ */
+
+import { HttpClient } from '../client/http-client';
+import {
+  CreateTeacherRequest,
+  CreateTeacherResponse,
+  TeacherListResponse,
+  UpdateTeacherByAdminRequest,
+  UpdateTeacherSelfRequest,
+  UpdateTeacherResponse,
+  TeacherFormData,
+} from '../types/teacher';
+import { ApiResponse } from '../types/common';
+
+// ============================================================================
+// API Endpoints
+// ============================================================================
+
+const TEACHER_ENDPOINTS = {
+  CREATE: 'api/v1/teachers',
+  LIST: 'api/v1/teachers',
+  GET_BY_ID: (id: string) => `api/v1/teachers/${id}`,
+  UPDATE_BY_ADMIN: (id: string) => `api/v1/teachers/${id}`,
+  UPDATE_SELF: 'api/v1/teachers/profile',
+  DELETE: (id: string) => `api/v1/teachers/${id}`,
+  ASSIGN_SUBJECTS: (id: string) => `api/v1/teachers/${id}/subjects`,
+  ASSIGN_CLASSES: (id: string) => `api/v1/teachers/${id}/classes`,
+} as const;
+
+// ============================================================================
+// Teacher Service
+// ============================================================================
+
+export class TeacherService {
+  private httpClient: HttpClient;
+
+  constructor() {
+    this.httpClient = new HttpClient();
+  }
+
+  // ========================================================================
+  // Teacher Operations
+  // ========================================================================
+
+  /**
+   * Create a new teacher with profile picture
+   */
+  async createTeacher(
+    data: TeacherFormData,
+  ): Promise<ApiResponse<CreateTeacherResponse>> {
+    // Convert form data to the structure expected by backend
+    const formData = new FormData();
+
+    // User data
+    const userData = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+    };
+    formData.append('user', JSON.stringify(userData));
+
+    // Personal data (only if provided)
+    if (data.dateOfBirth || data.gender || data.bloodGroup || data.address) {
+      const personalData: any = {};
+      if (data.dateOfBirth) personalData.dateOfBirth = data.dateOfBirth;
+      if (data.gender) personalData.gender = data.gender;
+      if (data.bloodGroup) personalData.bloodGroup = data.bloodGroup;
+      if (data.address) personalData.address = data.address;
+      formData.append('personal', JSON.stringify(personalData));
+    }
+
+    // Professional data
+    const professionalData: any = {
+      joiningDate: data.joiningDate || new Date().toISOString().split('T')[0],
+      highestQualification: data.highestQualification || '',
+    };
+    if (data.employeeId) professionalData.employeeId = data.employeeId;
+    if (data.experience)
+      professionalData.experienceYears = parseInt(data.experience);
+    if (data.specialization)
+      professionalData.specialization = data.specialization;
+    if (data.designation) professionalData.designation = data.designation;
+    if (data.department) professionalData.department = data.department;
+    formData.append('professional', JSON.stringify(professionalData));
+
+    // Subject data (only if provided)
+    if (data.subjects || data.isClassTeacher !== undefined) {
+      const subjectData: any = {};
+      if (data.subjects) subjectData.subjects = data.subjects;
+      if (data.isClassTeacher !== undefined)
+        subjectData.isClassTeacher = data.isClassTeacher;
+      formData.append('subjects', JSON.stringify(subjectData));
+    }
+
+    // Salary data (only if provided)
+    if (data.basicSalary || data.allowances || data.totalSalary) {
+      const salaryData: any = {};
+      if (data.basicSalary)
+        salaryData.basicSalary = parseFloat(data.basicSalary);
+      if (data.allowances) salaryData.allowances = parseFloat(data.allowances);
+      if (data.totalSalary)
+        salaryData.totalSalary = parseFloat(data.totalSalary);
+      formData.append('salary', JSON.stringify(salaryData));
+    }
+
+    // Additional data (only if provided)
+    if (data.languagesKnown || data.certifications || data.previousExperience) {
+      const additionalData: any = {};
+      if (data.languagesKnown)
+        additionalData.languagesKnown = data.languagesKnown;
+      if (data.certifications)
+        additionalData.certifications = data.certifications;
+      if (data.previousExperience)
+        additionalData.previousExperience = data.previousExperience;
+      formData.append('additional', JSON.stringify(additionalData));
+    }
+
+    // Add photo file if provided
+    if (data.photo) {
+      formData.append('photo', data.photo);
+    }
+
+    return this.httpClient.post<CreateTeacherResponse>(
+      TEACHER_ENDPOINTS.CREATE,
+      formData,
+    );
+  }
+
+  /**
+   * Get all teachers
+   */
+  async getAllTeachers(): Promise<ApiResponse<TeacherListResponse[]>> {
+    return this.httpClient.get<TeacherListResponse[]>(TEACHER_ENDPOINTS.LIST);
+  }
+
+  /**
+   * Get a specific teacher by ID
+   */
+  async getTeacherById(id: string): Promise<ApiResponse<TeacherListResponse>> {
+    return this.httpClient.get<TeacherListResponse>(
+      TEACHER_ENDPOINTS.GET_BY_ID(id),
+    );
+  }
+
+  /**
+   * Update teacher (admin only)
+   */
+  async updateTeacherByAdmin(
+    id: string,
+    data: UpdateTeacherByAdminRequest,
+  ): Promise<ApiResponse<UpdateTeacherResponse>> {
+    return this.httpClient.patch<UpdateTeacherResponse>(
+      TEACHER_ENDPOINTS.UPDATE_BY_ADMIN(id),
+      data,
+    );
+  }
+
+  /**
+   * Update own profile (teacher self-update)
+   */
+  async updateTeacherSelf(
+    data: UpdateTeacherSelfRequest,
+  ): Promise<ApiResponse<UpdateTeacherResponse>> {
+    return this.httpClient.patch<UpdateTeacherResponse>(
+      TEACHER_ENDPOINTS.UPDATE_SELF,
+      data,
+    );
+  }
+
+  /**
+   * Delete teacher (soft delete)
+   */
+  async deleteTeacher(id: string): Promise<ApiResponse<void>> {
+    return this.httpClient.delete<void>(TEACHER_ENDPOINTS.DELETE(id));
+  }
+
+  // ========================================================================
+  // Subject and Class Assignment Operations
+  // ========================================================================
+
+  /**
+   * Assign subjects to teacher
+   */
+  async assignSubjects(
+    teacherId: string,
+    subjectIds: string[],
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.httpClient.post<{ message: string }>(
+      TEACHER_ENDPOINTS.ASSIGN_SUBJECTS(teacherId),
+      { subjectIds },
+    );
+  }
+
+  /**
+   * Assign classes to teacher
+   */
+  async assignClasses(
+    teacherId: string,
+    classAssignments: Array<{
+      classId: string;
+      sectionId?: string;
+      isClassTeacher?: boolean;
+    }>,
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.httpClient.post<{ message: string }>(
+      TEACHER_ENDPOINTS.ASSIGN_CLASSES(teacherId),
+      { classAssignments },
+    );
+  }
+}
+
+// ============================================================================
+// Export singleton instance
+// ============================================================================
+
+export const teacherService = new TeacherService();

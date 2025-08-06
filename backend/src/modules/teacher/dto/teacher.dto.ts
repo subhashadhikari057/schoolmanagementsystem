@@ -4,22 +4,64 @@ import { z } from 'zod';
 // Subschema for user creation
 // ---------------------------
 export const CreateTeacherUserSchema = z.object({
-  fullName: z.string().min(1, 'Full name is required'),
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Invalid email format'),
-  phone: z.string().optional(),
-  password: z.string().optional(), // ✅ fixed: added ()
+  phone: z.string().min(1, 'Phone number is required'),
+  password: z.string().optional(),
 });
 
 // ---------------------------
-// Subschema for profile creation
+// Subschema for personal information
 // ---------------------------
-export const CreateTeacherProfileSchema = z.object({
-  qualification: z.string().min(1, 'Qualification is required'),
-  designation: z.string().optional(),
-  experienceYears: z.number().min(0).optional(),
-  dateOfJoining: z
+export const CreateTeacherPersonalSchema = z.object({
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(['Male', 'Female', 'Other']).optional(),
+  bloodGroup: z
+    .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+    .optional(),
+  address: z.string().optional(),
+});
+
+// ---------------------------
+// Subschema for professional information
+// ---------------------------
+export const CreateTeacherProfessionalSchema = z.object({
+  employeeId: z.string().optional(),
+  joiningDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  experienceYears: z.number().min(0).optional(),
+  highestQualification: z.string().min(1, 'Qualification is required'),
+  specialization: z.string().optional(),
+  designation: z.string().optional(),
+  department: z.string().optional(),
+});
+
+// ---------------------------
+// Subschema for subject assignment
+// ---------------------------
+export const CreateTeacherSubjectSchema = z.object({
+  subjects: z.array(z.string()).optional(),
+  isClassTeacher: z.boolean().default(false),
+});
+
+// ---------------------------
+// Subschema for salary information
+// ---------------------------
+export const CreateTeacherSalarySchema = z.object({
+  basicSalary: z.number().min(0).optional(),
+  allowances: z.number().min(0).optional(),
+  totalSalary: z.number().min(0).optional(),
+});
+
+// ---------------------------
+// Subschema for additional information
+// ---------------------------
+export const CreateTeacherAdditionalSchema = z.object({
+  languagesKnown: z.array(z.string()).optional(),
+  certifications: z.string().optional(),
+  previousExperience: z.string().optional(),
   bio: z.string().optional(),
   socialLinks: z
     .object({
@@ -32,11 +74,15 @@ export const CreateTeacherProfileSchema = z.object({
 });
 
 // ---------------------------
-// CreateTeacher DTO
+// CreateTeacher DTO (Complete)
 // ---------------------------
 export const CreateTeacherDto = z.object({
   user: CreateTeacherUserSchema,
-  profile: CreateTeacherProfileSchema,
+  personal: CreateTeacherPersonalSchema.optional(),
+  professional: CreateTeacherProfessionalSchema,
+  subjects: CreateTeacherSubjectSchema.optional(),
+  salary: CreateTeacherSalarySchema.optional(),
+  additional: CreateTeacherAdditionalSchema.optional(),
 });
 
 export type CreateTeacherDtoType = z.infer<typeof CreateTeacherDto>;
@@ -48,13 +94,17 @@ export type CreateTeacherDtoType = z.infer<typeof CreateTeacherDto>;
  * Allows Admin or Superadmin to update any teacher's info.
  */
 export const UpdateTeacherByAdminDto = z.object({
-  fullName: z.string().optional(),
-  email: z.string().email('Invalid email format').optional(),
-  phone: z.string().optional(),
-  profile: CreateTeacherProfileSchema.partial().optional(),
+  user: CreateTeacherUserSchema.partial().optional(),
+  personal: CreateTeacherPersonalSchema.partial().optional(),
+  professional: CreateTeacherProfessionalSchema.partial().optional(),
+  subjects: CreateTeacherSubjectSchema.partial().optional(),
+  salary: CreateTeacherSalarySchema.partial().optional(),
+  additional: CreateTeacherAdditionalSchema.partial().optional(),
 });
 
-export type UpdateTeacherByAdminDtoType = z.infer<typeof UpdateTeacherByAdminDto>;
+export type UpdateTeacherByAdminDtoType = z.infer<
+  typeof UpdateTeacherByAdminDto
+>;
 
 // ---------------------------
 // UpdateTeacherSelf DTO
@@ -63,13 +113,28 @@ export type UpdateTeacherByAdminDtoType = z.infer<typeof UpdateTeacherByAdminDto
  * Allows a teacher to update their own limited profile.
  */
 export const UpdateTeacherSelfDto = z.object({
-  fullName: z.string().optional(),
-  phone: z.string().optional(),
-  profile: z
+  user: z
+    .object({
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+      phone: z.string().optional(),
+    })
+    .optional(),
+  personal: z
+    .object({
+      address: z.string().optional(),
+    })
+    .optional(),
+  additional: z
     .object({
       bio: z.string().optional(),
       socialLinks: z
-        .record(z.string().url()) // allows any social link keys with URL values
+        .object({
+          linkedin: z.string().url().optional(),
+          twitter: z.string().url().optional(),
+          website: z.string().url().optional(),
+        })
+        .partial()
         .optional(),
     })
     .optional(),

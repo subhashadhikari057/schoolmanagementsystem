@@ -11,6 +11,8 @@ import SubjectsClassesCell from '@/components/molecules/display/SubjectsClassesC
 import ExperienceSalaryCell from '@/components/molecules/display/ExperienceSalaryCell';
 import ClassSectionCell from '@/components/molecules/display/ClassSectionCell';
 import AttendanceCell from '@/components/molecules/display/AttendanceCell';
+import QualificationCell from '@/components/molecules/display/QualificationCell';
+import PersonalInfoCell from '@/components/molecules/display/PersonalInfoCell';
 
 // Define all data interfaces
 export interface Student extends BaseItem {
@@ -55,6 +57,63 @@ export interface Teacher extends BaseItem {
   subjects_detailed?: Array<{
     name: string;
     grade: string;
+  }>;
+
+  // Extended fields from backend
+  qualification?: string;
+  specialization?: string;
+  employmentStatus?: string;
+  employmentDate?: string;
+  experienceYears?: number;
+
+  // Personal Information
+  dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+
+  // Salary Information
+  basicSalary?: number;
+  allowances?: number;
+  totalSalary?: number;
+
+  // Class Teacher Status
+  isClassTeacher?: boolean;
+
+  // Additional Information
+  languagesKnown?: string[];
+  certifications?: string;
+  previousExperience?: string;
+
+  // Profile Information
+  bio?: string;
+  contactInfo?: {
+    phone?: string;
+    email?: string;
+    emergencyContact?: string;
+    address?: string;
+  };
+  socialLinks?: {
+    linkedin?: string;
+    twitter?: string;
+    facebook?: string;
+  };
+
+  // System fields
+  isActive?: boolean;
+  lastLoginAt?: string;
+
+  // Subject assignments
+  subjectAssignments?: Array<{
+    id: string;
+    name: string;
+    code: string;
+  }>;
+
+  // Class assignments (if class teacher)
+  classAssignments?: Array<{
+    id: string;
+    className: string;
+    sectionName: string;
   }>;
 }
 
@@ -248,9 +307,9 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         render: (item: Teacher) => (
           <UserInfoCell
             name={item.name}
-            id={item.teacherId || item.id}
+            id={item.designation || 'Teacher'}
             avatar={item.avatar}
-            idLabel='EMP'
+            idLabel=''
           />
         ),
       },
@@ -283,9 +342,34 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         mobileLabel: 'Contact',
         render: (item: Teacher) => (
           <ContactCell
-            email={item.email}
-            phone={item.phone}
-            address={item.address}
+            email={item.contactInfo?.email || item.email}
+            phone={item.contactInfo?.phone || item.phone}
+            address={item.contactInfo?.address || item.address}
+          />
+        ),
+      },
+      {
+        key: 'qualification',
+        header: 'Qualification & Specialization',
+        mobileLabel: 'Qualification',
+        render: (item: Teacher) => (
+          <QualificationCell
+            qualification={item.qualification}
+            specialization={item.specialization}
+            experienceYears={item.experienceYears}
+          />
+        ),
+      },
+      {
+        key: 'personal',
+        header: 'Personal Information',
+        mobileLabel: 'Personal',
+        render: (item: Teacher) => (
+          <PersonalInfoCell
+            dateOfBirth={item.dateOfBirth}
+            gender={item.gender}
+            bloodGroup={item.bloodGroup}
+            languagesKnown={item.languagesKnown}
           />
         ),
       },
@@ -303,12 +387,13 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
       },
       {
         key: 'status',
-        header: 'Status',
+        header: 'Status & Activity',
         mobileLabel: 'Status',
         render: (item: Teacher) => (
           <StatusActivityCell
             status={item.status}
-            isOnline={true} // Could be dynamic
+            isOnline={item.isActive}
+            lastActivity={item.lastLoginAt}
           />
         ),
       },

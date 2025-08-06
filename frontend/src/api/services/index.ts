@@ -9,3 +9,5 @@
 export * from './auth.service';
 export * from './class.service';
 export * from './section.service';
+export * from './teacher.service';
+export * from './subject.service';
