@@ -7,9 +7,10 @@ import {
   Subject,
 } from '@/components/templates/listConfigurations';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
+import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import { Users, UserCheck, AlertCircle, GraduationCap } from 'lucide-react';
 
-const SubjectManagementPage = () => {
+const SubjectsPage = () => {
   // Subject-specific stats data
   const subjectStats = [
     {
@@ -34,10 +35,19 @@ const SubjectManagementPage = () => {
       icon: AlertCircle,
       bgColor: 'bg-yellow-50',
       iconColor: 'text-yellow-600',
-      value: '3',
-      label: 'Teacher Assigned',
+      value: '15',
+      label: 'Teachers Assigned',
       change: '5.2%',
-      isPositive: false,
+      isPositive: true,
+    },
+    {
+      icon: GraduationCap,
+      bgColor: 'bg-red-50',
+      iconColor: 'text-red-600',
+      value: '890',
+      label: 'Total Students',
+      change: '2.1%',
+      isPositive: true,
     },
   ];
 
@@ -45,68 +55,68 @@ const SubjectManagementPage = () => {
   const subjectsData: Subject[] = [
     {
       id: 1,
-      name: 'Mathematics',
+      name: 'Advanced Mathematics',
       code: 'MATH101',
-      faculty: 'Science',
+      faculty: 'Mathematics',
       credits: 4,
       status: 'Active',
-      gradeClasses: ['Grade 10-A', 'Grade 10-B', 'Grade 11-A'],
-      teachers: ['John Smith', 'Sarah Wilson'],
-      scheduleInfo: 'Mon, Wed, Fri - 9:00 AM',
-      studentsCount: 85,
-      examConfig: 'Midterm & Final',
+      gradeClasses: ['Grade 10-12', '10A', '10B', '11A', '+2'],
+      teachers: ['Dr. Sarah Mitchell', 'Prof. John Stevens'],
+      scheduleInfo: '6h/week, 5 classes',
+      studentsCount: 175,
+      examConfig: '100 marks, Pass: 35 | Theory + Practical',
     },
     {
       id: 2,
-      name: 'English Literature',
-      code: 'ENG201',
-      faculty: 'Arts',
-      credits: 3,
-      status: 'Active',
-      gradeClasses: ['Grade 9-A', 'Grade 9-B'],
-      teachers: ['Emily Davis', 'Michael Brown'],
-      scheduleInfo: 'Tue, Thu - 10:30 AM',
-      studentsCount: 72,
-      examConfig: 'Continuous Assessment',
-    },
-    {
-      id: 3,
       name: 'Physics',
       code: 'PHY101',
       faculty: 'Science',
       credits: 4,
-      status: 'Inactive',
-      gradeClasses: ['Grade 11-A'],
-      teachers: ['David Johnson'],
-      scheduleInfo: 'Mon, Wed - 2:00 PM',
-      studentsCount: 45,
-      examConfig: 'Lab + Theory Exam',
+      status: 'Active',
+      gradeClasses: ['Grade 11-12', '11A', '11B', '12A', '+1'],
+      teachers: ['Prof. Michael Chen'],
+      scheduleInfo: '5h/week, 4 classes',
+      studentsCount: 142,
+      examConfig: '100 marks, Pass: 35 | Theory + Lab',
+    },
+    {
+      id: 3,
+      name: 'English Literature',
+      code: 'ENG101',
+      faculty: 'Language',
+      credits: 3,
+      status: 'Active',
+      gradeClasses: ['Grade 9-12', '9A', '9B', '10A', '+5'],
+      teachers: ['Ms. Emma Thompson', 'Mr. David Wilson'],
+      scheduleInfo: '4h/week, 8 classes',
+      studentsCount: 280,
+      examConfig: '100 marks, Pass: 33 | Theory + Oral',
     },
     {
       id: 4,
       name: 'Computer Science',
       code: 'CS101',
-      faculty: 'Engineering',
+      faculty: 'Technology',
       credits: 4,
       status: 'Active',
-      gradeClasses: ['Grade 10-A', 'Grade 11-B', 'Grade 12-A'],
-      teachers: ['Alex Thompson', 'Lisa Martinez'],
-      scheduleInfo: 'Daily - 11:00 AM',
-      studentsCount: 92,
-      examConfig: 'Project + Exam',
+      gradeClasses: ['Grade 9-12', '9C', '10A', '11A', '+1'],
+      teachers: ['Mr. David Lee'],
+      scheduleInfo: '4h/week, 4 classes',
+      studentsCount: 95,
+      examConfig: '100 marks, Pass: 35 | Theory + Practical',
     },
     {
       id: 5,
-      name: 'History',
-      code: 'HIST101',
-      faculty: 'Social Studies',
-      credits: 3,
+      name: 'Art & Design',
+      code: 'ART101',
+      faculty: 'Arts',
+      credits: 2,
       status: 'Active',
-      gradeClasses: ['Grade 9-C', 'Grade 10-C'],
-      teachers: ['Robert Garcia'],
-      scheduleInfo: 'Tue, Thu, Fri - 1:00 PM',
-      studentsCount: 68,
-      examConfig: 'Essay + MCQ Exam',
+      gradeClasses: ['Grade 9-10', '9A', '9B', '10B'],
+      teachers: ['Ms. Lisa Park'],
+      scheduleInfo: '3h/week, 3 classes',
+      studentsCount: 78,
+      examConfig: '100 marks, Pass: 40 | Practical + Portfolio',
     },
   ];
 
@@ -134,14 +144,15 @@ const SubjectManagementPage = () => {
       {/* Main Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
         <div className='max-w-7xl mx-auto'>
-          {/* Subjects List - Now using Generic List */}
+          {/* Subject List - Now using Generic List */}
           <GenericList<Subject>
             config={getListConfig('subjects')}
             data={subjectsData}
             currentPage={1}
-            totalPages={32}
+            totalPages={12}
             totalItems={156}
             itemsPerPage={5}
+            customActions={<ActionButtons pageType='subjects' />}
           />
         </div>
       </div>
@@ -149,4 +160,4 @@ const SubjectManagementPage = () => {
   );
 };
 
-export default SubjectManagementPage;
+export default SubjectsPage;

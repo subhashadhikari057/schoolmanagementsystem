@@ -122,29 +122,38 @@ export default function AddClassModal({
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200'>
-      <div className='bg-white rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100 animate-in slide-in-from-bottom-4'>
+    <div
+      className='fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200'
+      onClick={handleClose}
+    >
+      <div
+        className='bg-white rounded-2xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-100 animate-in slide-in-from-bottom-4'
+        onClick={e => e.stopPropagation()}
+      >
         {/* Decorative Header */}
-        <div className='relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 border-b border-gray-100'>
-          <div className='absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-2xl'></div>
-          <div className='absolute -top-4 -right-4 w-16 h-16 bg-gradient-to-br from-indigo-200/40 to-pink-200/40 rounded-full blur-xl'></div>
+        <div className='relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 border-b border-gray-100'>
+          <div className='absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-2xl'></div>
+          <div className='absolute -top-4 -right-4 w-12 h-12 bg-gradient-to-br from-indigo-200/40 to-pink-200/40 rounded-full blur-xl'></div>
 
           <div className='relative flex items-center justify-between'>
             <div className='flex items-center space-x-3'>
               <div className='p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg'>
-                <GraduationCap size={24} className='text-white' />
+                <GraduationCap size={20} className='text-white' />
               </div>
               <div>
-                <h2 className='text-xl font-bold text-gray-900'>
+                <h2 className='text-lg font-bold text-gray-900'>
                   Create New Class
                 </h2>
-                <p className='text-sm text-gray-600 mt-1'>
+                <p className='text-xs text-gray-600 mt-1'>
                   Add a new class to your academic system
                 </p>
               </div>
             </div>
             <button
-              onClick={handleClose}
+              onClick={e => {
+                e.stopPropagation();
+                handleClose();
+              }}
               disabled={isLoading}
               className='p-2 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all duration-200 disabled:opacity-50'
             >
@@ -154,8 +163,12 @@ export default function AddClassModal({
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className='p-6'>
-          <div className='space-y-6'>
+        <form
+          onSubmit={handleSubmit}
+          className='p-4'
+          onClick={e => e.stopPropagation()}
+        >
+          <div className='space-y-4'>
             {/* Class Name Field */}
             <div className='space-y-2'>
               <label
@@ -173,10 +186,10 @@ export default function AddClassModal({
                   onChange={handleInputChange}
                   placeholder='e.g., Grade 10, Class 5, Form 2...'
                   disabled={isLoading}
-                  className='w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-200 text-gray-900 placeholder-gray-400'
+                  className='w-full px-3 py-2 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-200 text-gray-900 placeholder-gray-400'
                 />
                 <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <Sparkles size={16} className='text-gray-300' />
+                  <Sparkles size={14} className='text-gray-300' />
                 </div>
               </div>
               <p className='text-xs text-gray-500'>
@@ -196,10 +209,13 @@ export default function AddClassModal({
           </div>
 
           {/* Footer */}
-          <div className='flex justify-end space-x-3 mt-8 pt-4 border-t border-gray-100'>
+          <div className='flex justify-end space-x-3 mt-6 pt-3 border-t border-gray-100'>
             <button
               type='button'
-              onClick={handleClose}
+              onClick={e => {
+                e.stopPropagation();
+                handleClose();
+              }}
               disabled={isLoading}
               className='px-6 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
             >

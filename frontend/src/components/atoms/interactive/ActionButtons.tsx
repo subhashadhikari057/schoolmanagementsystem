@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
 import ToggleButton from '../form-controls/ToggleButton';
-import { Download, Upload, Mail, MessageSquare, Plus } from 'lucide-react';
+import {
+  Download,
+  Upload,
+  Mail,
+  MessageSquare,
+  Plus,
+  Calendar,
+  Users,
+  CreditCard,
+  Printer,
+  QrCode,
+} from 'lucide-react';
 import AddUserFormModal, {
   UserType,
 } from '@/components/organisms/modals/AddUserFormModal';
+import AddSubjectFormModal from '@/components/organisms/modals/AddSubjectFormModal';
+import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
 
 interface ActionButtonConfig {
   id: string;
@@ -15,7 +28,13 @@ interface ActionButtonConfig {
 }
 
 interface ActionButtonsProps {
-  pageType: 'students' | 'teachers' | 'parents' | 'staff';
+  pageType:
+    | 'students'
+    | 'teachers'
+    | 'parents'
+    | 'staff'
+    | 'subjects'
+    | 'id-cards';
 }
 
 const getActionButtonsConfig = (
@@ -29,7 +48,21 @@ const getActionButtonsConfig = (
       variant: 'import',
       className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
       icon: <Upload size={16} />,
-      onClick: () => console.log(`Import ${pageType} clicked`),
+      onClick: () => {
+        if (pageType === 'subjects') {
+          alert(
+            `📚 Import ${pageType} functionality will allow you to bulk upload subject data from CSV/Excel files. Feature coming soon!`,
+          );
+        } else if (pageType === 'id-cards') {
+          alert(
+            `🆔 Import ID card data - Bulk upload card holder information and generate cards automatically. Feature coming soon!`,
+          );
+        } else {
+          alert(
+            `📥 Import ${pageType} data from external files. This feature is under development.`,
+          );
+        }
+      },
     },
     {
       id: 'export',
@@ -37,7 +70,21 @@ const getActionButtonsConfig = (
       variant: 'export',
       className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
       icon: <Download size={16} />,
-      onClick: () => console.log(`Export ${pageType} clicked`),
+      onClick: () => {
+        if (pageType === 'subjects') {
+          alert(
+            `📊 Export all subject data including syllabus, schedules, and teacher assignments. Download will start shortly!`,
+          );
+        } else if (pageType === 'id-cards') {
+          alert(
+            `🃏 Export ID card data - Download all card information, print logs, and templates. Export starting now!`,
+          );
+        } else {
+          alert(
+            `📤 Export ${pageType} data to CSV/PDF format. Processing your request...`,
+          );
+        }
+      },
     },
   ];
 
@@ -51,26 +98,82 @@ const getActionButtonsConfig = (
       variant: 'emails',
       className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
       icon: <Mail size={16} />,
-      onClick: () => console.log('Mass Generate Emails clicked'),
+      onClick: () =>
+        alert(
+          '📧 Mass Email Generation - Create bulk email accounts for all selected students with automated password distribution!',
+        ),
     });
   }
 
-  if (pageType !== 'staff') {
+  if (pageType === 'subjects') {
+    additionalButtons.push(
+      {
+        id: 'subject-schedule',
+        label: 'Schedule',
+        variant: 'secondary',
+        className: 'bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg',
+        icon: <Calendar size={16} />,
+        onClick: () =>
+          alert(
+            '📅 Subject Schedule Management - Configure class timings, room assignments, and recurring schedules for all subjects!',
+          ),
+      },
+      {
+        id: 'assign-teachers',
+        label: 'Assign Teachers',
+        variant: 'secondary',
+        className: 'bg-green-50 text-green-700 hover:bg-green-100 rounded-lg',
+        icon: <Users size={16} />,
+        onClick: () =>
+          alert(
+            '👥 Teacher Assignment - Link qualified teachers to subjects based on expertise and availability!',
+          ),
+      },
+    );
+  }
+
+  if (pageType === 'id-cards') {
+    additionalButtons.push({
+      id: 'print-selected',
+      label: 'Print Selected',
+      variant: 'secondary',
+      className: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg',
+      icon: <Printer size={16} />,
+      onClick: () =>
+        alert(
+          '📱 Print Selected - Send the selected ID cards to the printer for immediate printing!',
+        ),
+    });
+  }
+
+  if (
+    pageType !== 'staff' &&
+    pageType !== 'subjects' &&
+    pageType !== 'id-cards'
+  ) {
     additionalButtons.push({
       id: 'send-communication',
       label: 'Send Communication',
       variant: 'communication',
       className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
       icon: <MessageSquare size={16} />,
-      onClick: () => console.log('Send Communication clicked'),
+      onClick: () =>
+        alert(
+          `📢 Send Communication - Broadcast messages, announcements, and updates to all ${pageType}!`,
+        ),
     });
   }
 
   // Add the primary action button
   const addButtonLabel =
-    pageType.charAt(0).toUpperCase() + pageType.slice(1, 7);
+    pageType === 'subjects'
+      ? 'Subject'
+      : pageType === 'id-cards'
+        ? 'ID Card'
+        : pageType.charAt(0).toUpperCase() + pageType.slice(1, 7);
+
   additionalButtons.push({
-    id: `add-${pageType.slice(0, -1)}`,
+    id: `add-${pageType === 'subjects' ? 'subject' : pageType === 'id-cards' ? 'id-card' : pageType.slice(0, -1)}`,
     label: `Add ${addButtonLabel}`,
     className: 'bg-[#2F80ED] text-white hover:bg-blue-600 rounded-lg',
     variant: 'primary',
@@ -129,12 +232,26 @@ export const ActionButtons = ({ pageType }: ActionButtonsProps) => {
         ))}
       </div>
 
-      <AddUserFormModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        onSuccess={handleSuccess}
-        userType={userType}
-      />
+      {pageType === 'subjects' ? (
+        <AddSubjectFormModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : pageType === 'id-cards' ? (
+        <GenerateIDCardModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : (
+        <AddUserFormModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+          userType={userType}
+        />
+      )}
     </>
   );
 };
