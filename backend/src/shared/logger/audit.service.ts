@@ -36,4 +36,9 @@ export class AuditService {
       console.error('[AuditService] Failed to record audit log:', error);
     }
   }
+
+  // Alias method for backward compatibility
+  async log(options: RecordAuditOptions): Promise<void> {
+    return this.record(options);
+  }
 }

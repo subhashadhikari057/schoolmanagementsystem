@@ -1,5 +1,5 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
 📌 Refer to: `/feature List/*.md` + `1. Auth API Contract.md`
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import LoginForm from '@/components/organisms/auth/LoginForm';
 import BannerSlider from '@/components/organisms/content/BannerSlider';
@@ -9,7 +10,35 @@ import { LoginRequest } from '@/api/types/auth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading, error } = useAuth();
+  const { login, isLoading, error, user, isAuthenticated } = useAuth();
+
+  // Redirect based on user role after successful login
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const getDashboardRoute = (role: string) => {
+        switch (role?.toUpperCase()) {
+          case 'SUPER_ADMIN':
+          case 'ADMIN':
+            return '/dashboard/admin';
+          case 'TEACHER':
+            return '/dashboard/teacher';
+          case 'STUDENT':
+            return '/dashboard/student';
+          case 'PARENT':
+            return '/dashboard/parent';
+          case 'ACCOUNTANT':
+            return '/dashboard/accountant';
+          case 'STAFF':
+            return '/dashboard/staff';
+          default:
+            return '/dashboard'; // fallback
+        }
+      };
+
+      const dashboardRoute = getDashboardRoute(user.role);
+      router.push(dashboardRoute);
+    }
+  }, [isAuthenticated, user, router]);
 
   const handleLogin = async (data: Record<string, unknown>) => {
     try {
@@ -21,8 +50,8 @@ export default function LoginPage() {
 
       await login(credentials);
 
-      // Redirect to dashboard on successful login
-      router.push('/dashboard/admin');
+      // The login hook will set the user data, we can redirect based on role
+      // The redirect will happen in useEffect below
     } catch (error) {
       console.error('Login failed:', error);
       // Error is handled by useAuth hook and displayed in the form

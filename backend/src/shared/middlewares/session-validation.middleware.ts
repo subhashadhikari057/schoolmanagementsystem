@@ -192,7 +192,7 @@ export class SessionValidationMiddleware implements NestMiddleware {
         where: { id: sessionId },
         data: {
           revokedAt: new Date(),
-          revokeReason: reason,
+          // revokeReason: reason, // Field doesn't exist in schema
         },
       });
     } catch (error) {

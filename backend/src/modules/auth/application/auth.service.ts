@@ -18,6 +18,7 @@ import {
 } from '../../../shared/auth/jwt.util';
 import { hashToken, verifyTokenHash } from '../../../shared/auth/token.util';
 import { randomUUID } from 'crypto';
+import { UserRole } from '@sms/shared-types';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +26,52 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService, // ✅ Injected
   ) {}
+
+  /**
+   * Get user with roles for authentication
+   */
+  private async getUserWithRoles(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Extract primary role from user roles
+   */
+  private getPrimaryRole(
+    userRoles: Array<{ role: { name: string } }>,
+  ): UserRole {
+    if (!userRoles || userRoles.length === 0) {
+      return UserRole.STUDENT; // Default fallback
+    }
+
+    // Priority order for roles (highest to lowest)
+    const rolePriority = [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.ACCOUNTANT,
+      UserRole.TEACHER,
+      UserRole.STAFF,
+      UserRole.PARENT,
+      UserRole.STUDENT,
+    ];
+
+    for (const priorityRole of rolePriority) {
+      if (userRoles.some(ur => ur.role.name === priorityRole)) {
+        return priorityRole;
+      }
+    }
+
+    return UserRole.STUDENT; // Fallback
+  }
 
   async login(
     data: LoginDtoType,
@@ -49,8 +96,15 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: whereClause,
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
     });
-  
+
     // ❌ Block login if user not found, inactive, or soft-deleted
     if (!user || !user.isActive || user.deletedAt) {
       await this.auditService.record({
@@ -64,10 +118,12 @@ export class AuthService {
           reason: user ? 'User is inactive or soft-deleted' : 'User not found',
         },
       });
-  
-      throw new UnauthorizedException('Invalid credentials or account disabled');
+
+      throw new UnauthorizedException(
+        'Invalid credentials or account disabled',
+      );
     }
-  
+
     const match = await verifyPassword(data.password, user.passwordHash);
     if (!match) {
       await this.auditService.record({
@@ -79,15 +135,18 @@ export class AuthService {
         userId: user.id,
         details: { reason: 'Incorrect password' },
       });
-  
+
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // ✅ NEW: Check if password change is required
     if (user.needPasswordChange) {
       // Issue special token that only allows password change
-      const tempToken = signTempToken({ userId: user.id, purpose: 'PASSWORD_CHANGE' });
-      
+      const tempToken = signTempToken({
+        userId: user.id,
+        purpose: 'PASSWORD_CHANGE',
+      });
+
       await this.auditService.record({
         action: 'LOGIN_PASSWORD_CHANGE_REQUIRED',
         status: 'SUCCESS',
@@ -107,16 +166,23 @@ export class AuthService {
           id: user.id,
           fullName: user.fullName,
           email: user.email,
-        }
+        },
       };
     }
-  
+
     const sessionId: string = randomUUID();
+    const primaryRole = this.getPrimaryRole(user.roles);
+
     const refreshToken: string = signRefreshToken({
       userId: user.id,
       sessionId,
     });
-    const accessToken: string = signAccessToken({ userId: user.id, sessionId });
+    const accessToken: string = signAccessToken({
+      userId: user.id,
+      sessionId,
+      role: primaryRole,
+      email: user.email,
+    });
     const tokenHash: string = await hashToken(refreshToken);
 
     await this.prisma.userSession.create({
@@ -124,11 +190,9 @@ export class AuthService {
         id: sessionId,
         userId: user.id,
         tokenHash,
-        userAgent,
-        ipAddress: ip,
       },
     });
-  
+
     await this.auditService.record({
       action: 'LOGIN_SUCCESS',
       status: 'SUCCESS',
@@ -138,10 +202,40 @@ export class AuthService {
       userAgent,
       details: { sessionId },
     });
-  
+
     return { accessToken, refreshToken };
   }
-  
+
+  /**
+   * Get current user information
+   */
+  async getCurrentUser(userId: string): Promise<{
+    id: string;
+    full_name: string;
+    email: string;
+    phone: string | null;
+    role: UserRole;
+    isActive: boolean;
+    permissions?: string[];
+  }> {
+    const user = await this.getUserWithRoles(userId);
+
+    if (!user || !user.isActive || user.deletedAt) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
+    const primaryRole = this.getPrimaryRole(user.roles);
+
+    return {
+      id: user.id,
+      full_name: user.fullName,
+      email: user.email,
+      phone: user.phone,
+      role: primaryRole,
+      isActive: user.isActive,
+      permissions: [], // TODO: Implement permissions if needed
+    };
+  }
 
   async refresh(
     refreshToken: string,
@@ -169,6 +263,14 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token does not match session');
     }
 
+    // Get user with roles for token refresh
+    const userWithRoles = await this.getUserWithRoles(decoded.userId);
+    if (!userWithRoles || !userWithRoles.isActive || userWithRoles.deletedAt) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
+    const primaryRole = this.getPrimaryRole(userWithRoles.roles);
+
     const newRefreshToken = signRefreshToken({
       userId: decoded.userId,
       sessionId: session.id,
@@ -176,6 +278,8 @@ export class AuthService {
     const newAccessToken = signAccessToken({
       userId: decoded.userId,
       sessionId: session.id,
+      role: primaryRole,
+      email: userWithRoles.email,
     });
     const newTokenHash: string = await hashToken(newRefreshToken);
 
@@ -221,7 +325,7 @@ export class AuthService {
       userAgent,
       details: { sessionId },
     });
-  } 
+  }
 
   // ✅ Force password change method
   async forceChangePassword(
@@ -230,7 +334,7 @@ export class AuthService {
     userAgent: string,
   ) {
     // Verify temp token
-    const decoded = verifyTempToken(data.tempToken);
+    const decoded = verifyTempToken(data.temp_token);
     if (!decoded || decoded.purpose !== 'PASSWORD_CHANGE') {
       await this.auditService.record({
         action: 'FORCE_PASSWORD_CHANGE_ATTEMPT',
@@ -256,18 +360,27 @@ export class AuthService {
         userId: decoded.userId,
         ipAddress: ip,
         userAgent,
-        details: { 
-          reason: !user ? 'User not found' : 
-                  !user.needPasswordChange ? 'Password change not required' :
-                  !user.isActive || user.deletedAt ? 'User inactive or deleted' : 'Unknown'
+        details: {
+          reason: !user
+            ? 'User not found'
+            : !user.needPasswordChange
+              ? 'Password change not required'
+              : !user.isActive || user.deletedAt
+                ? 'User inactive or deleted'
+                : 'Unknown',
         },
       });
 
-      throw new BadRequestException('Password change not required or user not found');
+      throw new BadRequestException(
+        'Password change not required or user not found',
+      );
     }
 
     // Validate new password (different from current)
-    const isSamePassword = await verifyPassword(data.newPassword, user.passwordHash);
+    const isSamePassword = await verifyPassword(
+      data.new_password,
+      user.passwordHash,
+    );
     if (isSamePassword) {
       await this.auditService.record({
         action: 'FORCE_PASSWORD_CHANGE_ATTEMPT',
@@ -279,17 +392,19 @@ export class AuthService {
         details: { reason: 'New password same as current password' },
       });
 
-      throw new BadRequestException('New password must be different from current password');
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
     }
 
     // Update password and clear force flag
-    const newPasswordHash = await hashPassword(data.newPassword);
-    
+    const newPasswordHash = await hashPassword(data.new_password);
+
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
         passwordHash: newPasswordHash,
-        needPasswordChange: false,           // ✅ Clear the flag
+        needPasswordChange: false, // ✅ Clear the flag
         lastPasswordChange: new Date(),
         updatedAt: new Date(),
       },
@@ -311,7 +426,8 @@ export class AuthService {
     });
 
     return {
-      message: 'Password changed successfully. Please login with your new password.',
+      message:
+        'Password changed successfully. Please login with your new password.',
       success: true,
     };
   }

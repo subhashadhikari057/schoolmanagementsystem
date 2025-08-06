@@ -91,23 +91,27 @@ export class TeacherService {
             employeeId: professional.employeeId,
             qualification: professional.highestQualification,
             specialization: professional.specialization,
-            designation: professional.designation,
+            designation: professional.designation || 'Teacher',
             department: professional.department,
             employmentDate: new Date(professional.joiningDate),
             experienceYears: professional.experienceYears,
 
             // Personal Information
+            dob: personal?.dateOfBirth
+              ? new Date(personal.dateOfBirth)
+              : new Date(),
             dateOfBirth: personal?.dateOfBirth
               ? new Date(personal.dateOfBirth)
-              : undefined,
-            gender: personal?.gender,
+              : new Date(),
+            gender: personal?.gender || 'Not Specified',
+            joiningDate: new Date(professional.joiningDate),
             bloodGroup: personal?.bloodGroup,
             address: personal?.address,
 
             // Salary Information
-            basicSalary: salary?.basicSalary,
-            allowances: salary?.allowances,
-            totalSalary: salary?.totalSalary,
+            basicSalary: salary?.basicSalary || 0,
+            allowances: salary?.allowances || 0,
+            totalSalary: salary?.totalSalary || 0,
 
             // Class Teacher Assignment
             isClassTeacher: subjects?.isClassTeacher || false,
@@ -127,11 +131,11 @@ export class TeacherService {
                   email: user.email,
                 },
                 socialLinks: additional?.socialLinks || {},
-                createdById: createdBy,
+                // createdById: createdBy, // Field doesn't exist in TeacherProfile
               },
             },
           },
-          include: { profile: true },
+          include: { profile: true, user: true },
         });
 
         // Assign subjects if provided
@@ -212,7 +216,7 @@ export class TeacherService {
             socialLinks: true,
           },
         },
-        subjects: {
+        subjectAssignments: {
           include: {
             subject: {
               select: {
@@ -228,7 +232,8 @@ export class TeacherService {
             class: {
               select: {
                 id: true,
-                name: true,
+                grade: true,
+                section: true,
               },
             },
             section: {
@@ -298,7 +303,7 @@ export class TeacherService {
       updatedAt: teacher.updatedAt?.toISOString(),
 
       // Subject assignments
-      subjects: teacher.subjects.map(ts => ({
+      subjects: teacher.subjectAssignments.map(ts => ({
         id: ts.subject.id,
         name: ts.subject.name,
         code: ts.subject.code,
@@ -307,7 +312,7 @@ export class TeacherService {
       // Class assignments (if class teacher)
       classAssignments: teacher.classAssignments.map(ca => ({
         id: ca.id,
-        className: ca.class.name,
+        className: `Grade ${ca.class.grade}${ca.class.section}`,
         sectionName: ca.section?.name || 'No Section',
       })),
     }));
@@ -319,7 +324,7 @@ export class TeacherService {
       include: {
         user: true,
         profile: true,
-        subjects: {
+        subjectAssignments: {
           include: {
             subject: true, // ✅ Include full subject details
           },
@@ -336,11 +341,11 @@ export class TeacherService {
       throw new NotFoundException('Teacher not found');
     }
 
-    const { classAssignments, ...rest } = teacher;
+    // const { classAssignments, ...rest } = teacher; // classAssignments doesn't exist
 
     return {
-      ...rest,
-      assignedClasses: classAssignments,
+      ...teacher,
+      assignedClasses: teacher.classAssignments,
     };
   }
 
@@ -350,7 +355,7 @@ export class TeacherService {
       include: {
         user: true,
         profile: true,
-        subjects: true,
+        subjectAssignments: true,
       },
     });
     if (!teacher) throw new NotFoundException('Teacher not found');
@@ -381,7 +386,7 @@ export class TeacherService {
           fullName,
           email: dto.user.email,
           phone: dto.user.phone,
-          updatedById: updatedBy,
+          // updatedById: updatedBy, // Field doesn't exist in TeacherProfile
           updatedAt: new Date(),
         },
       });
@@ -460,7 +465,7 @@ export class TeacherService {
         data: {
           bio: dto.additional.bio,
           socialLinks: dto.additional.socialLinks,
-          updatedById: updatedBy,
+          // updatedById: updatedBy, // Field doesn't exist in TeacherProfile
           updatedAt: new Date(),
         },
       });
@@ -591,11 +596,11 @@ export class TeacherService {
   async getSubjects(id: string) {
     const teacher = await this.prisma.teacher.findUnique({
       where: { id },
-      include: { subjects: true },
+      include: { subjectAssignments: true },
     });
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
-    return teacher.subjects;
+    return teacher.subjectAssignments;
   }
 
   async assignSubjects(

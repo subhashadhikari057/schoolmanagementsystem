@@ -1,5 +1,5 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
 📌 Refer to: `/Dev docs/5. API Contract Documentation Modular, Typed, and Secure.md`
 

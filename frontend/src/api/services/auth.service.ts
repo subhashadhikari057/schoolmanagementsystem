@@ -28,7 +28,7 @@ const AUTH_ENDPOINTS = {
   LOGIN: 'api/v1/auth/login',
   LOGOUT: 'api/v1/auth/logout',
   REFRESH: 'api/v1/auth/refresh',
-  ME: 'api/v1/profile', // Fixed: backend uses /profile not /auth/me
+  ME: 'api/v1/auth/me', // Correct endpoint for current user
   REGISTER: 'api/v1/auth/register',
   REQUEST_PASSWORD_RESET: 'api/v1/auth/password/request-reset',
   RESET_PASSWORD: 'api/v1/auth/password/reset',
