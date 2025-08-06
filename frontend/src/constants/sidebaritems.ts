@@ -32,6 +32,11 @@ export const sidebarItems = {
           path: '/dashboard/admin/academics/subjects',
         },
         {
+          label: 'ID Cards & Generation',
+          icon: 'IdCard',
+          path: '/dashboard/admin/academics/id-generation',
+        },
+        {
           label: 'Exams & Results',
           icon: 'ClipboardList',
           path: '/dashboard/admin/academics/exams',

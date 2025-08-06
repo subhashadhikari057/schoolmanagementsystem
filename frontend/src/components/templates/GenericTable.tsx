@@ -11,7 +11,11 @@ export interface BaseItem {
 export interface TableColumn<T = BaseItem> {
   key: string;
   header: string;
-  render?: (item: T) => ReactNode;
+  render?: (
+    item: T,
+    isSelected?: boolean,
+    onSelect?: (id: string | number) => void,
+  ) => ReactNode;
   className?: string;
   mobileLabel?: string;
 }
@@ -25,6 +29,9 @@ export interface GenericTableProps<T extends BaseItem> {
   itemsPerPage?: number;
   emptyMessage?: string;
   onItemAction?: (action: string, item: T) => void;
+  enableSelection?: boolean;
+  selectedItems?: (string | number)[];
+  onSelectionChange?: (selectedIds: (string | number)[]) => void;
 }
 
 const GenericTable = <T extends BaseItem>({
@@ -36,7 +43,34 @@ const GenericTable = <T extends BaseItem>({
   itemsPerPage = 10,
   emptyMessage = 'No data available',
   onItemAction,
+  enableSelection = false,
+  selectedItems = [],
+  onSelectionChange,
 }: GenericTableProps<T>) => {
+  // Selection handling
+  const handleItemSelect = (itemId: string | number) => {
+    if (!onSelectionChange) return;
+
+    const newSelectedItems = selectedItems.includes(itemId)
+      ? selectedItems.filter(id => id !== itemId)
+      : [...selectedItems, itemId];
+
+    onSelectionChange(newSelectedItems);
+  };
+
+  const handleSelectAll = () => {
+    if (!onSelectionChange) return;
+
+    const allIds = data.map(item => item.id);
+    const isAllSelected = allIds.every(id => selectedItems.includes(id));
+
+    if (isAllSelected) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(allIds);
+    }
+  };
+
   // Auto-detect status fields
   const isStatusField = (key: string, value: unknown): boolean => {
     if (typeof value !== 'string') return false;
@@ -73,7 +107,8 @@ const GenericTable = <T extends BaseItem>({
   const renderCellContent = (item: T, column: TableColumn<T>): ReactNode => {
     // Use custom render function if provided
     if (column.render) {
-      return column.render(item);
+      const isSelected = selectedItems.includes(item.id);
+      return column.render(item, isSelected, handleItemSelect);
     }
     // Fall back to default rendering
     return renderCellValue(column.key, item[column.key]);
@@ -103,7 +138,19 @@ const GenericTable = <T extends BaseItem>({
                       key={column.key}
                       className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
                     >
-                      {column.header}
+                      {column.key === 'selection' && enableSelection ? (
+                        <input
+                          type='checkbox'
+                          checked={
+                            data.length > 0 &&
+                            data.every(item => selectedItems.includes(item.id))
+                          }
+                          onChange={handleSelectAll}
+                          className='h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+                        />
+                      ) : (
+                        column.header
+                      )}
                     </th>
                   ))}
                 </tr>

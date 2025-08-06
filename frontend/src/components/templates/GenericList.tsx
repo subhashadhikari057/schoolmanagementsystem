@@ -20,7 +20,11 @@ export interface FilterOption {
 export interface TableColumn<T = BaseItem> {
   key: string;
   header: string;
-  render?: (item: T) => ReactNode;
+  render?: (
+    item: T,
+    isSelected?: boolean,
+    onSelect?: (id: string | number) => void,
+  ) => ReactNode;
   className?: string;
   mobileLabel?: string;
 }
@@ -28,6 +32,7 @@ export interface TableColumn<T = BaseItem> {
 export interface ListConfiguration<T = BaseItem> {
   title: string;
   searchPlaceholder: string;
+  enableSelection?: boolean;
   primaryFilter: {
     title: string;
     options: FilterOption[];
@@ -52,6 +57,8 @@ export interface GenericListProps<T extends BaseItem = BaseItem> {
   onSecondaryFilterChange?: (value: string) => void;
   onItemAction?: (action: string, item: T) => void;
   customActions?: ReactNode;
+  selectedItems?: (string | number)[];
+  onSelectionChange?: (selectedIds: (string | number)[]) => void;
 }
 
 export const GenericList = <T extends BaseItem>({
@@ -66,6 +73,8 @@ export const GenericList = <T extends BaseItem>({
   onSecondaryFilterChange,
   onItemAction,
   customActions,
+  selectedItems = [],
+  onSelectionChange,
 }: GenericListProps<T>) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [primaryFilter, setPrimaryFilter] = useState('all');
@@ -145,6 +154,9 @@ export const GenericList = <T extends BaseItem>({
           itemsPerPage={itemsPerPage}
           emptyMessage={config.emptyMessage || 'No data available'}
           onItemAction={onItemAction}
+          enableSelection={config.enableSelection}
+          selectedItems={selectedItems}
+          onSelectionChange={onSelectionChange}
         />
       </div>
     </div>
