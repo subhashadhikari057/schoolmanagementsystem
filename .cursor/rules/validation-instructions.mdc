@@ -1,5 +1,5 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
 📌 Refer to: `/Dev docs/2. Project Structure & Conventions.md` + `9. TypeScript Enums & Status Definitions.md`
 

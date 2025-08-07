@@ -2,11 +2,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
-import {
-  AuditAction,
-  AuditModule,
-  AuditStatus,
-} from '@sms/shared-types';
+import { AuditAction, AuditModule, AuditStatus } from '@sms/shared-types';
 
 // Simple interfaces for audit operations
 interface CreateAuditLogDto {
@@ -142,34 +138,21 @@ export class EnhancedAuditService {
       };
 
       // Clean up undefined values for Prisma while preserving required fields
+      // Only include fields that exist in the AuditLog model
       const cleanAuditData: any = {
         // Required fields (always include)
         action,
         module,
         status,
-        // Optional fields (only if defined)
+        // Optional fields (only if defined and exist in schema)
         ...(auditData.userId && { userId: auditData.userId }),
-        ...(auditData.traceId && { traceId: auditData.traceId }),
-        ...(auditData.sessionId && { sessionId: auditData.sessionId }),
         ...(auditData.ipAddress && { ipAddress: auditData.ipAddress }),
         ...(auditData.userAgent && { userAgent: auditData.userAgent }),
-        ...(auditData.endpoint && { endpoint: auditData.endpoint }),
-        ...(auditData.method && { method: auditData.method }),
-        ...(auditData.statusCode && { statusCode: auditData.statusCode }),
-        ...(auditData.duration && { duration: auditData.duration }),
-        ...(auditData.resourceId && { resourceId: auditData.resourceId }),
-        ...(auditData.resourceType && { resourceType: auditData.resourceType }),
-        ...(auditData.errorCode && { errorCode: auditData.errorCode }),
-        ...(auditData.errorMessage && { errorMessage: auditData.errorMessage }),
         ...(auditData.details && { details: auditData.details }),
       };
 
       await this.prisma.auditLog.create({
-        data: {
-          id: randomUUID(),
-          ...cleanAuditData,
-          timestamp: new Date(),
-        },
+        data: cleanAuditData,
       });
 
       // Log high-priority events for monitoring
@@ -354,8 +337,12 @@ export class EnhancedAuditService {
       })),
       recentActivity: recentActivity as unknown as AuditLogResponseDto[],
       timeRange: {
-        startDate: (startDate instanceof Date ? startDate.toISOString() : startDate) || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        endDate: (endDate instanceof Date ? endDate.toISOString() : endDate) || new Date().toISOString(),
+        startDate:
+          (startDate instanceof Date ? startDate.toISOString() : startDate) ||
+          new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        endDate:
+          (endDate instanceof Date ? endDate.toISOString() : endDate) ||
+          new Date().toISOString(),
       },
     };
   }

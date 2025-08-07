@@ -76,10 +76,10 @@ export class StudentController {
     return {
       message: 'Student and parents created successfully',
       student: result.student,
-      ...(result.studentTemporaryPassword && {
-        studentTemporaryPassword: result.studentTemporaryPassword,
-      }),
-      parents: result.parents,
+      // ...(result.studentTemporaryPassword && {
+      //   studentTemporaryPassword: result.studentTemporaryPassword,
+      // }),
+      // parents: result.parents,
     };
   }
 
@@ -103,12 +103,12 @@ export class StudentController {
     return {
       message: 'Student created and linked to existing parents successfully',
       student: result.student,
-      ...(result.studentTemporaryPassword && {
-        studentTemporaryPassword: result.studentTemporaryPassword,
-      }),
-      ...(result.primaryParent && {
-        primaryParent: result.primaryParent,
-      }),
+      // ...(result.studentTemporaryPassword && {
+      //   studentTemporaryPassword: result.studentTemporaryPassword,
+      // }),
+      // ...(result.primaryParent && {
+      //   primaryParent: result.primaryParent,
+      // }),
     };
   }
 
@@ -131,10 +131,10 @@ export class StudentController {
     return {
       message: 'Student created successfully',
       student: result.student,
-      ...(result.studentTemporaryPassword && {
-        studentTemporaryPassword: result.studentTemporaryPassword,
-      }),
-      parents: result.parents,
+      // ...(result.studentTemporaryPassword && {
+      //   studentTemporaryPassword: result.studentTemporaryPassword,
+      // }),
+      // parents: result.parents,
     };
   }
 
@@ -156,11 +156,7 @@ export class StudentController {
     @Query('limit') limit = '20',
     @Query('search') search?: string,
   ) {
-    return this.studentService.getAllParents(
-      Number(page),
-      Number(limit),
-      search,
-    );
+    return this.studentService.getAllParents(Number(limit), Number(page));
   }
 
   // 🔹 Get children (for parent user) - MOVED UP before parameterized routes
@@ -293,8 +289,7 @@ export class StudentController {
   ) {
     return this.studentService.setPrimaryParent(
       studentId,
-      parentLinkId,
-      body.password,
+      body.parentId,
       user.id,
       req.ip,
       req.headers['user-agent'],

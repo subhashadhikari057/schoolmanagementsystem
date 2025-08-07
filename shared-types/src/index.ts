@@ -16,6 +16,21 @@ export * from './dto';
 // Export all interfaces
 export * from './interfaces';
 
+// Export auth schemas specifically
+export {
+  LoginRequestSchema,
+  LoginResponseSchema,
+  RegisterRequestSchema,
+  RegisterResponseSchema,
+  RefreshTokenRequestSchema,
+  RefreshTokenResponseSchema,
+  MeResponseSchema,
+  ChangePasswordSchema,
+  RequestPasswordResetSchema,
+  PasswordResetSchema,
+  ForceChangePasswordSchema,
+} from './schemas/auth/auth.schemas';
+
 // Export specific schemas to avoid conflicts
 export {
   ErrorCodes,

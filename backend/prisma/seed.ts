@@ -1,10 +1,13 @@
+// prisma/seed.ts - Extended Seed File Compatible with Your Redesigned Schema
+
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const roleNames = [
+  // 1. Create Roles
+  const roles = [
     'SUPER_ADMIN',
     'ADMIN',
     'ACCOUNTANT',
@@ -14,8 +17,7 @@ async function main() {
     'STAFF',
   ];
 
-  // 1. Create roles
-  for (const role of roleNames) {
+  for (const role of roles) {
     await prisma.role.upsert({
       where: { name: role },
       update: {},
@@ -27,424 +29,187 @@ async function main() {
     });
   }
 
-  // 2. Create users and assign roles
-  const users = [
-    {
+  // 2. Create Super Admin User
+  const passwordHash = await argon2.hash('superadmin123');
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'superadmin@gmail.com' },
+    update: {},
+    create: {
       email: 'superadmin@gmail.com',
       fullName: 'Super Admin',
-      password: 'superadmin123',
-      role: 'SUPER_ADMIN',
-    },
-    {
-      email: 'admin@gmail.com',
-      fullName: 'Admin User',
-      password: 'admin123',
-      role: 'ADMIN',
-    },
-    {
-      email: 'teacher@gmail.com',
-      fullName: 'Teacher User',
-      password: 'teacher123',
-      role: 'TEACHER',
-    },
-    {
-      email: 'student@gmail.com',
-      fullName: 'John Doe',
-      password: 'student123',
-      role: 'STUDENT',
-    },
-    {
-      email: 'parent@gmail.com',
-      fullName: 'Jane Doe',
-      password: 'parent123',
-      role: 'PARENT',
-    },
-    {
-      email: 'staff@gmail.com',
-      fullName: 'Staff User',
-      password: 'staff123',
-      role: 'STAFF',
-    },
-  ];
-
-  for (const user of users) {
-    const passwordHash = await argon2.hash(user.password, {
-      type: argon2.argon2id,
-    });
-
-    const createdUser = await prisma.user.upsert({
-      where: { email: user.email },
-      update: {},
-      create: {
-        email: user.email,
-        fullName: user.fullName,
-        passwordHash,
-        isActive: true,
-      },
-    });
-
-    const role = await prisma.role.findUnique({ where: { name: user.role } });
-
-    if (role) {
-      await prisma.userRole.upsert({
-        where: {
-          userId_roleId: {
-            userId: createdUser.id,
-            roleId: role.id,
+      passwordHash,
+      roles: {
+        create: {
+          role: {
+            connect: { name: 'SUPER_ADMIN' },
           },
         },
-        update: {},
-        create: {
-          userId: createdUser.id,
-          roleId: role.id,
-        },
-      });
-    }
-  }
-
-  // 3. Create Class and Section
-  const class10 = await prisma.class.upsert({
-    where: { id: 'class-10-id' },
-    update: {},
-    create: {
-      id: 'class-10-id',
-      name: 'Grade 10',
+      },
     },
   });
 
-  const sectionA = await prisma.section.upsert({
-    where: { id: 'section-a-id' },
+  // 3. Create Room and Class
+  const room = await prisma.classroom.upsert({
+    where: { roomNo: '101A' },
     update: {},
     create: {
-      id: 'section-a-id',
-      name: 'Section A',
-      classId: class10.id,
+      roomNo: '101A',
     },
   });
 
-  // 4. Create Student record linked to student user
-  const studentUser = await prisma.user.findUnique({
-    where: { email: 'student@gmail.com' },
+  const class10 = await prisma.class.create({
+    data: {
+      grade: 10,
+      section: 'A',
+      capacity: 30,
+      roomId: room.id,
+    },
   });
 
-  if (studentUser) {
-    await prisma.student.upsert({
-      where: { userId: studentUser.id },
-      update: {},
-      create: {
-        userId: studentUser.id,
-        classId: class10.id,
-        sectionId: sectionA.id,
-        rollNumber: '001',
-        dob: new Date('2008-05-15'),
-        gender: 'Male',
-        additionalMetadata: {},
-      },
-    });
-  }
-
-  // 5. Create Staff record linked to staff user
-  const staffUser = await prisma.user.findUnique({
-    where: { email: 'staff@gmail.com' },
-  });
-
-  if (staffUser) {
-    const staff = await prisma.staff.upsert({
-      where: { userId: staffUser.id },
-      update: {},
-      create: {
-        userId: staffUser.id,
-        designation: 'Administrative Assistant',
-        qualification: "Bachelor's Degree",
-        department: 'administration',
-        experienceYears: 3,
-        employmentDate: new Date('2023-01-15'),
-        employmentStatus: 'active',
-        salary: 35000.0,
-        additionalMetadata: {},
-      },
-    });
-
-    // Create staff profile
-    await prisma.staffProfile.upsert({
-      where: { staffId: staff.id },
-      update: {},
-      create: {
-        staffId: staff.id,
-        bio: 'Experienced administrative assistant with expertise in office management and student services.',
-        emergencyContact: {
-          name: 'John Smith',
-          phone: '+1-555-0123',
-          relationship: 'Spouse',
-        },
-        address: {
-          street: '123 Main Street',
-          city: 'Springfield',
-          state: 'IL',
-          zipCode: '62701',
-          country: 'USA',
-        },
-        socialLinks: {},
-        additionalData: {},
-      },
-    });
-  }
-
-  // 6. Create Parent-Student relationship
-  const parentUser = await prisma.user.findUnique({
-    where: { email: 'parent@gmail.com' },
-  });
-
-  const student = await prisma.student.findUnique({
-    where: { userId: studentUser?.id },
-  });
-
-  if (parentUser && student) {
-    await prisma.parentStudentLink.upsert({
-      where: {
-        parentId_studentId: {
-          parentId: parentUser.id,
-          studentId: student.id,
-        },
-      },
-      update: {},
-      create: {
-        parentId: parentUser.id,
-        studentId: student.id,
-        relationship: 'Mother',
-        isPrimary: true,
-      },
-    });
-  }
-
-  // 8. Create sample subjects
-  const subjects = [
-    {
+  // 4. Create Subject
+  const math = await prisma.subject.create({
+    data: {
       name: 'Mathematics',
       code: 'MATH',
-      description: 'Mathematical concepts and problem solving',
+      maxMarks: 100,
+      passMarks: 40,
     },
-    {
-      name: 'Physics',
-      code: 'PHY',
-      description: 'Laws of physics and scientific principles',
-    },
-    {
-      name: 'Chemistry',
-      code: 'CHEM',
-      description: 'Chemical reactions and properties',
-    },
-    {
-      name: 'Biology',
-      code: 'BIO',
-      description: 'Life sciences and biological processes',
-    },
-    {
-      name: 'English',
-      code: 'ENG',
-      description: 'Language arts and literature',
-    },
-    {
-      name: 'History',
-      code: 'HIST',
-      description: 'Historical events and analysis',
-    },
-  ];
+  });
 
-  const createdSubjects = [];
-  for (const subject of subjects) {
-    const createdSubject = await prisma.subject.upsert({
-      where: { code: subject.code },
-      update: {},
-      create: {
-        name: subject.name,
-        code: subject.code,
-        description: subject.description,
-        createdById: superAdminUser.id,
+  // 5. Create Teacher User and Record
+  const teacherUser = await prisma.user.create({
+    data: {
+      email: 'teacher@gmail.com',
+      fullName: 'Teacher User',
+      passwordHash: await argon2.hash('teacher123'),
+      roles: {
+        create: {
+          role: {
+            connect: { name: 'TEACHER' },
+          },
+        },
       },
-    });
-    createdSubjects.push(createdSubject);
-  }
+    },
+  });
 
-  // 9. Create sample teachers
-  const teachers = [
-    {
-      fullName: 'Dr. Sarah Mitchell',
-      email: 'sarah.mitchell@school.edu',
-      phone: '+1555123456',
-      employeeId: 'EMP001',
-      designation: 'Senior Teacher',
-      department: 'Mathematics',
-      qualification: 'PhD in Mathematics',
-      specialization: 'Advanced Mathematics',
-      experienceYears: 15,
-      basicSalary: 75000,
-      allowances: 5000,
-      totalSalary: 80000,
-    },
-    {
-      fullName: 'Prof. Michael Chen',
-      email: 'michael.chen@school.edu',
-      phone: '+1555234567',
-      employeeId: 'EMP002',
-      designation: 'Teacher',
-      department: 'Science',
-      qualification: 'MSc Physics',
-      specialization: 'Physics',
-      experienceYears: 8,
-      basicSalary: 68000,
-      allowances: 4000,
-      totalSalary: 72000,
-    },
-    {
-      fullName: 'Ms. Emma Thompson',
-      email: 'emma.thompson@school.edu',
-      phone: '+1555345678',
-      employeeId: 'EMP003',
-      designation: 'Assistant Teacher',
-      department: 'English',
-      qualification: 'MA English Literature',
-      specialization: 'Literature',
+  const teacher = await prisma.teacher.create({
+    data: {
+      userId: teacherUser.id,
+      joiningDate: new Date(),
+      designation: 'Mathematics Teacher',
+      qualification: 'MSc Mathematics',
       experienceYears: 5,
-      basicSalary: 58000,
-      allowances: 3000,
-      totalSalary: 61000,
+      basicSalary: 60000,
+      allowances: 5000,
+      totalSalary: 65000,
+      dob: new Date('1990-05-10'),
+      gender: 'Female',
+      maritalStatus: 'Single',
     },
-  ];
+  });
 
-  const createdTeachers = [];
-  for (const teacherData of teachers) {
-    // Create user for teacher
-    const teacherUser = await prisma.user.upsert({
-      where: { email: teacherData.email },
-      update: {},
-      create: {
-        email: teacherData.email,
-        phone: teacherData.phone,
-        fullName: teacherData.fullName,
-        passwordHash: await import('bcrypt').then(bcrypt =>
-          bcrypt.hash('teacher123', 10),
-        ),
-        needPasswordChange: true,
-        createdById: superAdminUser.id,
-        roles: {
-          create: {
-            role: { connect: { name: 'TEACHER' } },
+  // 6. Assign Subject to Teacher and Class
+  await prisma.classSubject.create({
+    data: {
+      classId: class10.id,
+      subjectId: math.id,
+      teacherId: teacher.id,
+    },
+  });
+
+  // 7. Create Student User and Record
+  const studentUser = await prisma.user.create({
+    data: {
+      email: 'student@gmail.com',
+      fullName: 'John Doe',
+      passwordHash: await argon2.hash('student123'),
+      roles: {
+        create: {
+          role: {
+            connect: { name: 'STUDENT' },
           },
         },
       },
-    });
+    },
+  });
 
-    // Create teacher record
-    const teacher = await prisma.teacher.upsert({
-      where: { userId: teacherUser.id },
-      update: {},
-      create: {
-        userId: teacherUser.id,
-        employeeId: teacherData.employeeId,
-        designation: teacherData.designation,
-        qualification: teacherData.qualification,
-        specialization: teacherData.specialization,
-        department: teacherData.department,
-        experienceYears: teacherData.experienceYears,
-        employmentDate: new Date(),
-        basicSalary: teacherData.basicSalary,
-        allowances: teacherData.allowances,
-        totalSalary: teacherData.totalSalary,
-        createdById: superAdminUser.id,
-        profile: {
-          create: {
-            bio: `Experienced ${teacherData.department} teacher with ${teacherData.experienceYears} years of teaching experience.`,
-            contactInfo: {
-              phone: teacherData.phone,
-              email: teacherData.email,
-            },
-            socialLinks: {},
-            createdById: superAdminUser.id,
+  // Create address first
+  const address = await prisma.address.create({
+    data: {
+      street: 'Naya Bazar',
+      city: 'Kathmandu',
+      state: 'Bagmati',
+      pinCode: '44600',
+    },
+  });
+
+  const student = await prisma.student.create({
+    data: {
+      userId: studentUser.id,
+      classId: class10.id,
+      rollNumber: '001',
+      dob: new Date('2008-04-15'),
+      gender: 'Male',
+      admissionDate: new Date('2023-04-01'),
+      email: studentUser.email,
+      fatherName: 'Ram Bahadur',
+      motherName: 'Sita Devi',
+      fatherEmail: 'ram@example.com',
+      motherEmail: 'sita@example.com',
+      addressId: address.id,
+    },
+  });
+
+  // 8. Create Parent User and Link
+  const parentUser = await prisma.user.create({
+    data: {
+      email: 'parent@gmail.com',
+      fullName: 'Parent User',
+      passwordHash: await argon2.hash('parent123'),
+      roles: {
+        create: {
+          role: {
+            connect: { name: 'PARENT' },
           },
         },
       },
-    });
+    },
+  });
 
-    createdTeachers.push(teacher);
-  }
+  await prisma.parentStudentLink.create({
+    data: {
+      parentId: parentUser.id,
+      studentId: student.id,
+      isPrimary: true,
+      relationship: 'Father',
+    },
+  });
 
-  // Assign subjects to teachers
-  if (createdTeachers.length > 0 && createdSubjects.length > 0) {
-    // Math teacher gets Math subject
-    await prisma.teacherSubject.upsert({
-      where: {
-        teacherId_subjectId: {
-          teacherId: createdTeachers[0].id,
-          subjectId: createdSubjects[0].id, // Mathematics
-        },
-      },
-      update: {},
-      create: {
-        teacherId: createdTeachers[0].id,
-        subjectId: createdSubjects[0].id,
-        createdById: superAdminUser.id,
-      },
-    });
+  // 9. Create ID Card for Student
+  const idTemplate = await prisma.iDCardTemplate.create({
+    data: {
+      name: 'Default Student Template',
+      layout: {},
+    },
+  });
 
-    // Science teacher gets Physics and Chemistry
-    await prisma.teacherSubject.upsert({
-      where: {
-        teacherId_subjectId: {
-          teacherId: createdTeachers[1].id,
-          subjectId: createdSubjects[1].id, // Physics
-        },
-      },
-      update: {},
-      create: {
-        teacherId: createdTeachers[1].id,
-        subjectId: createdSubjects[1].id,
-        createdById: superAdminUser.id,
-      },
-    });
+  await prisma.iDCard.create({
+    data: {
+      type: 'Student',
+      templateId: idTemplate.id,
+      expiryDate: new Date('2026-01-01'),
+      issuedForId: studentUser.id,
+    },
+  });
 
-    await prisma.teacherSubject.upsert({
-      where: {
-        teacherId_subjectId: {
-          teacherId: createdTeachers[1].id,
-          subjectId: createdSubjects[2].id, // Chemistry
-        },
-      },
-      update: {},
-      create: {
-        teacherId: createdTeachers[1].id,
-        subjectId: createdSubjects[2].id,
-        createdById: superAdminUser.id,
-      },
-    });
-
-    // English teacher gets English subject
-    await prisma.teacherSubject.upsert({
-      where: {
-        teacherId_subjectId: {
-          teacherId: createdTeachers[2].id,
-          subjectId: createdSubjects[4].id, // English
-        },
-      },
-      update: {},
-      create: {
-        teacherId: createdTeachers[2].id,
-        subjectId: createdSubjects[4].id,
-        createdById: superAdminUser.id,
-      },
-    });
-  }
-
-  console.log(
-    '✅ Seeded roles, 6 users, class, section, student, staff, parent, subjects, and 3 teachers successfully.',
-  );
+  console.log('✅ Extended seed data created successfully.');
 }
 
 main()
   .catch(e => {
-    console.error('❌ Seed error:', e);
+    console.error('❌ Error during seed:', e);
     process.exit(1);
   })
   .finally(() => {
-    void prisma.$disconnect();
+    prisma.$disconnect();
   });

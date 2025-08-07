@@ -3,6 +3,7 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   Req,
   Res,
@@ -10,6 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../application/auth.service';
 import { LoginDto, ForceChangePasswordDto } from '../dto/auth.dto';
 import { setAuthCookies, COOKIE_OPTIONS } from '../../../shared/auth/cookie';
@@ -113,6 +115,23 @@ export class AuthController {
     res.clearCookie('refreshToken', COOKIE_OPTIONS.refreshToken);
 
     return res.status(200).json({ message: 'Logged out successfully' });
+  }
+
+  /**
+   * 👤 Get current user information
+   * Protected endpoint that returns current user data
+   */
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  async getCurrentUser(@Req() req: Request): Promise<any> {
+    const userId = (req as any).user?.id;
+
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+
+    const user = await this.authService.getCurrentUser(userId as string);
+    return user;
   }
 
   /**

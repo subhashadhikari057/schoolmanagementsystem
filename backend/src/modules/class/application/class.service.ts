@@ -25,19 +25,24 @@ export class ClassService {
   ) {
     const exists = await this.prisma.class.findFirst({
       where: {
-        name: dto.name,
+        grade: dto.grade,
+        section: dto.section,
         deletedAt: null,
       },
     });
 
     if (exists) {
-      throw new ConflictException('Class with this name already exists');
+      throw new ConflictException(
+        'Class with this grade and section already exists',
+      );
     }
 
     const newClass = await this.prisma.class.create({
       data: {
-        name: dto.name,
-        createdById,
+        grade: dto.grade,
+        section: dto.section,
+        capacity: dto.capacity,
+        roomId: dto.roomId,
       },
     });
 
@@ -46,7 +51,7 @@ export class ClassService {
       action: 'CREATE_CLASS',
       module: 'class',
       status: 'SUCCESS',
-      details: { id: newClass.id, name: dto.name },
+      details: { id: newClass.id, grade: dto.grade, section: dto.section },
       ipAddress: ip,
       userAgent,
     });
@@ -66,7 +71,7 @@ export class ClassService {
           orderBy: { name: 'asc' },
         },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { grade: 'asc' },
     });
   }
 
@@ -108,10 +113,14 @@ export class ClassService {
     }
 
     // Check for duplicate name if name is being updated
-    if (dto.name && dto.name !== classRecord.name) {
+    if (
+      (dto.grade && dto.grade !== classRecord.grade) ||
+      (dto.section && dto.section !== classRecord.section)
+    ) {
       const exists = await this.prisma.class.findFirst({
         where: {
-          name: dto.name,
+          grade: dto.grade || classRecord.grade,
+          section: dto.section || classRecord.section,
           deletedAt: null,
           id: { not: id }, // Exclude current class from check
         },

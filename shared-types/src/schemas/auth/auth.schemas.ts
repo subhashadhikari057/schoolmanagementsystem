@@ -264,6 +264,27 @@ export const LogoutResponseSchema = z.object({
 
 /**
  * =============================================================================
+ * FORCE PASSWORD CHANGE SCHEMAS
+ * =============================================================================
+ */
+
+/**
+ * Force password change schema (when user must change password)
+ */
+export const ForceChangePasswordSchema = z.object({
+  temp_token: z.string().min(1, 'Temporary token is required'),
+  new_password: CommonValidation.password,
+  confirm_password: z.string().min(1, 'Password confirmation is required'),
+}).refine(
+  (data) => data.new_password === data.confirm_password,
+  {
+    message: 'Passwords do not match',
+    path: ['confirm_password'],
+  }
+);
+
+/**
+ * =============================================================================
  * TWO-FACTOR AUTHENTICATION SCHEMAS
  * =============================================================================
  */
@@ -312,6 +333,7 @@ export type RegisterResponse = z.infer<typeof RegisterResponseSchema>;
 export type RequestPasswordReset = z.infer<typeof RequestPasswordResetSchema>;
 export type PasswordReset = z.infer<typeof PasswordResetSchema>;
 export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
+export type ForceChangePassword = z.infer<typeof ForceChangePasswordSchema>;
 
 // Session types
 export type RefreshTokenRequest = z.infer<typeof RefreshTokenRequestSchema>;

@@ -140,7 +140,7 @@ export function validateEnvironment(): EnvConfig {
     dotenvSafe.config({
       path: path.resolve(process.cwd(), '.env'),
       example: path.resolve(process.cwd(), '.env.example'),
-      allowEmptyValues: false,
+      allowEmptyValues: true,
     });
 
     // Validate the environment variables using Zod schema

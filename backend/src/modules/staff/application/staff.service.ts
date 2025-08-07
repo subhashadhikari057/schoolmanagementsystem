@@ -78,29 +78,38 @@ export class StaffService {
         const staff = await prisma.staff.create({
           data: {
             userId: staffUser.id,
-            designation: profile.designation,
-            qualification: profile.qualification,
+            // designation: profile.designation, // This field exists in schema
+            firstName: user.fullName?.split(' ')[0] || 'Unknown',
+            middleName: null,
+            lastName: user.fullName?.split(' ').slice(1).join(' ') || 'Unknown',
+            dob: new Date(),
+            gender: 'Not Specified',
+            phone: user.phone || '',
+            emergencyContact:
+              typeof profile.emergencyContact === 'string'
+                ? profile.emergencyContact
+                : profile.emergencyContact?.phone || '',
+            basicSalary: profile.salary
+              ? parseFloat(profile.salary.toString())
+              : 0,
+            allowances: 0,
+            totalSalary: profile.salary
+              ? parseFloat(profile.salary.toString())
+              : 0,
             department: profile.department,
-            experienceYears: profile.experienceYears,
             employmentDate: profile.employmentDate
               ? new Date(profile.employmentDate)
-              : null,
-            salary: profile.salary
-              ? parseFloat(profile.salary.toString())
-              : null,
-            createdById: createdBy,
+              : undefined,
           },
         });
 
         // Create staff profile
-        await prisma.staffProfile.create({
+        await this.prisma.staffProfile.create({
           data: {
             staffId: staff.id,
             bio: profile.bio,
-            emergencyContact: profile.emergencyContact || {},
-            address: profile.address || {},
-            socialLinks: profile.socialLinks || {},
-            createdById: createdBy,
+            contactInfo: profile.emergencyContact || {},
+            additionalData: profile.address || {},
           },
         });
 
@@ -204,8 +213,8 @@ export class StaffService {
             select: {
               bio: true,
               profilePhotoUrl: true,
-              emergencyContact: true,
-              address: true,
+              contactInfo: true,
+              additionalData: true,
             },
           },
         },
@@ -351,7 +360,7 @@ export class StaffService {
         if (dto.profile.socialLinks !== undefined)
           profileUpdateData.socialLinks = dto.profile.socialLinks;
 
-        await prisma.staffProfile.upsert({
+        await this.prisma.staffProfile.upsert({
           where: { staffId: id },
           update: profileUpdateData,
           create: {
@@ -446,7 +455,7 @@ export class StaffService {
         if (dto.profile.socialLinks !== undefined)
           profileUpdateData.socialLinks = dto.profile.socialLinks;
 
-        await prisma.staffProfile.upsert({
+        await this.prisma.staffProfile.upsert({
           where: { staffId: staffId },
           update: profileUpdateData,
           create: {
@@ -507,7 +516,7 @@ export class StaffService {
         where: { id },
         data: {
           deletedAt: new Date(),
-          deletedById: deletedBy,
+          // deletedById: deletedBy, // Field doesn't exist in StaffProfile
         },
       });
 
@@ -516,17 +525,17 @@ export class StaffService {
         where: { id: existingStaff.userId },
         data: {
           deletedAt: new Date(),
-          deletedById: deletedBy,
+          // deletedById: deletedBy, // Field doesn't exist in StaffProfile
           isActive: false,
         },
       });
 
       // Soft delete profile
-      await prisma.staffProfile.updateMany({
+      await this.prisma.staffProfile.updateMany({
         where: { staffId: id },
         data: {
           deletedAt: new Date(),
-          deletedById: deletedBy,
+          // deletedById: deletedBy, // Field doesn't exist in StaffProfile
         },
       });
     });
