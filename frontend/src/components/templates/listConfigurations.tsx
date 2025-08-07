@@ -31,7 +31,6 @@ export interface Student extends BaseItem {
   section?: string;
 
   attendance?: {
-    percentage: number;
     present: number;
     total: number;
   };
@@ -163,8 +162,6 @@ export interface Subject extends BaseItem {
   status: 'Active' | 'Inactive';
   gradeClasses: string[];
   teachers: string[];
-  scheduleInfo: string;
-  studentsCount: number;
   examConfig: string;
 }
 
@@ -810,8 +807,6 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         mobileLabel: 'Classes',
       },
       { key: 'teachers', header: 'Teachers', mobileLabel: 'Teachers' },
-      { key: 'scheduleInfo', header: 'Schedule Info', mobileLabel: 'Schedule' },
-      { key: 'studentsCount', header: 'Students', mobileLabel: 'Students' },
       { key: 'examConfig', header: 'Exam Config', mobileLabel: 'Exam' },
       {
         key: 'actions',

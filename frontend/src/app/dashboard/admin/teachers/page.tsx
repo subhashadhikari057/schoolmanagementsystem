@@ -91,80 +91,28 @@ const TeachersPage = () => {
       const response = await teacherService.getAllTeachers();
 
       if (response.success && response.data) {
-        // Map backend data to frontend Teacher interface
+        // Map backend data to minimal Teacher interface for table
         const mappedTeachers: Teacher[] = response.data.map(
           (teacher, index) => ({
-            id: index + 1, // Frontend uses numeric IDs
+            id: index + 1,
             name: teacher.fullName,
             faculty: teacher.department || 'General',
             subjects: teacher.subjects?.map(s => s.name) || [],
+            classTeacher:
+              teacher.classAssignments
+                ?.map(ca => `${ca.className} ${ca.sectionName}`)
+                .join(', ') || '',
             status:
               teacher.employmentStatus === 'active'
                 ? 'Active'
                 : teacher.employmentStatus === 'on_leave'
                   ? 'On Leave'
                   : 'Inactive',
-            avatar: teacher.profilePhotoUrl,
-            teacherId: teacher.employeeId || teacher.id,
             email: teacher.email,
-            phone: teacher.phone,
-            address: teacher.address || teacher.contactInfo?.address || '',
             designation: teacher.designation,
             department: teacher.department,
-            experience: teacher.experienceYears
-              ? `${teacher.experienceYears} years`
-              : '',
-            joinedDate: teacher.employmentDate || teacher.createdAt,
-            salary: teacher.totalSalary,
-            classTeacher: teacher.classAssignments
-              ?.map(ca => `${ca.className} ${ca.sectionName}`)
-              .join(', '),
-            subjects_detailed:
-              teacher.subjects?.map(s => ({
-                name: s.name,
-                grade: 'Multiple', // Would need more detailed mapping
-              })) || [],
-
-            // Extended fields from backend
-            qualification: teacher.qualification,
-            specialization: teacher.specialization,
-            employmentStatus: teacher.employmentStatus,
-            employmentDate: teacher.employmentDate,
-            experienceYears: teacher.experienceYears,
-
-            // Personal Information
-            dateOfBirth: teacher.dateOfBirth,
-            gender: teacher.gender,
-            bloodGroup: teacher.bloodGroup,
-
-            // Salary Information
-            basicSalary: teacher.basicSalary,
-            allowances: teacher.allowances,
-            totalSalary: teacher.totalSalary,
-
-            // Class Teacher Status
-            isClassTeacher: teacher.isClassTeacher,
-
-            // Additional Information
-            languagesKnown: teacher.languagesKnown,
-            certifications: teacher.certifications,
-            previousExperience: teacher.previousExperience,
-
-            // Profile Information
-            bio: teacher.bio,
-            contactInfo: teacher.contactInfo,
-            socialLinks: teacher.socialLinks,
-
-            // System fields
-            isActive: teacher.isActive,
-            lastLoginAt: teacher.lastLoginAt,
-
-            // Subject and class assignments
-            subjectAssignments: teacher.subjects,
-            classAssignments: teacher.classAssignments,
           }),
         );
-
         setTeachers(mappedTeachers);
       } else {
         throw new Error(response.message || 'Failed to load teachers');

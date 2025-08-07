@@ -2,7 +2,6 @@ import React from 'react';
 
 interface AttendanceCellProps {
   attendance?: {
-    percentage: number;
     present: number;
     total: number;
   };
@@ -27,21 +26,8 @@ const AttendanceCell: React.FC<AttendanceCellProps> = ({ attendance }) => {
 
   return (
     <div className='space-y-2'>
-      <div
-        className={`font-medium text-lg ${getAttendanceColor(attendance.percentage).split(' ')[0]}`}
-      >
-        {attendance.percentage.toFixed(1)}%
-      </div>
-
       <div className='text-xs text-gray-500'>
         {attendance.present}/{attendance.total} days
-      </div>
-
-      <div className='w-full bg-gray-200 rounded-full h-2'>
-        <div
-          className={`h-2 rounded-full ${getProgressColor(attendance.percentage)}`}
-          style={{ width: `${Math.min(attendance.percentage, 100)}%` }}
-        ></div>
       </div>
     </div>
   );
