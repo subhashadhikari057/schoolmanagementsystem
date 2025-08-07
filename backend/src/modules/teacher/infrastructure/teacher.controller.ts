@@ -62,14 +62,24 @@ export class TeacherController {
     @Req() req: Request,
   ) {
     try {
-      // Parse the nested JSON data from form-data
+      // Helper function to safely parse JSON or return object if already parsed
+      const safeJsonParse = (value: any) => {
+        if (!value) return undefined;
+        if (typeof value === 'object') return value; // Already parsed
+        if (typeof value === 'string') return JSON.parse(value); // Parse string
+        return value;
+      };
+
+      // Parse the nested JSON data from form-data or use directly if JSON
       const parsedData = {
-        user: body.user ? JSON.parse(body.user) : {},
-        personal: body.personal ? JSON.parse(body.personal) : undefined,
-        professional: body.professional ? JSON.parse(body.professional) : {},
-        subjects: body.subjects ? JSON.parse(body.subjects) : undefined,
-        salary: body.salary ? JSON.parse(body.salary) : undefined,
-        additional: body.additional ? JSON.parse(body.additional) : undefined,
+        user: body.user ? safeJsonParse(body.user) : {},
+        personal: body.personal ? safeJsonParse(body.personal) : undefined,
+        professional: body.professional ? safeJsonParse(body.professional) : {},
+        subjects: body.subjects ? safeJsonParse(body.subjects) : undefined,
+        salary: body.salary ? safeJsonParse(body.salary) : undefined,
+        additional: body.additional
+          ? safeJsonParse(body.additional)
+          : undefined,
       };
 
       // Validate using Zod
@@ -99,6 +109,34 @@ export class TeacherController {
       }
       throw error;
     }
+  }
+
+  /**
+   * Create teacher without file upload (JSON only)
+   */
+  @Post('json')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  async createWithJson(
+    @Body(new ZodValidationPipe(CreateTeacherDto)) body: CreateTeacherDtoType,
+    @CurrentUser() user: { id: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.teacherService.create(
+      body,
+      user.id,
+      undefined, // No file
+      req.ip,
+      req.headers['user-agent'],
+    );
+
+    return {
+      message: 'Teacher created successfully',
+      teacher: result.teacher,
+      ...(result.temporaryPassword && {
+        temporaryPassword: result.temporaryPassword,
+      }),
+    };
   }
 
   @Get()

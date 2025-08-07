@@ -4,11 +4,12 @@ import { z } from 'zod';
 // CreateClass DTO
 // ---------------------------
 export const CreateClassDto = z.object({
-  name: z.string().min(1, 'Class name is required').optional(), // e.g. "Grade 10"
+  name: z.string().min(1, 'Class name is required').optional(), // e.g. "Grade 10 Section A"
   grade: z.number().min(1).max(12, 'Grade must be between 1 and 12'),
-  section: z.string().min(1, 'Section is required'),
+  section: z.string().min(1, 'Section is required'), // e.g. "A", "B", "C"
   capacity: z.number().min(1, 'Capacity must be at least 1'),
   roomId: z.string().uuid('Invalid room ID'),
+  classTeacherId: z.string().uuid('Invalid teacher ID').optional(), // Optional class teacher
 });
 
 export type CreateClassDtoType = z.infer<typeof CreateClassDto>;
@@ -22,6 +23,7 @@ export const UpdateClassDto = z.object({
   section: z.string().min(1).optional(),
   capacity: z.number().min(1).optional(),
   roomId: z.string().uuid().optional(),
+  classTeacherId: z.string().uuid('Invalid teacher ID').optional(), // Can update class teacher
 });
 
 export type UpdateClassDtoType = z.infer<typeof UpdateClassDto>;

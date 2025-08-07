@@ -102,23 +102,55 @@ model Class {
 }
 
 model Classroom {
-  id      String @id @default(uuid())
-  roomNo  String @unique
-  note    String?
-  status  String @default("active")
+  id          String  @id @default(uuid())
+  roomNo      String  @unique
+  name        String?
+  capacity    Int     @default(30)
+  floor       Int     @default(1)
+  building    String?
+  note        String?
+  status      String  @default("active")
+  isAvailable Boolean @default(true)
 
   classes Class[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([status])
+  @@index([isAvailable])
 }
 
 model ClassSubject {
   id        String  @id @default(uuid())
   classId   String
   subjectId String
-  teacherId String
+  teacherId String? // Optional - can assign teacher later
 
   class   Class   @relation(fields: [classId], references: [id])
   subject Subject @relation(fields: [subjectId], references: [id])
-  teacher Teacher @relation("TeacherClassSubjects", fields: [teacherId], references: [id])
+  teacher Teacher? @relation("TeacherClassSubjects", fields: [teacherId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@unique([classId, subjectId]) // Prevent duplicate subject assignments to same class
 }
 
 // =========================
@@ -334,6 +366,18 @@ model TeacherSubject {
 
   teacher Teacher @relation("TeacherSubjectAssignments", fields: [teacherId], references: [id])
   subject Subject @relation("SubjectTeacherAssignments", fields: [subjectId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
 }
 
 model TeacherClass {
@@ -349,6 +393,14 @@ model TeacherClass {
   createdAt DateTime @default(now())
   updatedAt DateTime?
   deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
 }
 
 // =========================

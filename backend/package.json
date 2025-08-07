@@ -32,7 +32,9 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:hierarchy": "jest --config ./test/jest-e2e.json --testNamePattern=\"API Hierarchy Tests\"",
+    "test:hierarchy:runner": "ts-node test/run-hierarchy-tests.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

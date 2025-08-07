@@ -29,15 +29,36 @@ export class SubjectService {
 
     if (existing) throw new ConflictException('Subject code already exists');
 
-    const subject = await this.prisma.subject.create({
-      data: {
-        name: dto.name,
-        code: dto.code,
-        description: dto.description,
-        maxMarks: dto.maxMarks || 100,
-        passMarks: dto.passMarks || 40,
-        createdById: createdBy,
-      },
+    // Use transaction to create subject and class assignments together
+    const result = await this.prisma.$transaction(async tx => {
+      // Create the subject
+      const subject = await tx.subject.create({
+        data: {
+          name: dto.name,
+          code: dto.code,
+          description: dto.description,
+          maxMarks: dto.maxMarks || 100,
+          passMarks: dto.passMarks || 40,
+          createdById: createdBy,
+        },
+      });
+
+      // Create class assignments if provided
+      if (dto.classAssignments && dto.classAssignments.length > 0) {
+        const classAssignmentData = dto.classAssignments.map(assignment => ({
+          classId: assignment.classId,
+          subjectId: subject.id,
+          teacherId: assignment.teacherId || null,
+          createdById: createdBy,
+        }));
+
+        await tx.classSubject.createMany({
+          data: classAssignmentData,
+          skipDuplicates: true,
+        });
+      }
+
+      return subject;
     });
 
     await this.audit.record({
@@ -45,12 +66,16 @@ export class SubjectService {
       action: 'CREATE_SUBJECT',
       module: 'subject',
       status: 'SUCCESS',
-      details: { id: subject.id, code: subject.code },
+      details: {
+        id: result.id,
+        code: result.code,
+        classAssignments: dto.classAssignments?.length || 0,
+      },
       ipAddress: ip,
       userAgent,
     });
 
-    return subject;
+    return result;
   }
 
   /**
