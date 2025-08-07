@@ -15,6 +15,7 @@ export interface TableColumn<T = BaseItem> {
     item: T,
     isSelected?: boolean,
     onSelect?: (id: string | number) => void,
+    onSubjectAction?: (action: string, subject: T) => void,
   ) => ReactNode;
   className?: string;
   mobileLabel?: string;
@@ -29,6 +30,8 @@ export interface GenericTableProps<T extends BaseItem> {
   itemsPerPage?: number;
   emptyMessage?: string;
   onItemAction?: (action: string, item: T) => void;
+  onSubjectAction?: (action: string, subject: T) => void;
+  onPageChange?: (page: number) => void;
   enableSelection?: boolean;
   selectedItems?: (string | number)[];
   onSelectionChange?: (selectedIds: (string | number)[]) => void;
@@ -43,6 +46,8 @@ const GenericTable = <T extends BaseItem>({
   itemsPerPage = 10,
   emptyMessage = 'No data available',
   onItemAction,
+  onSubjectAction,
+  onPageChange,
   enableSelection = false,
   selectedItems = [],
   onSelectionChange,
@@ -108,7 +113,7 @@ const GenericTable = <T extends BaseItem>({
     // Use custom render function if provided
     if (column.render) {
       const isSelected = selectedItems.includes(item.id);
-      return column.render(item, isSelected, handleItemSelect);
+      return column.render(item, isSelected, handleItemSelect, onSubjectAction);
     }
     // Fall back to default rendering
     return renderCellValue(column.key, item[column.key]);
@@ -205,6 +210,7 @@ const GenericTable = <T extends BaseItem>({
               totalPages={totalPages}
               totalItems={totalItems}
               itemsPerPage={itemsPerPage}
+              onPageChange={onPageChange}
             />
           )}
         </>

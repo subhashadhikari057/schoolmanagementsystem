@@ -14,34 +14,38 @@ import type { ApiResponse } from '../types/common';
 // ============================================================================
 
 export interface CreateClassRequest {
-  name: string;
-  section: string;
-  room: string;
-  subjectsCount: number;
-  classTeacher: string;
-  // e.g. "Grade 10"
+
+  name?: string; // e.g. "Grade 10 Section A" - optional
+  grade: number; // 1-12
+  section: string; // e.g. "A", "B", "C"
+  capacity: number;
+  roomId: string;
+  classTeacherId?: string; // Optional class teacher
 }
 
 export interface UpdateClassRequest {
   name?: string;
+  grade?: number;
+  section?: string;
+  capacity?: number;
+  roomId?: string;
+  classTeacherId?: string;
 }
 
 export interface ClassResponse {
   id: string;
-  name: string;
-  section: ClassSectionResponse[];
+  name?: string;
+  grade: number;
+  section: string;
+  capacity: number;
+  roomId: string;
+  classTeacherId?: string;
   createdAt: string;
   updatedAt?: string;
+  deletedAt?: string;
   createdById?: string;
   updatedById?: string;
-}
-
-export interface ClassSectionResponse {
-  id: string;
-  name: string;
-  classId: string;
-  createdAt: string;
-  updatedAt?: string;
+  deletedById?: string;
 }
 
 // ============================================================================
@@ -69,7 +73,7 @@ export class ClassService {
   }
 
   /**
-   * Get all classes with their sections
+   * Get all classes
    */
   async getAllClasses(): Promise<ApiResponse<ClassResponse[]>> {
     return this.httpClient.get<ClassResponse[]>('api/v1/classes');

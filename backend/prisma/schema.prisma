@@ -86,7 +86,6 @@ model Class {
   students       Student[]
   assignedSubjects ClassSubject[]
   teacherAssignments TeacherClass[] @relation("ClassTeacherAssignments")
-  sections       Section[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -102,23 +101,55 @@ model Class {
 }
 
 model Classroom {
-  id      String @id @default(uuid())
-  roomNo  String @unique
-  note    String?
-  status  String @default("active")
+  id          String  @id @default(uuid())
+  roomNo      String  @unique
+  name        String?
+  capacity    Int     @default(30)
+  floor       Int     @default(1)
+  building    String?
+  note        String?
+  status      String  @default("active")
+  isAvailable Boolean @default(true)
 
   classes Class[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([status])
+  @@index([isAvailable])
 }
 
 model ClassSubject {
   id        String  @id @default(uuid())
   classId   String
   subjectId String
-  teacherId String
+  teacherId String? // Optional - can assign teacher later
 
   class   Class   @relation(fields: [classId], references: [id])
   subject Subject @relation(fields: [subjectId], references: [id])
-  teacher Teacher @relation("TeacherClassSubjects", fields: [teacherId], references: [id])
+  teacher Teacher? @relation("TeacherClassSubjects", fields: [teacherId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@unique([classId, subjectId]) // Prevent duplicate subject assignments to same class
 }
 
 // =========================
@@ -226,33 +257,7 @@ model Address {
   students Student[]
 }
 
-// =========================
-// 📚 Section Management
-// =========================
 
-model Section {
-  id        String @id @default(uuid())
-  name      String
-  classId   String
-  capacity  Int?
-  status    String @default("active")
-  
-  class     Class @relation(fields: [classId], references: [id])
-  teacherClasses TeacherClass[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-  
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
-
-  @@unique([classId, name])
-  @@index([createdById])
-  @@index([updatedById])
-  @@index([deletedById])
-}
 
 // =========================
 // 🧑‍🏫 Teacher Management
@@ -334,21 +339,39 @@ model TeacherSubject {
 
   teacher Teacher @relation("TeacherSubjectAssignments", fields: [teacherId], references: [id])
   subject Subject @relation("SubjectTeacherAssignments", fields: [subjectId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
 }
 
 model TeacherClass {
   id        String @id @default(uuid())
   teacherId String
   classId   String
-  sectionId String?
 
   teacher Teacher @relation("TeacherClassAssignments", fields: [teacherId], references: [id])
   class   Class   @relation("ClassTeacherAssignments", fields: [classId], references: [id])
-  section Section? @relation(fields: [sectionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime?
   deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
 }
 
 // =========================

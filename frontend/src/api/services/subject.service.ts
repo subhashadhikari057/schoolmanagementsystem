@@ -83,10 +83,15 @@ export class SubjectService {
   }
 
   /**
-   * Delete subject
+   * Delete subject (with foreign key constraint handling)
    */
-  async deleteSubject(id: string): Promise<ApiResponse<void>> {
-    return this.httpClient.delete<void>(SUBJECT_ENDPOINTS.DELETE(id));
+  async deleteSubject(
+    id: string,
+  ): Promise<ApiResponse<{ message: string; affectedRelations?: string[] }>> {
+    return this.httpClient.delete<{
+      message: string;
+      affectedRelations?: string[];
+    }>(SUBJECT_ENDPOINTS.DELETE(id));
   }
 }
 

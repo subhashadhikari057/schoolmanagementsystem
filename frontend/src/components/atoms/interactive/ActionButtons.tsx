@@ -6,11 +6,7 @@ import {
   Mail,
   MessageSquare,
   Plus,
-  Calendar,
-  Users,
-  CreditCard,
   Printer,
-  QrCode,
 } from 'lucide-react';
 import AddUserFormModal, {
   UserType,
@@ -37,6 +33,7 @@ interface ActionButtonsProps {
     | 'subjects'
     | 'id-cards'
     | 'classes';
+  onRefresh?: () => void;
 }
 
 const getActionButtonsConfig = (
@@ -90,7 +87,6 @@ const getActionButtonsConfig = (
     },
   ];
 
-  // Add additional buttons based on page type
   const additionalButtons: ActionButtonConfig[] = [];
 
   if (pageType === 'students') {
@@ -105,33 +101,6 @@ const getActionButtonsConfig = (
           '📧 Mass Email Generation - Create bulk email accounts for all selected students with automated password distribution!',
         ),
     });
-  }
-
-  if (pageType === 'subjects') {
-    additionalButtons.push(
-      {
-        id: 'subject-schedule',
-        label: 'Schedule',
-        variant: 'secondary',
-        className: 'bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg',
-        icon: <Calendar size={16} />,
-        onClick: () =>
-          alert(
-            '📅 Subject Schedule Management - Configure class timings, room assignments, and recurring schedules for all subjects!',
-          ),
-      },
-      {
-        id: 'assign-teachers',
-        label: 'Assign Teachers',
-        variant: 'secondary',
-        className: 'bg-green-50 text-green-700 hover:bg-green-100 rounded-lg',
-        icon: <Users size={16} />,
-        onClick: () =>
-          alert(
-            '👥 Teacher Assignment - Link qualified teachers to subjects based on expertise and availability!',
-          ),
-      },
-    );
   }
 
   if (pageType === 'id-cards') {
@@ -167,7 +136,6 @@ const getActionButtonsConfig = (
     });
   }
 
-  // Add the primary action button
   const addButtonLabel =
     pageType === 'subjects'
       ? 'Subject'
@@ -187,22 +155,21 @@ const getActionButtonsConfig = (
   return [...baseButtons, ...additionalButtons];
 };
 
-export const ActionButtons = ({ pageType }: ActionButtonsProps) => {
+export const ActionButtons = ({ pageType, onRefresh }: ActionButtonsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const openAddModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
   const handleSuccess = () => {
-    // This will be called when the form is successfully submitted
-    // You can add additional logic here like refreshing the list
     console.log(`${pageType} added successfully`);
-    // You might want to trigger a refresh of the parent component data here
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
   const actionButtonsConfig = getActionButtonsConfig(pageType, openAddModal);
 
-  // Convert plural pageType to singular userType
   const getUserType = (pageType: string): UserType => {
     switch (pageType) {
       case 'teachers':
@@ -212,9 +179,9 @@ export const ActionButtons = ({ pageType }: ActionButtonsProps) => {
       case 'parents':
         return 'parent';
       case 'staff':
-        return 'staff'; // Staff is already singular
+        return 'staff';
       default:
-        return 'student'; // fallback
+        return 'student';
     }
   };
 

@@ -10,7 +10,6 @@ import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import {
   Users,
-  UserCheck,
   AlertCircle,
   GraduationCap,
   BookOpen,
@@ -69,7 +68,7 @@ const ClassesPage = () => {
     },
   ];
 
-  // Classes table data
+  // Static data for the list
   const classesData: Class[] = [
     {
       id: 1,
