@@ -14,6 +14,7 @@ import type { ApiResponse } from '../types/common';
 // ============================================================================
 
 export interface CreateClassRequest {
+
   name?: string; // e.g. "Grade 10 Section A" - optional
   grade: number; // 1-12
   section: string; // e.g. "A", "B", "C"

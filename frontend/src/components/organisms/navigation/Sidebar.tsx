@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import ProfileDropdown from '@/components/molecules/interactive/Dropdown';
 import { useAuth } from '@/hooks/useAuth';
+import { isDevMockEnabled } from '@/utils';
 
 type SidebarRole = 'Superadmin' | 'teacher' | 'student' | 'parent' | 'staff';
 
@@ -51,9 +52,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
   };
 
   // Development mode bypass
-  const showInDev =
-    process.env.NODE_ENV === 'development' &&
-    process.env.NEXT_PUBLIC_DEV_SIDEBAR === 'true';
+  const showInDev = isDevMockEnabled();
   const devRole = 'Superadmin'; // Default role for development
 
   // Early return if no user or no sidebar items for role (unless in dev mode)

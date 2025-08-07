@@ -6,17 +6,14 @@ import {
   Mail,
   MessageSquare,
   Plus,
-  Calendar,
-  Users,
-  CreditCard,
   Printer,
-  QrCode,
 } from 'lucide-react';
 import AddUserFormModal, {
   UserType,
 } from '@/components/organisms/modals/AddUserFormModal';
 import AddSubjectFormModal from '@/components/organisms/modals/AddSubjectFormModal';
 import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
+import AddClassModal from '@/components/organisms/modals/AddClassModal';
 
 interface ActionButtonConfig {
   id: string;
@@ -34,8 +31,9 @@ interface ActionButtonsProps {
     | 'parents'
     | 'staff'
     | 'subjects'
-    | 'id-cards';
-  onRefresh?: () => void | Promise<void>;
+    | 'id-cards'
+    | 'classes';
+  onRefresh?: () => void;
 }
 
 const getActionButtonsConfig = (
@@ -89,7 +87,6 @@ const getActionButtonsConfig = (
     },
   ];
 
-  // Add additional buttons based on page type
   const additionalButtons: ActionButtonConfig[] = [];
 
   if (pageType === 'students') {
@@ -105,9 +102,6 @@ const getActionButtonsConfig = (
         ),
     });
   }
-
-  // Removed schedule and assign-teachers buttons for subjects
-  // These functionalities are now available within individual subject management
 
   if (pageType === 'id-cards') {
     additionalButtons.push({
@@ -126,7 +120,8 @@ const getActionButtonsConfig = (
   if (
     pageType !== 'staff' &&
     pageType !== 'subjects' &&
-    pageType !== 'id-cards'
+    pageType !== 'id-cards' &&
+    pageType !== 'classes'
   ) {
     additionalButtons.push({
       id: 'send-communication',
@@ -141,7 +136,6 @@ const getActionButtonsConfig = (
     });
   }
 
-  // Add the primary action button
   const addButtonLabel =
     pageType === 'subjects'
       ? 'Subject'
@@ -168,9 +162,7 @@ export const ActionButtons = ({ pageType, onRefresh }: ActionButtonsProps) => {
   const closeModal = () => setIsModalOpen(false);
 
   const handleSuccess = () => {
-    // This will be called when the form is successfully submitted
     console.log(`${pageType} added successfully`);
-    // Trigger a refresh of the parent component data
     if (onRefresh) {
       onRefresh();
     }
@@ -178,7 +170,6 @@ export const ActionButtons = ({ pageType, onRefresh }: ActionButtonsProps) => {
 
   const actionButtonsConfig = getActionButtonsConfig(pageType, openAddModal);
 
-  // Convert plural pageType to singular userType
   const getUserType = (pageType: string): UserType => {
     switch (pageType) {
       case 'teachers':
@@ -188,9 +179,9 @@ export const ActionButtons = ({ pageType, onRefresh }: ActionButtonsProps) => {
       case 'parents':
         return 'parent';
       case 'staff':
-        return 'staff'; // Staff is already singular
+        return 'staff';
       default:
-        return 'student'; // fallback
+        return 'student';
     }
   };
 
@@ -219,6 +210,12 @@ export const ActionButtons = ({ pageType, onRefresh }: ActionButtonsProps) => {
         />
       ) : pageType === 'id-cards' ? (
         <GenerateIDCardModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : pageType === 'classes' ? (
+        <AddClassModal
           isOpen={isModalOpen}
           onClose={closeModal}
           onSuccess={handleSuccess}
