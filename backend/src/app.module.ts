@@ -11,7 +11,7 @@ import { DatabaseModule } from './infrastructure/database/database.module';
 import { SubjectModule } from './modules/subject/subject.module';
 import { TeacherModule } from './modules/teacher/teacher.module';
 import { ClassModule } from './modules/class/class.module';
-import { SectionModule } from './modules/section/section.module';
+
 import { StudentModule } from './modules/student/student.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { FileModule } from './modules/files/file.module';
@@ -29,7 +29,6 @@ import { RoomModule } from './modules/room/room.module';
     RoomModule, // Add rooms before classes since classes depend on rooms
     TeacherModule,
     ClassModule,
-    SectionModule,
     StudentModule,
     StaffModule,
     FileModule,

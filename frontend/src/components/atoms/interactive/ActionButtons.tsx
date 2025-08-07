@@ -35,6 +35,7 @@ interface ActionButtonsProps {
     | 'staff'
     | 'subjects'
     | 'id-cards';
+  onRefresh?: () => void | Promise<void>;
 }
 
 const getActionButtonsConfig = (
@@ -105,32 +106,8 @@ const getActionButtonsConfig = (
     });
   }
 
-  if (pageType === 'subjects') {
-    additionalButtons.push(
-      {
-        id: 'subject-schedule',
-        label: 'Schedule',
-        variant: 'secondary',
-        className: 'bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg',
-        icon: <Calendar size={16} />,
-        onClick: () =>
-          alert(
-            '📅 Subject Schedule Management - Configure class timings, room assignments, and recurring schedules for all subjects!',
-          ),
-      },
-      {
-        id: 'assign-teachers',
-        label: 'Assign Teachers',
-        variant: 'secondary',
-        className: 'bg-green-50 text-green-700 hover:bg-green-100 rounded-lg',
-        icon: <Users size={16} />,
-        onClick: () =>
-          alert(
-            '👥 Teacher Assignment - Link qualified teachers to subjects based on expertise and availability!',
-          ),
-      },
-    );
-  }
+  // Removed schedule and assign-teachers buttons for subjects
+  // These functionalities are now available within individual subject management
 
   if (pageType === 'id-cards') {
     additionalButtons.push({
@@ -184,7 +161,7 @@ const getActionButtonsConfig = (
   return [...baseButtons, ...additionalButtons];
 };
 
-export const ActionButtons = ({ pageType }: ActionButtonsProps) => {
+export const ActionButtons = ({ pageType, onRefresh }: ActionButtonsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const openAddModal = () => setIsModalOpen(true);
@@ -192,9 +169,11 @@ export const ActionButtons = ({ pageType }: ActionButtonsProps) => {
 
   const handleSuccess = () => {
     // This will be called when the form is successfully submitted
-    // You can add additional logic here like refreshing the list
     console.log(`${pageType} added successfully`);
-    // You might want to trigger a refresh of the parent component data here
+    // Trigger a refresh of the parent component data
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
   const actionButtonsConfig = getActionButtonsConfig(pageType, openAddModal);

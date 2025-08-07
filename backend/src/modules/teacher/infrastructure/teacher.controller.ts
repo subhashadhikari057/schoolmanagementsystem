@@ -276,7 +276,6 @@ export class TeacherController {
   async unassignClass(
     @Param('id') id: string,
     @Param('classId') classId: string,
-    @Query('sectionId') sectionId: string | undefined,
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
@@ -286,7 +285,6 @@ export class TeacherController {
       user.id,
       req.ip,
       req.headers['user-agent'],
-      sectionId,
     );
   }
 
@@ -295,7 +293,6 @@ export class TeacherController {
   async unassignAllClasses(
     @Param('id') id: string,
     @Query('classId') classId: string | undefined,
-    @Query('sectionId') sectionId: string | undefined,
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
@@ -305,7 +302,6 @@ export class TeacherController {
       req.ip,
       req.headers['user-agent'],
       classId,
-      sectionId,
     );
   }
 

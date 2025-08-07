@@ -62,7 +62,7 @@ export class ClassService {
   }
 
   /**
-   * Get all active classes (with sections included)
+   * Get all active classes
    */
   async findAll() {
     return this.prisma.class.findMany({
@@ -78,17 +78,13 @@ export class ClassService {
         room: {
           select: { roomNo: true, name: true, floor: true, building: true },
         },
-        sections: {
-          where: { deletedAt: null },
-          orderBy: { name: 'asc' },
-        },
       },
       orderBy: { grade: 'asc' },
     });
   }
 
   /**
-   * Get a class by ID (with sections)
+   * Get a class by ID
    */
   async findById(id: string) {
     const classRecord = await this.prisma.class.findUnique({
@@ -103,10 +99,6 @@ export class ClassService {
         },
         room: {
           select: { roomNo: true, name: true, floor: true, building: true },
-        },
-        sections: {
-          where: { deletedAt: null },
-          orderBy: { name: 'asc' },
         },
         students: {
           where: { deletedAt: null },

@@ -151,7 +151,7 @@ export interface TeacherListResponse {
   classAssignments?: Array<{
     id: string;
     className: string;
-    sectionName: string;
+    section: string;
   }>;
 }
 

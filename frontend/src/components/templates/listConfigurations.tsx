@@ -771,30 +771,18 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
               <div className='flex items-center gap-2 mt-1'>
                 <span
                   className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    item.faculty === 'Mathematics'
+                    item.faculty === 'Compulsory Subject'
                       ? 'bg-blue-100 text-blue-800'
-                      : item.faculty === 'Science'
-                        ? 'bg-green-100 text-green-800'
-                        : item.faculty === 'Language'
-                          ? 'bg-purple-100 text-purple-800'
-                          : item.faculty === 'Technology'
-                            ? 'bg-orange-100 text-orange-800'
-                            : item.faculty === 'Arts'
-                              ? 'bg-pink-100 text-pink-800'
-                              : 'bg-gray-100 text-gray-800'
+                      : item.faculty === 'Optional Subject'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-blue-100 text-blue-800' // Default to compulsory
                   }`}
                 >
-                  {item.faculty === 'Mathematics'
-                    ? 'Core Subject'
-                    : item.faculty === 'Science'
-                      ? 'Science'
-                      : item.faculty === 'Language'
-                        ? 'Language'
-                        : item.faculty === 'Technology'
-                          ? 'Technology'
-                          : item.faculty === 'Arts'
-                            ? 'Arts'
-                            : item.faculty}
+                  {item.faculty === 'Compulsory Subject'
+                    ? '📚 Compulsory'
+                    : item.faculty === 'Optional Subject'
+                      ? '⭐ Optional'
+                      : '📚 Compulsory'}
                 </span>
               </div>
             </div>
@@ -812,24 +800,19 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         key: 'actions',
         header: 'Actions',
         mobileLabel: 'Actions',
-        render: (item: Subject) => (
+        render: (
+          item: Subject,
+          isSelected?: boolean,
+          onSelect?: (id: string | number) => void,
+          onSubjectAction?: (action: string, subject: Subject) => void,
+        ) => (
           <ActionsCell
+            entityType='subject'
             onAction={(action: string) => {
-              switch (action) {
-                case 'view':
-                  console.log('View subject:', item.id);
-                  break;
-                case 'edit':
-                  console.log('Edit subject:', item.id);
-                  break;
-                case 'schedule':
-                  console.log('Schedule class for subject:', item.id);
-                  break;
-                case 'link':
-                  console.log('Share subject link:', item.id);
-                  break;
-                default:
-                  console.log('Action:', action, 'for subject:', item.id);
+              if (onSubjectAction) {
+                onSubjectAction(action, item);
+              } else {
+                console.log('Action:', action, 'for subject:', item.id);
               }
             }}
           />

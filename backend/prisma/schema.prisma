@@ -86,7 +86,6 @@ model Class {
   students       Student[]
   assignedSubjects ClassSubject[]
   teacherAssignments TeacherClass[] @relation("ClassTeacherAssignments")
-  sections       Section[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -258,33 +257,7 @@ model Address {
   students Student[]
 }
 
-// =========================
-// 📚 Section Management
-// =========================
 
-model Section {
-  id        String @id @default(uuid())
-  name      String
-  classId   String
-  capacity  Int?
-  status    String @default("active")
-  
-  class     Class @relation(fields: [classId], references: [id])
-  teacherClasses TeacherClass[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-  
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
-
-  @@unique([classId, name])
-  @@index([createdById])
-  @@index([updatedById])
-  @@index([deletedById])
-}
 
 // =========================
 // 🧑‍🏫 Teacher Management
@@ -384,11 +357,9 @@ model TeacherClass {
   id        String @id @default(uuid())
   teacherId String
   classId   String
-  sectionId String?
 
   teacher Teacher @relation("TeacherClassAssignments", fields: [teacherId], references: [id])
   class   Class   @relation("ClassTeacherAssignments", fields: [classId], references: [id])
-  section Section? @relation(fields: [sectionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime?
