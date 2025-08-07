@@ -32,7 +32,7 @@ const AUTH_ENDPOINTS = {
   REGISTER: 'api/v1/auth/register',
   REQUEST_PASSWORD_RESET: 'api/v1/auth/password/request-reset',
   RESET_PASSWORD: 'api/v1/auth/password/reset',
-  CHANGE_PASSWORD: 'api/v1/auth/password/change',
+  CHANGE_PASSWORD: 'api/v1/auth/change-password',
 } as const;
 
 // ============================================================================
@@ -183,11 +183,15 @@ export class AuthService {
    */
   async changePassword(
     data: ChangePasswordRequest,
-  ): Promise<ApiResponse<void>> {
+  ): Promise<ApiResponse<{ message: string }>> {
     try {
-      return await httpClient.post<void>(AUTH_ENDPOINTS.CHANGE_PASSWORD, data, {
-        requiresAuth: true,
-      });
+      return await httpClient.post<{ message: string }>(
+        AUTH_ENDPOINTS.CHANGE_PASSWORD,
+        data,
+        {
+          requiresAuth: true,
+        },
+      );
     } catch (error) {
       console.error('Change password error:', error);
       throw error;

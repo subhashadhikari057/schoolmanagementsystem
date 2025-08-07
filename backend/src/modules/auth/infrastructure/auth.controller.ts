@@ -13,7 +13,11 @@ import {
 import { Request, Response } from 'express';
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../application/auth.service';
-import { LoginDto, ForceChangePasswordDto } from '../dto/auth.dto';
+import {
+  LoginDto,
+  ForceChangePasswordDto,
+  ChangePasswordDto,
+} from '../dto/auth.dto';
 import { setAuthCookies, COOKIE_OPTIONS } from '../../../shared/auth/cookie';
 import { verifyToken } from '../../../shared/auth/jwt.util';
 import { Public } from '../../../shared/guards/jwt-auth.guard';
@@ -158,5 +162,19 @@ export class AuthController {
       message: result.message,
       success: result.success,
     };
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @Req() req: Request,
+    @Body() body: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    await this.authService.changePassword({ ...body, userId });
+    return { message: 'Password changed successfully' };
   }
 }

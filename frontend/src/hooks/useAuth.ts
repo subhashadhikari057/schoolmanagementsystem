@@ -8,9 +8,15 @@
 
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState, useCallback, useEffect } from 'react';
 import { authService } from '@/api/services/auth.service';
-import { LoginRequest, AuthUser, AuthState } from '@/api/types/auth';
+import {
+  LoginRequest,
+  AuthUser,
+  AuthState,
+  ChangePasswordRequest,
+} from '@/api/types/auth';
 import { ApiError } from '@/api/types/common';
 
 // ============================================================================
@@ -64,6 +70,7 @@ const removeStoredUser = (): void => {
 // ============================================================================
 
 export function useAuth() {
+  const router = useRouter();
   // Authentication state
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
@@ -150,6 +157,7 @@ export function useAuth() {
         isLoading: false,
         error: null,
       });
+      router.push('/auth/login');
     } catch (error) {
       console.error('Logout error:', error);
       // Even if logout fails, clear local state
@@ -162,8 +170,9 @@ export function useAuth() {
         isLoading: false,
         error: null,
       });
+      router.push('/auth/login');
     }
-  }, [clearStoredAuth]);
+  }, [clearStoredAuth, router]);
 
   // Initialize authentication state from stored data (don't call API)
   useEffect(() => {
@@ -336,6 +345,16 @@ export function useAuth() {
     }
   }, [clearStoredAuth]);
 
+  // Change password
+  const changePassword = useCallback(async (data: ChangePasswordRequest) => {
+    try {
+      await authService.changePassword(data);
+    } catch (error) {
+      console.error('Change password failed:', error);
+      throw error;
+    }
+  }, []);
+
   return {
     // State
     ...authState,
@@ -347,5 +366,6 @@ export function useAuth() {
     getCurrentUser,
     verifySession,
     clearError,
+    changePassword,
   };
 }

@@ -1,17 +1,14 @@
-// molecules/LoginFormButton.tsx
+import { Button as HeadlessButton } from '@headlessui/react';
 
-import { Button } from "@headlessui/react";
-
-
-interface Props {
-  onClick: () => void;
+interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  children: React.ReactNode;
   className?: string;
-  label?: string;
 }
 
-export default function ReusableButton({ onClick,label,className }: Props) {
-  return <Button onClick={onClick} className={`${className}`}>{label}</Button>;
+export function Button({ children, className, ...props }: Props) {
+  return (
+    <HeadlessButton {...props} className={`${className}`}>
+      {children}
+    </HeadlessButton>
+  );
 }
-
-
-
