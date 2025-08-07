@@ -43,6 +43,7 @@ export interface ListConfiguration<T = BaseItem> {
   };
   columns: TableColumn<T>[];
   emptyMessage?: string;
+  searchFields?: string[];
 }
 
 export interface GenericListProps<T extends BaseItem = BaseItem> {

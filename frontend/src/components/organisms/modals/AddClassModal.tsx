@@ -24,6 +24,10 @@ export default function AddClassModal({
 }: AddClassModalProps) {
   const [formData, setFormData] = useState<CreateClassRequest>({
     name: '',
+    section: '',
+    room: '',
+    subjectsCount: 1,
+    classTeacher: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +36,8 @@ export default function AddClassModal({
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: name === 'subjectsCount' ? Number(value) : value,
     }));
-    // Clear error when user starts typing
     if (error) setError(null);
   };
 
@@ -47,20 +50,41 @@ export default function AddClassModal({
       setError('Class name is required');
       return;
     }
+    if (!formData.section.trim()) {
+      setError('Section is required');
+      return;
+    }
+    if (!formData.room.trim()) {
+      setError('Room is required');
+      return;
+    }
+    if (!formData.classTeacher.trim()) {
+      setError('Class teacher is required');
+      return;
+    }
+    if (!formData.subjectsCount || formData.subjectsCount < 1) {
+      setError('Subjects count must be at least 1');
+      return;
+    }
 
-    // Check for duplicate class names (client-side validation)
+    // Check for duplicate class names and section (client-side validation)
     const trimmedName = formData.name.trim();
+    const trimmedSection = formData.section.trim();
     const isDuplicate = existingClasses.some(
       existingClass =>
-        existingClass.name.toLowerCase() === trimmedName.toLowerCase(),
+        existingClass.name.toLowerCase() === trimmedName.toLowerCase() &&
+        Array.isArray(existingClass.section) &&
+        existingClass.section.some(
+          (sec: any) =>
+            typeof sec.name === 'string' &&
+            sec.name.toLowerCase() === trimmedSection.toLowerCase(),
+        ),
     );
 
     if (isDuplicate) {
-      const errorMessage = `A class named "${trimmedName}" already exists. Please choose a different name.`;
+      const errorMessage = `A class named "${trimmedName} - ${trimmedSection}" already exists. Please choose a different name or section.`;
       setError(errorMessage);
-
-      // Show duplicate warning toast
-      toast.warning('Duplicate class name', {
+      toast.warning('Duplicate class', {
         description: errorMessage,
         duration: 4000,
       });
@@ -69,42 +93,45 @@ export default function AddClassModal({
 
     setIsLoading(true);
 
-    // Show loading toast
     const loadingToast = toast.loading('Creating class...', {
-      description: `Adding "${trimmedName}" to your school system`,
+      description: `Adding "${trimmedName} - ${trimmedSection}" to your school system`,
     });
 
     try {
       const response = await classService.createClass({
         name: trimmedName,
+        section: trimmedSection,
+        room: formData.room.trim(),
+        subjectsCount: formData.subjectsCount,
+        classTeacher: formData.classTeacher.trim(),
       });
 
       if (response.success) {
-        // Dismiss loading toast and show success
         toast.dismiss(loadingToast);
         toast.success('Class created successfully!', {
-          description: `"${trimmedName}" has been added to your classes`,
+          description: `"${trimmedName} - ${trimmedSection}" has been added to your classes`,
           duration: 5000,
         });
 
-        // Reset form
-        setFormData({ name: '' });
+        setFormData({
+          name: '',
+          section: '',
+          room: '',
+          subjectsCount: 1,
+          classTeacher: '',
+        });
         onSuccess();
         onClose();
       }
     } catch (err: any) {
       console.error('Error creating class:', err);
-
-      // Dismiss loading toast and show error
       toast.dismiss(loadingToast);
-
       const errorMessage =
         err.message || 'Failed to create class. Please try again.';
       toast.error('Failed to create class', {
         description: errorMessage,
         duration: 6000,
       });
-
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -113,7 +140,13 @@ export default function AddClassModal({
 
   const handleClose = () => {
     if (!isLoading) {
-      setFormData({ name: '' });
+      setFormData({
+        name: '',
+        section: '',
+        room: '',
+        subjectsCount: 1,
+        classTeacher: '',
+      });
       setError(null);
       onClose();
     }
@@ -184,7 +217,7 @@ export default function AddClassModal({
                   name='name'
                   value={formData.name}
                   onChange={handleInputChange}
-                  placeholder='e.g., Grade 10, Class 5, Form 2...'
+                  placeholder='e.g., Grade 10'
                   disabled={isLoading}
                   className='w-full px-3 py-2 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-200 text-gray-900 placeholder-gray-400'
                 />
@@ -193,7 +226,76 @@ export default function AddClassModal({
                 </div>
               </div>
               <p className='text-xs text-gray-500'>
-                Enter a descriptive name for your class
+                Enter the grade or class name (e.g., Grade 10)
+              </p>
+            </div>
+
+            {/* Section Field */}
+            <div className='space-y-2'>
+              <label
+                htmlFor='section'
+                className='block text-sm font-semibold text-gray-700'
+              >
+                Section <span className='text-red-500'>*</span>
+              </label>
+              <input
+                type='text'
+                id='section'
+                name='section'
+                value={formData.section}
+                onChange={handleInputChange}
+                placeholder='e.g., Section A'
+                disabled={isLoading}
+                className='w-full px-3 py-2 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-200 text-gray-900 placeholder-gray-400'
+              />
+              <p className='text-xs text-gray-500'>
+                Enter the section (e.g., Section A)
+              </p>
+            </div>
+
+            {/* Room Field */}
+            <div className='space-y-2'>
+              <label
+                htmlFor='room'
+                className='block text-sm font-semibold text-gray-700'
+              >
+                Room <span className='text-red-500'>*</span>
+              </label>
+              <input
+                type='text'
+                id='room'
+                name='room'
+                value={formData.room}
+                onChange={handleInputChange}
+                placeholder='e.g., 106'
+                disabled={isLoading}
+                className='w-full px-3 py-2 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-200 text-gray-900 placeholder-gray-400'
+              />
+              <p className='text-xs text-gray-500'>
+                Enter the room number (e.g., 106)
+              </p>
+            </div>
+
+            {/* Class Teacher Field */}
+            <div className='space-y-2'>
+              <label
+                htmlFor='classTeacher'
+                className='block text-sm font-semibold text-gray-700'
+              >
+                Class Teacher <span className='text-red-500'>*</span>
+              </label>
+              <input
+                type='text'
+                id='classTeacher'
+                name='classTeacher'
+                value={formData.classTeacher}
+                onChange={handleInputChange}
+                placeholder='e.g., Ms. Emma Thompson'
+                disabled={isLoading}
+                className='w-full px-3 py-2 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-200 text-gray-900 placeholder-gray-400'
+              />
+              <p className='text-xs text-gray-500'>
+                Enter the full name of the class teacher
               </p>
             </div>
 
@@ -223,7 +325,14 @@ export default function AddClassModal({
             </button>
             <button
               type='submit'
-              disabled={isLoading || !formData.name.trim()}
+              disabled={
+                isLoading ||
+                !formData.name.trim() ||
+                !formData.section.trim() ||
+                !formData.room.trim() ||
+                !formData.classTeacher.trim() ||
+                !formData.subjectsCount
+              }
               className='px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transform hover:scale-105'
             >
               {isLoading ? (

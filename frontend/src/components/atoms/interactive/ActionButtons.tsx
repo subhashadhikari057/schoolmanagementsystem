@@ -17,6 +17,7 @@ import AddUserFormModal, {
 } from '@/components/organisms/modals/AddUserFormModal';
 import AddSubjectFormModal from '@/components/organisms/modals/AddSubjectFormModal';
 import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
+import AddClassModal from '@/components/organisms/modals/AddClassModal';
 
 interface ActionButtonConfig {
   id: string;
@@ -34,7 +35,8 @@ interface ActionButtonsProps {
     | 'parents'
     | 'staff'
     | 'subjects'
-    | 'id-cards';
+    | 'id-cards'
+    | 'classes';
 }
 
 const getActionButtonsConfig = (
@@ -149,7 +151,8 @@ const getActionButtonsConfig = (
   if (
     pageType !== 'staff' &&
     pageType !== 'subjects' &&
-    pageType !== 'id-cards'
+    pageType !== 'id-cards' &&
+    pageType !== 'classes'
   ) {
     additionalButtons.push({
       id: 'send-communication',
@@ -240,6 +243,12 @@ export const ActionButtons = ({ pageType }: ActionButtonsProps) => {
         />
       ) : pageType === 'id-cards' ? (
         <GenerateIDCardModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : pageType === 'classes' ? (
+        <AddClassModal
           isOpen={isModalOpen}
           onClose={closeModal}
           onSuccess={handleSuccess}

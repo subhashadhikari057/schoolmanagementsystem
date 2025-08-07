@@ -165,6 +165,17 @@ export interface Subject extends BaseItem {
   examConfig: string;
 }
 
+export interface Class extends BaseItem {
+  id: number;
+  name: string;
+  section: string;
+  room: string;
+  subjectsCount: number;
+  classTeacher: string;
+  teacherAvatar?: string;
+  lastUpdated: string;
+}
+
 export interface IDCard extends BaseItem {
   id: number;
   cardId: string;
@@ -757,10 +768,16 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
             <div className='w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0'>
               <svg
                 className='w-5 h-5 text-white'
-                fill='currentColor'
-                viewBox='0 0 20 20'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth={2}
+                viewBox='0 0 24 24'
               >
-                <path d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'></path>
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+                />
               </svg>
             </div>
             <div className='min-w-0 flex-1'>
@@ -1010,6 +1027,142 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
       },
     ],
     emptyMessage: 'No ID cards found',
+  },
+  classes: {
+    title: 'Classes List',
+    searchPlaceholder: 'Search Classes...',
+    searchFields: ['name', 'section', 'classTeacher'],
+    columns: [
+      {
+        key: 'classInfo',
+        header: 'Class Information',
+        mobileLabel: 'Class',
+        render: (item: Class) => (
+          <div className='flex items-center gap-3'>
+            <div className='w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0'>
+              <svg
+                className='w-5 h-5 text-white'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth={2}
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  d='M4 19.5A2.5 2.5 0 006.5 22h11a2.5 2.5 0 002.5-2.5V6a2 2 0 00-2-2H6a2 2 0 00-2 2v13.5z'
+                />
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  d='M16 2v4M8 2v4'
+                />
+              </svg>
+            </div>
+            <div>
+              <div className='font-medium text-gray-900'>
+                {item.name} - {item.section}
+              </div>
+              <div className='text-sm text-gray-500 flex items-center gap-2'>
+                Room {item.room} •{' '}
+                <span className='flex items-center gap-1'>
+                  <svg
+                    className='w-4 h-4'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth={2}
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      d='M4 6h16M4 10h16M4 14h16M4 18h16'
+                    />
+                  </svg>
+                  {item.subjectsCount} subjects
+                </span>
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'classTeacher',
+        header: 'Class Teacher',
+        mobileLabel: 'Teacher',
+        render: (item: Class) => (
+          <div className='flex items-center gap-2'>
+            <svg
+              className='w-4 h-4 text-gray-400'
+              fill='none'
+              stroke='currentColor'
+              strokeWidth={2}
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                d='M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z'
+              />
+            </svg>
+            <span className='font-medium text-gray-900'>
+              {item.classTeacher}
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'lastUpdated',
+        header: 'Last Updated',
+        mobileLabel: 'Updated',
+        render: (item: Class) => (
+          <span className='text-gray-700'>{item.lastUpdated}</span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        mobileLabel: 'Actions',
+        render: (item: Class) => (
+          <ActionsCell
+            onAction={(action: string) => {
+              switch (action) {
+                case 'view':
+                  console.log('View class:', item.id);
+                  break;
+                case 'edit':
+                  console.log('Edit class:', item.id);
+                  break;
+                case 'link':
+                  console.log('Share class link:', item.id);
+                  break;
+                default:
+                  console.log('Action:', action, 'for class:', item.id);
+              }
+            }}
+          />
+        ),
+      },
+    ],
+    emptyMessage: 'No classes found',
+    primaryFilter: {
+      title: 'Section',
+      options: [
+        { value: 'all', label: 'All Sections' },
+        { value: 'A', label: 'Section A' },
+        { value: 'B', label: 'Section B' },
+        { value: 'C', label: 'Section C' },
+      ],
+    },
+    secondaryFilter: {
+      title: 'Class Teacher',
+      options: [
+        { value: 'all', label: 'All Teachers' },
+        { value: 'emma-thompson', label: 'Ms. Emma Thompson' },
+        { value: 'david-lee', label: 'Mr. David Lee' },
+        { value: 'sarah-wilson', label: 'Ms. Sarah Wilson' },
+      ],
+    },
   },
 };
 

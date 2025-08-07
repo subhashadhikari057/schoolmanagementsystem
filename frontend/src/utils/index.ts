@@ -81,3 +81,14 @@ export function getInitials(firstName?: string, lastName?: string): string {
   const last = lastName?.charAt(0).toUpperCase() || '';
   return first + last || '?';
 }
+
+/**
+ * Returns true if dev mock mode is enabled (for local frontend development without backend).
+ * Controlled by NODE_ENV=development and NEXT_PUBLIC_DEV_SIDEBAR=true in .env.local
+ */
+export function isDevMockEnabled() {
+  return (
+    process.env.NODE_ENV === 'development' &&
+    process.env.NEXT_PUBLIC_DEV_SIDEBAR === 'true'
+  );
+}

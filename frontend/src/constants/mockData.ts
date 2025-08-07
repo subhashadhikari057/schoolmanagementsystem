@@ -10,6 +10,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import React from 'react';
+import type { ClassResponse } from '@/api/services/class.service';
 
 // Mock Events Data
 export const mockEvents: Event[] = [
@@ -124,3 +125,48 @@ export const quickActionRoutes: Record<string, string> = {
   '5': '/dashboard/admin/files/process', // Process Files
   '6': '/dashboard/admin/settings', // System Settings
 };
+
+// Mock Classes Data
+export const mockClasses: ClassResponse[] = [
+  {
+    id: 'class-1',
+    name: 'Grade 10',
+    sections: [
+      {
+        id: 'section-1',
+        name: 'A',
+        classId: 'class-1',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-02T00:00:00Z',
+      },
+      {
+        id: 'section-2',
+        name: 'B',
+        classId: 'class-1',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-02T00:00:00Z',
+      },
+    ],
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-02T00:00:00Z',
+    createdById: 'admin-1',
+    updatedById: 'admin-2',
+  },
+  {
+    id: 'class-2',
+    name: 'Grade 11',
+    sections: [
+      {
+        id: 'section-3',
+        name: 'A',
+        classId: 'class-2',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-02T00:00:00Z',
+      },
+    ],
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-02T00:00:00Z',
+    createdById: 'admin-1',
+    updatedById: 'admin-2',
+  },
+];

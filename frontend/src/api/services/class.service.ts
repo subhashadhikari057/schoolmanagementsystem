@@ -14,7 +14,12 @@ import type { ApiResponse } from '../types/common';
 // ============================================================================
 
 export interface CreateClassRequest {
-  name: string; // e.g. "Grade 10"
+  name: string;
+  section: string;
+  room: string;
+  subjectsCount: number;
+  classTeacher: string;
+  // e.g. "Grade 10"
 }
 
 export interface UpdateClassRequest {
@@ -24,7 +29,7 @@ export interface UpdateClassRequest {
 export interface ClassResponse {
   id: string;
   name: string;
-  sections: ClassSectionResponse[];
+  section: ClassSectionResponse[];
   createdAt: string;
   updatedAt?: string;
   createdById?: string;

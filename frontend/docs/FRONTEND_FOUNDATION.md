@@ -377,3 +377,25 @@ For questions or issues with the frontend foundation:
 2. Review existing component examples
 3. Check test files for usage patterns
 4. Consult the shared types package for API contracts
+
+## Dev Mock Mode for Local Frontend Development
+
+To allow frontend development without a working backend, you can enable a dev mock mode that uses mock data instead of making API calls. This is controlled by environment variables:
+
+- `NODE_ENV=development`
+- `NEXT_PUBLIC_DEV_SIDEBAR=true` (in your `.env.local`)
+
+When both are set, you can use the `isDevMockEnabled` utility from `src/utils/index.ts` to conditionally use mock data in your components/pages:
+
+```ts
+import { isDevMockEnabled } from '@/utils';
+import { mockClasses } from '@/constants/mockData';
+
+if (isDevMockEnabled()) {
+  // Use mockClasses or other mock data
+} else {
+  // Call backend as usual
+}
+```
+
+This pattern keeps backend integration logic untouched and is easy to reuse across the project. Add your mock data to `src/constants/mockData.ts` or a similar file.
