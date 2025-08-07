@@ -11,6 +11,8 @@ import {
 import Avatar from '@/components/atoms/display/Avatar';
 import { Fragment } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useState } from 'react';
+import ChangePasswordModal from '@/components/organisms/modals/ChangePasswordModal';
 
 interface DropdownOption {
   value: string;
@@ -31,7 +33,11 @@ interface DropdownProps {
 }
 
 // Helper functions for user display
-const getUserDisplayName = (user: any) => {
+import { AuthUser } from '@/api/types/auth';
+
+// ...
+
+const getUserDisplayName = (user: AuthUser | null) => {
   if (!user) return 'Guest User';
 
   // If we have a full name, extract first name or use full name
@@ -74,7 +80,8 @@ export default function Dropdown({
   placeholder = 'Select option',
   icon,
 }: DropdownProps) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const dropdownBg = 'bg-background';
   const hoverBg = 'bg-muted-hover';
@@ -91,13 +98,13 @@ export default function Dropdown({
       value: 'password',
       label: 'Change Password',
       icon: <Key size={16} />,
-      onClick: () => console.log('Change Password'),
+      onClick: () => setIsModalOpen(true),
     },
     {
       value: 'logout',
       label: 'Logout',
       icon: <LogOut size={16} />,
-      onClick: () => console.log('Logout'),
+      onClick: logout,
     },
   ];
 
@@ -111,92 +118,96 @@ export default function Dropdown({
 
   if (type === 'profile') {
     return (
-      // @ts-expect-error - Headless UI compatibility
-      <Menu
-        as='div'
-        className={`relative inline-block text-left w-full ${className}`}
-      >
-        {/* @ts-expect-error - Headless UI compatibility */}
-        {({ open }) => (
-          <>
-            {/* === Profile Button === */}
-            <Menu.Button
-              className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full bg-white border border-gray-200 rounded-lg transition-all ${
-                open ? 'rounded-b-none shadow-sm' : 'shadow-sm'
-              }`}
-            >
-              <Avatar
-                name={user?.full_name || user?.email || 'Guest User'}
-                className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
-                showInitials={true}
-              />
-              <div className='text-left flex-1 min-w-0 hidden sm:block'>
-                <p className='text-sm font-semibold text-foreground truncate'>
-                  {isLoading ? 'Loading...' : getUserDisplayName(user)}
-                </p>
-                <p className='text-xs text-secondary truncate capitalize'>
-                  {isLoading ? 'Loading...' : getUserRole(user?.role)}
-                </p>
-              </div>
-              {open ? (
-                <ChevronUp
-                  size={16}
-                  className='text-secondary ml-auto flex-shrink-0'
-                />
-              ) : (
-                <ChevronDown
-                  size={16}
-                  className='text-secondary ml-auto flex-shrink-0'
-                />
-              )}
-            </Menu.Button>
-
-            {/* === Dropdown Menu === */}
-            <Transition
-              as={Fragment}
-              enter='transition ease-out duration-100'
-              enterFrom='transform opacity-0 -translate-y-1'
-              enterTo='transform opacity-100 translate-y-0'
-              leave='transition ease-in duration-75'
-              leaveFrom='transform opacity-100 translate-y-0'
-              leaveTo='transform opacity-0 -translate-y-1'
-            >
-              <Menu.Items
-                className={`absolute top-full left-0 mt-1 w-full ${dropdownBg} border border-muted rounded-b-lg shadow-lg z-50`}
+      <>
+        <Menu
+          as='div'
+          className={`relative inline-block text-left w-full ${className}`}
+        >
+          {({ open }: { open: boolean }) => (
+            <>
+              {/* === Profile Button === */}
+              <Menu.Button
+                className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full bg-white border border-gray-200 rounded-lg transition-all ${
+                  open ? 'rounded-b-none shadow-sm' : 'shadow-sm'
+                }`}
               >
-                <div className='p-2 space-y-1'>
-                  {currentOptions.map(option => (
-                    <Menu.Item key={option.value}>
-                      {/* @ts-expect-error - Headless UI compatibility */}
-                      {({ active }) => (
-                        <button
-                          onClick={option.onClick}
-                          className={`flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-colors ${
-                            active
-                              ? `${hoverBg} text-primary font-bold`
-                              : 'text-secondary font-normal'
-                          } ${option.value === 'logout' ? 'text-hover' : ''}`}
-                        >
-                          {option.icon && (
-                            <span
-                              className={
-                                active ? 'text-primary' : 'text-secondary'
-                              }
-                            >
-                              {option.icon}
-                            </span>
-                          )}
-                          <span>{option.label}</span>
-                        </button>
-                      )}
-                    </Menu.Item>
-                  ))}
+                <Avatar
+                  name={user?.full_name || user?.email || 'Guest User'}
+                  className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
+                  showInitials={true}
+                />
+                <div className='text-left flex-1 min-w-0 hidden sm:block'>
+                  <p className='text-sm font-semibold text-foreground truncate'>
+                    {isLoading ? 'Loading...' : getUserDisplayName(user)}
+                  </p>
+                  <p className='text-xs text-secondary truncate capitalize'>
+                    {isLoading ? 'Loading...' : getUserRole(user?.role || '')}
+                  </p>
                 </div>
-              </Menu.Items>
-            </Transition>
-          </>
-        )}
-      </Menu>
+                {open ? (
+                  <ChevronUp
+                    size={16}
+                    className='text-secondary ml-auto flex-shrink-0'
+                  />
+                ) : (
+                  <ChevronDown
+                    size={16}
+                    className='text-secondary ml-auto flex-shrink-0'
+                  />
+                )}
+              </Menu.Button>
+
+              {/* === Dropdown Menu === */}
+              <Transition
+                as={Fragment}
+                enter='transition ease-out duration-100'
+                enterFrom='transform opacity-0 -translate-y-1'
+                enterTo='transform opacity-100 translate-y-0'
+                leave='transition ease-in duration-75'
+                leaveFrom='transform opacity-100 translate-y-0'
+                leaveTo='transform opacity-0 -translate-y-1'
+              >
+                <Menu.Items
+                  className={`absolute top-full left-0 mt-1 w-full ${dropdownBg} border border-muted rounded-b-lg shadow-lg z-50`}
+                >
+                  <div className='p-2 space-y-1'>
+                    {currentOptions.map(option => (
+                      <Menu.Item key={option.value}>
+                        {/* @ts-expect-error - Headless UI compatibility */}
+                        {({ active }) => (
+                          <button
+                            onClick={option.onClick}
+                            className={`flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-colors ${
+                              active
+                                ? `${hoverBg} text-primary font-bold`
+                                : 'text-secondary font-normal'
+                            } ${option.value === 'logout' ? 'text-hover' : ''}`}
+                          >
+                            {option.icon && (
+                              <span
+                                className={
+                                  active ? 'text-primary' : 'text-secondary'
+                                }
+                              >
+                                {option.icon}
+                              </span>
+                            )}
+                            <span>{option.label}</span>
+                          </button>
+                        )}
+                      </Menu.Item>
+                    ))}
+                  </div>
+                </Menu.Items>
+              </Transition>
+            </>
+          )}
+        </Menu>
+        <ChangePasswordModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+      </>
     );
   }
 
