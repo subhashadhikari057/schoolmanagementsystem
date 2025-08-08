@@ -74,17 +74,22 @@ export const sidebarItems = {
       ],
     },
     {
-      title: 'ENGAGEMENT',
+      title: 'Report and Analytics',
       items: [
         {
-          label: 'Notices & Communication',
-          icon: 'Megaphone',
-          path: '/dashboard/admin/notices',
+          label: 'Notifications',
+          icon: 'Bell',
+          path: '/dashboard/admin/reports/notices',
         },
         {
-          label: 'Achievements & Events',
+          label: 'Reports',
+          icon: 'Report',
+          path: '/dashboard/admin/reports/report',
+        },
+        {
+          label: 'Analytics',
           icon: 'Calendar',
-          path: '/dashboard/admin/events',
+          path: '/dashboard/admin/reports/analytics',
         },
       ],
     },
@@ -111,7 +116,7 @@ export const sidebarItems = {
           icon: 'Database',
           path: '/dashboard/admin/backups',
         },
-        { label: 'Account', icon: 'UserCog', path: '/dashboard/admin/account' },
+        // ...removed static My Account, now handled dynamically in Sidebar
       ],
     },
   ],

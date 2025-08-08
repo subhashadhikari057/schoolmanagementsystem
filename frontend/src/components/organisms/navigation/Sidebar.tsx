@@ -4,6 +4,7 @@ import Link from 'next/link';
 import * as Icons from 'lucide-react';
 import { sidebarItems } from '@/constants/sidebaritems';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import ProfileDropdown from '@/components/molecules/interactive/Dropdown';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +19,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
+  const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHoveringLogo, setIsHoveringLogo] = useState(false);
 
@@ -168,14 +170,18 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                             }>
                           >
                         )[item.icon] || Icons.Circle;
+                      const isActive =
+                        pathname === item.path ||
+                        pathname.startsWith(item.path + '/');
                       return (
                         <li key={item.label}>
                           <Link
                             href={item.path}
                             onClick={onToggle} // Close sidebar when navigation link is clicked on mobile
                             className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
-                             text-foreground hover:bg-muted-hover hover:font-bold
-                         ${isCollapsed ? 'justify-center' : ''}`}
+                              text-foreground hover:bg-muted-hover hover:font-bold
+                              ${isCollapsed ? 'justify-center' : ''}
+                              ${isActive ? 'bg-gray-100 font-bold text-primary' : ''}`}
                             title={isCollapsed ? item.label : ''}
                           >
                             <Icon
@@ -195,6 +201,52 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
             ),
           )}
         </nav>
+
+        {/* My Account Link at the end */}
+        {isDevMockEnabled() && !user && (
+          <div className='mb-4 mt-2'>
+            <ul className='space-y-2'>
+              <li>
+                <Link
+                  href='/dashboard/system/myprofile/devuser'
+                  onClick={onToggle}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
+                    text-foreground hover:bg-muted-hover hover:font-bold
+                    ${isCollapsed ? 'justify-center' : ''}`}
+                  title={isCollapsed ? 'My Account' : ''}
+                >
+                  <Icons.UserCog
+                    size={16}
+                    className='flex-shrink-0 text-gray-500'
+                  />
+                  {!isCollapsed && <span className='truncate'>My Account</span>}
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
+        {user && (
+          <div className='mb-4 mt-2'>
+            <ul className='space-y-2'>
+              <li>
+                <Link
+                  href={`/dashboard/system/myprofile/${user.id}`}
+                  onClick={onToggle}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
+                    text-foreground hover:bg-muted-hover hover:font-bold
+                    ${isCollapsed ? 'justify-center' : ''}`}
+                  title={isCollapsed ? 'My Account' : ''}
+                >
+                  <Icons.UserCog
+                    size={16}
+                    className='flex-shrink-0 text-gray-500'
+                  />
+                  {!isCollapsed && <span className='truncate'>My Account</span>}
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
       </aside>
     </>
   );

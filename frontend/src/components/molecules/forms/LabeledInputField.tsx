@@ -6,7 +6,7 @@ import { Eye, EyeOff } from 'lucide-react';
 
 interface Props {
   label?: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'search';
+  type?: 'text' | 'email' | 'password' | 'number' | 'search' | 'date' | 'time';
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
@@ -45,34 +45,33 @@ const LabeledInputField = forwardRef<HTMLInputElement, Props>(
             {label}
           </Label>
         )}
-        <Input
-          ref={ref}
-          name={name}
-          type={isPassword ? (isPasswordVisible ? 'text' : 'password') : type}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          className={`pr-10 pl-6 py-4 text-base ${error ? 'border-red-500 focus:border-red-500' : ''} ${className}`}
-          {...props}
-        />
+        <div className='relative'>
+          <Input
+            ref={ref}
+            name={name}
+            type={isPassword ? (isPasswordVisible ? 'text' : 'password') : type}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            className={`pr-10 pl-6 py-4 text-base ${error ? 'border-red-500 focus:border-red-500' : ''} ${className} ${type === 'date' || type === 'time' ? '[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden' : ''}`}
+            {...props}
+          />
 
-        {/* Right-side icon */}
-        {isPassword ? (
-          <button
-            type='button'
-            className='absolute right-3 top-4.5 text-gray-500'
-            onClick={() => setIsPasswordVisible(!isPasswordVisible)}
-          >
-            <div className='cursor-pointer'>
-              {' '}
+          {/* Right-side icon */}
+          {isPassword ? (
+            <button
+              type='button'
+              className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 z-30'
+              onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+            >
               {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          ) : icon ? (
+            <div className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-30 pointer-events-none'>
+              {icon}
             </div>
-          </button>
-        ) : icon ? (
-          <div className='absolute right-3 inset-y-0 flex items-center'>
-            {icon}
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         {/* Error message */}
         {error && (

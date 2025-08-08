@@ -10,44 +10,8 @@ import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import { Users, GraduationCap, BookOpen, Calendar } from 'lucide-react';
 import Tabs from '@/components/organisms/tabs/GenericTabs';
-import ClassManagementTabs from '@/components/organisms/tabs/ClassManagementTabs';
-import TimetableViewerPage from '@/components/organisms/tabs/ClassTimeTable';
 
-interface ActionButtonsProps {
-  pageType:
-    | 'students'
-    | 'teachers'
-    | 'parents'
-    | 'staff'
-    | 'subjects'
-    | 'id-cards'
-    | 'classes';
-}
-
-const tabs = [
-  {
-    name: 'Class Timetables',
-    content: <TimetableViewerPage />,
-  },
-  {
-    name: 'Class Management',
-    content: <ClassManagementTabs />,
-  },
-  {
-    name: 'Schedule Builder',
-    content: (
-      <div className='justify-center items-center flex flex-col h-full'>
-        <h3 className='text-lg font-semibold text-gray-800 mb-2'>
-          Schedule Builder Coming Soon!
-        </h3>
-        <p className='mt-2 text-gray-600'>stay Tuned!</p>
-      </div>
-    ),
-  },
-];
-
-const ClassesPage = () => {
-  // Subject-specific stats data
+const ClassManagementTabs = () => {
   const subjectStats = [
     {
       icon: BookOpen,
@@ -119,28 +83,20 @@ const ClassesPage = () => {
   ];
 
   return (
-    <div className='min-h-screen bg-background'>
-      {/* Header */}
-      <div className='px-1 sm:px-2 lg:px-4 pt-3 sm:pt-4 lg:pt-6'>
-        <div className='max-w-7xl mx-auto'>
-          <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
-            Class Management
-          </h1>
-          <p className='text-sm sm:text-base lg:text-lg text-gray-600 mt-1 sm:mt-2'>
-            Manage All Class Related Info Here
-          </p>
-        </div>
+    <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
+      <div className='max-w-7xl mx-auto'>
+        <GenericList<Class>
+          config={getListConfig('classes')}
+          data={classesData}
+          currentPage={1}
+          totalPages={1}
+          totalItems={classesData.length}
+          itemsPerPage={10}
+          customActions={<ActionButtons pageType='classes' />}
+        />
       </div>
-
-      {/* Stats Grid */}
-      <div className='px-1 sm:px-2 lg:px-4 mt-3 sm:mt-4 lg:mt-6'>
-        <div className='max-w-7xl mx-auto'>
-          <Statsgrid stats={subjectStats} />
-        </div>
-      </div>
-      <Tabs tabs={tabs} />
     </div>
   );
 };
 
-export default ClassesPage;
+export default ClassManagementTabs;

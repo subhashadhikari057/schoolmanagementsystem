@@ -16,8 +16,26 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
+
 import { teacherService } from '@/api/services/teacher.service';
 import { toast } from 'sonner';
+import { isDevMockEnabled } from '@/utils';
+
+// Minimal mock data for dev mode
+const mockTeachers = [
+  {
+    id: 1,
+    name: 'John Doe',
+    faculty: 'Science',
+    subjects: ['Physics', 'Mathematics'],
+    classTeacher: 'Grade 10A',
+    status: 'Active' as const,
+    email: 'john.doe@example.com',
+    designation: 'Senior Teacher',
+    department: 'Science',
+    joinedDate: '2025-05-01',
+  },
+];
 
 const TeachersPage = () => {
   // State for managing real data
@@ -82,16 +100,21 @@ const TeachersPage = () => {
 
   const teacherStats = calculateStats(teachers);
 
-  // Load teachers from backend
+  // Load teachers from backend or use mock in dev mode
   const loadTeachers = async () => {
+    setIsLoading(true);
+    setError(null);
+    if (isDevMockEnabled()) {
+      // Use mock data
+      setTimeout(() => {
+        setTeachers(mockTeachers);
+        setIsLoading(false);
+      }, 500); // Simulate network delay
+      return;
+    }
     try {
-      setIsLoading(true);
-      setError(null);
-
       const response = await teacherService.getAllTeachers();
-
       if (response.success && response.data) {
-        // Map backend data to minimal Teacher interface for table
         const mappedTeachers: Teacher[] = response.data.map(
           (teacher, index) => ({
             id: index + 1,
@@ -111,6 +134,7 @@ const TeachersPage = () => {
             email: teacher.email,
             designation: teacher.designation,
             department: teacher.department,
+            // joinedDate: teacher.joinedDate, // Not present in backend response
           }),
         );
         setTeachers(mappedTeachers);
