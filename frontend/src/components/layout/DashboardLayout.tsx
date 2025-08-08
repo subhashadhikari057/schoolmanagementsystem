@@ -4,13 +4,10 @@ import { useState, useEffect } from 'react';
 import Sidebar from '../organisms/navigation/Sidebar';
 import Navbar from '../organisms/navigation/Navbar';
 import LabeledInputField from '../molecules/forms/LabeledInputField';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -128,4 +125,26 @@ export default function DashboardLayout({
       </div>
     </div>
   );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/auth/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading || !isAuthenticated) {
+    // Optional: show a loading spinner or a blank page while redirecting
+    return null;
+  }
+
+  return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
 }

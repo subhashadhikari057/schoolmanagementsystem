@@ -205,7 +205,6 @@ export class TeacherService {
     teacherId: string,
     classAssignments: Array<{
       classId: string;
-      sectionId?: string;
       isClassTeacher?: boolean;
     }>,
   ): Promise<ApiResponse<{ message: string }>> {

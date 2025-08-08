@@ -7,7 +7,11 @@ import {
 
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
-import { LoginDtoType, ForceChangePasswordDtoType } from '../dto/auth.dto';
+import {
+  LoginDtoType,
+  ForceChangePasswordDtoType,
+  ChangePasswordDtoType,
+} from '../dto/auth.dto';
 import { verifyPassword, hashPassword } from '../../../shared/auth/hash.util';
 import {
   signAccessToken,
@@ -19,6 +23,12 @@ import {
 import { hashToken, verifyTokenHash } from '../../../shared/auth/token.util';
 import { randomUUID } from 'crypto';
 import { UserRole } from '@sms/shared-types';
+
+interface DecodedToken {
+  userId: string;
+  sessionId: string;
+  // other properties...
+}
 
 @Injectable()
 export class AuthService {
@@ -65,7 +75,7 @@ export class AuthService {
     ];
 
     for (const priorityRole of rolePriority) {
-      if (userRoles.some(ur => ur.role.name === priorityRole)) {
+      if (userRoles.some(ur => ur.role.name === (priorityRole as string))) {
         return priorityRole;
       }
     }
@@ -242,7 +252,7 @@ export class AuthService {
     ip: string,
     userAgent: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const decoded = verifyToken(refreshToken) as any;
+    const decoded = verifyToken(refreshToken) as DecodedToken;
     if (!decoded?.userId || !decoded?.sessionId) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
@@ -430,5 +440,42 @@ export class AuthService {
         'Password changed successfully. Please login with your new password.',
       success: true,
     };
+  }
+
+  async changePassword(
+    data: ChangePasswordDtoType & { userId: string },
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: data.userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const isMatch = await verifyPassword(
+      data.current_password,
+      user.passwordHash,
+    );
+    if (!isMatch) {
+      throw new UnauthorizedException('Incorrect current password');
+    }
+
+    const newPasswordHash = await hashPassword(data.new_password);
+
+    await this.prisma.user.update({
+      where: { id: data.userId },
+      data: {
+        passwordHash: newPasswordHash,
+        lastPasswordChange: new Date(),
+      },
+    });
+
+    await this.auditService.record({
+      action: 'CHANGE_PASSWORD',
+      status: 'SUCCESS',
+      module: 'AUTH',
+      userId: data.userId,
+    });
   }
 }

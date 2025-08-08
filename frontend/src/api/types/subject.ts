@@ -15,8 +15,53 @@ export interface SubjectResponse {
   name: string;
   code: string;
   description?: string;
+  maxMarks?: number;
+  passMarks?: number;
   createdAt: string;
   updatedAt?: string;
+  deletedAt?: string;
+  createdById?: string;
+  updatedById?: string;
+  deletedById?: string;
+  assignedClasses?: Array<{
+    id: string;
+    classId: string;
+    subjectId: string;
+    teacherId?: string;
+    class: {
+      id: string;
+      grade: number;
+      section: string;
+    };
+    teacher?: {
+      id: string;
+      user: {
+        fullName: string;
+      };
+      designation?: string;
+    };
+  }>;
+  teacherAssignments?: Array<{
+    id: string;
+    teacherId: string;
+    subjectId: string;
+    teacher: {
+      id: string;
+      user: {
+        fullName: string;
+      };
+      designation?: string;
+    };
+  }>;
+}
+
+// ============================================================================
+// Class Assignment Types
+// ============================================================================
+
+export interface ClassAssignment {
+  classId: string;
+  teacherId?: string;
 }
 
 // ============================================================================
@@ -27,6 +72,10 @@ export interface CreateSubjectRequest {
   name: string;
   code: string;
   description?: string;
+  maxMarks?: number;
+  passMarks?: number;
+  classAssignments?: ClassAssignment[];
+  teacherIds?: string[];
 }
 
 // ============================================================================
@@ -37,4 +86,8 @@ export interface UpdateSubjectRequest {
   name?: string;
   code?: string;
   description?: string;
+  maxMarks?: number;
+  passMarks?: number;
+  classAssignments?: ClassAssignment[];
+  teacherIds?: string[];
 }

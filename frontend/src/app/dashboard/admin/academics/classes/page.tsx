@@ -8,10 +8,12 @@ import {
 } from '@/components/templates/listConfigurations';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
+
 import { Users, GraduationCap, BookOpen, Calendar } from 'lucide-react';
 import Tabs from '@/components/organisms/tabs/GenericTabs';
 import ClassManagementTabs from '@/components/organisms/tabs/ClassManagementTabs';
 import TimetableViewerPage from '@/components/organisms/tabs/ClassTimeTable';
+
 
 interface ActionButtonsProps {
   pageType:
@@ -87,7 +89,7 @@ const ClassesPage = () => {
     },
   ];
 
-  // Classes table data
+  // Static data for the list
   const classesData: Class[] = [
     {
       id: 1,
