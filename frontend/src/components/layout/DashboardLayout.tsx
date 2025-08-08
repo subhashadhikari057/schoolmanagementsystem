@@ -6,6 +6,9 @@ import Navbar from '../organisms/navigation/Navbar';
 import LabeledInputField from '../molecules/forms/LabeledInputField';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useTokenExpiryHandler } from '@/hooks/useTokenExpiryHandler';
+import SessionGuard from '../molecules/auth/SessionGuard';
+import ApiErrorBoundary from '../molecules/error/ApiErrorBoundary';
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -132,19 +135,21 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
+  // Use token expiry handler to automatically redirect on token expiration
+  useTokenExpiryHandler();
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth/login');
-    }
-  }, [isLoading, isAuthenticated, router]);
+  // Loading state component
+  const LoadingFallback = () => (
+    <div className='flex items-center justify-center h-screen'>
+      <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary'></div>
+    </div>
+  );
 
-  if (isLoading || !isAuthenticated) {
-    // Optional: show a loading spinner or a blank page while redirecting
-    return null;
-  }
-
-  return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
+  return (
+    <ApiErrorBoundary>
+      <SessionGuard fallback={<LoadingFallback />}>
+        <AuthenticatedLayout>{children}</AuthenticatedLayout>
+      </SessionGuard>
+    </ApiErrorBoundary>
+  );
 }
