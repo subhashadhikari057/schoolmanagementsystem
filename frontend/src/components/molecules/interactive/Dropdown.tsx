@@ -20,7 +20,6 @@ import Avatar from '@/components/atoms/display/Avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useAnalyticsOverview } from '@/context/AnalyticsOverviewContext';
 import { useRouter } from 'next/navigation';
-import { isDevMockEnabled } from '@/utils';
 import ChangePasswordModal from '@/components/organisms/modals/ChangePasswordModal';
 import { Menu, Transition } from '@headlessui/react';
 import { AuthUser } from '@/api/types/auth';
@@ -86,11 +85,11 @@ export default function Dropdown({
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { showAnalytics, toggleAnalytics } = useAnalyticsOverview();
-  const isSuperAdmin = user?.role === 'superadmin' || isDevMockEnabled();
 
   // Profile dropdown options with Animesh's View Profile change
   const profileOptions = useMemo(() => {
@@ -118,16 +117,14 @@ export default function Dropdown({
         onClick: logout,
       },
     ];
-    if (isSuperAdmin) {
-      opts.push({
-        value: 'toggle-analytics',
-        label: showAnalytics ? 'Hide Analytics' : 'Show Analytics',
-        icon: <BarChart2 size={12} />,
-        onClick: toggleAnalytics,
-      });
-    }
+    opts.push({
+      value: 'toggle-analytics',
+      label: showAnalytics ? 'Hide Analytics' : 'Show Analytics',
+      icon: <BarChart2 size={12} />,
+      onClick: toggleAnalytics,
+    });
     return opts;
-  }, [router, user, isSuperAdmin, showAnalytics, toggleAnalytics]);
+  }, [router, user, showAnalytics, toggleAnalytics, logout]);
 
   const currentOptions = useMemo(
     () => (type === 'profile' ? profileOptions : options),
@@ -149,20 +146,26 @@ export default function Dropdown({
     (value: string) => {
       if (type === 'filter') {
         onSelect?.(value);
+        setIsFilterOpen(false); // Close dropdown after selection
       }
     },
     [type, onSelect],
   );
 
+  const toggleFilterDropdown = useCallback(() => {
+    setIsFilterOpen(prev => !prev);
+  }, []);
+
   // Close dropdown on outside click (only for filter)
   useEffect(() => {
     if (type !== 'filter') return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        // No state here for Headless UI
+        setIsFilterOpen(false);
       }
     };
 
@@ -176,10 +179,9 @@ export default function Dropdown({
     return (
       <>
         <Menu
-          as="div"
-          className={`relative inline-block text-left w-full ${className}`}
+          className={`relative inline-block text-left w-full ${className || ''}`}
         >
-          {({ open }) => (
+          {({ open }: { open: boolean }) => (
             <>
               {/* Profile Button */}
               <Menu.Button
@@ -189,26 +191,26 @@ export default function Dropdown({
               >
                 <Avatar
                   name={user?.full_name || user?.email || 'Guest User'}
-                  className="w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0"
+                  className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
                   showInitials={true}
                 />
-                <div className="text-left flex-1 min-w-0 hidden sm:block">
-                  <p className="text-sm font-semibold text-foreground truncate">
+                <div className='text-left flex-1 min-w-0 hidden sm:block'>
+                  <p className='text-sm font-semibold text-foreground truncate'>
                     {isLoading ? 'Loading...' : getUserDisplayName(user)}
                   </p>
-                  <p className="text-xs text-secondary truncate capitalize">
+                  <p className='text-xs text-secondary truncate capitalize'>
                     {isLoading ? 'Loading...' : getUserRole(user?.role || '')}
                   </p>
                 </div>
                 {open ? (
                   <ChevronUp
                     size={16}
-                    className="text-secondary ml-auto flex-shrink-0"
+                    className='text-secondary ml-auto flex-shrink-0'
                   />
                 ) : (
                   <ChevronDown
                     size={16}
-                    className="text-secondary ml-auto flex-shrink-0"
+                    className='text-secondary ml-auto flex-shrink-0'
                   />
                 )}
               </Menu.Button>
@@ -216,18 +218,18 @@ export default function Dropdown({
               {/* Dropdown Menu */}
               <Transition
                 as={Fragment}
-                enter="transition ease-out duration-100"
-                enterFrom="transform opacity-0 -translate-y-1"
-                enterTo="transform opacity-100 translate-y-0"
-                leave="transition ease-in duration-75"
-                leaveFrom="transform opacity-100 translate-y-0"
-                leaveTo="transform opacity-0 -translate-y-1"
+                enter='transition ease-out duration-100'
+                enterFrom='transform opacity-0 -translate-y-1'
+                enterTo='transform opacity-100 translate-y-0'
+                leave='transition ease-in duration-75'
+                leaveFrom='transform opacity-100 translate-y-0'
+                leaveTo='transform opacity-0 -translate-y-1'
               >
-                <Menu.Items className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg z-50">
-                  <div className="p-2 space-y-1">
+                <Menu.Items className='absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg z-50'>
+                  <div className='p-2 space-y-1'>
                     {currentOptions.map(option => (
                       <Menu.Item key={option.value}>
-                        {({ active }) => (
+                        {({ active }: { active: boolean }) => (
                           <button
                             onClick={option.onClick}
                             className={`flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-colors ${
@@ -272,42 +274,52 @@ export default function Dropdown({
     >
       {/* Filter Button */}
       <button
-        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm w-full"
+        onClick={toggleFilterDropdown}
+        className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm w-full'
       >
-        {icon && <span className="text-gray-500">{icon}</span>}
-        <span className="text-gray-700">{selectedOption?.label}</span>
-        <ChevronDown
-          size={16}
-          className="text-gray-500 transition-transform"
-        />
+        {icon && <span className='text-gray-500'>{icon}</span>}
+        <span className='text-gray-700'>{selectedOption?.label}</span>
+        {isFilterOpen ? (
+          <ChevronUp
+            size={16}
+            className='text-gray-500 transition-transform ml-auto'
+          />
+        ) : (
+          <ChevronDown
+            size={16}
+            className='text-gray-500 transition-transform ml-auto'
+          />
+        )}
       </button>
 
-      {/* Filter Dropdown Menu */}
-      <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-        <div className="p-1">
-          {title && (
-            <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-              {title}
-            </div>
-          )}
-          {currentOptions.map(option => (
-            <button
-              key={option.value}
-              onClick={() => handleOptionClick(option.value)}
-              className={`flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors ${
-                selectedValue === option.value
-                  ? 'bg-blue-100 text-blue-700 font-medium'
-                  : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
-              }`}
-            >
-              {option.label}
-              {selectedValue === option.value && (
-                <div className="ml-auto w-2 h-2 bg-blue-600 rounded-full"></div>
-              )}
-            </button>
-          ))}
+      {/* Filter Dropdown Menu - Only show when isFilterOpen is true */}
+      {isFilterOpen && (
+        <div className='absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50'>
+          <div className='p-1'>
+            {title && (
+              <div className='px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100'>
+                {title}
+              </div>
+            )}
+            {currentOptions.map(option => (
+              <button
+                key={option.value}
+                onClick={() => handleOptionClick(option.value)}
+                className={`flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors ${
+                  selectedValue === option.value
+                    ? 'bg-blue-100 text-blue-700 font-medium'
+                    : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
+                }`}
+              >
+                {option.label}
+                {selectedValue === option.value && (
+                  <div className='ml-auto w-2 h-2 bg-blue-600 rounded-full'></div>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
