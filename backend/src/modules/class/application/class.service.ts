@@ -43,6 +43,8 @@ export class ClassService {
         section: dto.section,
         capacity: dto.capacity,
         roomId: dto.roomId,
+        classTeacherId: dto.classTeacherId, // Optional class teacher assignment
+        createdById: createdById,
       },
     });
 
@@ -60,15 +62,21 @@ export class ClassService {
   }
 
   /**
-   * Get all active classes (with sections included)
+   * Get all active classes
    */
   async findAll() {
     return this.prisma.class.findMany({
       where: { deletedAt: null },
       include: {
-        sections: {
-          where: { deletedAt: null }, // 🔧 Only include active sections
-          orderBy: { name: 'asc' },
+        classTeacher: {
+          include: {
+            user: {
+              select: { fullName: true, email: true },
+            },
+          },
+        },
+        room: {
+          select: { roomNo: true, name: true, floor: true, building: true },
         },
       },
       orderBy: { grade: 'asc' },
@@ -76,15 +84,29 @@ export class ClassService {
   }
 
   /**
-   * Get a class by ID (with sections)
+   * Get a class by ID
    */
   async findById(id: string) {
     const classRecord = await this.prisma.class.findUnique({
       where: { id },
       include: {
-        sections: {
-          where: { deletedAt: null }, // 🔧 Only include active sections
-          orderBy: { name: 'asc' },
+        classTeacher: {
+          include: {
+            user: {
+              select: { fullName: true, email: true },
+            },
+          },
+        },
+        room: {
+          select: { roomNo: true, name: true, floor: true, building: true },
+        },
+        students: {
+          where: { deletedAt: null },
+          select: {
+            id: true,
+            rollNumber: true,
+            user: { select: { fullName: true } },
+          },
         },
       },
     });

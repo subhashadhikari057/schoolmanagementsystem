@@ -24,6 +24,7 @@ export interface TableColumn<T = BaseItem> {
     item: T,
     isSelected?: boolean,
     onSelect?: (id: string | number) => void,
+    onSubjectAction?: (action: string, subject: T) => void,
   ) => ReactNode;
   className?: string;
   mobileLabel?: string;
@@ -57,6 +58,8 @@ export interface GenericListProps<T extends BaseItem = BaseItem> {
   onPrimaryFilterChange?: (value: string) => void;
   onSecondaryFilterChange?: (value: string) => void;
   onItemAction?: (action: string, item: T) => void;
+  onSubjectAction?: (action: string, item: T) => void; // For subjects-specific actions
+  onPageChange?: (page: number) => void;
   customActions?: ReactNode;
   selectedItems?: (string | number)[];
   onSelectionChange?: (selectedIds: (string | number)[]) => void;
@@ -73,6 +76,8 @@ export const GenericList = <T extends BaseItem>({
   onPrimaryFilterChange,
   onSecondaryFilterChange,
   onItemAction,
+  onSubjectAction,
+  onPageChange,
   customActions,
   selectedItems = [],
   onSelectionChange,
@@ -155,6 +160,8 @@ export const GenericList = <T extends BaseItem>({
           itemsPerPage={itemsPerPage}
           emptyMessage={config.emptyMessage || 'No data available'}
           onItemAction={onItemAction}
+          onSubjectAction={onSubjectAction}
+          onPageChange={onPageChange}
           enableSelection={config.enableSelection}
           selectedItems={selectedItems}
           onSelectionChange={onSelectionChange}

@@ -1,296 +1,261 @@
-'use client';
-
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useMemo,
-  useCallback,
-} from 'react';
+import React, { useState } from 'react';
+import ToggleButton from '../form-controls/ToggleButton';
 import {
-  ChevronUp,
-  ChevronDown,
-  User as UserIcon,
-  Key,
-  LogOut,
+  Download,
+  Upload,
+  Mail,
+  MessageSquare,
+  Plus,
+  Printer,
 } from 'lucide-react';
-import Avatar from '@/components/atoms/display/Avatar';
-import { useAuth } from '@/hooks/useAuth';
-import { BarChart2 } from 'lucide-react';
-import { useAnalyticsOverview } from '@/context/AnalyticsOverviewContext';
-import { useRouter } from 'next/navigation';
-import { isDevMockEnabled } from '@/utils';
+import AddUserFormModal, { UserType } from '@/components/organisms/modals/AddUserFormModal';
+import AddSubjectFormModal from '@/components/organisms/modals/AddSubjectFormModal';
+import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
+import AddClassModal from '@/components/organisms/modals/AddClassModal';
 
-interface DropdownOption {
-  value: string;
+interface ActionButtonConfig {
+  id: string;
   label: string;
-  icon?: React.ReactNode;
-  onClick?: () => void;
-}
-
-interface DropdownProps {
+  variant: string;
   className?: string;
-  type?: 'profile' | 'filter';
-  title?: string;
-  options?: DropdownOption[];
-  selectedValue?: string;
-  onSelect?: (value: string) => void;
-  placeholder?: string;
   icon?: React.ReactNode;
+  onClick: () => void;
 }
 
-// Helper functions for user display
-const getUserDisplayName = (user: any) => {
-  if (!user) return 'Guest User';
+interface ActionButtonsProps {
+  pageType:
+    | 'students'
+    | 'teachers'
+    | 'parents'
+    | 'staff'
+    | 'subjects'
+    | 'id-cards'
+    | 'classes'
+    | 'reports';
+  onRefresh?: () => void;
+}
 
-  if (user.full_name) {
-    const nameParts = user.full_name.trim().split(' ');
-    return nameParts.length > 1 ? nameParts[0] : user.full_name;
-  }
-
-  if (user.email) {
-    const emailName = user.email.split('@')[0];
-    return emailName.charAt(0).toUpperCase() + emailName.slice(1);
-  }
-
-  return 'Guest User';
-};
-
-const getUserRole = (role: string) => {
-  if (!role) return 'guest';
-
-  const roleMap: Record<string, string> = {
-    SUPER_ADMIN: 'Super Admin',
-    admin: 'Admin',
-    teacher: 'Teacher',
-    student: 'Student',
-    parent: 'Parent',
-  };
-
-  return roleMap[role] || role.toLowerCase();
-};
-
-export default function Dropdown({
-  className,
-  type = 'profile',
-  title,
-  options = [],
-  selectedValue,
-  onSelect,
-  placeholder = 'Select option',
-  icon,
-}: DropdownProps) {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Analytics Overview toggle (only for Super Admin)
-  const { showAnalytics, toggleAnalytics } = useAnalyticsOverview();
-  const isSuperAdmin = user?.role === 'superadmin' || isDevMockEnabled();
-
-  // Memoize profile dropdown options
-  const profileOptions = useMemo(() => {
-    const opts = [
+const getActionButtonsConfig = (
+  pageType: string,
+  openAddModal: () => void,
+): ActionButtonConfig[] => {
+  if (pageType === 'reports') {
+    return [
       {
-        value: 'profile',
-        label: 'View Profile',
-        icon: <UserIcon size={16} />,
-        onClick: () => {
-          if (isDevMockEnabled() && !user) {
-            router.push('/dashboard/system/myprofile/devuser');
-          } else if (user) {
-            router.push(`/dashboard/system/myprofile/${user.id}`);
-          }
-        },
-      },
-      {
-        value: 'password',
-        label: 'Change Password',
-        icon: <Key size={16} />,
-        onClick: () => console.log('Change Password'),
-      },
-      {
-        value: 'logout',
-        label: 'Logout',
-        icon: <LogOut size={16} />,
-        onClick: () => console.log('Logout'),
+        id: 'generate-report',
+        label: 'Generate Report',
+        variant: 'primary',
+        className:
+          'bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600',
+        icon: (
+          <svg
+            width='24'
+            height='24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='2'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            viewBox='0 0 24 24'
+          >
+            <path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' />
+            <polyline points='14 2 14 8 20 8' />
+            <line x1='16' y1='13' x2='8' y2='13' />
+            <line x1='16' y1='17' x2='8' y2='17' />
+            <polyline points='10 9 9 9 8 9' />
+          </svg>
+        ),
+        onClick: () => alert('Generate Report action!'),
       },
     ];
-    if (isSuperAdmin) {
-      opts.push({
-        value: 'toggle-analytics',
-        label: showAnalytics ? 'Hide Analytics' : 'Show Analytics',
-        icon: <BarChart2 size={12} />,
-        onClick: toggleAnalytics,
-      });
-    }
-    return opts;
-  }, [router, user, isSuperAdmin, showAnalytics, toggleAnalytics]);
-
-  const currentOptions = useMemo(
-    () => (type === 'profile' ? profileOptions : options),
-    [type, profileOptions, options],
-  );
-
-  const selectedOption = useMemo(() => {
-    if (type === 'filter') {
-      return (
-        options.find(option => option.value === selectedValue) || {
-          label: placeholder,
-        }
-      );
-    }
-    return null;
-  }, [type, options, selectedValue, placeholder]);
-
-  const handleToggle = useCallback(() => {
-    setIsOpen(prev => !prev);
-  }, []);
-
-  const handleOptionClick = useCallback(
-    (value: string) => {
-      if (type === 'filter') {
-        onSelect?.(value);
-      }
-      setIsOpen(false);
-    },
-    [type, onSelect],
-  );
-
-  const handleProfileOptionClick = useCallback((option: DropdownOption) => {
-    option.onClick?.();
-    setIsOpen(false);
-  }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  if (type === 'profile') {
-    return (
-      <div
-        ref={dropdownRef}
-        className={`relative inline-block text-left w-full ${className}`}
-      >
-        {/* Profile Button */}
-        <button
-          onClick={handleToggle}
-          className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full bg-white border border-gray-200 rounded-lg transition-all ${
-            isOpen ? 'rounded-b-none shadow-sm' : 'shadow-sm'
-          }`}
-        >
-          <Avatar
-            name={user?.full_name || user?.email || 'Guest User'}
-            className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
-            showInitials={true}
-          />
-          <div className='text-left flex-1 min-w-0 hidden sm:block'>
-            <p className='text-sm font-semibold text-foreground truncate'>
-              {isLoading ? 'Loading...' : getUserDisplayName(user)}
-            </p>
-            <p className='text-xs text-secondary truncate capitalize'>
-              {isLoading ? 'Loading...' : getUserRole(user?.role || '')}
-            </p>
-          </div>
-          {isOpen ? (
-            <ChevronUp
-              size={16}
-              className='text-secondary ml-auto flex-shrink-0'
-            />
-          ) : (
-            <ChevronDown
-              size={16}
-              className='text-secondary ml-auto flex-shrink-0'
-            />
-          )}
-        </button>
-
-        {/* Profile Dropdown Menu */}
-        {isOpen && (
-          <div className='absolute top-full left-0 right-0 mt-0 bg-white border border-gray-200 rounded-b-lg shadow-lg z-[9999]'>
-            <div className='p-2 space-y-1'>
-              {currentOptions.map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => handleProfileOptionClick(option)}
-                  className='flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-colors hover:bg-gray-100 text-gray-700'
-                >
-                  {option.icon && (
-                    <span className='text-gray-500'>{option.icon}</span>
-                  )}
-                  <span>{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
   }
 
-  // Filter dropdown
+  const baseButtons: ActionButtonConfig[] = [
+    {
+      id: 'import',
+      label: 'Import',
+      variant: 'import',
+      className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+      icon: <Upload size={16} />,
+      onClick: () => {
+        if (pageType === 'subjects') {
+          alert(
+            `📚 Import ${pageType} functionality will allow you to bulk upload subject data from CSV/Excel files. Feature coming soon!`,
+          );
+        } else if (pageType === 'id-cards') {
+          alert(
+            `🆔 Import ID card data - Bulk upload card holder information and generate cards automatically. Feature coming soon!`,
+          );
+        } else {
+          alert(
+            `📥 Import ${pageType} data from external files. This feature is under development.`,
+          );
+        }
+      },
+    },
+    {
+      id: 'export',
+      label: 'Export Data',
+      variant: 'export',
+      className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+      icon: <Download size={16} />,
+      onClick: () => {
+        if (pageType === 'subjects') {
+          alert(
+            `📊 Export all subject data including syllabus, schedules, and teacher assignments. Download will start shortly!`,
+          );
+        } else if (pageType === 'id-cards') {
+          alert(
+            `🃏 Export ID card data - Download all card information, print logs, and templates. Export starting now!`,
+          );
+        } else {
+          alert(
+            `📤 Export ${pageType} data to CSV/PDF format. Processing your request...`,
+          );
+        }
+      },
+    },
+  ];
+
+  const additionalButtons: ActionButtonConfig[] = [];
+
+  if (pageType === 'students') {
+    additionalButtons.push({
+      id: 'mass-emails',
+      label: 'Mass Generate Emails',
+      variant: 'emails',
+      className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+      icon: <Mail size={16} />,
+      onClick: () =>
+        alert(
+          '📧 Mass Email Generation - Create bulk email accounts for all selected students with automated password distribution!',
+        ),
+    });
+  }
+
+  if (pageType === 'id-cards') {
+    additionalButtons.push({
+      id: 'print-selected',
+      label: 'Print Selected',
+      variant: 'secondary',
+      className: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg',
+      icon: <Printer size={16} />,
+      onClick: () =>
+        alert(
+          '📱 Print Selected - Send the selected ID cards to the printer for immediate printing!',
+        ),
+    });
+  }
+
+  if (
+    pageType !== 'staff' &&
+    pageType !== 'subjects' &&
+    pageType !== 'id-cards' &&
+    pageType !== 'classes'
+  ) {
+    additionalButtons.push({
+      id: 'send-communication',
+      label: 'Send Communication',
+      variant: 'communication',
+      className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+      icon: <MessageSquare size={16} />,
+      onClick: () =>
+        alert(
+          `📢 Send Communication - Broadcast messages, announcements, and updates to all ${pageType}!`,
+        ),
+    });
+  }
+
+  const addButtonLabel =
+    pageType === 'subjects'
+      ? 'Subject'
+      : pageType === 'id-cards'
+      ? 'ID Card'
+      : pageType.charAt(0).toUpperCase() + pageType.slice(1, 7);
+
+  additionalButtons.push({
+    id: `add-${pageType === 'subjects' ? 'subject' : pageType === 'id-cards' ? 'id-card' : pageType.slice(0, -1)}`,
+    label: `Add ${addButtonLabel}`,
+    className: 'bg-[#2F80ED] text-white hover:bg-blue-600 rounded-lg',
+    variant: 'primary',
+    icon: <Plus size={16} />,
+    onClick: openAddModal,
+  });
+
+  return [...baseButtons, ...additionalButtons];
+};
+
+export const ActionButtons = ({ pageType, onRefresh }: ActionButtonsProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openAddModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
+  const handleSuccess = () => {
+    console.log(`${pageType} added successfully`);
+    onRefresh?.();
+  };
+
+  const actionButtonsConfig = getActionButtonsConfig(pageType, openAddModal);
+
+  const getUserType = (pageType: string): UserType => {
+    switch (pageType) {
+      case 'teachers':
+        return 'teacher';
+      case 'students':
+        return 'student';
+      case 'parents':
+        return 'parent';
+      case 'staff':
+        return 'staff';
+      default:
+        return 'student';
+    }
+  };
+
+  const userType = getUserType(pageType);
+
   return (
-    <div
-      ref={dropdownRef}
-      className={`relative inline-block text-left ${className || ''}`}
-    >
-      {/* Filter Button */}
-      <button
-        onClick={handleToggle}
-        className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm w-full'
-      >
-        {icon && <span className='text-gray-500'>{icon}</span>}
-        <span className='text-gray-700'>{selectedOption?.label}</span>
-        <ChevronDown
-          size={16}
-          className={`text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-        />
-      </button>
-
-      {/* Filter Dropdown Menu */}
-      {isOpen && (
-        <div className='absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50'>
-          <div className='p-1'>
-            {title && (
-              <div className='px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100'>
-                {title}
+    <>
+      <div className='flex gap-2'>
+        {actionButtonsConfig.map((button) => (
+          <div key={button.id} onClick={button.onClick}>
+            <ToggleButton className={button.className}>
+              <div className='flex items-center gap-2'>
+                {button.icon}
+                <span>{button.label}</span>
               </div>
-            )}
-            {currentOptions.map(option => (
-              <button
-                key={option.value}
-                onClick={() => handleOptionClick(option.value)}
-                className={`flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors ${
-                  selectedValue === option.value
-                    ? 'bg-blue-100 text-blue-700 font-medium'
-                    : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
-                }`}
-              >
-                {option.label}
-                {selectedValue === option.value && (
-                  <div className='ml-auto w-2 h-2 bg-blue-600 rounded-full'></div>
-                )}
-              </button>
-            ))}
+            </ToggleButton>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {/* Spacer to push content down when dropdown is open */}
-    </div>
+      {pageType === 'subjects' ? (
+        <AddSubjectFormModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : pageType === 'id-cards' ? (
+        <GenerateIDCardModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : pageType === 'classes' ? (
+        <AddClassModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : (
+        <AddUserFormModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+          userType={userType}
+        />
+      )}
+    </>
   );
-}
+};

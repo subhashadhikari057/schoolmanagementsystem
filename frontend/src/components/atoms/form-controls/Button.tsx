@@ -1,10 +1,7 @@
-// molecules/LoginFormButton.tsx
+import { Button as HeadlessButton } from '@headlessui/react';
+import React from 'react';
 
-import { Button } from '@headlessui/react';
-
-interface Props {
-  onClick?: () => void;
-  className?: string;
+interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   label?: string;
   as?: 'button' | 'div';
   children?: React.ReactNode;
@@ -16,28 +13,29 @@ export default function ReusableButton({
   className,
   as = 'button',
   children,
+  ...props
 }: Props) {
   if (as === 'div') {
     return (
       <div
         onClick={onClick}
         className={`${className} cursor-pointer`}
-        role='button'
+        role="button"
         tabIndex={0}
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             onClick?.();
           }
         }}
       >
-        {children ? children : label}
+        {children ?? label}
       </div>
     );
   }
 
   return (
-    <Button onClick={onClick} className={`${className}`}>
-      {children ? children : label}
-    </Button>
+    <HeadlessButton {...props} onClick={onClick} className={`${className}`}>
+      {children ?? label}
+    </HeadlessButton>
   );
 }

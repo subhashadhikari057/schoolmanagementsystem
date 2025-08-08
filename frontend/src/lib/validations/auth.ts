@@ -63,3 +63,26 @@ export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export type SetPasswordFormData = z.infer<typeof setPasswordSchema>;
 export type VerifyOtpFormData = z.infer<typeof verifyOtpSchema>;
 export type FlexibleFormData = z.infer<typeof flexibleFormSchema>;
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
+
+// Change password form validation schema
+export const changePasswordSchema = z
+  .object({
+    current_password: z.string().min(1, 'Current password is required'),
+    new_password: z
+      .string()
+      .min(8, 'New password must be at least 8 characters long')
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+        'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+      ),
+    confirm_password: z.string().min(1, 'Please confirm your new password'),
+  })
+  .refine(data => data.new_password === data.confirm_password, {
+    message: "Passwords don't match",
+    path: ['confirm_password'],
+  })
+  .refine(data => data.current_password !== data.new_password, {
+    message: 'New password must be different from the current one',
+    path: ['new_password'],
+  });

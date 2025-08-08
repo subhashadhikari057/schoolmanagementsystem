@@ -1,12 +1,22 @@
 import React from 'react';
-import { Eye, Edit, Clock, Link } from 'lucide-react';
+import { Eye, Edit, Clock, Link, Trash2 } from 'lucide-react';
 
 interface ActionsCellProps {
   onAction?: (action: string) => void;
+  entityType?:
+    | 'student'
+    | 'teacher'
+    | 'parent'
+    | 'staff'
+    | 'subject'
+    | 'id-card';
 }
 
-const ActionsCell: React.FC<ActionsCellProps> = ({ onAction }) => {
-  const actions = [
+const ActionsCell: React.FC<ActionsCellProps> = ({
+  onAction,
+  entityType = 'student',
+}) => {
+  const getAllActions = () => [
     {
       icon: Eye,
       action: 'view',
@@ -31,7 +41,42 @@ const ActionsCell: React.FC<ActionsCellProps> = ({ onAction }) => {
       title: 'Share Link',
       color: 'text-purple-600 hover:text-purple-800',
     },
+    {
+      icon: Trash2,
+      action: 'delete',
+      title: 'Delete',
+      color: 'text-red-600 hover:text-red-800',
+    },
   ];
+
+  const getActionsForEntity = (type: string) => {
+    const allActions = getAllActions();
+
+    switch (type) {
+      case 'subject':
+        // For subjects: view, edit, delete (no schedule, no link)
+        return allActions.filter(action =>
+          ['view', 'edit', 'delete'].includes(action.action),
+        );
+      case 'id-card':
+        // For ID cards: view, edit, print, regenerate
+        return [
+          allActions.find(a => a.action === 'view')!,
+          allActions.find(a => a.action === 'edit')!,
+          {
+            icon: Clock,
+            action: 'print',
+            title: 'Print',
+            color: 'text-indigo-600 hover:text-indigo-800',
+          },
+        ];
+      default:
+        // For students, teachers, parents, staff: all actions except delete
+        return allActions.filter(action => action.action !== 'delete');
+    }
+  };
+
+  const actions = getActionsForEntity(entityType);
 
   return (
     <div className='flex items-center gap-1'>

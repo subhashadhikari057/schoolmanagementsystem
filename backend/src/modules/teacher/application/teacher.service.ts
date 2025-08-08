@@ -236,12 +236,6 @@ export class TeacherService {
                 section: true,
               },
             },
-            section: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
           },
         },
       },
@@ -312,8 +306,8 @@ export class TeacherService {
       // Class assignments (if class teacher)
       classAssignments: teacher.classAssignments.map(ca => ({
         id: ca.id,
-        className: `Grade ${ca.class.grade}${ca.class.section}`,
-        sectionName: ca.section?.name || 'No Section',
+        className: `Grade ${ca.class.grade} Section ${ca.class.section}`,
+        section: ca.class.section,
       })),
     }));
   }
@@ -676,7 +670,7 @@ export class TeacherService {
 
   async assignClasses(
     teacherId: string,
-    assignments: { classId: string; sectionId?: string }[],
+    assignments: { classId: string }[],
     actorId: string,
     ip?: string,
     userAgent?: string,
@@ -693,11 +687,10 @@ export class TeacherService {
     const validatedAssignments: {
       teacherId: string;
       classId: string;
-      sectionId?: string | null;
       createdById: string;
     }[] = [];
 
-    for (const { classId, sectionId } of assignments) {
+    for (const { classId } of assignments) {
       const classRecord = await this.prisma.class.findUnique({
         where: { id: classId },
       });
@@ -705,24 +698,9 @@ export class TeacherService {
         throw new NotFoundException(`Class not found: ${classId}`);
       }
 
-      if (sectionId) {
-        const sectionRecord = await this.prisma.section.findUnique({
-          where: { id: sectionId },
-        });
-        if (!sectionRecord || sectionRecord.deletedAt) {
-          throw new NotFoundException(`Section not found: ${sectionId}`);
-        }
-        if (sectionRecord.classId !== classId) {
-          throw new ConflictException(
-            `Section ${sectionId} does not belong to Class ${classId}`,
-          );
-        }
-      }
-
       validatedAssignments.push({
         teacherId,
         classId,
-        sectionId: sectionId ?? null,
         createdById: actorId,
       });
     }
@@ -759,7 +737,6 @@ export class TeacherService {
           where: { deletedAt: null },
           include: {
             class: true,
-            section: true, // ✅ Include section info
           },
         },
       },
@@ -770,7 +747,6 @@ export class TeacherService {
 
     return teacher.classAssignments.map(assignment => ({
       class: assignment.class,
-      section: assignment.section ?? null, // may be null
     }));
   }
 
@@ -780,13 +756,11 @@ export class TeacherService {
     actorId: string,
     ip?: string,
     userAgent?: string,
-    sectionId?: string, // ✅ optional
   ) {
     await this.prisma.teacherClass.deleteMany({
       where: {
         teacherId,
         classId,
-        sectionId: sectionId ?? null, // ✅ match null if not provided
       },
     });
 
@@ -795,7 +769,7 @@ export class TeacherService {
       action: 'REMOVE_CLASS',
       module: 'teacher',
       status: 'SUCCESS',
-      details: { teacherId, classId, sectionId },
+      details: { teacherId, classId },
       ipAddress: ip,
       userAgent,
     });
@@ -809,13 +783,10 @@ export class TeacherService {
     ip?: string,
     userAgent?: string,
     classId?: string,
-    sectionId?: string,
   ) {
     const where: any = { teacherId };
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (classId) where.classId = classId;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (sectionId) where.sectionId = sectionId;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     await this.prisma.teacherClass.deleteMany({ where });
@@ -825,14 +796,14 @@ export class TeacherService {
       action: 'REMOVE_ALL_CLASSES',
       module: 'teacher',
       status: 'SUCCESS',
-      details: { teacherId, classId, sectionId },
+      details: { teacherId, classId },
       ipAddress: ip,
       userAgent,
     });
 
     return {
       message: 'Classes unassigned successfully',
-      filters: { classId, sectionId },
+      filters: { classId },
     };
   }
 }

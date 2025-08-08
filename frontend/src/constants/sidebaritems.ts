@@ -22,7 +22,7 @@ export const sidebarItems = {
       title: 'ACADEMICS',
       items: [
         {
-          label: 'Classes & Sections',
+          label: 'Classes',
           icon: 'Layers',
           path: '/dashboard/admin/academics/classes',
         },
