@@ -12,7 +12,7 @@ import {
   ForbiddenException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core/services';
 import { RolesGuard /* ROLES_KEY, MIN_ROLE_KEY */ } from '../roles.decorator';
 import { UserRole } from '@sms/shared-types';
 import { AuthenticatedUser } from '../../guards/jwt-auth.guard';

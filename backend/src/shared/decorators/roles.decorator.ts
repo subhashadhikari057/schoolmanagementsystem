@@ -15,7 +15,7 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core/services';
 import { Request } from 'express';
 import { UserRole, hasRolePermission } from '@sms/shared-types';
 import { AuthenticatedUser, IS_PUBLIC_KEY } from '../guards/jwt-auth.guard';
