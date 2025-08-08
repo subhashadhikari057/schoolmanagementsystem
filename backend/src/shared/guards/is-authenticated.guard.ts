@@ -4,7 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core/services';
 import { verifyToken } from '../auth/jwt.util';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 
@@ -54,7 +54,7 @@ export class IsAuthenticated implements CanActivate {
     }
 
     // ✅ Transform roles to match structure expected by guards
-    const transformedRoles = session.user.roles.map((r) => ({
+    const transformedRoles = session.user.roles.map(r => ({
       id: r.id,
       role: { name: r.role.name },
     }));

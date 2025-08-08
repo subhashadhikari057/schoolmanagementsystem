@@ -14,7 +14,7 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core/services';
 import { Request } from 'express';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { verifyToken } from '../auth/jwt.util';
