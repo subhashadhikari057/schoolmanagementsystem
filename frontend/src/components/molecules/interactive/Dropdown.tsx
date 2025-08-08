@@ -1,18 +1,29 @@
 'use client';
 
-import { Menu, Transition } from '@headlessui/react';
+import React, {
+  Fragment,
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+} from 'react';
 import {
   ChevronUp,
   ChevronDown,
   User as UserIcon,
   Key,
   LogOut,
+  BarChart2,
 } from 'lucide-react';
 import Avatar from '@/components/atoms/display/Avatar';
-import { Fragment } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useState } from 'react';
+import { useAnalyticsOverview } from '@/context/AnalyticsOverviewContext';
+import { useRouter } from 'next/navigation';
+import { isDevMockEnabled } from '@/utils';
 import ChangePasswordModal from '@/components/organisms/modals/ChangePasswordModal';
+import { Menu, Transition } from '@headlessui/react';
+import { AuthUser } from '@/api/types/auth';
 
 interface DropdownOption {
   value: string;
@@ -32,21 +43,14 @@ interface DropdownProps {
   icon?: React.ReactNode;
 }
 
-// Helper functions for user display
-import { AuthUser } from '@/api/types/auth';
-
-// ...
-
 const getUserDisplayName = (user: AuthUser | null) => {
   if (!user) return 'Guest User';
 
-  // If we have a full name, extract first name or use full name
   if (user.full_name) {
     const nameParts = user.full_name.trim().split(' ');
     return nameParts.length > 1 ? nameParts[0] : user.full_name;
   }
 
-  // Fallback to email (extract name part before @)
   if (user.email) {
     const emailName = user.email.split('@')[0];
     return emailName.charAt(0).toUpperCase() + emailName.slice(1);
@@ -58,7 +62,6 @@ const getUserDisplayName = (user: AuthUser | null) => {
 const getUserRole = (role: string) => {
   if (!role) return 'guest';
 
-  // Convert role to readable format
   const roleMap: Record<string, string> = {
     SUPER_ADMIN: 'Super Admin',
     admin: 'Admin',
@@ -81,51 +84,104 @@ export default function Dropdown({
   icon,
 }: DropdownProps) {
   const { user, isLoading, logout } = useAuth();
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const dropdownBg = 'bg-background';
-  const hoverBg = 'bg-muted-hover';
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Profile dropdown options
-  const profileOptions = [
-    {
-      value: 'profile',
-      label: 'View Profile',
-      icon: <UserIcon size={16} />,
-      onClick: () => console.log('View Profile'),
-    },
-    {
-      value: 'password',
-      label: 'Change Password',
-      icon: <Key size={16} />,
-      onClick: () => setIsModalOpen(true),
-    },
-    {
-      value: 'logout',
-      label: 'Logout',
-      icon: <LogOut size={16} />,
-      onClick: logout,
-    },
-  ];
+  const { showAnalytics, toggleAnalytics } = useAnalyticsOverview();
+  const isSuperAdmin = user?.role === 'superadmin' || isDevMockEnabled();
 
-  const currentOptions = type === 'profile' ? profileOptions : options;
-  const selectedOption =
-    type === 'filter'
-      ? options.find(option => option.value === selectedValue) || {
+  // Profile dropdown options with Animesh's View Profile change
+  const profileOptions = useMemo(() => {
+    const opts = [
+      {
+        value: 'profile',
+        label: 'View Profile',
+        icon: <UserIcon size={16} />,
+        onClick: () => {
+          if (user) {
+            router.push(`/dashboard/system/myprofile/${user.id}`);
+          }
+        },
+      },
+      {
+        value: 'password',
+        label: 'Change Password',
+        icon: <Key size={16} />,
+        onClick: () => setIsModalOpen(true),
+      },
+      {
+        value: 'logout',
+        label: 'Logout',
+        icon: <LogOut size={16} />,
+        onClick: logout,
+      },
+    ];
+    if (isSuperAdmin) {
+      opts.push({
+        value: 'toggle-analytics',
+        label: showAnalytics ? 'Hide Analytics' : 'Show Analytics',
+        icon: <BarChart2 size={12} />,
+        onClick: toggleAnalytics,
+      });
+    }
+    return opts;
+  }, [router, user, isSuperAdmin, showAnalytics, toggleAnalytics]);
+
+  const currentOptions = useMemo(
+    () => (type === 'profile' ? profileOptions : options),
+    [type, profileOptions, options],
+  );
+
+  const selectedOption = useMemo(() => {
+    if (type === 'filter') {
+      return (
+        options.find(option => option.value === selectedValue) || {
           label: placeholder,
         }
-      : null;
+      );
+    }
+    return null;
+  }, [type, options, selectedValue, placeholder]);
+
+  const handleOptionClick = useCallback(
+    (value: string) => {
+      if (type === 'filter') {
+        onSelect?.(value);
+      }
+    },
+    [type, onSelect],
+  );
+
+  // Close dropdown on outside click (only for filter)
+  useEffect(() => {
+    if (type !== 'filter') return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        // No state here for Headless UI
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [type]);
 
   if (type === 'profile') {
     return (
       <>
         <Menu
-          as='div'
+          as="div"
           className={`relative inline-block text-left w-full ${className}`}
         >
-          {({ open }: { open: boolean }) => (
+          {({ open }) => (
             <>
-              {/* === Profile Button === */}
+              {/* Profile Button */}
               <Menu.Button
                 className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full bg-white border border-gray-200 rounded-lg transition-all ${
                   open ? 'rounded-b-none shadow-sm' : 'shadow-sm'
@@ -133,60 +189,57 @@ export default function Dropdown({
               >
                 <Avatar
                   name={user?.full_name || user?.email || 'Guest User'}
-                  className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
+                  className="w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0"
                   showInitials={true}
                 />
-                <div className='text-left flex-1 min-w-0 hidden sm:block'>
-                  <p className='text-sm font-semibold text-foreground truncate'>
+                <div className="text-left flex-1 min-w-0 hidden sm:block">
+                  <p className="text-sm font-semibold text-foreground truncate">
                     {isLoading ? 'Loading...' : getUserDisplayName(user)}
                   </p>
-                  <p className='text-xs text-secondary truncate capitalize'>
+                  <p className="text-xs text-secondary truncate capitalize">
                     {isLoading ? 'Loading...' : getUserRole(user?.role || '')}
                   </p>
                 </div>
                 {open ? (
                   <ChevronUp
                     size={16}
-                    className='text-secondary ml-auto flex-shrink-0'
+                    className="text-secondary ml-auto flex-shrink-0"
                   />
                 ) : (
                   <ChevronDown
                     size={16}
-                    className='text-secondary ml-auto flex-shrink-0'
+                    className="text-secondary ml-auto flex-shrink-0"
                   />
                 )}
               </Menu.Button>
 
-              {/* === Dropdown Menu === */}
+              {/* Dropdown Menu */}
               <Transition
                 as={Fragment}
-                enter='transition ease-out duration-100'
-                enterFrom='transform opacity-0 -translate-y-1'
-                enterTo='transform opacity-100 translate-y-0'
-                leave='transition ease-in duration-75'
-                leaveFrom='transform opacity-100 translate-y-0'
-                leaveTo='transform opacity-0 -translate-y-1'
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 -translate-y-1"
+                enterTo="transform opacity-100 translate-y-0"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 translate-y-0"
+                leaveTo="transform opacity-0 -translate-y-1"
               >
-                <Menu.Items
-                  className={`absolute top-full left-0 mt-1 w-full ${dropdownBg} border border-muted rounded-b-lg shadow-lg z-50`}
-                >
-                  <div className='p-2 space-y-1'>
+                <Menu.Items className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg z-50">
+                  <div className="p-2 space-y-1">
                     {currentOptions.map(option => (
                       <Menu.Item key={option.value}>
-                        {/* @ts-expect-error - Headless UI compatibility */}
                         {({ active }) => (
                           <button
                             onClick={option.onClick}
                             className={`flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-colors ${
                               active
-                                ? `${hoverBg} text-primary font-bold`
-                                : 'text-secondary font-normal'
-                            } ${option.value === 'logout' ? 'text-hover' : ''}`}
+                                ? 'bg-gray-100 text-primary font-bold'
+                                : 'text-gray-700 font-normal'
+                            }`}
                           >
                             {option.icon && (
                               <span
                                 className={
-                                  active ? 'text-primary' : 'text-secondary'
+                                  active ? 'text-primary' : 'text-gray-500'
                                 }
                               >
                                 {option.icon}
@@ -213,63 +266,48 @@ export default function Dropdown({
 
   // Filter dropdown
   return (
-    // @ts-expect-error - Headless UI compatibility
-    <Menu as='div' className={`relative inline-block text-left ${className}`}>
-      {/* @ts-expect-error - Headless UI compatibility */}
-      {({ open }) => (
-        <>
-          <Menu.Button className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm'>
-            {icon && <span className='text-gray-500'>{icon}</span>}
-            <span className='text-gray-700'>{selectedOption?.label}</span>
-            <ChevronDown
-              size={16}
-              className={`text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
-            />
-          </Menu.Button>
+    <div
+      ref={dropdownRef}
+      className={`relative inline-block text-left ${className || ''}`}
+    >
+      {/* Filter Button */}
+      <button
+        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm w-full"
+      >
+        {icon && <span className="text-gray-500">{icon}</span>}
+        <span className="text-gray-700">{selectedOption?.label}</span>
+        <ChevronDown
+          size={16}
+          className="text-gray-500 transition-transform"
+        />
+      </button>
 
-          <Transition
-            as={Fragment}
-            enter='transition ease-out duration-100'
-            enterFrom='transform opacity-0 scale-95'
-            enterTo='transform opacity-100 scale-100'
-            leave='transition ease-in duration-75'
-            leaveFrom='transform opacity-100 scale-100'
-            leaveTo='transform opacity-0 scale-95'
-          >
-            <Menu.Items className='absolute right-0 mt-2 w-56 origin-top-right bg-white border border-gray-200 rounded-lg shadow-lg z-50'>
-              <div className='p-1'>
-                {title && (
-                  <div className='px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100'>
-                    {title}
-                  </div>
-                )}
-                {currentOptions.map(option => (
-                  <Menu.Item key={option.value}>
-                    {/* @ts-expect-error - Headless UI compatibility */}
-                    {({ active }) => (
-                      <button
-                        onClick={() => onSelect?.(option.value)}
-                        className={`flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors ${
-                          active ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                        } ${
-                          selectedValue === option.value
-                            ? 'bg-blue-100 text-blue-700 font-medium'
-                            : ''
-                        }`}
-                      >
-                        {option.label}
-                        {selectedValue === option.value && (
-                          <div className='ml-auto w-2 h-2 bg-blue-600 rounded-full'></div>
-                        )}
-                      </button>
-                    )}
-                  </Menu.Item>
-                ))}
-              </div>
-            </Menu.Items>
-          </Transition>
-        </>
-      )}
-    </Menu>
+      {/* Filter Dropdown Menu */}
+      <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+        <div className="p-1">
+          {title && (
+            <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+              {title}
+            </div>
+          )}
+          {currentOptions.map(option => (
+            <button
+              key={option.value}
+              onClick={() => handleOptionClick(option.value)}
+              className={`flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors ${
+                selectedValue === option.value
+                  ? 'bg-blue-100 text-blue-700 font-medium'
+                  : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
+              }`}
+            >
+              {option.label}
+              {selectedValue === option.value && (
+                <div className="ml-auto w-2 h-2 bg-blue-600 rounded-full"></div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

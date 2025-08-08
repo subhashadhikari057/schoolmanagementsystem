@@ -1,11 +1,3 @@
-/**
- * =============================================================================
- * Card Components
- * =============================================================================
- * Reusable card components for content containers
- * =============================================================================
- */
-
 import React from 'react';
 import { cn } from '@/utils';
 
@@ -16,7 +8,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'rounded-lg border bg-card text-card-foreground shadow-sm',
+      'rounded-lg bg-card text-card-foreground shadow-sm',
       className,
     )}
     {...props}

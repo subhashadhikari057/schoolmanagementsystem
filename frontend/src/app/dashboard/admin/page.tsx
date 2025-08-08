@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import { useAnalyticsOverview } from '@/context/AnalyticsOverviewContext';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { Users, GraduationCap, DollarSign, CreditCard } from 'lucide-react';
 import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
@@ -53,7 +54,8 @@ const statsData = [
 ];
 
 export default function AdminDashboard() {
-  const [showAllCharts, setShowAllCharts] = useState(false);
+  const [showAllCharts, setShowAllCharts] = React.useState(false);
+  const { showAnalytics } = useAnalyticsOverview();
 
   return (
     <div className='min-h-screen bg-background'>
@@ -86,41 +88,43 @@ export default function AdminDashboard() {
           </div>
 
           {/* Charts Section - Mobile: Single column, Desktop: 2x2 */}
-          <div className='space-y-4'>
-            <h2 className='text-base sm:text-lg font-semibold text-gray-900 px-1'>
-              Analytics Overview
-            </h2>
+          {showAnalytics && (
+            <div className='space-y-4'>
+              <h2 className='text-base sm:text-lg font-semibold text-gray-900 px-1'>
+                Analytics Overview
+              </h2>
 
-            {/* Mobile: Single column layout */}
-            <div className='block lg:hidden space-y-4'>
-              <AttendanceOverview />
-              <FeeCollectionChart />
-              {showAllCharts && (
-                <>
-                  <ExamPerformanceChart />
-                  <ExpensesBreakdownChart />
-                </>
-              )}
+              {/* Mobile: Single column layout */}
+              <div className='block lg:hidden space-y-4'>
+                <AttendanceOverview />
+                <FeeCollectionChart />
+                {showAllCharts && (
+                  <>
+                    <ExamPerformanceChart />
+                    <ExpensesBreakdownChart />
+                  </>
+                )}
 
-              {/* View More Button */}
-              <div className='flex justify-center pt-2'>
-                <button
-                  onClick={() => setShowAllCharts(!showAllCharts)}
-                  className='px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm'
-                >
-                  {showAllCharts ? '📊 Show Less' : '📈 View More Charts'}
-                </button>
+                {/* View More Button */}
+                <div className='flex justify-center pt-2'>
+                  <button
+                    onClick={() => setShowAllCharts(!showAllCharts)}
+                    className='px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm'
+                  >
+                    {showAllCharts ? '📊 Show Less' : '📈 View More Charts'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Desktop: 2x2 Grid */}
+              <div className='hidden lg:grid lg:grid-cols-2 lg:gap-6'>
+                <AttendanceOverview />
+                <FeeCollectionChart />
+                <ExamPerformanceChart />
+                <ExpensesBreakdownChart />
               </div>
             </div>
-
-            {/* Desktop: 2x2 Grid */}
-            <div className='hidden lg:grid lg:grid-cols-2 lg:gap-6'>
-              <AttendanceOverview />
-              <FeeCollectionChart />
-              <ExamPerformanceChart />
-              <ExpensesBreakdownChart />
-            </div>
-          </div>
+          )}
 
           {/* System Health - Mobile: Horizontal scroll with indicators */}
           <div className='space-y-3'>

@@ -17,6 +17,7 @@ interface NotificationPanelProps {
   notifications?: NotificationItem[];
   onMarkAsRead?: (id: string) => void;
   onMarkAllAsRead?: () => void;
+  hideHeading?: boolean;
 }
 
 const getNotificationIcon = (type: NotificationItem['type']) => {
@@ -56,6 +57,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
   notifications,
   onMarkAsRead,
   onMarkAllAsRead,
+  hideHeading,
 }) => {
   const [localNotifications, setLocalNotifications] = useState<
     NotificationItem[]
@@ -131,27 +133,29 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
 
   return (
     <div className='bg-white rounded-xl sm:p-4'>
-      <div className='flex items-center justify-between mb-3'>
-        <div className='flex items-center gap-2'>
-          <SectionTitle
-            text='Notifications'
-            className='text-base sm:text-lg font-semibold text-gray-900'
-          />
+      {!hideHeading && (
+        <div className='flex items-center justify-between mb-3'>
+          <div className='flex items-center gap-2'>
+            <SectionTitle
+              text='Notifications'
+              className='text-base sm:text-lg font-semibold text-gray-900'
+            />
+            {unreadCount > 0 && (
+              <span className='bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center'>
+                {unreadCount}
+              </span>
+            )}
+          </div>
           {unreadCount > 0 && (
-            <span className='bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center'>
-              {unreadCount}
-            </span>
+            <button
+              onClick={handleMarkAllAsRead}
+              className='text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors'
+            >
+              Mark all read
+            </button>
           )}
         </div>
-        {unreadCount > 0 && (
-          <button
-            onClick={handleMarkAllAsRead}
-            className='text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors'
-          >
-            Mark all read
-          </button>
-        )}
-      </div>
+      )}
 
       <div className='space-y-3 max-h-80 overflow-y-auto modal-scrollbar'>
         {notificationList.map(notification => {
