@@ -1,7 +1,6 @@
 'use client';
 
 import React, {
-  Fragment,
   useMemo,
   useState,
   useRef,
@@ -182,7 +181,7 @@ export default function Dropdown({
           className={`relative inline-block text-left w-full ${className || ''}`}
         >
           {({ open }: { open: boolean }) => (
-            <>
+            <div>
               {/* Profile Button */}
               <Menu.Button
                 className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full bg-white border border-gray-200 rounded-lg transition-all ${
@@ -217,7 +216,6 @@ export default function Dropdown({
 
               {/* Dropdown Menu */}
               <Transition
-                as={Fragment}
                 enter='transition ease-out duration-100'
                 enterFrom='transform opacity-0 -translate-y-1'
                 enterTo='transform opacity-100 translate-y-0'
@@ -255,7 +253,7 @@ export default function Dropdown({
                   </div>
                 </Menu.Items>
               </Transition>
-            </>
+            </div>
           )}
         </Menu>
         <ChangePasswordModal
