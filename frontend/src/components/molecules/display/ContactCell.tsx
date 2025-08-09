@@ -1,4 +1,5 @@
 import React from 'react';
+import { Mail, Phone, MapPin } from 'lucide-react';
 
 interface ContactCellProps {
   email?: string;
@@ -11,19 +12,19 @@ const ContactCell: React.FC<ContactCellProps> = ({ email, phone, address }) => {
     <div className='space-y-1'>
       {email && (
         <div className='flex items-center gap-2 text-sm'>
-          <span className='text-gray-400'>✉</span>
+          <Mail className='h-4 w-4 text-gray-400' />
           <span className='text-gray-900'>{email}</span>
         </div>
       )}
       {phone && (
         <div className='flex items-center gap-2 text-sm'>
-          <span className='text-gray-400'>📞</span>
+          <Phone className='h-4 w-4 text-gray-400' />
           <span className='text-gray-900'>{phone}</span>
         </div>
       )}
       {address && (
         <div className='flex items-center gap-2 text-sm'>
-          <span className='text-gray-400'>📍</span>
+          <MapPin className='h-4 w-4 text-gray-400' />
           <span className='text-gray-600'>{address}</span>
         </div>
       )}

@@ -176,6 +176,7 @@ export interface UpdateTeacherByAdminRequest {
   subjects?: Partial<CreateTeacherSubjectData>;
   salary?: Partial<CreateTeacherSalaryData>;
   additional?: Partial<CreateTeacherAdditionalData>;
+  status?: string; // Added status field for activation/deactivation
 }
 
 export interface UpdateTeacherSelfRequest {

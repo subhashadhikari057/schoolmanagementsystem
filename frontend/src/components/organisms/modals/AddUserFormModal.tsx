@@ -805,7 +805,7 @@ export default function AddUserFormModal({
                       onChange={handleInputChange}
                       placeholder='PIN or ZIP code'
                     />
-                    <div className='md:col-span-2'>
+                    {/* <div className='md:col-span-2'>
                       <label className='text-sm font-medium leading-none mb-2 block'>
                         Full Address (Legacy)
                       </label>
@@ -817,7 +817,7 @@ export default function AddUserFormModal({
                         rows={2}
                         className='w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 resize-none'
                       />
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>
