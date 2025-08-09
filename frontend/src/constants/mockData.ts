@@ -118,11 +118,11 @@ export const mockQuickActions: QuickAction[] = [
 
 // Route mappings for quick actions
 export const quickActionRoutes: Record<string, string> = {
-  '1': '/dashboard/admin/students/add', // Add New Student
-  '2': '/dashboard/admin/teachers/add', // Add New Teacher
+  '1': '/dashboard/admin/students', // Add New Student
+  '2': '/dashboard/admin/teachers', // Add New Teacher
   '3': '/dashboard/admin/id-generation', // Generate ID
-  '4': '/dashboard/admin/events/create', // Create Event
-  '5': '/dashboard/admin/files/process', // Process Files
+  '4': '/dashboard/admin/events', // Create Event
+  '5': '/dashboard/admin/files', // Process Files
   '6': '/dashboard/admin/settings', // System Settings
 };
 

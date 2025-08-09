@@ -130,6 +130,7 @@ export class TeacherService {
     return this.httpClient.post<CreateTeacherResponse>(
       TEACHER_ENDPOINTS.CREATE,
       formData,
+      { requiresAuth: true },
     );
   }
 
@@ -137,7 +138,11 @@ export class TeacherService {
    * Get all teachers
    */
   async getAllTeachers(): Promise<ApiResponse<TeacherListResponse[]>> {
-    return this.httpClient.get<TeacherListResponse[]>(TEACHER_ENDPOINTS.LIST);
+    return this.httpClient.get<TeacherListResponse[]>(
+      TEACHER_ENDPOINTS.LIST,
+      undefined,
+      { requiresAuth: true },
+    );
   }
 
   /**
@@ -146,6 +151,8 @@ export class TeacherService {
   async getTeacherById(id: string): Promise<ApiResponse<TeacherListResponse>> {
     return this.httpClient.get<TeacherListResponse>(
       TEACHER_ENDPOINTS.GET_BY_ID(id),
+      undefined,
+      { requiresAuth: true },
     );
   }
 
@@ -159,6 +166,7 @@ export class TeacherService {
     return this.httpClient.patch<UpdateTeacherResponse>(
       TEACHER_ENDPOINTS.UPDATE_BY_ADMIN(id),
       data,
+      { requiresAuth: true },
     );
   }
 
@@ -171,6 +179,7 @@ export class TeacherService {
     return this.httpClient.patch<UpdateTeacherResponse>(
       TEACHER_ENDPOINTS.UPDATE_SELF,
       data,
+      { requiresAuth: true },
     );
   }
 
@@ -178,7 +187,9 @@ export class TeacherService {
    * Delete teacher (soft delete)
    */
   async deleteTeacher(id: string): Promise<ApiResponse<void>> {
-    return this.httpClient.delete<void>(TEACHER_ENDPOINTS.DELETE(id));
+    return this.httpClient.delete<void>(TEACHER_ENDPOINTS.DELETE(id), {
+      requiresAuth: true,
+    });
   }
 
   // ========================================================================
@@ -195,6 +206,7 @@ export class TeacherService {
     return this.httpClient.post<{ message: string }>(
       TEACHER_ENDPOINTS.ASSIGN_SUBJECTS(teacherId),
       { subjectIds },
+      { requiresAuth: true },
     );
   }
 
@@ -211,6 +223,7 @@ export class TeacherService {
     return this.httpClient.post<{ message: string }>(
       TEACHER_ENDPOINTS.ASSIGN_CLASSES(teacherId),
       { classAssignments },
+      { requiresAuth: true },
     );
   }
 }

@@ -14,7 +14,6 @@ import type { ApiResponse } from '../types/common';
 // ============================================================================
 
 export interface CreateClassRequest {
-
   name?: string; // e.g. "Grade 10 Section A" - optional
   grade: number; // 1-12
   section: string; // e.g. "A", "B", "C"
@@ -69,21 +68,29 @@ export class ClassService {
   async createClass(
     data: CreateClassRequest,
   ): Promise<ApiResponse<ClassResponse>> {
-    return this.httpClient.post<ClassResponse>('api/v1/classes', data);
+    return this.httpClient.post<ClassResponse>('api/v1/classes', data, {
+      requiresAuth: true,
+    });
   }
 
   /**
    * Get all classes
    */
   async getAllClasses(): Promise<ApiResponse<ClassResponse[]>> {
-    return this.httpClient.get<ClassResponse[]>('api/v1/classes');
+    return this.httpClient.get<ClassResponse[]>('api/v1/classes', undefined, {
+      requiresAuth: true,
+    });
   }
 
   /**
    * Get a specific class by ID
    */
   async getClassById(id: string): Promise<ApiResponse<ClassResponse>> {
-    return this.httpClient.get<ClassResponse>(`api/v1/classes/${id}`);
+    return this.httpClient.get<ClassResponse>(
+      `api/v1/classes/${id}`,
+      undefined,
+      { requiresAuth: true },
+    );
   }
 
   /**
@@ -93,14 +100,18 @@ export class ClassService {
     id: string,
     data: UpdateClassRequest,
   ): Promise<ApiResponse<ClassResponse>> {
-    return this.httpClient.patch<ClassResponse>(`api/v1/classes/${id}`, data);
+    return this.httpClient.patch<ClassResponse>(`api/v1/classes/${id}`, data, {
+      requiresAuth: true,
+    });
   }
 
   /**
    * Delete a class
    */
   async deleteClass(id: string): Promise<ApiResponse<void>> {
-    return this.httpClient.delete<void>(`api/v1/classes/${id}`);
+    return this.httpClient.delete<void>(`api/v1/classes/${id}`, {
+      requiresAuth: true,
+    });
   }
 }
 
