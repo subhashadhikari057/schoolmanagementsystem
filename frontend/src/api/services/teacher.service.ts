@@ -60,6 +60,7 @@ export class TeacherService {
     // User data
     const userData = {
       firstName: data.firstName,
+      middleName: data.middleName,
       lastName: data.lastName,
       email: data.email,
       phone: data.phone,
@@ -67,12 +68,32 @@ export class TeacherService {
     formData.append('user', JSON.stringify(userData));
 
     // Personal data (only if provided)
-    if (data.dateOfBirth || data.gender || data.bloodGroup || data.address) {
+    if (
+      data.dateOfBirth ||
+      data.gender ||
+      data.bloodGroup ||
+      data.address ||
+      data.maritalStatus ||
+      data.street ||
+      data.city ||
+      data.state ||
+      data.pinCode
+    ) {
       const personalData: any = {};
       if (data.dateOfBirth) personalData.dateOfBirth = data.dateOfBirth;
       if (data.gender) personalData.gender = data.gender;
       if (data.bloodGroup) personalData.bloodGroup = data.bloodGroup;
+      if (data.maritalStatus) personalData.maritalStatus = data.maritalStatus;
+
+      // Address fields
+      if (data.street) personalData.street = data.street;
+      if (data.city) personalData.city = data.city;
+      if (data.state) personalData.state = data.state;
+      if (data.pinCode) personalData.pinCode = data.pinCode;
+
+      // Legacy address field
       if (data.address) personalData.address = data.address;
+
       formData.append('personal', JSON.stringify(personalData));
     }
 

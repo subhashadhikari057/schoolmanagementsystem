@@ -12,6 +12,7 @@
 
 export interface CreateTeacherUserData {
   firstName: string;
+  middleName?: string;
   lastName: string;
   email: string;
   phone: string;
@@ -22,7 +23,11 @@ export interface CreateTeacherPersonalData {
   dateOfBirth?: string;
   gender?: 'Male' | 'Female' | 'Other';
   bloodGroup?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
-  address?: string;
+  maritalStatus?: 'Single' | 'Married' | 'Divorced' | 'Widowed';
+  street?: string;
+  city?: string;
+  state?: string;
+  pinCode?: string;
 }
 
 export interface CreateTeacherProfessionalData {
@@ -104,6 +109,11 @@ export interface TeacherListResponse {
   dateOfBirth?: string;
   gender?: string;
   bloodGroup?: string;
+  maritalStatus?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  pinCode?: string;
   address?: string;
 
   // Salary Information (for admin view)
@@ -211,13 +221,19 @@ export interface TeacherApiError {
 export interface TeacherFormData {
   // Personal Information
   firstName: string;
+  middleName?: string;
   lastName: string;
   email: string;
   phone: string;
   dateOfBirth: string;
   gender: string;
   bloodGroup: string;
-  address: string;
+  maritalStatus?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  pinCode?: string;
+  address: string; // Keep for backward compatibility
   photo?: File | null;
 
   // Professional Information
