@@ -37,11 +37,11 @@ export interface Student extends BaseItem {
 }
 
 export interface Teacher extends BaseItem {
-  id: number;
+  id: number | string;
   name: string;
   faculty: string;
   subjects: string[];
-  status: 'Active' | 'On Leave' | 'Inactive';
+  status: 'Active' | 'On Leave' | 'Inactive' | 'Suspended' | 'Transferred';
   avatar?: string;
   teacherId?: string;
   email?: string;
@@ -69,6 +69,11 @@ export interface Teacher extends BaseItem {
   dateOfBirth?: string;
   gender?: string;
   bloodGroup?: string;
+  maritalStatus?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  pinCode?: string;
 
   // Salary Information
   basicSalary?: number;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Edit, Clock, Link, Trash2 } from 'lucide-react';
+import { Eye, Edit, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react';
 
 interface ActionsCellProps {
   onAction?: (action: string) => void;
@@ -10,12 +10,16 @@ interface ActionsCellProps {
     | 'staff'
     | 'subject'
     | 'id-card';
+  status?: 'Active' | 'On Leave' | 'Inactive' | 'Suspended' | 'Transferred';
 }
 
 const ActionsCell: React.FC<ActionsCellProps> = ({
   onAction,
   entityType = 'student',
+  status = 'Active',
 }) => {
+  const isActive = status === 'Active';
+
   const getAllActions = () => [
     {
       icon: Eye,
@@ -30,16 +34,12 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
       color: 'text-green-600 hover:text-green-800',
     },
     {
-      icon: Clock,
-      action: 'schedule',
-      title: 'Schedule',
-      color: 'text-orange-600 hover:text-orange-800',
-    },
-    {
-      icon: Link,
-      action: 'link',
-      title: 'Share Link',
-      color: 'text-purple-600 hover:text-purple-800',
+      icon: isActive ? ToggleRight : ToggleLeft,
+      action: 'toggle-status',
+      title: isActive ? 'Deactivate' : 'Activate',
+      color: isActive
+        ? 'text-orange-600 hover:text-orange-800'
+        : 'text-emerald-600 hover:text-emerald-800',
     },
     {
       icon: Trash2,
@@ -54,24 +54,27 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
 
     switch (type) {
       case 'subject':
-        // For subjects: view, edit, delete (no schedule, no link)
+        // For subjects: view, edit, delete (no status toggle)
         return allActions.filter(action =>
           ['view', 'edit', 'delete'].includes(action.action),
         );
       case 'id-card':
-        // For ID cards: view, edit, print, regenerate
+        // For ID cards: view, edit, print
         return [
           allActions.find(a => a.action === 'view')!,
           allActions.find(a => a.action === 'edit')!,
           {
-            icon: Clock,
+            icon: ToggleRight,
             action: 'print',
             title: 'Print',
             color: 'text-indigo-600 hover:text-indigo-800',
           },
         ];
+      case 'teacher':
+        // For teachers: view, edit, toggle-status, delete
+        return allActions;
       default:
-        // For students, teachers, parents, staff: all actions except delete
+        // For students, parents, staff: view, edit, toggle-status
         return allActions.filter(action => action.action !== 'delete');
     }
   };

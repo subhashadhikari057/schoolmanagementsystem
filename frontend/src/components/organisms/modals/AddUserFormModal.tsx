@@ -40,12 +40,18 @@ interface AddUserFormModalProps {
 
 interface FormData {
   firstName: string;
+  middleName?: string;
   lastName: string;
   email: string;
   phone: string;
   dateOfBirth: string;
   gender: string;
   bloodGroup: string;
+  maritalStatus?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  pinCode?: string;
   address: string;
   photo?: File | null;
 
@@ -80,12 +86,18 @@ interface FormData {
 
 const initialFormData: FormData = {
   firstName: '',
+  middleName: '',
   lastName: '',
   email: '',
   phone: '',
   dateOfBirth: '',
   gender: '',
   bloodGroup: '',
+  maritalStatus: '',
+  street: '',
+  city: '',
+  state: '',
+  pinCode: '',
   address: '',
   photo: null,
 
@@ -128,6 +140,7 @@ const LANGUAGES = [
 ];
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const GENDERS = ['Male', 'Female', 'Other'];
+const MARITAL_STATUS = ['Single', 'Married', 'Divorced', 'Widowed'];
 const RELATIONS = [
   'Father',
   'Mother',
@@ -504,6 +517,10 @@ export default function AddUserFormModal({
     if (!formData.email.trim() || !formData.phone.trim())
       return 'Email and phone number are required';
 
+    // Validate PIN code if provided
+    if (formData.pinCode && !/^\d{4}$/.test(formData.pinCode.trim()))
+      return 'PIN code must be a 4-digit number';
+
     if (userType === 'teacher') {
       if (!formData.subjects || formData.subjects.length === 0)
         return 'Please select at least one subject for the teacher';
@@ -674,7 +691,7 @@ export default function AddUserFormModal({
 
             {/* Personal Info */}
             <FormSection title='Personal Information' icon={User} bg='gray'>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
                 <LabeledInput
                   label='First Name'
                   name='firstName'
@@ -682,6 +699,14 @@ export default function AddUserFormModal({
                   onChange={handleInputChange}
                   required
                   placeholder='Enter first name'
+                  icon={User}
+                />
+                <LabeledInput
+                  label='Middle Name'
+                  name='middleName'
+                  value={formData.middleName || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter middle name (optional)'
                   icon={User}
                 />
                 <LabeledInput
@@ -737,18 +762,63 @@ export default function AddUserFormModal({
                   options={BLOOD_GROUPS}
                   placeholder='Select blood group'
                 />
-                <div>
-                  <label className='text-sm font-medium leading-none mb-2 block'>
-                    Address
-                  </label>
-                  <textarea
-                    name='address'
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    placeholder='Enter complete address'
-                    rows={3}
-                    className='w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 resize-none'
-                  />
+                <LabeledSelect
+                  label='Marital Status'
+                  name='maritalStatus'
+                  value={formData.maritalStatus || ''}
+                  onChange={handleInputChange}
+                  options={MARITAL_STATUS}
+                  placeholder='Select marital status'
+                />
+                <div className='md:col-span-3'>
+                  <h4 className='text-sm font-medium mb-3 text-gray-700'>
+                    Address Details
+                  </h4>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div className='md:col-span-2'>
+                      <LabeledInput
+                        label='Street Address'
+                        name='street'
+                        value={formData.street || ''}
+                        onChange={handleInputChange}
+                        placeholder='Street address, house/apartment number'
+                      />
+                    </div>
+                    <LabeledInput
+                      label='City'
+                      name='city'
+                      value={formData.city || ''}
+                      onChange={handleInputChange}
+                      placeholder='City'
+                    />
+                    <LabeledInput
+                      label='State/Province'
+                      name='state'
+                      value={formData.state || ''}
+                      onChange={handleInputChange}
+                      placeholder='State or province'
+                    />
+                    <LabeledInput
+                      label='PIN/ZIP Code'
+                      name='pinCode'
+                      value={formData.pinCode || ''}
+                      onChange={handleInputChange}
+                      placeholder='PIN or ZIP code'
+                    />
+                    {/* <div className='md:col-span-2'>
+                      <label className='text-sm font-medium leading-none mb-2 block'>
+                        Full Address (Legacy)
+                      </label>
+                      <textarea
+                        name='address'
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        placeholder='Enter complete address (for backward compatibility)'
+                        rows={2}
+                        className='w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 resize-none'
+                      />
+                    </div> */}
+                  </div>
                 </div>
               </div>
             </FormSection>

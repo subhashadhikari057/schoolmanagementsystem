@@ -60,6 +60,7 @@ export class TeacherService {
     // User data
     const userData = {
       firstName: data.firstName,
+      middleName: data.middleName,
       lastName: data.lastName,
       email: data.email,
       phone: data.phone,
@@ -67,12 +68,32 @@ export class TeacherService {
     formData.append('user', JSON.stringify(userData));
 
     // Personal data (only if provided)
-    if (data.dateOfBirth || data.gender || data.bloodGroup || data.address) {
+    if (
+      data.dateOfBirth ||
+      data.gender ||
+      data.bloodGroup ||
+      data.address ||
+      data.maritalStatus ||
+      data.street ||
+      data.city ||
+      data.state ||
+      data.pinCode
+    ) {
       const personalData: any = {};
       if (data.dateOfBirth) personalData.dateOfBirth = data.dateOfBirth;
       if (data.gender) personalData.gender = data.gender;
       if (data.bloodGroup) personalData.bloodGroup = data.bloodGroup;
+      if (data.maritalStatus) personalData.maritalStatus = data.maritalStatus;
+
+      // Address fields
+      if (data.street) personalData.street = data.street;
+      if (data.city) personalData.city = data.city;
+      if (data.state) personalData.state = data.state;
+      if (data.pinCode) personalData.pinCode = data.pinCode;
+
+      // Legacy address field
       if (data.address) personalData.address = data.address;
+
       formData.append('personal', JSON.stringify(personalData));
     }
 
@@ -130,6 +151,7 @@ export class TeacherService {
     return this.httpClient.post<CreateTeacherResponse>(
       TEACHER_ENDPOINTS.CREATE,
       formData,
+      { requiresAuth: true },
     );
   }
 
@@ -137,7 +159,11 @@ export class TeacherService {
    * Get all teachers
    */
   async getAllTeachers(): Promise<ApiResponse<TeacherListResponse[]>> {
-    return this.httpClient.get<TeacherListResponse[]>(TEACHER_ENDPOINTS.LIST);
+    return this.httpClient.get<TeacherListResponse[]>(
+      TEACHER_ENDPOINTS.LIST,
+      undefined,
+      { requiresAuth: true },
+    );
   }
 
   /**
@@ -146,6 +172,8 @@ export class TeacherService {
   async getTeacherById(id: string): Promise<ApiResponse<TeacherListResponse>> {
     return this.httpClient.get<TeacherListResponse>(
       TEACHER_ENDPOINTS.GET_BY_ID(id),
+      undefined,
+      { requiresAuth: true },
     );
   }
 
@@ -159,6 +187,7 @@ export class TeacherService {
     return this.httpClient.patch<UpdateTeacherResponse>(
       TEACHER_ENDPOINTS.UPDATE_BY_ADMIN(id),
       data,
+      { requiresAuth: true },
     );
   }
 
@@ -171,6 +200,7 @@ export class TeacherService {
     return this.httpClient.patch<UpdateTeacherResponse>(
       TEACHER_ENDPOINTS.UPDATE_SELF,
       data,
+      { requiresAuth: true },
     );
   }
 
@@ -178,7 +208,9 @@ export class TeacherService {
    * Delete teacher (soft delete)
    */
   async deleteTeacher(id: string): Promise<ApiResponse<void>> {
-    return this.httpClient.delete<void>(TEACHER_ENDPOINTS.DELETE(id));
+    return this.httpClient.delete<void>(TEACHER_ENDPOINTS.DELETE(id), {
+      requiresAuth: true,
+    });
   }
 
   // ========================================================================
@@ -195,6 +227,7 @@ export class TeacherService {
     return this.httpClient.post<{ message: string }>(
       TEACHER_ENDPOINTS.ASSIGN_SUBJECTS(teacherId),
       { subjectIds },
+      { requiresAuth: true },
     );
   }
 
@@ -211,6 +244,7 @@ export class TeacherService {
     return this.httpClient.post<{ message: string }>(
       TEACHER_ENDPOINTS.ASSIGN_CLASSES(teacherId),
       { classAssignments },
+      { requiresAuth: true },
     );
   }
 }

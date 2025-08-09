@@ -45,7 +45,11 @@ export class SubjectService {
    * Get all subjects
    */
   async getAllSubjects(): Promise<ApiResponse<SubjectResponse[]>> {
-    return this.httpClient.get<SubjectResponse[]>(SUBJECT_ENDPOINTS.LIST);
+    return this.httpClient.get<SubjectResponse[]>(
+      SUBJECT_ENDPOINTS.LIST,
+      undefined,
+      { requiresAuth: true },
+    );
   }
 
   /**
@@ -54,6 +58,8 @@ export class SubjectService {
   async getSubjectById(id: string): Promise<ApiResponse<SubjectResponse>> {
     return this.httpClient.get<SubjectResponse>(
       SUBJECT_ENDPOINTS.GET_BY_ID(id),
+      undefined,
+      { requiresAuth: true },
     );
   }
 
@@ -66,6 +72,7 @@ export class SubjectService {
     return this.httpClient.post<SubjectResponse>(
       SUBJECT_ENDPOINTS.CREATE,
       data,
+      { requiresAuth: true },
     );
   }
 
@@ -79,6 +86,7 @@ export class SubjectService {
     return this.httpClient.patch<SubjectResponse>(
       SUBJECT_ENDPOINTS.UPDATE(id),
       data,
+      { requiresAuth: true },
     );
   }
 
@@ -91,7 +99,7 @@ export class SubjectService {
     return this.httpClient.delete<{
       message: string;
       affectedRelations?: string[];
-    }>(SUBJECT_ENDPOINTS.DELETE(id));
+    }>(SUBJECT_ENDPOINTS.DELETE(id), { requiresAuth: true });
   }
 }
 
