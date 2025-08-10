@@ -36,7 +36,6 @@ model User {
 
   teacher Teacher?
   student Student?
-  staff   Staff?
   parentLinks ParentStudentLink[] @relation("ParentLink")
 
   @@index([createdById])
@@ -380,9 +379,9 @@ model TeacherClass {
 
 model Staff {
   id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  // Static record fields (no user login needed)
+  email       String
+  fullName    String
   firstName   String
   middleName  String?
   lastName    String

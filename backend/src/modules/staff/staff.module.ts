@@ -1,15 +1,12 @@
-// src/modules/staff/staff.module.ts
-
 import { Module } from '@nestjs/common';
 import { StaffController } from './infrastructure/staff.controller';
 import { StaffService } from './application/staff.service';
-import { PrismaService } from '../../infrastructure/database/prisma.service';
-import { LoggerModule } from '../../shared/logger/logger.module';
+import { DatabaseModule } from '../../infrastructure/database/database.module';
 
 @Module({
-  imports: [LoggerModule],
+  imports: [DatabaseModule],
   controllers: [StaffController],
-  providers: [StaffService, PrismaService],
-  exports: [StaffService], // Export service for other modules to use
+  providers: [StaffService],
+  exports: [StaffService],
 })
 export class StaffModule {}

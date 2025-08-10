@@ -17,3 +17,6 @@ export * from './teacher';
 
 // Subject types
 export * from './subject';
+
+// Staff types
+export * from './staff';

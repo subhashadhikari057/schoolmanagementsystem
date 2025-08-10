@@ -45,4 +45,5 @@ const StatusActivityCell: React.FC<StatusActivityCellProps> = ({
   );
 };
 
+export { StatusActivityCell };
 export default StatusActivityCell;
