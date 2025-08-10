@@ -57,22 +57,7 @@ export class StaffController {
 
   @Get(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER, UserRole.STAFF)
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: { id: string; roles: string[] },
-  ) {
-    // Staff can only view their own profile unless they're admin
-    const isAdmin =
-      user.roles.includes('SUPER_ADMIN') || user.roles.includes('ADMIN');
-
-    if (!isAdmin) {
-      // Check if staff is trying to view their own profile
-      const staffRecord = await this.staffService.findOne(id);
-      if (staffRecord.data.userId !== user.id) {
-        throw new Error('You can only view your own profile');
-      }
-    }
-
+  async findOne(@Param('id') id: string) {
     return this.staffService.findOne(id);
   }
 

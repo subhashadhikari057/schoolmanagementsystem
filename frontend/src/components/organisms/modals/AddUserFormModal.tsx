@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { teacherService } from '@/api/services/teacher.service';
 import { subjectService } from '@/api/services/subject.service';
 import { classService } from '@/api/services/class.service';
+import { staffService } from '@/api/services/staff.service';
 
 /**
  * NOTE:
@@ -401,7 +402,10 @@ export default function AddUserFormModal({
         if (subjectsRes?.success && classesRes?.success) {
           setBackendData({
             subjects: subjectsRes.data || [],
-            classes: classesRes.data || [],
+            classes: (classesRes.data || []).map((cls: any) => ({
+              ...cls,
+              sections: cls.sections || [],
+            })),
           });
         } else {
           toast.error('Failed to load form data', {
@@ -527,6 +531,15 @@ export default function AddUserFormModal({
       if (formData.isClassTeacher && (!formData.class || !formData.section))
         return 'Please select both class and section when assigning as class teacher';
     }
+
+    if (userType === 'staff') {
+      // Department and designation are now optional
+      if (
+        !formData.highestQualification ||
+        formData.highestQualification.trim() === ''
+      )
+        return 'Please provide highest qualification for the staff member';
+    }
     return null;
   }, [formData, userType]);
 
@@ -543,7 +556,6 @@ export default function AddUserFormModal({
 
       try {
         let response: any;
-
         switch (userType) {
           case 'teacher': {
             // If you need to send multipart/form-data (due to photo), build FormData here.
@@ -551,8 +563,43 @@ export default function AddUserFormModal({
             response = await teacherService.createTeacher(formData);
             break;
           }
+          case 'staff': {
+            // Map formData to backend DTO
+            const staffPayload = {
+              user: {
+                fullName: `${formData.firstName} ${formData.lastName}`.trim(),
+                email: formData.email,
+                phone: formData.phone,
+                // password: (optional, not collected in form)
+              },
+              profile: {
+                qualification: formData.highestQualification || '',
+                designation: formData.designation || '',
+                department: formData.department as any,
+                experienceYears: formData.experience
+                  ? parseInt(formData.experience)
+                  : undefined,
+                employmentDate: formData.joiningDate || '',
+                salary: formData.basicSalary
+                  ? parseFloat(formData.basicSalary)
+                  : undefined,
+                bio: formData.previousExperience || '',
+                emergencyContact: undefined, // Not collected in form
+                address: {
+                  street: formData.street || '',
+                  city: formData.city || '',
+                  state: formData.state || '',
+                  zipCode: formData.pinCode || '',
+                  country: '',
+                },
+                socialLinks: undefined, // Not collected in form
+                profilePhotoUrl: undefined, // Not sent
+              },
+            };
+            response = await staffService.createStaff(staffPayload);
+            break;
+          }
           case 'parent':
-          case 'staff':
           case 'student':
             throw new Error(`${userType} creation not yet implemented`);
           default:
@@ -859,36 +906,21 @@ export default function AddUserFormModal({
                     onChange={handleInputChange}
                     placeholder='e.g., M.Sc. Mathematics, B.E.'
                   />
-                  <LabeledSelect
+                  <LabeledInput
                     label='Designation'
                     name='designation'
+                    type='text'
                     value={formData.designation || ''}
-                    onChange={handleInputChange as any}
-                    options={
-                      userType === 'teacher'
-                        ? [
-                            'Senior Teacher',
-                            'Assistant Teacher',
-                            'Head of Department',
-                            'Principal',
-                            'Vice Principal',
-                          ]
-                        : [
-                            'Administrative Officer',
-                            'Accountant',
-                            'Librarian',
-                            'Lab Assistant',
-                            'Security Guard',
-                          ]
-                    }
-                    placeholder='Select designation'
+                    onChange={handleInputChange}
+                    placeholder='Enter designation (e.g., Administrative Officer, Finance Manager)'
                   />
                   <LabeledInput
                     label='Department'
                     name='department'
+                    type='text'
                     value={formData.department || ''}
                     onChange={handleInputChange}
-                    placeholder='e.g., Science, Administration'
+                    placeholder='Enter department (e.g., Administration, Finance, HR)'
                   />
                 </div>
               </FormSection>

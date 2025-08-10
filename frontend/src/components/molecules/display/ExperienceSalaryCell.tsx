@@ -43,4 +43,5 @@ const ExperienceSalaryCell: React.FC<ExperienceSalaryCellProps> = ({
   );
 };
 
+export { ExperienceSalaryCell };
 export default ExperienceSalaryCell;

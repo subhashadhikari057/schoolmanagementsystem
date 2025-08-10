@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE "public"."User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "phone" TEXT,
@@ -20,7 +20,7 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "Subject" (
+CREATE TABLE "public"."Subject" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE "Subject" (
 );
 
 -- CreateTable
-CREATE TABLE "Class" (
+CREATE TABLE "public"."Class" (
     "id" TEXT NOT NULL,
     "grade" INTEGER NOT NULL,
     "section" TEXT NOT NULL,
@@ -57,7 +57,7 @@ CREATE TABLE "Class" (
 );
 
 -- CreateTable
-CREATE TABLE "Classroom" (
+CREATE TABLE "public"."Classroom" (
     "id" TEXT NOT NULL,
     "roomNo" TEXT NOT NULL,
     "name" TEXT,
@@ -78,7 +78,7 @@ CREATE TABLE "Classroom" (
 );
 
 -- CreateTable
-CREATE TABLE "ClassSubject" (
+CREATE TABLE "public"."ClassSubject" (
     "id" TEXT NOT NULL,
     "classId" TEXT NOT NULL,
     "subjectId" TEXT NOT NULL,
@@ -94,7 +94,7 @@ CREATE TABLE "ClassSubject" (
 );
 
 -- CreateTable
-CREATE TABLE "Student" (
+CREATE TABLE "public"."Student" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "classId" TEXT NOT NULL,
@@ -122,7 +122,7 @@ CREATE TABLE "Student" (
 );
 
 -- CreateTable
-CREATE TABLE "StudentProfile" (
+CREATE TABLE "public"."StudentProfile" (
     "id" TEXT NOT NULL,
     "studentId" TEXT NOT NULL,
     "emergencyContact" JSONB NOT NULL DEFAULT '{}',
@@ -137,7 +137,7 @@ CREATE TABLE "StudentProfile" (
 );
 
 -- CreateTable
-CREATE TABLE "Guardian" (
+CREATE TABLE "public"."Guardian" (
     "id" TEXT NOT NULL,
     "studentId" TEXT NOT NULL,
     "fullName" TEXT NOT NULL,
@@ -150,7 +150,7 @@ CREATE TABLE "Guardian" (
 );
 
 -- CreateTable
-CREATE TABLE "ParentStudentLink" (
+CREATE TABLE "public"."ParentStudentLink" (
     "id" TEXT NOT NULL,
     "parentId" TEXT,
     "studentId" TEXT NOT NULL,
@@ -165,7 +165,7 @@ CREATE TABLE "ParentStudentLink" (
 );
 
 -- CreateTable
-CREATE TABLE "Address" (
+CREATE TABLE "public"."Address" (
     "id" TEXT NOT NULL,
     "street" TEXT,
     "city" TEXT,
@@ -176,7 +176,7 @@ CREATE TABLE "Address" (
 );
 
 -- CreateTable
-CREATE TABLE "Teacher" (
+CREATE TABLE "public"."Teacher" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "employeeId" TEXT,
@@ -213,7 +213,7 @@ CREATE TABLE "Teacher" (
 );
 
 -- CreateTable
-CREATE TABLE "TeacherProfile" (
+CREATE TABLE "public"."TeacherProfile" (
     "id" TEXT NOT NULL,
     "teacherId" TEXT NOT NULL,
     "profilePhotoUrl" TEXT,
@@ -229,7 +229,7 @@ CREATE TABLE "TeacherProfile" (
 );
 
 -- CreateTable
-CREATE TABLE "TeacherSubject" (
+CREATE TABLE "public"."TeacherSubject" (
     "id" TEXT NOT NULL,
     "teacherId" TEXT NOT NULL,
     "subjectId" TEXT NOT NULL,
@@ -244,7 +244,7 @@ CREATE TABLE "TeacherSubject" (
 );
 
 -- CreateTable
-CREATE TABLE "TeacherClass" (
+CREATE TABLE "public"."TeacherClass" (
     "id" TEXT NOT NULL,
     "teacherId" TEXT NOT NULL,
     "classId" TEXT NOT NULL,
@@ -259,9 +259,10 @@ CREATE TABLE "TeacherClass" (
 );
 
 -- CreateTable
-CREATE TABLE "Staff" (
+CREATE TABLE "public"."Staff" (
     "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "fullName" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "middleName" TEXT,
     "lastName" TEXT NOT NULL,
@@ -289,7 +290,7 @@ CREATE TABLE "Staff" (
 );
 
 -- CreateTable
-CREATE TABLE "StaffProfile" (
+CREATE TABLE "public"."StaffProfile" (
     "id" TEXT NOT NULL,
     "staffId" TEXT NOT NULL,
     "profilePhotoUrl" TEXT,
@@ -304,7 +305,7 @@ CREATE TABLE "StaffProfile" (
 );
 
 -- CreateTable
-CREATE TABLE "IDCard" (
+CREATE TABLE "public"."IDCard" (
     "id" TEXT NOT NULL,
     "type" TEXT NOT NULL,
     "templateId" TEXT NOT NULL,
@@ -317,7 +318,7 @@ CREATE TABLE "IDCard" (
 );
 
 -- CreateTable
-CREATE TABLE "IDCardTemplate" (
+CREATE TABLE "public"."IDCardTemplate" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "layout" JSONB NOT NULL,
@@ -328,7 +329,7 @@ CREATE TABLE "IDCardTemplate" (
 );
 
 -- CreateTable
-CREATE TABLE "UserRole" (
+CREATE TABLE "public"."UserRole" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "roleId" TEXT NOT NULL,
@@ -338,7 +339,7 @@ CREATE TABLE "UserRole" (
 );
 
 -- CreateTable
-CREATE TABLE "Role" (
+CREATE TABLE "public"."Role" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -348,7 +349,7 @@ CREATE TABLE "Role" (
 );
 
 -- CreateTable
-CREATE TABLE "RolePermission" (
+CREATE TABLE "public"."RolePermission" (
     "id" TEXT NOT NULL,
     "roleId" TEXT NOT NULL,
     "permissionId" TEXT NOT NULL,
@@ -357,7 +358,7 @@ CREATE TABLE "RolePermission" (
 );
 
 -- CreateTable
-CREATE TABLE "Permission" (
+CREATE TABLE "public"."Permission" (
     "id" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "description" TEXT,
@@ -366,7 +367,7 @@ CREATE TABLE "Permission" (
 );
 
 -- CreateTable
-CREATE TABLE "AuditLog" (
+CREATE TABLE "public"."AuditLog" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
     "action" TEXT NOT NULL,
@@ -381,7 +382,7 @@ CREATE TABLE "AuditLog" (
 );
 
 -- CreateTable
-CREATE TABLE "UserSession" (
+CREATE TABLE "public"."UserSession" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "tokenHash" TEXT NOT NULL,
@@ -395,220 +396,214 @@ CREATE TABLE "UserSession" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
+CREATE UNIQUE INDEX "User_phone_key" ON "public"."User"("phone");
 
 -- CreateIndex
-CREATE INDEX "User_createdById_idx" ON "User"("createdById");
+CREATE INDEX "User_createdById_idx" ON "public"."User"("createdById");
 
 -- CreateIndex
-CREATE INDEX "User_updatedById_idx" ON "User"("updatedById");
+CREATE INDEX "User_updatedById_idx" ON "public"."User"("updatedById");
 
 -- CreateIndex
-CREATE INDEX "User_deletedById_idx" ON "User"("deletedById");
+CREATE INDEX "User_deletedById_idx" ON "public"."User"("deletedById");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Subject_code_key" ON "Subject"("code");
+CREATE UNIQUE INDEX "Subject_code_key" ON "public"."Subject"("code");
 
 -- CreateIndex
-CREATE INDEX "Subject_createdById_idx" ON "Subject"("createdById");
+CREATE INDEX "Subject_createdById_idx" ON "public"."Subject"("createdById");
 
 -- CreateIndex
-CREATE INDEX "Subject_updatedById_idx" ON "Subject"("updatedById");
+CREATE INDEX "Subject_updatedById_idx" ON "public"."Subject"("updatedById");
 
 -- CreateIndex
-CREATE INDEX "Subject_deletedById_idx" ON "Subject"("deletedById");
+CREATE INDEX "Subject_deletedById_idx" ON "public"."Subject"("deletedById");
 
 -- CreateIndex
-CREATE INDEX "Class_createdById_idx" ON "Class"("createdById");
+CREATE INDEX "Class_createdById_idx" ON "public"."Class"("createdById");
 
 -- CreateIndex
-CREATE INDEX "Class_updatedById_idx" ON "Class"("updatedById");
+CREATE INDEX "Class_updatedById_idx" ON "public"."Class"("updatedById");
 
 -- CreateIndex
-CREATE INDEX "Class_deletedById_idx" ON "Class"("deletedById");
+CREATE INDEX "Class_deletedById_idx" ON "public"."Class"("deletedById");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Classroom_roomNo_key" ON "Classroom"("roomNo");
+CREATE UNIQUE INDEX "Classroom_roomNo_key" ON "public"."Classroom"("roomNo");
 
 -- CreateIndex
-CREATE INDEX "Classroom_createdById_idx" ON "Classroom"("createdById");
+CREATE INDEX "Classroom_createdById_idx" ON "public"."Classroom"("createdById");
 
 -- CreateIndex
-CREATE INDEX "Classroom_updatedById_idx" ON "Classroom"("updatedById");
+CREATE INDEX "Classroom_updatedById_idx" ON "public"."Classroom"("updatedById");
 
 -- CreateIndex
-CREATE INDEX "Classroom_deletedById_idx" ON "Classroom"("deletedById");
+CREATE INDEX "Classroom_deletedById_idx" ON "public"."Classroom"("deletedById");
 
 -- CreateIndex
-CREATE INDEX "Classroom_status_idx" ON "Classroom"("status");
+CREATE INDEX "Classroom_status_idx" ON "public"."Classroom"("status");
 
 -- CreateIndex
-CREATE INDEX "Classroom_isAvailable_idx" ON "Classroom"("isAvailable");
+CREATE INDEX "Classroom_isAvailable_idx" ON "public"."Classroom"("isAvailable");
 
 -- CreateIndex
-CREATE INDEX "ClassSubject_createdById_idx" ON "ClassSubject"("createdById");
+CREATE INDEX "ClassSubject_createdById_idx" ON "public"."ClassSubject"("createdById");
 
 -- CreateIndex
-CREATE INDEX "ClassSubject_updatedById_idx" ON "ClassSubject"("updatedById");
+CREATE INDEX "ClassSubject_updatedById_idx" ON "public"."ClassSubject"("updatedById");
 
 -- CreateIndex
-CREATE INDEX "ClassSubject_deletedById_idx" ON "ClassSubject"("deletedById");
+CREATE INDEX "ClassSubject_deletedById_idx" ON "public"."ClassSubject"("deletedById");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ClassSubject_classId_subjectId_key" ON "ClassSubject"("classId", "subjectId");
+CREATE UNIQUE INDEX "ClassSubject_classId_subjectId_key" ON "public"."ClassSubject"("classId", "subjectId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Student_userId_key" ON "Student"("userId");
+CREATE UNIQUE INDEX "Student_userId_key" ON "public"."Student"("userId");
 
 -- CreateIndex
-CREATE INDEX "Student_userId_idx" ON "Student"("userId");
+CREATE INDEX "Student_userId_idx" ON "public"."Student"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "StudentProfile_studentId_key" ON "StudentProfile"("studentId");
+CREATE UNIQUE INDEX "StudentProfile_studentId_key" ON "public"."StudentProfile"("studentId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Teacher_userId_key" ON "Teacher"("userId");
+CREATE UNIQUE INDEX "Teacher_userId_key" ON "public"."Teacher"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Teacher_employeeId_key" ON "Teacher"("employeeId");
+CREATE UNIQUE INDEX "Teacher_employeeId_key" ON "public"."Teacher"("employeeId");
 
 -- CreateIndex
-CREATE INDEX "Teacher_createdById_idx" ON "Teacher"("createdById");
+CREATE INDEX "Teacher_createdById_idx" ON "public"."Teacher"("createdById");
 
 -- CreateIndex
-CREATE INDEX "Teacher_updatedById_idx" ON "Teacher"("updatedById");
+CREATE INDEX "Teacher_updatedById_idx" ON "public"."Teacher"("updatedById");
 
 -- CreateIndex
-CREATE INDEX "Teacher_deletedById_idx" ON "Teacher"("deletedById");
+CREATE INDEX "Teacher_deletedById_idx" ON "public"."Teacher"("deletedById");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "TeacherProfile_teacherId_key" ON "TeacherProfile"("teacherId");
+CREATE UNIQUE INDEX "TeacherProfile_teacherId_key" ON "public"."TeacherProfile"("teacherId");
 
 -- CreateIndex
-CREATE INDEX "TeacherSubject_createdById_idx" ON "TeacherSubject"("createdById");
+CREATE INDEX "TeacherSubject_createdById_idx" ON "public"."TeacherSubject"("createdById");
 
 -- CreateIndex
-CREATE INDEX "TeacherSubject_updatedById_idx" ON "TeacherSubject"("updatedById");
+CREATE INDEX "TeacherSubject_updatedById_idx" ON "public"."TeacherSubject"("updatedById");
 
 -- CreateIndex
-CREATE INDEX "TeacherSubject_deletedById_idx" ON "TeacherSubject"("deletedById");
+CREATE INDEX "TeacherSubject_deletedById_idx" ON "public"."TeacherSubject"("deletedById");
 
 -- CreateIndex
-CREATE INDEX "TeacherClass_createdById_idx" ON "TeacherClass"("createdById");
+CREATE INDEX "TeacherClass_createdById_idx" ON "public"."TeacherClass"("createdById");
 
 -- CreateIndex
-CREATE INDEX "TeacherClass_updatedById_idx" ON "TeacherClass"("updatedById");
+CREATE INDEX "TeacherClass_updatedById_idx" ON "public"."TeacherClass"("updatedById");
 
 -- CreateIndex
-CREATE INDEX "TeacherClass_deletedById_idx" ON "TeacherClass"("deletedById");
+CREATE INDEX "TeacherClass_deletedById_idx" ON "public"."TeacherClass"("deletedById");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Staff_userId_key" ON "Staff"("userId");
+CREATE INDEX "Staff_createdById_idx" ON "public"."Staff"("createdById");
 
 -- CreateIndex
-CREATE INDEX "Staff_createdById_idx" ON "Staff"("createdById");
+CREATE INDEX "Staff_updatedById_idx" ON "public"."Staff"("updatedById");
 
 -- CreateIndex
-CREATE INDEX "Staff_updatedById_idx" ON "Staff"("updatedById");
+CREATE INDEX "Staff_deletedById_idx" ON "public"."Staff"("deletedById");
 
 -- CreateIndex
-CREATE INDEX "Staff_deletedById_idx" ON "Staff"("deletedById");
+CREATE UNIQUE INDEX "StaffProfile_staffId_key" ON "public"."StaffProfile"("staffId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "StaffProfile_staffId_key" ON "StaffProfile"("staffId");
+CREATE UNIQUE INDEX "UserRole_userId_roleId_key" ON "public"."UserRole"("userId", "roleId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserRole_userId_roleId_key" ON "UserRole"("userId", "roleId");
+CREATE UNIQUE INDEX "Role_name_key" ON "public"."Role"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Role_name_key" ON "Role"("name");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Permission_code_key" ON "Permission"("code");
+CREATE UNIQUE INDEX "Permission_code_key" ON "public"."Permission"("code");
 
 -- AddForeignKey
-ALTER TABLE "Class" ADD CONSTRAINT "Class_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "Classroom"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Class" ADD CONSTRAINT "Class_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "public"."Classroom"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Class" ADD CONSTRAINT "Class_classTeacherId_fkey" FOREIGN KEY ("classTeacherId") REFERENCES "Teacher"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."Class" ADD CONSTRAINT "Class_classTeacherId_fkey" FOREIGN KEY ("classTeacherId") REFERENCES "public"."Teacher"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ClassSubject" ADD CONSTRAINT "ClassSubject_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."ClassSubject" ADD CONSTRAINT "ClassSubject_classId_fkey" FOREIGN KEY ("classId") REFERENCES "public"."Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ClassSubject" ADD CONSTRAINT "ClassSubject_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."ClassSubject" ADD CONSTRAINT "ClassSubject_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "public"."Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ClassSubject" ADD CONSTRAINT "ClassSubject_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "Teacher"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."ClassSubject" ADD CONSTRAINT "ClassSubject_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "public"."Teacher"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Student" ADD CONSTRAINT "Student_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."Student" ADD CONSTRAINT "Student_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Student" ADD CONSTRAINT "Student_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Student" ADD CONSTRAINT "Student_classId_fkey" FOREIGN KEY ("classId") REFERENCES "public"."Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Student" ADD CONSTRAINT "Student_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "Address"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."Student" ADD CONSTRAINT "Student_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "public"."Address"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "StudentProfile" ADD CONSTRAINT "StudentProfile_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."StudentProfile" ADD CONSTRAINT "StudentProfile_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "public"."Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Guardian" ADD CONSTRAINT "Guardian_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."Guardian" ADD CONSTRAINT "Guardian_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "public"."Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ParentStudentLink" ADD CONSTRAINT "ParentStudentLink_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."ParentStudentLink" ADD CONSTRAINT "ParentStudentLink_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ParentStudentLink" ADD CONSTRAINT "ParentStudentLink_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."ParentStudentLink" ADD CONSTRAINT "ParentStudentLink_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "public"."Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Teacher" ADD CONSTRAINT "Teacher_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."Teacher" ADD CONSTRAINT "Teacher_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TeacherProfile" ADD CONSTRAINT "TeacherProfile_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "Teacher"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."TeacherProfile" ADD CONSTRAINT "TeacherProfile_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "public"."Teacher"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TeacherSubject" ADD CONSTRAINT "TeacherSubject_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "Teacher"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."TeacherSubject" ADD CONSTRAINT "TeacherSubject_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "public"."Teacher"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TeacherSubject" ADD CONSTRAINT "TeacherSubject_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."TeacherSubject" ADD CONSTRAINT "TeacherSubject_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "public"."Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TeacherClass" ADD CONSTRAINT "TeacherClass_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "Teacher"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."TeacherClass" ADD CONSTRAINT "TeacherClass_teacherId_fkey" FOREIGN KEY ("teacherId") REFERENCES "public"."Teacher"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TeacherClass" ADD CONSTRAINT "TeacherClass_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."TeacherClass" ADD CONSTRAINT "TeacherClass_classId_fkey" FOREIGN KEY ("classId") REFERENCES "public"."Class"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Staff" ADD CONSTRAINT "Staff_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."StaffProfile" ADD CONSTRAINT "StaffProfile_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "public"."Staff"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "StaffProfile" ADD CONSTRAINT "StaffProfile_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "Staff"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."IDCard" ADD CONSTRAINT "IDCard_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "public"."IDCardTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "IDCard" ADD CONSTRAINT "IDCard_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "IDCardTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."IDCard" ADD CONSTRAINT "IDCard_issuedForId_fkey" FOREIGN KEY ("issuedForId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "IDCard" ADD CONSTRAINT "IDCard_issuedForId_fkey" FOREIGN KEY ("issuedForId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."UserRole" ADD CONSTRAINT "UserRole_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "UserRole" ADD CONSTRAINT "UserRole_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."UserRole" ADD CONSTRAINT "UserRole_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "public"."Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "UserRole" ADD CONSTRAINT "UserRole_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."RolePermission" ADD CONSTRAINT "RolePermission_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "public"."Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."RolePermission" ADD CONSTRAINT "RolePermission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "public"."Permission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "Permission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."AuditLog" ADD CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "UserSession" ADD CONSTRAINT "UserSession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."UserSession" ADD CONSTRAINT "UserSession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

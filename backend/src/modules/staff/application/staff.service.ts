@@ -1,12 +1,6 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
-import { hashPassword } from '../../../shared/auth/hash.util';
 import { AuditService } from '../../../shared/logger/audit.service';
-import { generateRandomPassword } from '../../../shared/utils/password.util';
 import {
   CreateStaffDtoType,
   UpdateStaffByAdminDtoType,
@@ -29,93 +23,56 @@ export class StaffService {
   ) {
     const { user, profile } = dto;
 
-    // Check if user with email already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: user.email },
-    });
-    if (existingUser) {
-      throw new ConflictException('User with this email already exists');
-    }
-
-    // Check if user with phone already exists (if phone provided)
-    if (user.phone && user.phone !== '') {
-      const existingUserPhone = await this.prisma.user.findUnique({
-        where: { phone: user.phone },
+    // Staff are static records - no user accounts needed
+    const staff = await this.prisma.$transaction(async prisma => {
+      // Create staff record only (no user account)
+      const staff = await prisma.staff.create({
+        data: {
+          email: user.email,
+          fullName: user.fullName,
+          designation: profile.designation,
+          firstName: user.fullName?.split(' ')[0] || 'Unknown',
+          middleName: null,
+          lastName: user.fullName?.split(' ').slice(1).join(' ') || 'Unknown',
+          dob: new Date('1990-01-01'), // Default DOB, will be updated later
+          gender: 'Not Specified',
+          phone: user.phone || '',
+          emergencyContact:
+            typeof profile.emergencyContact === 'string'
+              ? profile.emergencyContact
+              : profile.emergencyContact?.phone || '',
+          basicSalary: profile.salary
+            ? parseFloat(profile.salary.toString())
+            : 0,
+          allowances: 0,
+          totalSalary: profile.salary
+            ? parseFloat(profile.salary.toString())
+            : 0,
+          department: profile.department,
+          employmentDate: profile.employmentDate
+            ? new Date(profile.employmentDate)
+            : new Date(),
+          createdById: createdBy,
+        },
       });
-      if (existingUserPhone) {
-        throw new ConflictException(
-          'User with this phone number already exists',
-        );
-      }
-    }
 
-    const rawPassword = user.password || generateRandomPassword();
-    const passwordHash = await hashPassword(rawPassword);
-
-    const { staff, staffUser } = await this.prisma.$transaction(
-      async prisma => {
-        // Create user account
-        const staffUser = await prisma.user.create({
-          data: {
-            email: user.email,
-            phone: user.phone,
-            fullName: user.fullName,
-            passwordHash,
-            needPasswordChange: !user.password, // If auto-generated, require password change
-            createdById: createdBy,
+      // Create staff profile
+      await prisma.staffProfile.create({
+        data: {
+          staffId: staff.id,
+          bio: profile.bio || '',
+          contactInfo: profile.emergencyContact || {},
+          additionalData: {
+            qualification: profile.qualification,
+            experienceYears: profile.experienceYears || 0,
+            address: profile.address || {},
+            socialLinks: profile.socialLinks || {},
           },
-        });
+        },
+      });
 
-        // Assign Staff role
-        await prisma.userRole.create({
-          data: {
-            userId: staffUser.id,
-            roleId: await this.getStaffRoleId(prisma),
-          },
-        });
-
-        // Create staff record
-        const staff = await prisma.staff.create({
-          data: {
-            userId: staffUser.id,
-            // designation: profile.designation, // This field exists in schema
-            firstName: user.fullName?.split(' ')[0] || 'Unknown',
-            middleName: null,
-            lastName: user.fullName?.split(' ').slice(1).join(' ') || 'Unknown',
-            dob: new Date(),
-            gender: 'Not Specified',
-            phone: user.phone || '',
-            emergencyContact:
-              typeof profile.emergencyContact === 'string'
-                ? profile.emergencyContact
-                : profile.emergencyContact?.phone || '',
-            basicSalary: profile.salary
-              ? parseFloat(profile.salary.toString())
-              : 0,
-            allowances: 0,
-            totalSalary: profile.salary
-              ? parseFloat(profile.salary.toString())
-              : 0,
-            department: profile.department,
-            employmentDate: profile.employmentDate
-              ? new Date(profile.employmentDate)
-              : undefined,
-          },
-        });
-
-        // Create staff profile
-        await this.prisma.staffProfile.create({
-          data: {
-            staffId: staff.id,
-            bio: profile.bio,
-            contactInfo: profile.emergencyContact || {},
-            additionalData: profile.address || {},
-          },
-        });
-
-        return { staff, staffUser };
-      },
-    );
+      return staff;
+    });
 
     // Audit log
     await this.audit.record({
@@ -123,7 +80,7 @@ export class StaffService {
       action: 'CREATE_STAFF',
       module: 'staff',
       status: 'SUCCESS',
-      details: { staffId: staff.id, staffUserId: staffUser.id },
+      details: { staffId: staff.id },
       ipAddress: ip,
       userAgent: userAgent,
     });
@@ -133,18 +90,14 @@ export class StaffService {
       data: {
         staff: {
           id: staff.id,
-          userId: staffUser.id,
+          email: staff.email,
+          fullName: staff.fullName,
           designation: staff.designation,
           department: staff.department,
           employmentDate: staff.employmentDate,
         },
-        user: {
-          id: staffUser.id,
-          email: staffUser.email,
-          fullName: staffUser.fullName,
-          needPasswordChange: staffUser.needPasswordChange,
-        },
-        credentials: user.password ? null : { temporaryPassword: rawPassword },
+        message:
+          'Staff member created as static record. No login credentials needed.',
       },
     };
   }
@@ -164,16 +117,14 @@ export class StaffService {
     // Build where clause
     const where: any = {
       deletedAt: null,
-      user: {
-        deletedAt: null,
-      },
     };
 
     if (search) {
       where.OR = [
-        { user: { fullName: { contains: search, mode: 'insensitive' } } },
-        { user: { email: { contains: search, mode: 'insensitive' } } },
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
         { designation: { contains: search, mode: 'insensitive' } },
+        { department: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -188,7 +139,7 @@ export class StaffService {
     // Build order by clause
     const orderBy: any = {};
     if (sortBy === 'fullName') {
-      orderBy.user = { fullName: sortOrder };
+      orderBy.fullName = sortOrder;
     } else if (sortBy === 'employmentDate') {
       orderBy.employmentDate = sortOrder;
     } else {
@@ -199,16 +150,6 @@ export class StaffService {
       this.prisma.staff.findMany({
         where,
         include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              phone: true,
-              fullName: true,
-              isActive: true,
-              lastLoginAt: true,
-            },
-          },
           profile: {
             select: {
               bio: true,
@@ -227,10 +168,10 @@ export class StaffService {
 
     return {
       data: staff,
-      pagination: {
+      meta: {
+        total,
         page,
         limit,
-        total,
         totalPages: Math.ceil(total / limit),
       },
     };
@@ -240,18 +181,14 @@ export class StaffService {
     const staff = await this.prisma.staff.findUnique({
       where: { id, deletedAt: null },
       include: {
-        user: {
+        profile: {
           select: {
-            id: true,
-            email: true,
-            phone: true,
-            fullName: true,
-            isActive: true,
-            lastLoginAt: true,
-            createdAt: true,
+            bio: true,
+            profilePhotoUrl: true,
+            contactInfo: true,
+            additionalData: true,
           },
         },
-        profile: true,
       },
     });
 
@@ -270,44 +207,29 @@ export class StaffService {
     userAgent?: string,
   ) {
     const existingStaff = await this.prisma.staff.findUnique({
-      where: { id, deletedAt: null },
-      include: { user: true },
+      where: { id },
     });
 
     if (!existingStaff) {
       throw new NotFoundException('Staff member not found');
     }
 
-    // Check for email conflicts if email is being updated
-    if (dto.user?.email && dto.user.email !== existingStaff.user.email) {
-      const emailExists = await this.prisma.user.findUnique({
-        where: { email: dto.user.email },
-      });
-      if (emailExists) {
-        throw new ConflictException('Email already exists');
-      }
-    }
-
-    // Check for phone conflicts if phone is being updated
-    if (dto.user?.phone && dto.user.phone !== existingStaff.user.phone) {
-      const phoneExists = await this.prisma.user.findUnique({
-        where: { phone: dto.user.phone },
-      });
-      if (phoneExists) {
-        throw new ConflictException('Phone number already exists');
-      }
-    }
-
+    // Staff members don't need login access, so no duplicate checks needed
     const updatedStaff = await this.prisma.$transaction(async prisma => {
-      // Update user if user data provided
+      // Update staff user fields if provided
       if (dto.user) {
-        await prisma.user.update({
-          where: { id: existingStaff.userId },
-          data: {
-            ...dto.user,
-            updatedById: updatedBy,
-            updatedAt: new Date(),
-          },
+        const userUpdateData: any = {
+          updatedById: updatedBy,
+          updatedAt: new Date(),
+        };
+
+        if (dto.user.email) userUpdateData.email = dto.user.email;
+        if (dto.user.fullName) userUpdateData.fullName = dto.user.fullName;
+        if (dto.user.phone) userUpdateData.phone = dto.user.phone;
+
+        await prisma.staff.update({
+          where: { id },
+          data: userUpdateData,
         });
       }
 
@@ -333,7 +255,10 @@ export class StaffService {
             : null;
         }
         if (dto.profile.salary !== undefined) {
-          updateData.salary = dto.profile.salary
+          updateData.basicSalary = dto.profile.salary
+            ? parseFloat(dto.profile.salary.toString())
+            : null;
+          updateData.totalSalary = dto.profile.salary
             ? parseFloat(dto.profile.salary.toString())
             : null;
         }
@@ -346,44 +271,37 @@ export class StaffService {
         });
 
         // Update staff profile if profile fields provided
-        const profileUpdateData: any = {
-          updatedById: updatedBy,
-          updatedAt: new Date(),
-        };
+        const profileUpdateData: any = {};
 
         if (dto.profile.bio !== undefined)
           profileUpdateData.bio = dto.profile.bio;
         if (dto.profile.emergencyContact !== undefined)
-          profileUpdateData.emergencyContact = dto.profile.emergencyContact;
+          profileUpdateData.contactInfo = dto.profile.emergencyContact;
         if (dto.profile.address !== undefined)
-          profileUpdateData.address = dto.profile.address;
-        if (dto.profile.socialLinks !== undefined)
-          profileUpdateData.socialLinks = dto.profile.socialLinks;
+          profileUpdateData.additionalData = {
+            address: dto.profile.address,
+            socialLinks: dto.profile.socialLinks || {},
+          };
 
-        await this.prisma.staffProfile.upsert({
-          where: { staffId: id },
-          update: profileUpdateData,
-          create: {
-            staffId: id,
-            ...profileUpdateData,
-            createdById: updatedBy,
-          },
-        });
+        if (Object.keys(profileUpdateData).length > 0) {
+          await prisma.staffProfile.updateMany({
+            where: { staffId: id },
+            data: profileUpdateData,
+          });
+        }
       }
 
       return prisma.staff.findUnique({
         where: { id },
         include: {
-          user: {
+          profile: {
             select: {
-              id: true,
-              email: true,
-              phone: true,
-              fullName: true,
-              isActive: true,
+              bio: true,
+              profilePhotoUrl: true,
+              contactInfo: true,
+              additionalData: true,
             },
           },
-          profile: true,
         },
       });
     });
@@ -394,7 +312,7 @@ export class StaffService {
       action: 'UPDATE_STAFF',
       module: 'staff',
       status: 'SUCCESS',
-      details: { staffId: id, changes: dto },
+      details: { staffId: id },
       ipAddress: ip,
       userAgent: userAgent,
     });
@@ -406,79 +324,71 @@ export class StaffService {
   }
 
   async updateSelf(
-    staffId: string,
+    id: string,
     dto: UpdateStaffSelfDtoType,
     updatedBy: string,
     ip?: string,
     userAgent?: string,
   ) {
     const existingStaff = await this.prisma.staff.findUnique({
-      where: { id: staffId, deletedAt: null },
-      include: { user: true },
+      where: { id },
     });
 
     if (!existingStaff) {
       throw new NotFoundException('Staff member not found');
     }
 
-    // Check if the updating user is the staff member themselves
-    if (existingStaff.userId !== updatedBy) {
-      throw new ConflictException('You can only update your own profile');
-    }
-
+    // Staff members can update their own profiles (no login access restrictions)
     const updatedStaff = await this.prisma.$transaction(async prisma => {
-      // Update user if user data provided
+      // Update staff user fields if provided
       if (dto.user) {
-        await prisma.user.update({
-          where: { id: existingStaff.userId },
-          data: {
-            ...dto.user,
-            updatedById: updatedBy,
-            updatedAt: new Date(),
-          },
-        });
-      }
-
-      // Update staff profile if profile data provided
-      if (dto.profile) {
-        const profileUpdateData: any = {
+        const userUpdateData: any = {
           updatedById: updatedBy,
           updatedAt: new Date(),
         };
 
-        if (dto.profile.bio !== undefined)
-          profileUpdateData.bio = dto.profile.bio;
-        if (dto.profile.emergencyContact !== undefined)
-          profileUpdateData.emergencyContact = dto.profile.emergencyContact;
-        if (dto.profile.address !== undefined)
-          profileUpdateData.address = dto.profile.address;
-        if (dto.profile.socialLinks !== undefined)
-          profileUpdateData.socialLinks = dto.profile.socialLinks;
+        if (dto.user.fullName) userUpdateData.fullName = dto.user.fullName;
+        if (dto.user.phone) userUpdateData.phone = dto.user.phone;
 
-        await this.prisma.staffProfile.upsert({
-          where: { staffId: staffId },
-          update: profileUpdateData,
-          create: {
-            staffId: staffId,
-            ...profileUpdateData,
-            createdById: updatedBy,
-          },
+        await prisma.staff.update({
+          where: { id },
+          data: userUpdateData,
         });
       }
 
+      // Update staff profile if profile fields provided
+      if (dto.profile) {
+        const profileUpdateData: any = {};
+
+        if (dto.profile.bio !== undefined)
+          profileUpdateData.bio = dto.profile.bio;
+        if (dto.profile.emergencyContact !== undefined)
+          profileUpdateData.contactInfo = dto.profile.emergencyContact;
+        if (dto.profile.address !== undefined)
+          profileUpdateData.additionalData = {
+            address: dto.profile.address,
+            socialLinks: dto.profile.socialLinks || {},
+          };
+
+        if (Object.keys(profileUpdateData).length > 0) {
+          await prisma.staffProfile.updateMany({
+            where: { staffId: id },
+            data: profileUpdateData,
+          });
+        }
+      }
+
       return prisma.staff.findUnique({
-        where: { id: staffId },
+        where: { id },
         include: {
-          user: {
+          profile: {
             select: {
-              id: true,
-              email: true,
-              phone: true,
-              fullName: true,
-              isActive: true,
+              bio: true,
+              profilePhotoUrl: true,
+              contactInfo: true,
+              additionalData: true,
             },
           },
-          profile: true,
         },
       });
     });
@@ -489,7 +399,7 @@ export class StaffService {
       action: 'UPDATE_STAFF_SELF',
       module: 'staff',
       status: 'SUCCESS',
-      details: { staffId, changes: dto },
+      details: { staffId: id },
       ipAddress: ip,
       userAgent: userAgent,
     });
@@ -502,8 +412,7 @@ export class StaffService {
 
   async remove(id: string, deletedBy: string, ip?: string, userAgent?: string) {
     const existingStaff = await this.prisma.staff.findUnique({
-      where: { id, deletedAt: null },
-      include: { user: true },
+      where: { id },
     });
 
     if (!existingStaff) {
@@ -511,27 +420,19 @@ export class StaffService {
     }
 
     await this.prisma.$transaction(async prisma => {
-      // Soft delete staff
+      // Soft delete staff record
       await prisma.staff.update({
         where: { id },
         data: {
           deletedAt: new Date(),
-          // deletedById: deletedBy, // Field doesn't exist in StaffProfile
+          deletedById: deletedBy,
         },
       });
 
-      // Soft delete user
-      await prisma.user.update({
-        where: { id: existingStaff.userId },
-        data: {
-          deletedAt: new Date(),
-          // deletedById: deletedBy, // Field doesn't exist in StaffProfile
-          isActive: false,
-        },
-      });
+      // Staff records don't have separate user accounts to delete
 
       // Soft delete profile
-      await this.prisma.staffProfile.updateMany({
+      await prisma.staffProfile.updateMany({
         where: { staffId: id },
         data: {
           deletedAt: new Date(),
@@ -552,17 +453,5 @@ export class StaffService {
     });
 
     return { message: 'Staff member deleted successfully' };
-  }
-
-  private async getStaffRoleId(prisma: any): Promise<string> {
-    const staffRole = await prisma.role.findUnique({
-      where: { name: 'staff' },
-    });
-
-    if (!staffRole) {
-      throw new NotFoundException('Staff role not found in the system');
-    }
-
-    return staffRole.id;
   }
 }

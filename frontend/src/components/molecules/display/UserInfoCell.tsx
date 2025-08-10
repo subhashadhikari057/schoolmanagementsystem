@@ -32,4 +32,5 @@ const UserInfoCell: React.FC<UserInfoCellProps> = ({
   );
 };
 
+export { UserInfoCell };
 export default UserInfoCell;
