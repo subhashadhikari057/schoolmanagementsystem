@@ -21,6 +21,7 @@ export interface ApiError {
   code?: string;
   details?: Record<string, any>;
   context?: Record<string, any>;
+  validationErrors?: Record<string, string>;
 }
 
 export interface PaginatedResponse<T> {

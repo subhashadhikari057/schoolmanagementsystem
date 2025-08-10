@@ -12,6 +12,7 @@ import {
   Briefcase,
   GraduationCap,
   Loader2,
+  Landmark,
 } from 'lucide-react';
 import { Teacher } from '@/components/templates/listConfigurations';
 import Avatar from '@/components/atoms/display/Avatar';
@@ -44,8 +45,26 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
         .then(response => {
           if (response.success && response.data) {
             // Map API response to Teacher interface
+            console.log('API Response:', response.data);
+
+            // Extract bank details from response
+            const bankDetails = (response.data as any).bankDetails || {};
+            const personalDetails = (response.data as any).personal || {};
+
+            // Extract name parts from API response
+            const firstName = response.data.firstName || '';
+            const middleName = response.data.middleName || '';
+            const lastName = response.data.lastName || '';
+
+            // Build full name with middle name if available
+            const fullName = middleName
+              ? `${firstName} ${middleName} ${lastName}`
+              : `${firstName} ${lastName}`;
+
             const detailedTeacher: Teacher = {
               ...teacher,
+              // Update name with middle name if available
+              name: fullName || teacher.name,
               // Update with more detailed information from API
               qualification:
                 response.data.qualification || teacher.qualification,
@@ -53,22 +72,66 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
                 response.data.specialization || teacher.specialization,
               experienceYears:
                 response.data.experienceYears || teacher.experienceYears,
-              dateOfBirth: response.data.dateOfBirth || teacher.dateOfBirth,
-              gender: response.data.gender || teacher.gender,
-              bloodGroup: response.data.bloodGroup || teacher.bloodGroup,
+              dateOfBirth:
+                response.data.dateOfBirth ||
+                personalDetails.dateOfBirth ||
+                teacher.dateOfBirth,
+              gender:
+                response.data.gender ||
+                personalDetails.gender ||
+                teacher.gender,
+              bloodGroup:
+                response.data.bloodGroup ||
+                personalDetails.bloodGroup ||
+                teacher.bloodGroup,
+              maritalStatus:
+                response.data.maritalStatus ||
+                personalDetails.maritalStatus ||
+                teacher.maritalStatus,
               salary: response.data.totalSalary || teacher.salary,
               basicSalary: response.data.basicSalary || teacher.basicSalary,
               allowances: response.data.allowances || teacher.allowances,
               languagesKnown:
                 response.data.languagesKnown || teacher.languagesKnown,
               phone: response.data.phone || teacher.phone,
-              address: response.data.address || teacher.address,
-              street: response.data.street || teacher.street,
-              city: response.data.city || teacher.city,
-              state: response.data.state || teacher.state,
-              pinCode: response.data.pinCode || teacher.pinCode,
+              address:
+                response.data.address ||
+                personalDetails.address ||
+                teacher.address,
+              street:
+                response.data.street ||
+                personalDetails.street ||
+                teacher.street,
+              city: response.data.city || personalDetails.city || teacher.city,
+              state:
+                response.data.state || personalDetails.state || teacher.state,
+              pinCode:
+                response.data.pinCode ||
+                personalDetails.pinCode ||
+                teacher.pinCode,
               joinedDate: response.data.employmentDate || teacher.joinedDate,
               teacherId: response.data.employeeId || teacher.teacherId,
+              // Bank and legal details - fix property names from API
+              bankName:
+                response.data.bankName ||
+                bankDetails.bankName ||
+                teacher.bankName,
+              bankAccountNumber:
+                response.data.bankAccountNumber ||
+                bankDetails.accountNumber ||
+                teacher.bankAccountNumber,
+              bankBranch:
+                response.data.bankBranch ||
+                bankDetails.branch ||
+                teacher.bankBranch,
+              panNumber:
+                response.data.panNumber ||
+                bankDetails.panNumber ||
+                teacher.panNumber,
+              citizenshipNumber:
+                response.data.citizenshipNumber ||
+                bankDetails.citizenshipNumber ||
+                teacher.citizenshipNumber,
               contactInfo: response.data.contactInfo || {
                 phone: response.data.phone || teacher.phone,
                 email: response.data.email || teacher.email,
@@ -184,7 +247,11 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
 
             <div className='flex-grow'>
               <h3 className='text-xl font-bold text-gray-900'>
-                {teacherDetails.name}
+                {teacherDetails.firstName && teacherDetails.lastName
+                  ? teacherDetails.middleName
+                    ? `${teacherDetails.firstName} ${teacherDetails.middleName} ${teacherDetails.lastName}`
+                    : `${teacherDetails.firstName} ${teacherDetails.lastName}`
+                  : teacherDetails.name}
               </h3>
 
               <div className='flex flex-wrap gap-2 mt-2'>
@@ -226,7 +293,7 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
                   <MapPin className='h-4 w-4 text-gray-400' />
                   <span>
                     {teacherDetails.street
-                      ? `${teacherDetails.street}, ${teacherDetails.city || 'N/A'}, ${teacherDetails.state || 'N/A'} - ${teacherDetails.pinCode || 'N/A'}`
+                      ? `${teacherDetails.street}, ${teacherDetails.city || 'N/A'}, ${teacherDetails.state || 'N/A'}, ${teacherDetails.province || teacherDetails.state || 'N/A'} - ${teacherDetails.pinCode || 'N/A'}`
                       : teacherDetails.address ||
                         teacherDetails.contactInfo?.address ||
                         'N/A'}
@@ -382,6 +449,52 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
                     {teacherDetails.salary
                       ? `$${typeof teacherDetails.salary === 'number' ? teacherDetails.salary.toLocaleString() : teacherDetails.salary}`
                       : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bank and Legal Information */}
+            <div className='bg-blue-50 rounded-lg p-4'>
+              <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
+                <Landmark className='h-4 w-4 mr-2 text-blue-600' />
+                Bank & Legal Information
+              </h4>
+              <div className='space-y-2'>
+                <div>
+                  <span className='text-xs text-gray-500 block'>Bank Name</span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.bankName || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Account Number
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.bankAccountNumber || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>Branch</span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.bankBranch || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    PAN Number
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.panNumber || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Citizenship Number
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.citizenshipNumber || 'N/A'}
                   </span>
                 </div>
               </div>

@@ -15,6 +15,7 @@ import {
   DollarSign,
   Upload,
   GraduationCap,
+  Landmark,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { teacherService } from '@/api/services/teacher.service';
@@ -71,6 +72,13 @@ interface FormData {
   allowances?: string;
   totalSalary?: string;
 
+  // Bank details
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankBranch?: string;
+  panNumber?: string;
+  citizenshipNumber?: string;
+
   languagesKnown?: string[];
   certifications?: string;
   previousExperience?: string;
@@ -117,6 +125,12 @@ const initialFormData: FormData = {
   allowances: '',
   totalSalary: '',
 
+  bankName: '',
+  bankAccountNumber: '',
+  bankBranch: '',
+  panNumber: '',
+  citizenshipNumber: '',
+
   languagesKnown: [],
   certifications: '',
   previousExperience: '',
@@ -129,6 +143,39 @@ const initialFormData: FormData = {
   section: '',
   rollNo: '',
   parentName: '',
+};
+
+// Parent data structure
+interface ParentData {
+  fatherName: string;
+  fatherEmail: string;
+  fatherPhone: string;
+  fatherOccupation: string;
+  motherName: string;
+  motherEmail: string;
+  motherPhone: string;
+  motherOccupation: string;
+  guardianName: string;
+  guardianEmail: string;
+  guardianPhone: string;
+  guardianRelation: string;
+  primaryContact: 'father' | 'mother' | 'guardian';
+}
+
+const initialParentData: ParentData = {
+  fatherName: '',
+  fatherEmail: '',
+  fatherPhone: '',
+  fatherOccupation: '',
+  motherName: '',
+  motherEmail: '',
+  motherPhone: '',
+  motherOccupation: '',
+  guardianName: '',
+  guardianEmail: '',
+  guardianPhone: '',
+  guardianRelation: '',
+  primaryContact: 'father',
 };
 
 const LANGUAGES = [
@@ -155,7 +202,7 @@ type SubjectItem = { id: string; name: string; code: string };
 type ClassItem = {
   id: string;
   name: string;
-  sections: { id: string; name: string }[];
+  sections: Array<{ id: string; name: string }>;
 };
 
 interface BackendData {
@@ -212,6 +259,7 @@ const LabeledInput: React.FC<{
   onBlur?: () => void;
   disabled?: boolean;
   className?: string;
+  error?: string;
 }> = ({
   label,
   name,
@@ -224,6 +272,7 @@ const LabeledInput: React.FC<{
   onBlur,
   disabled,
   className = '',
+  error,
 }) => {
   return (
     <div>
@@ -245,10 +294,12 @@ const LabeledInput: React.FC<{
           onBlur={onBlur}
           placeholder={placeholder}
           disabled={disabled}
-          className={`border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 py-2 px-3 ${Icon ? 'pl-10' : ''} ${className}`}
+          className={`border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 py-2 px-3 ${Icon ? 'pl-10' : ''} ${className}`}
           autoComplete='off'
+          aria-invalid={error ? 'true' : 'false'}
         />
       </div>
+      {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
     </div>
   );
 };
@@ -263,6 +314,7 @@ const LabeledSelect: React.FC<{
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  error?: string;
 }> = ({
   label,
   name,
@@ -272,6 +324,7 @@ const LabeledSelect: React.FC<{
   placeholder = 'Select option',
   required,
   disabled,
+  error,
 }) => (
   <div>
     <label className='text-sm font-medium leading-none mb-2 block'>
@@ -283,7 +336,8 @@ const LabeledSelect: React.FC<{
       value={value}
       onChange={onChange}
       disabled={disabled}
-      className='flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+      className={`flex h-10 w-full rounded-md border ${error ? 'border-red-500' : 'border-gray-300'} bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200`}
+      aria-invalid={error ? 'true' : 'false'}
     >
       <option value=''>{placeholder}</option>
       {options.map(option => (
@@ -292,6 +346,7 @@ const LabeledSelect: React.FC<{
         </option>
       ))}
     </select>
+    {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
   </div>
 );
 
@@ -376,11 +431,31 @@ export default function AddUserFormModal({
   userType,
 }: AddUserFormModalProps) {
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [parentData, setParentData] = useState<ParentData>(initialParentData);
+  const [parentOption, setParentOption] = useState<'new' | 'existing'>('new');
+  const [parentSearchTerm, setParentSearchTerm] = useState('');
+  const [parentSearchResults, setParentSearchResults] = useState<any[]>([]);
+  const [selectedParentId, setSelectedParentId] = useState<
+    string | number | null
+  >(null);
   const [isLoading, setIsLoading] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const [backendData, setBackendData] = useState<BackendData>({
+  // Define a local ClassResponse type for the component
+  interface ClassResponse {
+    id: string;
+    name?: string;
+    sections?: Array<{ id: string; name: string }>;
+    // Add other fields that might be in the API response
+  }
+
+  // Modify the BackendData type to use ClassResponse
+  const [backendData, setBackendData] = useState<{
+    subjects: SubjectItem[];
+    classes: ClassItem[];
+  }>({
     subjects: [],
     classes: [],
   });
@@ -400,12 +475,21 @@ export default function AddUserFormModal({
           classService.getAllClasses(),
         ]);
         if (subjectsRes?.success && classesRes?.success) {
+          // Map the API response to match our expected types
+          const mappedClasses: ClassItem[] = (classesRes.data || []).map(
+            (cls: ClassResponse) => ({
+              id: cls.id,
+              name: cls.name || '',
+              // Add sections with a default empty array
+              sections: cls.sections || [],
+            }),
+          );
+
           setBackendData({
             subjects: subjectsRes.data || [],
-            classes: (classesRes.data || []).map((cls: any) => ({
-              ...cls,
-              sections: cls.sections || [],
-            })),
+
+            classes: mappedClasses,
+
           });
         } else {
           toast.error('Failed to load form data', {
@@ -447,6 +531,11 @@ export default function AddUserFormModal({
 
   const resetForm = useCallback(() => {
     setFormData(initialFormData);
+    setParentData(initialParentData);
+    setParentOption('new');
+    setParentSearchTerm('');
+    setParentSearchResults([]);
+    setSelectedParentId(null);
     setPhotoPreview(null);
     setError(null);
   }, []);
@@ -488,6 +577,28 @@ export default function AddUserFormModal({
     [],
   );
 
+  // Handle parent data changes
+  const handleParentChange = useCallback(
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >,
+    ) => {
+      const { name, value } = e.target;
+      setParentData(prev => ({ ...prev, [name]: value }));
+      if (error) setError(null);
+    },
+    [error],
+  );
+
+  // Handle primary contact selection
+  const handlePrimaryContactChange = useCallback(
+    (contact: 'father' | 'mother' | 'guardian') => {
+      setParentData(prev => ({ ...prev, primaryContact: contact }));
+    },
+    [],
+  );
+
   const handlePhotoChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -516,20 +627,59 @@ export default function AddUserFormModal({
   }, []);
 
   const validateForm = useCallback((): string | null => {
-    if (!formData.firstName.trim() || !formData.lastName.trim())
-      return 'First name and last name are required';
-    if (!formData.email.trim() || !formData.phone.trim())
-      return 'Email and phone number are required';
+    if (!formData.firstName.trim()) return 'Please enter a first name';
+    if (!formData.lastName.trim()) return 'Please enter a last name';
+    if (!formData.email.trim()) return 'Please enter an email address';
+    if (!/^\S+@\S+\.\S+$/.test(formData.email.trim()))
+      return 'Please enter a valid email address';
+    if (!formData.phone.trim()) return 'Please enter a phone number';
 
     // Validate PIN code if provided
-    if (formData.pinCode && !/^\d{4}$/.test(formData.pinCode.trim()))
-      return 'PIN code must be a 4-digit number';
+    if (formData.pinCode && !/^\d{5,6}$/.test(formData.pinCode.trim()))
+      return 'PIN/ZIP code should be 5-6 digits';
 
     if (userType === 'teacher') {
       if (!formData.subjects || formData.subjects.length === 0)
         return 'Please select at least one subject for the teacher';
       if (formData.isClassTeacher && (!formData.class || !formData.section))
         return 'Please select both class and section when assigning as class teacher';
+    }
+
+
+    if (userType === 'student') {
+      if (!formData.class) return 'Please select a class for the student';
+      if (!formData.section) return 'Please select a section for the student';
+      if (!formData.rollNo?.trim())
+        return 'Please enter a roll number for the student';
+
+      // Parent validations
+      if (parentOption === 'new') {
+        if (
+          !parentData.fatherName &&
+          !parentData.motherName &&
+          !parentData.guardianName
+        ) {
+          return 'Please provide at least one parent or guardian information';
+        }
+
+        // Primary contact validations
+        if (parentData.primaryContact === 'father' && !parentData.fatherName) {
+          return 'Father is selected as primary contact but name is missing';
+        }
+
+        if (parentData.primaryContact === 'mother' && !parentData.motherName) {
+          return 'Mother is selected as primary contact but name is missing';
+        }
+
+        if (
+          parentData.primaryContact === 'guardian' &&
+          !parentData.guardianName
+        ) {
+          return 'Guardian is selected as primary contact but name is missing';
+        }
+      } else if (!selectedParentId) {
+        return 'Please select an existing parent from the list';
+      }
     }
 
     if (userType === 'staff') {
@@ -541,7 +691,7 @@ export default function AddUserFormModal({
         return 'Please provide highest qualification for the staff member';
     }
     return null;
-  }, [formData, userType]);
+  }, [formData, userType, parentOption, parentData, selectedParentId]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -626,14 +776,97 @@ export default function AddUserFormModal({
           throw new Error(response?.message || `Failed to add ${userType}`);
         }
       } catch (err: any) {
-        const apiMsg =
-          err?.response?.data?.message ||
-          (Array.isArray(err?.response?.data?.errors)
-            ? `Validation failed: ${err.response.data.errors.map((e: any) => e.message).join(', ')}`
-            : err?.message) ||
-          `Failed to add ${userType}. Please try again.`;
+        // Clear previous field errors
+        setFieldErrors({});
 
-        toast.error(`Failed to add ${userType}`, {
+        // Extract error message and make it user-friendly
+        let apiMsg = err?.message || `Failed to add ${userType}`;
+
+        // Check for validation errors from our enhanced API error format
+        if (
+          err?.validationErrors &&
+          Object.keys(err.validationErrors).length > 0
+        ) {
+          // Set field-specific errors
+          setFieldErrors(err.validationErrors);
+
+          // Create a user-friendly error message
+          apiMsg = 'Please fix the highlighted fields to continue.';
+        }
+        // Handle traditional error response formats
+        else {
+          const responseErrors =
+            err?.response?.data?.errors || err?.response?.data?.message;
+
+          // Make error messages more user-friendly
+          if (
+            apiMsg.includes('duplicate key') ||
+            apiMsg.includes('already exists')
+          ) {
+            if (apiMsg.includes('email')) {
+              apiMsg =
+                'This email address is already registered in the system. Please use a different email.';
+              setFieldErrors({ email: 'Email already in use' });
+            } else if (apiMsg.includes('phone')) {
+              apiMsg =
+                'This phone number is already registered in the system. Please use a different number.';
+              setFieldErrors({ phone: 'Phone number already in use' });
+            } else if (
+              apiMsg.includes('employeeId') ||
+              apiMsg.includes('studentId')
+            ) {
+              apiMsg = 'This ID is already in use. Please use a different ID.';
+              setFieldErrors({ employeeId: 'ID already in use' });
+            } else {
+              apiMsg =
+                'This record already exists in the system. Please check the details and try again.';
+            }
+          } else if (apiMsg.includes('validation')) {
+            apiMsg =
+              'Some information is missing or incorrect. Please check all required fields.';
+
+            // If we have detailed validation errors, show them in a user-friendly way
+            if (Array.isArray(responseErrors)) {
+              const errors: string[] = [];
+              const fieldErrorsMap: Record<string, string> = {};
+
+              responseErrors.forEach((e: any) => {
+                // Extract field and message
+                const field = e.field || e.path || e.property || '';
+                const message = e.message || 'Invalid value';
+
+                // Add to field errors for highlighting
+                if (field) {
+                  fieldErrorsMap[field] = message;
+                }
+
+                // Convert technical field names to user-friendly names
+                const friendlyField = field
+                  .replace(/([A-Z])/g, ' $1')
+                  .replace(/^./, (str: string) => str.toUpperCase())
+                  .trim();
+
+                errors.push(
+                  friendlyField ? `${friendlyField}: ${message}` : message,
+                );
+              });
+
+              // Set field errors for highlighting
+              if (Object.keys(fieldErrorsMap).length > 0) {
+                setFieldErrors(fieldErrorsMap);
+              }
+
+              if (errors.length > 0) {
+                apiMsg = `Please fix the following issues:\n• ${errors.join('\n• ')}`;
+              }
+            }
+          } else if (apiMsg.includes('server') || apiMsg.includes('500')) {
+            apiMsg =
+              'Sorry, we encountered a problem on our end. Please try again later.';
+          }
+        }
+
+        toast.error(`Unable to add ${userType}`, {
           description: apiMsg,
           duration: 6000,
         });
@@ -702,10 +935,15 @@ export default function AddUserFormModal({
               <div className='relative group'>
                 <div className='w-32 h-32 rounded-full border-4 border-gray-200 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center transition-all duration-300 group-hover:border-blue-300 group-hover:shadow-lg'>
                   {photoPreview ? (
-                    <img
-                      src={photoPreview}
-                      alt='Profile Preview'
-                      className='w-full h-full object-cover'
+                    <div
+                      style={{
+                        backgroundImage: `url(${photoPreview})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        width: '100%',
+                        height: '100%',
+                      }}
+                      aria-label='Profile Preview'
                     />
                   ) : (
                     <div className='text-gray-400 text-center transition-colors duration-300 group-hover:text-blue-500'>
@@ -747,6 +985,7 @@ export default function AddUserFormModal({
                   required
                   placeholder='Enter first name'
                   icon={User}
+                  error={fieldErrors.firstName}
                 />
                 <LabeledInput
                   label='Middle Name'
@@ -755,6 +994,7 @@ export default function AddUserFormModal({
                   onChange={handleInputChange}
                   placeholder='Enter middle name (optional)'
                   icon={User}
+                  error={fieldErrors.middleName}
                 />
                 <LabeledInput
                   label='Last Name'
@@ -764,6 +1004,7 @@ export default function AddUserFormModal({
                   required
                   placeholder='Enter last name'
                   icon={User}
+                  error={fieldErrors.lastName}
                 />
                 <LabeledInput
                   label='Email Address'
@@ -774,6 +1015,7 @@ export default function AddUserFormModal({
                   required
                   placeholder='Enter email address'
                   icon={Mail}
+                  error={fieldErrors.email}
                 />
                 <LabeledInput
                   label='Phone Number'
@@ -783,6 +1025,7 @@ export default function AddUserFormModal({
                   required
                   placeholder='Enter phone number'
                   icon={Phone}
+                  error={fieldErrors.phone}
                 />
                 <LabeledInput
                   label='Date of Birth'
@@ -809,14 +1052,16 @@ export default function AddUserFormModal({
                   options={BLOOD_GROUPS}
                   placeholder='Select blood group'
                 />
-                <LabeledSelect
-                  label='Marital Status'
-                  name='maritalStatus'
-                  value={formData.maritalStatus || ''}
-                  onChange={handleInputChange}
-                  options={MARITAL_STATUS}
-                  placeholder='Select marital status'
-                />
+                {userType !== 'student' && (
+                  <LabeledSelect
+                    label='Marital Status'
+                    name='maritalStatus'
+                    value={formData.maritalStatus || ''}
+                    onChange={handleInputChange}
+                    options={MARITAL_STATUS}
+                    placeholder='Select marital status'
+                  />
+                )}
                 <div className='md:col-span-3'>
                   <h4 className='text-sm font-medium mb-3 text-gray-700'>
                     Address Details
@@ -1098,6 +1343,53 @@ export default function AddUserFormModal({
               </FormSection>
             )}
 
+            {/* Bank and Legal Details */}
+            {(userType === 'teacher' || userType === 'staff') && (
+              <FormSection
+                title='Bank & Legal Information'
+                icon={Landmark}
+                bg='blue'
+              >
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                  <LabeledInput
+                    label='Bank Name'
+                    name='bankName'
+                    value={formData.bankName || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter bank name'
+                  />
+                  <LabeledInput
+                    label='Bank Account Number'
+                    name='bankAccountNumber'
+                    value={formData.bankAccountNumber || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter account number'
+                  />
+                  <LabeledInput
+                    label='Bank Branch'
+                    name='bankBranch'
+                    value={formData.bankBranch || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter branch name'
+                  />
+                  <LabeledInput
+                    label='PAN Number'
+                    name='panNumber'
+                    value={formData.panNumber || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter PAN number'
+                  />
+                  <LabeledInput
+                    label='Citizenship Number'
+                    name='citizenshipNumber'
+                    value={formData.citizenshipNumber || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter citizenship number'
+                  />
+                </div>
+              </FormSection>
+            )}
+
             {/* Parent */}
             {userType === 'parent' && (
               <FormSection title='Parent Information' icon={Users} bg='purple'>
@@ -1143,28 +1435,301 @@ export default function AddUserFormModal({
                     onChange={handleInputChange}
                     placeholder='Enter roll number'
                   />
-                  <LabeledInput
-                    label='Class'
-                    name='class'
-                    value={formData.class || ''}
-                    onChange={handleInputChange}
-                    placeholder='e.g., Grade 10'
-                  />
-                  <LabeledInput
-                    label='Section'
-                    name='section'
-                    value={formData.section || ''}
-                    onChange={handleInputChange}
-                    placeholder='e.g., A, B, C'
-                  />
-                  <div className='md:col-span-2'>
-                    <LabeledInput
-                      label='Parent/Guardian Name'
-                      name='parentName'
-                      value={formData.parentName || ''}
+                  <div>
+                    <label className='text-sm font-medium leading-none mb-2 block'>
+                      Class
+                    </label>
+                    <select
+                      name='class'
+                      value={formData.class || ''}
                       onChange={handleInputChange}
-                      placeholder='Enter parent name'
-                    />
+                      className='w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+                    >
+                      <option value=''>Select class</option>
+                      {backendData.classes.map(cls => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className='text-sm font-medium leading-none mb-2 block'>
+                      Section
+                    </label>
+                    <select
+                      name='section'
+                      value={formData.section || ''}
+                      onChange={handleInputChange}
+                      className='w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+                    >
+                      <option value=''>Select section</option>
+                      {formData.class &&
+                        backendData.classes
+                          .find(c => c.id === formData.class)
+                          ?.sections.map(s => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                    </select>
+                  </div>
+                  <div className='md:col-span-2'>
+                    <div className='mb-4'>
+                      <div className='flex justify-between items-center mb-2'>
+                        <label className='text-sm font-medium leading-none'>
+                          Parent/Guardian Information
+                        </label>
+                        <div className='flex space-x-4'>
+                          <label className='flex items-center'>
+                            <input
+                              type='radio'
+                              name='parentOption'
+                              value='new'
+                              checked={parentOption === 'new'}
+                              onChange={() => setParentOption('new')}
+                              className='mr-2'
+                            />
+                            <span className='text-sm'>Add New</span>
+                          </label>
+                          <label className='flex items-center'>
+                            <input
+                              type='radio'
+                              name='parentOption'
+                              value='existing'
+                              checked={parentOption === 'existing'}
+                              onChange={() => setParentOption('existing')}
+                              className='mr-2'
+                            />
+                            <span className='text-sm'>Select Existing</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {parentOption === 'new' ? (
+                        <div className='space-y-4'>
+                          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                            <LabeledInput
+                              label="Father's Name"
+                              name='fatherName'
+                              value={parentData.fatherName || ''}
+                              onChange={handleParentChange}
+                              placeholder='Enter father name'
+                            />
+                            <LabeledInput
+                              label="Father's Email"
+                              name='fatherEmail'
+                              type='email'
+                              value={parentData.fatherEmail || ''}
+                              onChange={handleParentChange}
+                              placeholder='Enter father email'
+                            />
+                            <LabeledInput
+                              label="Father's Phone"
+                              name='fatherPhone'
+                              value={parentData.fatherPhone || ''}
+                              onChange={handleParentChange}
+                              placeholder='Enter father phone'
+                            />
+                            <LabeledInput
+                              label="Father's Occupation"
+                              name='fatherOccupation'
+                              value={parentData.fatherOccupation || ''}
+                              onChange={handleParentChange}
+                              placeholder='Enter father occupation (optional)'
+                            />
+                          </div>
+
+                          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                            <LabeledInput
+                              label="Mother's Name"
+                              name='motherName'
+                              value={parentData.motherName || ''}
+                              onChange={handleParentChange}
+                              placeholder='Enter mother name'
+                            />
+                            <LabeledInput
+                              label="Mother's Email"
+                              name='motherEmail'
+                              type='email'
+                              value={parentData.motherEmail || ''}
+                              onChange={handleParentChange}
+                              placeholder='Enter mother email'
+                            />
+                            <LabeledInput
+                              label="Mother's Phone"
+                              name='motherPhone'
+                              value={parentData.motherPhone || ''}
+                              onChange={handleParentChange}
+                              placeholder='Enter mother phone'
+                            />
+                            <LabeledInput
+                              label="Mother's Occupation"
+                              name='motherOccupation'
+                              value={parentData.motherOccupation || ''}
+                              onChange={handleParentChange}
+                              placeholder='Enter mother occupation (optional)'
+                            />
+                          </div>
+
+                          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                            <LabeledSelect
+                              label='Guardian Relation'
+                              name='guardianRelation'
+                              value={parentData.guardianRelation || ''}
+                              onChange={handleParentChange}
+                              options={RELATIONS}
+                              placeholder='Select relation'
+                            />
+                            <LabeledInput
+                              label="Guardian's Name"
+                              name='guardianName'
+                              value={parentData.guardianName || ''}
+                              onChange={handleParentChange}
+                              placeholder='Enter guardian name (if different)'
+                            />
+                            <LabeledInput
+                              label="Guardian's Email"
+                              name='guardianEmail'
+                              type='email'
+                              value={parentData.guardianEmail || ''}
+                              onChange={handleParentChange}
+                              placeholder='Enter guardian email'
+                            />
+                          </div>
+
+                          <div className='mt-4'>
+                            <p className='text-sm font-medium mb-2'>
+                              Primary Contact
+                            </p>
+                            <div className='flex flex-wrap gap-4'>
+                              <label className='flex items-center'>
+                                <input
+                                  type='radio'
+                                  name='primaryContact'
+                                  value='father'
+                                  checked={
+                                    parentData.primaryContact === 'father'
+                                  }
+                                  onChange={() =>
+                                    handlePrimaryContactChange('father')
+                                  }
+                                  className='mr-2'
+                                />
+                                <span className='text-sm'>Father</span>
+                              </label>
+                              <label className='flex items-center'>
+                                <input
+                                  type='radio'
+                                  name='primaryContact'
+                                  value='mother'
+                                  checked={
+                                    parentData.primaryContact === 'mother'
+                                  }
+                                  onChange={() =>
+                                    handlePrimaryContactChange('mother')
+                                  }
+                                  className='mr-2'
+                                />
+                                <span className='text-sm'>Mother</span>
+                              </label>
+                              <label className='flex items-center'>
+                                <input
+                                  type='radio'
+                                  name='primaryContact'
+                                  value='guardian'
+                                  checked={
+                                    parentData.primaryContact === 'guardian'
+                                  }
+                                  onChange={() =>
+                                    handlePrimaryContactChange('guardian')
+                                  }
+                                  className='mr-2'
+                                />
+                                <span className='text-sm'>Guardian</span>
+                              </label>
+                            </div>
+                            <p className='text-xs text-gray-500 mt-1'>
+                              The primary contact will be used for login
+                              credentials and important communications
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className='space-y-4'>
+                          <div className='relative'>
+                            <input
+                              type='text'
+                              placeholder='Search parents by name, email, or phone...'
+                              className='w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200'
+                              value={parentSearchTerm}
+                              onChange={e =>
+                                setParentSearchTerm(e.target.value)
+                              }
+                            />
+                            <div className='absolute right-2 top-1/2 transform -translate-y-1/2'>
+                              <svg
+                                className='h-4 w-4 text-gray-400'
+                                xmlns='http://www.w3.org/2000/svg'
+                                viewBox='0 0 24 24'
+                                fill='none'
+                                stroke='currentColor'
+                                strokeWidth='2'
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                              >
+                                <circle cx='11' cy='11' r='8'></circle>
+                                <line
+                                  x1='21'
+                                  y1='21'
+                                  x2='16.65'
+                                  y2='16.65'
+                                ></line>
+                              </svg>
+                            </div>
+                          </div>
+
+                          <div className='max-h-60 overflow-y-auto border border-gray-200 rounded-md'>
+                            {parentSearchResults.length > 0 ? (
+                              <div className='divide-y divide-gray-200'>
+                                {parentSearchResults.map(parent => (
+                                  <div
+                                    key={parent.id}
+                                    className={`p-3 hover:bg-gray-50 cursor-pointer ${
+                                      selectedParentId === parent.id
+                                        ? 'bg-blue-50'
+                                        : ''
+                                    }`}
+                                    onClick={() =>
+                                      setSelectedParentId(parent.id)
+                                    }
+                                  >
+                                    <div className='font-medium'>
+                                      {parent.name}
+                                    </div>
+                                    <div className='text-sm text-gray-500'>
+                                      {parent.email} • {parent.phone}
+                                    </div>
+                                    <div className='text-xs text-gray-400'>
+                                      {parent.relation} •{' '}
+                                      {parent.children?.length || 0} children
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : parentSearchTerm ? (
+                              <div className='p-4 text-center text-gray-500'>
+                                No parents found matching "{parentSearchTerm}"
+                              </div>
+                            ) : (
+                              <div className='p-4 text-center text-gray-500'>
+                                Type to search for existing parents
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </FormSection>
@@ -1216,13 +1781,19 @@ export default function AddUserFormModal({
                   </div>
                   <div>
                     <label className='text-sm font-medium leading-none mb-2 block'>
-                      Previous Experience
+                      {userType === 'student'
+                        ? 'Previous Academic Achievements'
+                        : 'Previous Experience'}
                     </label>
                     <textarea
                       name='previousExperience'
                       value={formData.previousExperience || ''}
                       onChange={handleInputChange}
-                      placeholder='Brief description of previous teaching/work experience'
+                      placeholder={
+                        userType === 'student'
+                          ? 'Brief description of previous academic achievements'
+                          : 'Brief description of previous teaching/work experience'
+                      }
                       rows={4}
                       className='w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 resize-none'
                     />

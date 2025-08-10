@@ -5,6 +5,7 @@ import { z } from 'zod';
 // ---------------------------
 export const CreateTeacherUserSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
+  middleName: z.string().optional(),
   lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Invalid email format'),
   phone: z.string().min(1, 'Phone number is required'),
@@ -21,6 +22,11 @@ export const CreateTeacherPersonalSchema = z.object({
     .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
     .optional(),
   address: z.string().optional(),
+  street: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pinCode: z.string().optional(),
+  maritalStatus: z.string().optional(),
 });
 
 // ---------------------------
@@ -74,6 +80,17 @@ export const CreateTeacherAdditionalSchema = z.object({
 });
 
 // ---------------------------
+// Subschema for bank details
+// ---------------------------
+export const CreateTeacherBankSchema = z.object({
+  bankName: z.string().optional(),
+  accountNumber: z.string().optional(),
+  branch: z.string().optional(),
+  panNumber: z.string().optional(),
+  citizenshipNumber: z.string().optional(),
+});
+
+// ---------------------------
 // CreateTeacher DTO (Complete)
 // ---------------------------
 export const CreateTeacherDto = z.object({
@@ -82,6 +99,7 @@ export const CreateTeacherDto = z.object({
   professional: CreateTeacherProfessionalSchema,
   subjects: CreateTeacherSubjectSchema.optional(),
   salary: CreateTeacherSalarySchema.optional(),
+  bankDetails: CreateTeacherBankSchema.optional(),
   additional: CreateTeacherAdditionalSchema.optional(),
 });
 
@@ -99,6 +117,7 @@ export const UpdateTeacherByAdminDto = z.object({
   professional: CreateTeacherProfessionalSchema.partial().optional(),
   subjects: CreateTeacherSubjectSchema.partial().optional(),
   salary: CreateTeacherSalarySchema.partial().optional(),
+  bankDetails: CreateTeacherBankSchema.partial().optional(),
   additional: CreateTeacherAdditionalSchema.partial().optional(),
 });
 
@@ -116,6 +135,7 @@ export const UpdateTeacherSelfDto = z.object({
   user: z
     .object({
       firstName: z.string().optional(),
+      middleName: z.string().optional(),
       lastName: z.string().optional(),
       phone: z.string().optional(),
     })

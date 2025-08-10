@@ -77,6 +77,9 @@ export class TeacherController {
         professional: body.professional ? safeJsonParse(body.professional) : {},
         subjects: body.subjects ? safeJsonParse(body.subjects) : undefined,
         salary: body.salary ? safeJsonParse(body.salary) : undefined,
+        bankDetails: body.bankDetails
+          ? safeJsonParse(body.bankDetails)
+          : undefined,
         additional: body.additional
           ? safeJsonParse(body.additional)
           : undefined,

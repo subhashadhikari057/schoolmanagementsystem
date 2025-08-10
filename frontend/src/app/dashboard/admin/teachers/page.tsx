@@ -173,9 +173,12 @@ const TeachersPage = () => {
                     : 'Inactive',
               email: teacher.email,
               phone: teacher.phone,
+              employeeId: teacher.employeeId,
               designation: teacher.designation,
               department: teacher.department,
-              joinedDate: teacher.employmentDate,
+              joinedDate: teacher.employmentDate
+                ? teacher.employmentDate.split('T')[0]
+                : undefined,
               experienceYears: teacher.experienceYears,
               qualification: teacher.qualification,
               specialization: teacher.specialization,
