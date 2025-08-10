@@ -1,6 +1,153 @@
+'use client';
+// Complaint Management Table Config
+export const complaintsConfig = {
+  title: 'Complaint Management',
+  searchPlaceholder: 'Search complaints by title, category, or submitter...',
+  primaryFilter: {
+    title: 'All Status',
+    options: [
+      { value: 'all', label: 'All Status' },
+      { value: 'Pending', label: 'Pending' },
+      { value: 'In Progress', label: 'In Progress' },
+      { value: 'Resolved', label: 'Resolved' },
+    ],
+  },
+  secondaryFilter: {
+    title: 'Priority',
+    options: [
+      { value: 'all', label: 'All' },
+      { value: 'High', label: 'High' },
+      { value: 'Medium', label: 'Medium' },
+      { value: 'Low', label: 'Low' },
+    ],
+  },
+  columns: [
+    {
+      key: 'title',
+      header: 'Complaint Details',
+      render: (row: any) => (
+        <div>
+          <div className='font-medium text-gray-900'>{row.title}</div>
+          <div className='text-gray-600 text-sm'>{row.description}</div>
+          <div className='flex flex-wrap gap-2 mt-1'>
+            {row.categories?.map((cat: string) => (
+              <span
+                key={cat}
+                className='bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs'
+              >
+                {cat}
+              </span>
+            ))}
+            {row.files > 0 && (
+              <span className='bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs flex items-center gap-1'>
+                <span className='icon-[lucide--paperclip]' /> {row.files} files
+              </span>
+            )}
+          </div>
+        </div>
+      ),
+      minWidth: 300,
+    },
+    {
+      key: 'submittedBy',
+      header: 'Submitted By',
+      render: (row: any) => (
+        <div>
+          <div className='font-medium text-gray-900'>
+            {row.submittedBy?.name}
+          </div>
+          <div className='text-gray-500 text-xs'>{row.submittedBy?.role}</div>
+        </div>
+      ),
+      minWidth: 120,
+    },
+    {
+      key: 'assignedTo',
+      header: 'Assigned To',
+      render: (row: any) => (
+        <div>
+          <div className='font-medium text-gray-900'>
+            {row.assignedTo?.name}
+          </div>
+          <div className='text-gray-500 text-xs'>{row.assignedTo?.role}</div>
+        </div>
+      ),
+      minWidth: 120,
+    },
+    {
+      key: 'status',
+      header: 'Status & Priority',
+      render: (row: any) => (
+        <div className='flex flex-col gap-1'>
+          <span
+            className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+              row.status === 'Pending'
+                ? 'bg-yellow-100 text-yellow-800'
+                : row.status === 'In Progress'
+                  ? 'bg-orange-100 text-orange-800'
+                  : row.status === 'Resolved'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-gray-100 text-gray-700'
+            }`}
+          >
+            {row.status}
+          </span>
+          <span
+            className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+              row.priority === 'High'
+                ? 'bg-red-100 text-red-700'
+                : row.priority === 'Medium'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-gray-100 text-gray-700'
+            }`}
+          >
+            {row.priority}
+          </span>
+        </div>
+      ),
+      minWidth: 120,
+    },
+  ],
+  filters: [
+    {
+      key: 'search',
+      type: 'search',
+      placeholder: 'Search complaints by title, category, or submitter...',
+    },
+    {
+      key: 'status',
+      type: 'select',
+      placeholder: 'All Status',
+      options: [
+        { label: 'All Status', value: '' },
+        { label: 'Pending', value: 'Pending' },
+        { label: 'In Progress', value: 'In Progress' },
+        { label: 'Resolved', value: 'Resolved' },
+      ],
+    },
+    {
+      key: 'priority',
+      type: 'select',
+      placeholder: 'Priority',
+      options: [
+        { label: 'All', value: '' },
+        { label: 'High', value: 'High' },
+        { label: 'Medium', value: 'Medium' },
+        { label: 'Low', value: 'Low' },
+      ],
+    },
+    {
+      key: 'advanced',
+      type: 'advanced',
+      label: 'Advanced Filters',
+    },
+  ],
+};
+// ...existing code...
 import React from 'react';
 import { ListConfiguration, BaseItem } from './GenericList';
 import UserInfoCell from '@/components/molecules/display/UserInfoCell';
+import StatusBadge from '@/components/atoms/data/StatusBadge';
 import ContactCell from '@/components/molecules/display/ContactCell';
 import RoleDepartmentCell from '@/components/molecules/display/RoleDepartmentCell';
 import StatusActivityCell from '@/components/molecules/display/StatusActivityCell';
@@ -200,6 +347,293 @@ export interface IDCard extends BaseItem {
 
 // All list configurations in one place
 export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
+  complaints: complaintsConfig,
+  'fee-management': {
+    title: 'Fee Management',
+    searchPlaceholder: 'Search fees by student, class, or status...',
+    columns: [
+      {
+        key: 'student',
+        header: 'Student',
+        render: (item: any) => (
+          <UserInfoCell
+            name={item.studentName}
+            id={item.studentId}
+            avatar={item.avatar}
+            idLabel=''
+          />
+        ),
+      },
+      {
+        key: 'class',
+        header: 'Class',
+        render: (item: any) => <span>{item.class}</span>,
+      },
+      {
+        key: 'feeType',
+        header: 'Fee Type',
+        render: (item: any) => <span>{item.feeType}</span>,
+      },
+      {
+        key: 'amount',
+        header: 'Amount',
+        render: (item: any) => (
+          <span className='font-medium text-green-700'>${item.amount}</span>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (item: any) => <StatusBadge status={item.status} />,
+      },
+      {
+        key: 'dueDate',
+        header: 'Due Date',
+        render: (item: any) => <span>{item.dueDate}</span>,
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        render: (item: any) => (
+          <ActionsCell
+            onAction={(action: string) => {
+              switch (action) {
+                case 'view':
+                  // open view modal
+                  break;
+                case 'edit':
+                  // open edit modal
+                  break;
+                case 'delete':
+                  // open delete confirm
+                  break;
+                default:
+                  break;
+              }
+            }}
+          />
+        ),
+      },
+    ],
+    emptyMessage: 'No fee records found',
+    primaryFilter: {
+      title: 'Status',
+      options: [
+        { value: 'all', label: 'All Status' },
+        { value: 'Paid', label: 'Paid' },
+        { value: 'Unpaid', label: 'Unpaid' },
+        { value: 'Overdue', label: 'Overdue' },
+      ],
+    },
+    secondaryFilter: {
+      title: 'Fee Type',
+      options: [
+        { value: 'all', label: 'All Types' },
+        { value: 'Tuition', label: 'Tuition' },
+        { value: 'Transport', label: 'Transport' },
+        { value: 'Hostel', label: 'Hostel' },
+        { value: 'Exam', label: 'Exam' },
+        { value: 'Other', label: 'Other' },
+      ],
+    },
+  },
+  notices: {
+    title: 'Notice Management',
+    searchPlaceholder: 'Search notices by title, content, or author...',
+    enableSelection: true,
+    columns: [
+      {
+        key: 'title',
+        header: 'Notice Details',
+        mobileLabel: 'Notice',
+        render: (item: any) => (
+          <div>
+            <div className='font-semibold'>{item.title}</div>
+            <div className='text-gray-500 text-sm'>{item.content}</div>
+            <div className='text-xs text-gray-400 mt-1 flex items-center gap-2'>
+              By: {item.author}
+              {item.files > 0 && (
+                <span className='flex items-center gap-1 ml-2'>
+                  <span role='img' aria-label='file'>
+                    📎
+                  </span>{' '}
+                  {item.files} files
+                </span>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'recipients',
+        header: 'Recipients & Reach',
+        mobileLabel: 'Recipients',
+        render: (item: any) => (
+          <div>
+            <div className='text-xs font-medium text-gray-700'>
+              {item.recipients}
+            </div>
+            <div className='text-xs text-green-600 font-semibold'>
+              {item.read} / {item.total} read
+            </div>
+            <div className='w-28 bg-gray-200 rounded-full h-2 mt-1'>
+              <div
+                className='bg-green-500 h-2 rounded-full'
+                style={{ width: `${(item.read / item.total) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status & Priority',
+        mobileLabel: 'Status',
+        render: (item: any) => (
+          <div className='flex gap-2 items-center'>
+            <StatusBadge
+              status={
+                item.status === 'Published'
+                  ? 'Active'
+                  : item.status === 'Draft'
+                    ? 'Scheduled'
+                    : 'Inactive'
+              }
+            />
+            <StatusBadge
+              status={
+                item.priority === 'High'
+                  ? 'Inactive'
+                  : item.priority === 'Medium'
+                    ? 'Scheduled'
+                    : 'Active'
+              }
+            />
+          </div>
+        ),
+      },
+      {
+        key: 'date',
+        header: 'Date',
+        mobileLabel: 'Date',
+        render: (item: any) => (
+          <div className='text-xs text-gray-500'>
+            {new Date(item.date).toLocaleDateString()}
+          </div>
+        ),
+      },
+    ],
+    emptyMessage: 'No notices found',
+    primaryFilter: {
+      title: 'Status',
+      options: [
+        { value: 'all', label: 'All Status' },
+        { value: 'published', label: 'Published' },
+        { value: 'draft', label: 'Draft' },
+      ],
+    },
+    secondaryFilter: {
+      title: 'Priority',
+      options: [
+        { value: 'all', label: 'All Priorities' },
+        { value: 'high', label: 'High' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'low', label: 'Low' },
+      ],
+    },
+  },
+
+  'leave-requests': {
+    title: 'Leave Request Management',
+    searchPlaceholder: 'Search leave requests by name, type, or status...',
+    columns: [
+      {
+        key: 'employee',
+        header: 'Employee',
+        render: (item: any) => (
+          <UserInfoCell
+            name={item.employeeName}
+            id={item.employeeId}
+            avatar={item.avatar}
+            idLabel=''
+          />
+        ),
+      },
+      {
+        key: 'leaveType',
+        header: 'Leave Type',
+        render: (item: any) => (
+          <span className='font-medium'>{item.leaveType}</span>
+        ),
+      },
+      {
+        key: 'duration',
+        header: 'Duration',
+        render: (item: any) => (
+          <span>
+            {item.startDate} - {item.endDate}
+          </span>
+        ),
+      },
+      {
+        key: 'reason',
+        header: 'Reason',
+        render: (item: any) => (
+          <span className='text-xs text-gray-500'>{item.reason}</span>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (item: any) => <StatusBadge status={item.status} />,
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        mobileLabel: 'Actions',
+        render: (item: any) => (
+          <ActionsCell
+            onAction={(action: string) => {
+              switch (action) {
+                case 'view':
+                  // open view modal
+                  break;
+                case 'edit':
+                  // open edit modal
+                  break;
+                case 'delete':
+                  // open delete confirm
+                  break;
+                default:
+                  break;
+              }
+            }}
+          />
+        ),
+      },
+    ],
+    emptyMessage: 'No leave requests found',
+    primaryFilter: {
+      title: 'Status',
+      options: [
+        { value: 'all', label: 'All Status' },
+        { value: 'Pending', label: 'Pending' },
+        { value: 'Approved', label: 'Approved' },
+        { value: 'Rejected', label: 'Rejected' },
+      ],
+    },
+    secondaryFilter: {
+      title: 'Leave Type',
+      options: [
+        { value: 'all', label: 'All Types' },
+        { value: 'Sick', label: 'Sick' },
+        { value: 'Casual', label: 'Casual' },
+        { value: 'Earned', label: 'Earned' },
+        { value: 'Maternity', label: 'Maternity' },
+        { value: 'Other', label: 'Other' },
+      ],
+    },
+  },
   students: {
     title: 'Students List',
     searchPlaceholder: 'Search Students...',
