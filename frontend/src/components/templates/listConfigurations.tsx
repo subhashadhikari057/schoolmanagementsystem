@@ -39,6 +39,9 @@ export interface Student extends BaseItem {
 export interface Teacher extends BaseItem {
   id: number | string;
   name: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
   faculty: string;
   subjects: string[];
   status: 'Active' | 'On Leave' | 'Inactive' | 'Suspended' | 'Transferred';
@@ -49,6 +52,7 @@ export interface Teacher extends BaseItem {
   address?: string;
   designation?: string; // Senior Teacher, Assistant Teacher, etc.
   department?: string;
+  employeeId?: string; // Employee ID (T-2023-0001, etc.)
   experience?: string; // "5 years", "15 years", etc.
   joinedDate?: string;
   salary?: number;
@@ -73,12 +77,20 @@ export interface Teacher extends BaseItem {
   street?: string;
   city?: string;
   state?: string;
+  province?: string;
   pinCode?: string;
 
   // Salary Information
   basicSalary?: number;
   allowances?: number;
   totalSalary?: number;
+
+  // Bank and Legal Information
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankBranch?: string;
+  panNumber?: string;
+  citizenshipNumber?: string;
 
   // Class Teacher Status
   isClassTeacher?: boolean;
@@ -201,25 +213,34 @@ export interface IDCard extends BaseItem {
 // All list configurations in one place
 export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
   students: {
-    title: 'Students List',
-    searchPlaceholder: 'Search Students...',
+    title: 'Student Directory',
+    searchPlaceholder: 'Search Students by name, ID, email...',
     primaryFilter: {
-      title: 'All Faculty',
+      title: 'All Classes',
       options: [
-        { value: 'all', label: 'All Faculty' },
-        { value: 'science', label: 'Science' },
-        { value: 'engineering', label: 'Engineering' },
-        { value: 'arts', label: 'Arts' },
+        { value: 'all', label: 'All Classes' },
+        { value: 'class-1', label: 'Class 1' },
+        { value: 'class-2', label: 'Class 2' },
+        { value: 'class-3', label: 'Class 3' },
+        { value: 'class-4', label: 'Class 4' },
+        { value: 'class-5', label: 'Class 5' },
+        { value: 'class-6', label: 'Class 6' },
+        { value: 'class-7', label: 'Class 7' },
+        { value: 'class-8', label: 'Class 8' },
+        { value: 'class-9', label: 'Class 9' },
+        { value: 'class-10', label: 'Class 10' },
+        { value: 'class-11', label: 'Class 11' },
+        { value: 'class-12', label: 'Class 12' },
       ],
     },
     secondaryFilter: {
-      title: 'All Grades',
+      title: 'All Sections',
       options: [
-        { value: 'all', label: 'All Grades' },
-        { value: 'class-5-a', label: 'Class 5-A' },
-        { value: 'class-4-b', label: 'Class 4-B' },
-        { value: 'class-3-c', label: 'Class 3-C' },
-        { value: 'class-4-a', label: 'Class 4-A' },
+        { value: 'all', label: 'All Sections' },
+        { value: 'section-a', label: 'Section A' },
+        { value: 'section-b', label: 'Section B' },
+        { value: 'section-c', label: 'Section C' },
+        { value: 'section-d', label: 'Section D' },
       ],
     },
     columns: [

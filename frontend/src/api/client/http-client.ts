@@ -175,17 +175,51 @@ export class HttpClient {
             status: response.status,
             statusText: response.statusText,
             url: fullUrl,
+            data: responseData,
           });
+
+          // Extract validation errors if available
+          let validationErrors = {};
+          let errorMessage =
+            responseData?.message ||
+            `HTTP ${response.status}: ${response.statusText}`;
+
+          // Handle NestJS validation errors format
+          if (responseData?.message && Array.isArray(responseData.message)) {
+            // This is likely a validation error array from class-validator
+            validationErrors = responseData.message.reduce(
+              (acc: any, error: any) => {
+                // Extract the property and constraints
+                const property = error.property;
+                const constraints =
+                  Object.values(error.constraints || {})[0] || 'Invalid value';
+                acc[property] = constraints;
+                return acc;
+              },
+              {},
+            );
+
+            // Create a user-friendly error message
+            errorMessage =
+              'Validation failed. Please check the highlighted fields.';
+          }
+
+          // Handle other common error formats
+          if (responseData?.errors && typeof responseData.errors === 'object') {
+            validationErrors = responseData.errors;
+          }
 
           const apiError: ApiError = {
             statusCode: response.status,
             error: response.statusText,
-            message:
-              responseData?.message ||
-              `HTTP ${response.status}: ${response.statusText}`,
+            message: errorMessage,
             code: responseData?.code,
             details: responseData?.details,
             context: responseData?.context,
+            validationErrors:
+              Object.keys(validationErrors).length > 0
+                ? validationErrors
+                : undefined,
           };
 
           // Handle 401 Unauthorized - session expired
@@ -209,6 +243,13 @@ export class HttpClient {
         };
       } catch (error) {
         lastError = error as Error;
+
+        // Log detailed error information
+        console.error('API Request Error:', {
+          url: fullUrl,
+          method,
+          error: error instanceof Error ? error.message : error,
+        });
 
         // Clear timeout on error
         if (timeoutId) clearTimeout(timeoutId);

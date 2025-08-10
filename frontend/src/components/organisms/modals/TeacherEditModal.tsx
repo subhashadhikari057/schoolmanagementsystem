@@ -12,6 +12,7 @@ import {
   Briefcase,
   GraduationCap,
   BookOpen,
+  Landmark,
 } from 'lucide-react';
 import { Teacher } from '@/components/templates/listConfigurations';
 import { teacherService } from '@/api/services/teacher.service';
@@ -226,6 +227,7 @@ interface EditTeacherForm {
   street: string;
   city: string;
   state: string;
+  province: string;
   pinCode: string;
 
   designation: string;
@@ -233,6 +235,13 @@ interface EditTeacherForm {
   qualification: string;
   experienceYears: number;
   joinedDate: string;
+
+  // Bank and Legal Information
+  bankName: string;
+  bankAccountNumber: string;
+  bankBranch: string;
+  panNumber: string;
+  citizenshipNumber: string;
 
   subjects: string[];
 
@@ -264,6 +273,7 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
     street: '',
     city: '',
     state: '',
+    province: '',
     pinCode: '',
 
     designation: '',
@@ -271,6 +281,12 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
     qualification: '',
     experienceYears: 0,
     joinedDate: '',
+
+    bankName: '',
+    bankAccountNumber: '',
+    bankBranch: '',
+    panNumber: '',
+    citizenshipNumber: '',
 
     subjects: [],
 
@@ -327,41 +343,148 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
           if (response.success && response.data) {
             const teacherData = response.data;
 
+            console.log('API Response for edit:', teacherData);
+
+            // Extract nested data from response
+            // These fields are now directly available in the teacher response
+            const bankDetails = {
+              bankName: teacherData.bankName,
+              accountNumber: teacherData.bankAccountNumber,
+              branch: teacherData.bankBranch,
+              panNumber: teacherData.panNumber,
+              citizenshipNumber: teacherData.citizenshipNumber,
+            };
+
+            // Address fields are now directly available in the teacher response
+            const personalDetails = {
+              middleName: teacherData.middleName,
+              dateOfBirth: teacherData.dateOfBirth,
+              gender: teacherData.gender,
+              bloodGroup: teacherData.bloodGroup,
+              maritalStatus: teacherData.maritalStatus,
+              street: teacherData.street,
+              city: teacherData.city,
+              state: teacherData.state,
+              province: teacherData.province,
+              pinCode: teacherData.pinCode,
+            };
+
+            const professionalDetails = (teacherData as any).professional || {};
+
+            // Use the name parts directly from the API response if available
             setFormData({
-              firstName,
-              middleName,
-              lastName,
-              email: teacher.email || '',
-              phone: teacherData.phone || teacher.phone || '',
+              firstName: teacherData.firstName || firstName,
+              middleName: teacherData.middleName || middleName || '',
+              lastName: teacherData.lastName || lastName,
+              email: teacher.email || teacherData.email || '',
+              phone:
+                teacherData.phone ||
+                personalDetails.phone ||
+                teacher.phone ||
+                '',
               dateOfBirth:
                 teacherData.dateOfBirth ||
+                personalDetails.dateOfBirth ||
                 (teacher.dateOfBirth as string) ||
                 '',
-              gender: teacherData.gender || (teacher.gender as string) || '',
+              gender:
+                teacherData.gender ||
+                personalDetails.gender ||
+                (teacher.gender as string) ||
+                '',
               bloodGroup:
-                teacherData.bloodGroup || (teacher.bloodGroup as string) || '',
+                teacherData.bloodGroup ||
+                personalDetails.bloodGroup ||
+                (teacher.bloodGroup as string) ||
+                '',
               maritalStatus:
                 teacherData.maritalStatus ||
+                personalDetails.maritalStatus ||
                 (teacher.maritalStatus as string) ||
                 '',
-              street: teacherData.street || (teacher.street as string) || '',
-              city: teacherData.city || (teacher.city as string) || '',
-              state: teacherData.state || (teacher.state as string) || '',
-              pinCode: teacherData.pinCode || (teacher.pinCode as string) || '',
+              street:
+                teacherData.street ||
+                personalDetails.street ||
+                (teacher.street as string) ||
+                '',
+              city:
+                teacherData.city ||
+                personalDetails.city ||
+                (teacher.city as string) ||
+                '',
+              state:
+                teacherData.state ||
+                personalDetails.state ||
+                (teacher.state as string) ||
+                '',
+              province:
+                teacherData.province ||
+                personalDetails.province ||
+                teacherData.state ||
+                personalDetails.state ||
+                (teacher.province as string) ||
+                (teacher.state as string) ||
+                '',
+              pinCode:
+                teacherData.pinCode ||
+                personalDetails.pinCode ||
+                (teacher.pinCode as string) ||
+                '',
 
-              designation: teacherData.designation || teacher.designation || '',
+              designation:
+                teacherData.designation ||
+                professionalDetails.designation ||
+                teacher.designation ||
+                '',
               department:
                 teacherData.department ||
+                professionalDetails.department ||
                 teacher.department ||
                 teacher.faculty ||
                 '',
               qualification:
-                teacherData.qualification || teacher.qualification || '',
+                teacherData.qualification ||
+                professionalDetails.qualification ||
+                teacher.qualification ||
+                '',
               // Removed specialization field as requested
               experienceYears:
-                teacherData.experienceYears || teacher.experienceYears || 0,
+                teacherData.experienceYears ||
+                professionalDetails.experienceYears ||
+                teacher.experienceYears ||
+                0,
               joinedDate:
-                teacherData.employmentDate || teacher.joinedDate || '',
+                teacherData.employmentDate ||
+                professionalDetails.joiningDate ||
+                teacher.joinedDate ||
+                '',
+
+              // Bank and Legal Information - fix property names from API
+              bankName:
+                teacherData.bankName ||
+                bankDetails.bankName ||
+                (teacher.bankName as string) ||
+                '',
+              bankAccountNumber:
+                teacherData.bankAccountNumber ||
+                bankDetails.accountNumber ||
+                (teacher.bankAccountNumber as string) ||
+                '',
+              bankBranch:
+                teacherData.bankBranch ||
+                bankDetails.branch ||
+                (teacher.bankBranch as string) ||
+                '',
+              panNumber:
+                teacherData.panNumber ||
+                bankDetails.panNumber ||
+                (teacher.panNumber as string) ||
+                '',
+              citizenshipNumber:
+                teacherData.citizenshipNumber ||
+                bankDetails.citizenshipNumber ||
+                (teacher.citizenshipNumber as string) ||
+                '',
 
               subjects: teacherData.subjects?.map(s => s.id.toString()) || [],
 
@@ -380,18 +503,19 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
           // Fallback to basic data
           setFormData({
             firstName,
-            middleName,
+            middleName: middleName || '',
             lastName,
             email: teacher.email || '',
             phone: teacher.phone || '',
-            dateOfBirth: '',
-            gender: '',
-            bloodGroup: '',
-            maritalStatus: '',
-            street: '',
-            city: '',
-            state: '',
-            pinCode: '',
+            dateOfBirth: teacher.dateOfBirth || '',
+            gender: teacher.gender || '',
+            bloodGroup: teacher.bloodGroup || '',
+            maritalStatus: teacher.maritalStatus || '',
+            street: teacher.street || '',
+            city: teacher.city || '',
+            state: teacher.state || '',
+            province: teacher.province || teacher.state || '',
+            pinCode: teacher.pinCode || '',
 
             designation: teacher.designation || '',
             department: teacher.department || teacher.faculty || '',
@@ -399,6 +523,13 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
             // Removed specialization field as requested
             experienceYears: teacher.experienceYears || 0,
             joinedDate: teacher.joinedDate || '',
+
+            // Bank and Legal Information
+            bankName: teacher.bankName || '',
+            bankAccountNumber: teacher.bankAccountNumber || '',
+            bankBranch: teacher.bankBranch || '',
+            panNumber: teacher.panNumber || '',
+            citizenshipNumber: teacher.citizenshipNumber || '',
 
             subjects: teacher.subjects?.map((_, idx) => idx.toString()) || [],
 
@@ -511,6 +642,16 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
         formDataToSend.append('photo', formData.photo);
       }
 
+      // Bank and legal data
+      const bankData = {
+        bankName: formData.bankName,
+        accountNumber: formData.bankAccountNumber,
+        branch: formData.bankBranch,
+        panNumber: formData.panNumber,
+        citizenshipNumber: formData.citizenshipNumber,
+      };
+      formDataToSend.append('bankDetails', JSON.stringify(bankData));
+
       // Call API to update teacher
       // Convert FormData to appropriate request format
       // Use type assertion to handle type compatibility issues
@@ -519,6 +660,7 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
         personal: personalData as any,
         professional: professionalData as any,
         subjects: { subjects: formData.subjects },
+        bankDetails: bankData,
         status: formData.status,
       };
 
@@ -698,11 +840,18 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
                       placeholder='Enter city'
                     />
                     <LabeledInput
-                      label='State/Province'
+                      label='State'
                       name='state'
                       value={formData.state}
                       onChange={handleInputChange}
                       placeholder='Enter state'
+                    />
+                    <LabeledInput
+                      label='Province'
+                      name='province'
+                      value={formData.province}
+                      onChange={handleInputChange}
+                      placeholder='Enter province'
                     />
                     <LabeledInput
                       label='PIN/ZIP Code'
@@ -811,6 +960,58 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
                   min='0'
                   placeholder='Enter years of experience'
                 />
+              </div>
+
+              {/* Bank and Legal Information */}
+              <div className='mt-6'>
+                <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+                  <Landmark className='mr-2 h-5 w-5 text-blue-600' />
+                  Bank & Legal Information
+                </h3>
+
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                  <LabeledInput
+                    label='Bank Name'
+                    name='bankName'
+                    value={formData.bankName}
+                    onChange={handleInputChange}
+                    placeholder='Enter bank name'
+                  />
+
+                  <LabeledInput
+                    label='Bank Account Number'
+                    name='bankAccountNumber'
+                    value={formData.bankAccountNumber}
+                    onChange={handleInputChange}
+                    placeholder='Enter account number'
+                  />
+
+                  <LabeledInput
+                    label='Bank Branch'
+                    name='bankBranch'
+                    value={formData.bankBranch}
+                    onChange={handleInputChange}
+                    placeholder='Enter branch name'
+                  />
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
+                  <LabeledInput
+                    label='PAN Number'
+                    name='panNumber'
+                    value={formData.panNumber}
+                    onChange={handleInputChange}
+                    placeholder='Enter PAN number'
+                  />
+
+                  <LabeledInput
+                    label='Citizenship Number'
+                    name='citizenshipNumber'
+                    value={formData.citizenshipNumber}
+                    onChange={handleInputChange}
+                    placeholder='Enter citizenship number'
+                  />
+                </div>
               </div>
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>

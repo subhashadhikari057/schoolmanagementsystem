@@ -63,12 +63,22 @@ export interface CreateTeacherAdditionalData {
   };
 }
 
+// Bank and legal details
+export interface CreateTeacherBankData {
+  bankName?: string;
+  accountNumber?: string;
+  branch?: string;
+  panNumber?: string;
+  citizenshipNumber?: string;
+}
+
 export interface CreateTeacherRequest {
   user: CreateTeacherUserData;
   personal?: CreateTeacherPersonalData;
   professional: CreateTeacherProfessionalData;
   subjects?: CreateTeacherSubjectData;
   salary?: CreateTeacherSalaryData;
+  bankDetails?: CreateTeacherBankData;
   additional?: CreateTeacherAdditionalData;
 }
 
@@ -120,6 +130,13 @@ export interface TeacherListResponse {
   basicSalary?: number;
   allowances?: number;
   totalSalary?: number;
+
+  // Bank and Legal Information
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankBranch?: string;
+  panNumber?: string;
+  citizenshipNumber?: string;
 
   // Class Teacher Status
   isClassTeacher: boolean;
@@ -175,6 +192,7 @@ export interface UpdateTeacherByAdminRequest {
   professional?: Partial<CreateTeacherProfessionalData>;
   subjects?: Partial<CreateTeacherSubjectData>;
   salary?: Partial<CreateTeacherSalaryData>;
+  bankDetails?: Partial<CreateTeacherBankData>;
   additional?: Partial<CreateTeacherAdditionalData>;
   status?: string; // Added status field for activation/deactivation
 }
@@ -254,6 +272,13 @@ export interface TeacherFormData {
   basicSalary?: string;
   allowances?: string;
   totalSalary?: string;
+
+  // Bank and Legal Information
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankBranch?: string;
+  panNumber?: string;
+  citizenshipNumber?: string;
 
   // Additional Information
   languagesKnown?: string[];

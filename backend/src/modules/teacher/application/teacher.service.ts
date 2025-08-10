@@ -13,6 +13,10 @@ import {
   UpdateTeacherByAdminDtoType,
   UpdateTeacherSelfDtoType,
 } from '../dto/teacher.dto';
+import {
+  TeacherProfileWithAdditionalData,
+  TeacherAdditionalData,
+} from '../types/teacher-profile.types';
 
 @Injectable()
 export class TeacherService {
@@ -28,7 +32,15 @@ export class TeacherService {
     ip?: string,
     userAgent?: string,
   ) {
-    const { user, personal, professional, subjects, salary, additional } = dto;
+    const {
+      user,
+      personal,
+      professional,
+      subjects,
+      salary,
+      additional,
+      bankDetails,
+    } = dto;
 
     // Check for existing email
     const existingUser = await this.prisma.user.findUnique({
@@ -48,18 +60,26 @@ export class TeacherService {
         );
     }
 
-    // Check for existing employee ID
+    // Check for existing employee ID or generate a new one
     if (professional.employeeId) {
       const existingEmployee = await this.prisma.teacher.findFirst({
         where: { employeeId: professional.employeeId },
       });
       if (existingEmployee)
         throw new ConflictException('Employee ID already exists');
+    } else {
+      // Generate a new employee ID if not provided
+      const currentYear = new Date().getFullYear();
+      const teacherCount = await this.prisma.teacher.count();
+      professional.employeeId = `T-${currentYear}-${(teacherCount + 1).toString().padStart(4, '0')}`;
     }
 
     const rawPassword = user.password || generateRandomPassword();
     const passwordHash = await hashPassword(rawPassword);
-    const fullName = `${user.firstName} ${user.lastName}`;
+    // Include middle name in full name if provided
+    const fullName = user.middleName
+      ? `${user.firstName} ${user.middleName} ${user.lastName}`
+      : `${user.firstName} ${user.lastName}`;
 
     // Generate profile picture URL if file is uploaded
     const profilePhotoUrl = profilePicture
@@ -107,6 +127,7 @@ export class TeacherService {
             joiningDate: new Date(professional.joiningDate),
             bloodGroup: personal?.bloodGroup,
             address: personal?.address,
+            maritalStatus: personal?.maritalStatus,
 
             // Salary Information
             basicSalary: salary?.basicSalary || 0,
@@ -131,6 +152,23 @@ export class TeacherService {
                   email: user.email,
                 },
                 socialLinks: additional?.socialLinks || {},
+                additionalData: {
+                  // Store structured address fields
+                  street: personal?.street,
+                  city: personal?.city,
+                  state: personal?.state,
+                  pinCode: personal?.pinCode,
+                  // Store bank details
+                  bankDetails: bankDetails
+                    ? {
+                        bankName: bankDetails.bankName,
+                        accountNumber: bankDetails.accountNumber,
+                        branch: bankDetails.branch,
+                        panNumber: bankDetails.panNumber,
+                        citizenshipNumber: bankDetails.citizenshipNumber,
+                      }
+                    : undefined,
+                },
                 // createdById: createdBy, // Field doesn't exist in TeacherProfile
               },
             },
@@ -243,73 +281,94 @@ export class TeacherService {
     });
 
     // Transform to match TeacherListResponse interface
-    return teachers.map(teacher => ({
-      id: teacher.id,
-      fullName: teacher.user.fullName,
-      email: teacher.user.email,
-      phone: teacher.user.phone,
-      employeeId: teacher.employeeId,
-      designation: teacher.designation,
-      department: teacher.department,
-      qualification: teacher.qualification,
-      specialization: teacher.specialization,
-      employmentStatus: teacher.employmentStatus,
-      employmentDate: teacher.employmentDate?.toISOString(),
-      experienceYears: teacher.experienceYears,
+    return teachers.map(teacher => {
+      // Extract structured address and bank details from additionalData
+      // Use type assertion to access additionalData since it's defined in the schema but not in the TS type
+      const additionalData = (teacher.profile as any)?.additionalData || {};
+      const bankDetails = additionalData.bankDetails || {};
 
-      // Personal Information
-      dateOfBirth: teacher.dateOfBirth?.toISOString(),
-      gender: teacher.gender,
-      bloodGroup: teacher.bloodGroup,
-      address: teacher.address,
+      return {
+        id: teacher.id,
+        fullName: teacher.user.fullName,
+        email: teacher.user.email,
+        phone: teacher.user.phone,
+        employeeId: teacher.employeeId,
+        designation: teacher.designation,
+        department: teacher.department,
+        qualification: teacher.qualification,
+        specialization: teacher.specialization,
+        employmentStatus: teacher.employmentStatus,
+        employmentDate: teacher.employmentDate?.toISOString(),
+        experienceYears: teacher.experienceYears,
 
-      // Salary Information (for admin view)
-      basicSalary: teacher.basicSalary
-        ? parseFloat(teacher.basicSalary.toString())
-        : undefined,
-      allowances: teacher.allowances
-        ? parseFloat(teacher.allowances.toString())
-        : undefined,
-      totalSalary: teacher.totalSalary
-        ? parseFloat(teacher.totalSalary.toString())
-        : undefined,
+        // Personal Information
+        dateOfBirth: teacher.dateOfBirth?.toISOString(),
+        gender: teacher.gender,
+        bloodGroup: teacher.bloodGroup,
+        maritalStatus: teacher.maritalStatus,
+        address: teacher.address,
 
-      // Class Teacher Status
-      isClassTeacher: teacher.isClassTeacher,
+        // Structured address fields
+        street: additionalData.street,
+        city: additionalData.city,
+        state: additionalData.state,
+        pinCode: additionalData.pinCode,
 
-      // Additional Information
-      languagesKnown: Array.isArray(teacher.languagesKnown)
-        ? (teacher.languagesKnown as string[])
-        : [],
-      certifications: teacher.certifications,
-      previousExperience: teacher.previousExperience,
+        // Salary Information (for admin view)
+        basicSalary: teacher.basicSalary
+          ? parseFloat(teacher.basicSalary.toString())
+          : undefined,
+        allowances: teacher.allowances
+          ? parseFloat(teacher.allowances.toString())
+          : undefined,
+        totalSalary: teacher.totalSalary
+          ? parseFloat(teacher.totalSalary.toString())
+          : undefined,
 
-      // Profile Information
-      profilePhotoUrl: teacher.profile?.profilePhotoUrl,
-      bio: teacher.profile?.bio,
-      contactInfo: teacher.profile?.contactInfo as any,
-      socialLinks: teacher.profile?.socialLinks as any,
+        // Bank and Legal Information
+        bankName: bankDetails.bankName,
+        bankAccountNumber: bankDetails.accountNumber,
+        bankBranch: bankDetails.branch,
+        panNumber: bankDetails.panNumber,
+        citizenshipNumber: bankDetails.citizenshipNumber,
 
-      // System fields
-      isActive: teacher.user.isActive,
-      lastLoginAt: teacher.user.lastLoginAt?.toISOString(),
-      createdAt: teacher.createdAt.toISOString(),
-      updatedAt: teacher.updatedAt?.toISOString(),
+        // Class Teacher Status
+        isClassTeacher: teacher.isClassTeacher,
 
-      // Subject assignments
-      subjects: teacher.subjectAssignments.map(ts => ({
-        id: ts.subject.id,
-        name: ts.subject.name,
-        code: ts.subject.code,
-      })),
+        // Additional Information
+        languagesKnown: Array.isArray(teacher.languagesKnown)
+          ? (teacher.languagesKnown as string[])
+          : [],
+        certifications: teacher.certifications,
+        previousExperience: teacher.previousExperience,
 
-      // Class assignments (if class teacher)
-      classAssignments: teacher.classAssignments.map(ca => ({
-        id: ca.id,
-        className: `Grade ${ca.class.grade} Section ${ca.class.section}`,
-        section: ca.class.section,
-      })),
-    }));
+        // Profile Information
+        profilePhotoUrl: teacher.profile?.profilePhotoUrl,
+        bio: teacher.profile?.bio,
+        contactInfo: teacher.profile?.contactInfo as any,
+        socialLinks: teacher.profile?.socialLinks as any,
+
+        // System fields
+        isActive: teacher.user.isActive,
+        lastLoginAt: teacher.user.lastLoginAt?.toISOString(),
+        createdAt: teacher.createdAt.toISOString(),
+        updatedAt: teacher.updatedAt?.toISOString(),
+
+        // Subject assignments
+        subjects: teacher.subjectAssignments.map(ts => ({
+          id: ts.subject.id,
+          name: ts.subject.name,
+          code: ts.subject.code,
+        })),
+
+        // Class assignments (if class teacher)
+        classAssignments: teacher.classAssignments.map(ca => ({
+          id: ca.id,
+          className: `Grade ${ca.class.grade} Section ${ca.class.section}`,
+          section: ca.class.section,
+        })),
+      };
+    });
   }
 
   async findById(id: string) {
@@ -335,10 +394,40 @@ export class TeacherService {
       throw new NotFoundException('Teacher not found');
     }
 
-    // const { classAssignments, ...rest } = teacher; // classAssignments doesn't exist
+    // Extract additionalData from profile
+    const additionalData = (teacher.profile as any)?.additionalData || {};
+    const bankDetails = additionalData.bankDetails || {};
 
+    // Extract first, middle, and last name from fullName
+    const nameParts = teacher.user.fullName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName =
+      nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+    const middleName =
+      nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '';
+
+    // Return teacher data with extracted fields
     return {
       ...teacher,
+      // Include extracted name parts
+      firstName,
+      middleName,
+      lastName,
+
+      // Extract structured address fields from additionalData
+      street: additionalData.street,
+      city: additionalData.city,
+      state: additionalData.state,
+      province: additionalData.province || additionalData.state,
+      pinCode: additionalData.pinCode,
+
+      // Extract bank details
+      bankName: bankDetails.bankName,
+      bankAccountNumber: bankDetails.accountNumber,
+      bankBranch: bankDetails.branch,
+      panNumber: bankDetails.panNumber,
+      citizenshipNumber: bankDetails.citizenshipNumber,
+
       assignedClasses: teacher.classAssignments,
     };
   }
@@ -356,6 +445,17 @@ export class TeacherService {
     return teacher;
   }
 
+  // Helper method to get teacher profile additionalData
+  private async getTeacherProfileAdditionalData(
+    teacherId: string,
+  ): Promise<any> {
+    const profile = await this.prisma.teacherProfile.findUnique({
+      where: { teacherId },
+      select: { additionalData: true },
+    });
+    return (profile as any)?.additionalData || {};
+  }
+
   async updateByAdmin(
     id: string,
     dto: UpdateTeacherByAdminDtoType,
@@ -369,9 +469,12 @@ export class TeacherService {
 
     // Update user information
     if (dto.user) {
+      // Include middle name in full name if provided
       const fullName =
         dto.user.firstName && dto.user.lastName
-          ? `${dto.user.firstName} ${dto.user.lastName}`
+          ? dto.user.middleName
+            ? `${dto.user.firstName} ${dto.user.middleName} ${dto.user.lastName}`
+            : `${dto.user.firstName} ${dto.user.lastName}`
           : undefined;
 
       await this.prisma.user.update({
@@ -397,6 +500,44 @@ export class TeacherService {
         teacherUpdateData.bloodGroup = dto.personal.bloodGroup;
       if (dto.personal.address)
         teacherUpdateData.address = dto.personal.address;
+      if (dto.personal.maritalStatus)
+        teacherUpdateData.maritalStatus = dto.personal.maritalStatus;
+
+      // Update structured address fields in profile.additionalData
+      const profileUpdate: any = {};
+      let hasProfileUpdate = false;
+
+      if (
+        dto.personal.street ||
+        dto.personal.city ||
+        dto.personal.state ||
+        dto.personal.pinCode
+      ) {
+        hasProfileUpdate = true;
+        profileUpdate.additionalData = {
+          ...(await this.getTeacherProfileAdditionalData(id)),
+        };
+
+        if (dto.personal.street) {
+          profileUpdate.additionalData.street = dto.personal.street;
+        }
+        if (dto.personal.city) {
+          profileUpdate.additionalData.city = dto.personal.city;
+        }
+        if (dto.personal.state) {
+          profileUpdate.additionalData.state = dto.personal.state;
+        }
+        if (dto.personal.pinCode) {
+          profileUpdate.additionalData.pinCode = dto.personal.pinCode;
+        }
+      }
+
+      if (hasProfileUpdate) {
+        await this.prisma.teacherProfile.update({
+          where: { teacherId: id },
+          data: profileUpdate,
+        });
+      }
     }
 
     if (dto.professional) {
@@ -440,6 +581,46 @@ export class TeacherService {
       if (dto.additional.previousExperience)
         teacherUpdateData.previousExperience =
           dto.additional.previousExperience;
+    }
+
+    // Handle bank details update
+    if (dto.bankDetails) {
+      const profileUpdate: any = {};
+      profileUpdate.additionalData = {
+        ...(await this.getTeacherProfileAdditionalData(id)),
+      };
+
+      // Initialize bankDetails if it doesn't exist
+      if (!profileUpdate.additionalData.bankDetails) {
+        profileUpdate.additionalData.bankDetails = {};
+      }
+
+      // Update bank details
+      if (dto.bankDetails.bankName) {
+        profileUpdate.additionalData.bankDetails.bankName =
+          dto.bankDetails.bankName;
+      }
+      if (dto.bankDetails.accountNumber) {
+        profileUpdate.additionalData.bankDetails.accountNumber =
+          dto.bankDetails.accountNumber;
+      }
+      if (dto.bankDetails.branch) {
+        profileUpdate.additionalData.bankDetails.branch =
+          dto.bankDetails.branch;
+      }
+      if (dto.bankDetails.panNumber) {
+        profileUpdate.additionalData.bankDetails.panNumber =
+          dto.bankDetails.panNumber;
+      }
+      if (dto.bankDetails.citizenshipNumber) {
+        profileUpdate.additionalData.bankDetails.citizenshipNumber =
+          dto.bankDetails.citizenshipNumber;
+      }
+
+      await this.prisma.teacherProfile.update({
+        where: { teacherId: id },
+        data: profileUpdate,
+      });
     }
 
     if (Object.keys(teacherUpdateData).length > 0) {
@@ -491,9 +672,12 @@ export class TeacherService {
 
     // Update user information
     if (dto.user) {
+      // Include middle name in full name if provided
       const fullName =
         dto.user.firstName && dto.user.lastName
-          ? `${dto.user.firstName} ${dto.user.lastName}`
+          ? dto.user.middleName
+            ? `${dto.user.firstName} ${dto.user.middleName} ${dto.user.lastName}`
+            : `${dto.user.firstName} ${dto.user.lastName}`
           : undefined;
 
       await this.prisma.user.update({

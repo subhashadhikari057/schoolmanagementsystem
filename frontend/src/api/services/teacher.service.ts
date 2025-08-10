@@ -131,6 +131,25 @@ export class TeacherService {
       formData.append('salary', JSON.stringify(salaryData));
     }
 
+    // Bank and legal details (only if provided)
+    if (
+      data.bankName ||
+      data.bankAccountNumber ||
+      data.bankBranch ||
+      data.panNumber ||
+      data.citizenshipNumber
+    ) {
+      const bankData: any = {};
+      if (data.bankName) bankData.bankName = data.bankName;
+      if (data.bankAccountNumber)
+        bankData.accountNumber = data.bankAccountNumber;
+      if (data.bankBranch) bankData.branch = data.bankBranch;
+      if (data.panNumber) bankData.panNumber = data.panNumber;
+      if (data.citizenshipNumber)
+        bankData.citizenshipNumber = data.citizenshipNumber;
+      formData.append('bankDetails', JSON.stringify(bankData));
+    }
+
     // Additional data (only if provided)
     if (data.languagesKnown || data.certifications || data.previousExperience) {
       const additionalData: any = {};

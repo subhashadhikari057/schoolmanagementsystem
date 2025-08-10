@@ -25,7 +25,7 @@ export const getTeacherColumns = (
     render: (item: Teacher) => (
       <UserInfoCell
         name={item.name}
-        id={item.designation || 'Teacher'}
+        id={item.employeeId || 'N/A'}
         avatar={item.avatar}
         idLabel=''
       />
@@ -68,7 +68,7 @@ export const getTeacherColumns = (
   },
   {
     key: 'qualification',
-    header: 'Qualification & Specialization',
+    header: 'Qualification & Experience',
     mobileLabel: 'Qualification',
     render: (item: Teacher) => (
       <QualificationCell
