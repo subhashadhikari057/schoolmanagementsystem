@@ -41,8 +41,8 @@ export const CreateStaffUserSchema = z.object({
 // ---------------------------
 export const CreateStaffProfileSchema = z.object({
   qualification: z.string().min(1, 'Qualification is required'),
-  designation: z.string().min(1, 'Designation is required'),
-  department: StaffDepartmentSchema,
+  designation: z.string().optional(),
+  department: z.string().optional(),
   experienceYears: z.number().min(0).optional(),
   employmentDate: z
     .string()
@@ -72,6 +72,7 @@ export const CreateStaffProfileSchema = z.object({
       website: z.string().url().optional(),
     })
     .optional(),
+  profilePhotoUrl: z.string().url().optional(), // Not required, not stored for now
 });
 
 // ---------------------------
@@ -100,7 +101,7 @@ export const UpdateStaffByAdminDto = z.object({
     .object({
       qualification: z.string().optional(),
       designation: z.string().optional(),
-      department: StaffDepartmentSchema.optional(),
+      department: z.string().optional(),
       experienceYears: z.number().min(0).optional(),
       employmentDate: z
         .string()
@@ -187,7 +188,7 @@ export const GetAllStaffDto = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
   search: z.string().optional(),
-  department: StaffDepartmentSchema.optional(),
+  department: z.string().optional(),
   employmentStatus: StaffEmploymentStatusSchema.optional(),
   sortBy: z
     .enum(['fullName', 'employmentDate', 'department', 'designation'])

@@ -17,4 +17,5 @@ const RoleDepartmentCell: React.FC<RoleDepartmentCellProps> = ({
   );
 };
 
+export { RoleDepartmentCell };
 export default RoleDepartmentCell;
