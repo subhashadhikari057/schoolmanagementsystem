@@ -1,3 +1,4 @@
+'use client';
 import React, { useState } from 'react';
 import ToggleButton from '../form-controls/ToggleButton';
 import {
@@ -24,6 +25,9 @@ interface ActionButtonConfig {
   onClick: () => void;
 }
 
+import AddEventModal from '@/components/organisms/modals/AddEventModal';
+import CreateNoticeModal from '@/components/organisms/modals/CreateNoticeModal';
+
 interface ActionButtonsProps {
   pageType:
     | 'students'
@@ -33,7 +37,12 @@ interface ActionButtonsProps {
     | 'subjects'
     | 'id-cards'
     | 'classes'
-    | 'reports';
+    | 'reports'
+    | 'calendar'
+    | 'notices'
+    | 'complaints'
+    | 'leave-requests'
+    | 'fee-management';
   onRefresh?: () => void;
 }
 
@@ -41,6 +50,107 @@ const getActionButtonsConfig = (
   pageType: string,
   openAddModal: () => void,
 ): ActionButtonConfig[] => {
+  if (pageType === 'fee-management') {
+    return [
+      {
+        id: 'import-structure',
+        label: 'Import Structure',
+        variant: 'import',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Upload size={16} />,
+        onClick: () => alert('Import Structure feature coming soon!'),
+      },
+      {
+        id: 'export-data',
+        label: 'Export Data',
+        variant: 'export',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: () => alert('Export Data feature coming soon!'),
+      },
+      {
+        id: 'create-structure',
+        label: 'Create Structure',
+        className: 'bg-[#2F80ED] text-white hover:bg-blue-600 rounded-lg',
+        variant: 'primary',
+        icon: <Plus size={16} />,
+        onClick: openAddModal,
+      },
+    ];
+  }
+  if (pageType === 'leave-requests') {
+    return [
+      {
+        id: 'export-report',
+        label: 'Export Report',
+        variant: 'export',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: () => alert('Export Leave Report feature coming soon!'),
+      },
+      {
+        id: 'bulk-actions',
+        label: 'Bulk Actions',
+        variant: 'primary',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Plus size={16} />,
+        onClick: () => alert('Bulk actions feature coming soon!'),
+      },
+    ];
+  }
+  if (pageType === 'notices') {
+    return [
+      {
+        id: 'import-notices',
+        label: 'Import Notices',
+        variant: 'import',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Upload size={16} />,
+        onClick: () => alert('Import Notices feature coming soon!'),
+      },
+      {
+        id: 'export-notices',
+        label: 'Export Data',
+        variant: 'export',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: () => alert('Export Notices feature coming soon!'),
+      },
+      {
+        id: 'add-notice',
+        label: 'Create Notice',
+        className: 'bg-[#2F80ED] text-white hover:bg-blue-600 rounded-lg',
+        variant: 'primary',
+        icon: <Plus size={16} />,
+        onClick: openAddModal,
+      },
+    ];
+  }
+
+  if (pageType === 'complaints') {
+    return [
+      {
+        id: 'export-report',
+        label: 'Export Report',
+        variant: 'export',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: () => alert('Export Complaint Report feature coming soon!'),
+      },
+      {
+        id: 'assign-bulk',
+        label: 'Assign Bulk',
+        variant: 'primary',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Plus size={16} />,
+        onClick: () => alert('Bulk assignment feature coming soon!'),
+      },
+    ];
+  }
+
+  // ...existing code...
+  // (rest of the function remains unchanged for other pageTypes)
+
   if (pageType === 'reports') {
     return [
       {
@@ -72,52 +182,69 @@ const getActionButtonsConfig = (
     ];
   }
 
-  const baseButtons: ActionButtonConfig[] = [
-    {
-      id: 'import',
-      label: 'Import',
-      variant: 'import',
-      className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
-      icon: <Upload size={16} />,
-      onClick: () => {
-        if (pageType === 'subjects') {
-          alert(
-            `📚 Import ${pageType} functionality will allow you to bulk upload subject data from CSV/Excel files. Feature coming soon!`,
-          );
-        } else if (pageType === 'id-cards') {
-          alert(
-            `🆔 Import ID card data - Bulk upload card holder information and generate cards automatically. Feature coming soon!`,
-          );
-        } else {
-          alert(
-            `📥 Import ${pageType} data from external files. This feature is under development.`,
-          );
-        }
-      },
-    },
-    {
-      id: 'export',
-      label: 'Export Data',
-      variant: 'export',
-      className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
-      icon: <Download size={16} />,
-      onClick: () => {
-        if (pageType === 'subjects') {
-          alert(
-            `📊 Export all subject data including syllabus, schedules, and teacher assignments. Download will start shortly!`,
-          );
-        } else if (pageType === 'id-cards') {
-          alert(
-            `🃏 Export ID card data - Download all card information, print logs, and templates. Export starting now!`,
-          );
-        } else {
-          alert(
-            `📤 Export ${pageType} data to CSV/PDF format. Processing your request...`,
-          );
-        }
-      },
-    },
-  ];
+  // ...existing code...
+  // (rest of the function remains unchanged for other pageTypes)
+
+  const baseButtons: ActionButtonConfig[] =
+    pageType === 'calendar'
+      ? [
+          {
+            id: 'export',
+            label: 'Export Calendar',
+            variant: 'export',
+            className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+            icon: <Download size={16} />,
+            onClick: () => {
+              alert('Exporting calendar...');
+            },
+          },
+        ]
+      : [
+          {
+            id: 'import',
+            label: 'Import',
+            variant: 'import',
+            className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+            icon: <Upload size={16} />,
+            onClick: () => {
+              if (pageType === 'subjects') {
+                alert(
+                  `📚 Import ${pageType} functionality will allow you to bulk upload subject data from CSV/Excel files. Feature coming soon!`,
+                );
+              } else if (pageType === 'id-cards') {
+                alert(
+                  `🆔 Import ID card data - Bulk upload card holder information and generate cards automatically. Feature coming soon!`,
+                );
+              } else {
+                alert(
+                  `📥 Import ${pageType} data from external files. This feature is under development.`,
+                );
+              }
+            },
+          },
+          {
+            id: 'export',
+            label: 'Export Data',
+            variant: 'export',
+            className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+            icon: <Download size={16} />,
+            onClick: () => {
+              if (pageType === 'subjects') {
+                alert(
+                  `📊 Export all subject data including syllabus, schedules, and teacher assignments. Download will start shortly!`,
+                );
+              } else if (pageType === 'id-cards') {
+                alert(
+                  `🃏 Export ID card data - Download all card information, print logs, and templates. Export starting now!`,
+                );
+              } else {
+                alert(
+                  `📤 Export ${pageType} data to CSV/PDF format. Processing your request...`,
+                );
+              }
+            },
+          },
+        ];
 
   const additionalButtons: ActionButtonConfig[] = [];
 
@@ -153,7 +280,8 @@ const getActionButtonsConfig = (
     pageType !== 'staff' &&
     pageType !== 'subjects' &&
     pageType !== 'id-cards' &&
-    pageType !== 'classes'
+    pageType !== 'classes' &&
+    pageType !== 'calendar'
   ) {
     additionalButtons.push({
       id: 'send-communication',
@@ -168,15 +296,15 @@ const getActionButtonsConfig = (
     });
   }
 
-  const addButtonLabel =
-    pageType === 'subjects'
-      ? 'Subject'
-      : pageType === 'id-cards'
-        ? 'ID Card'
-        : pageType.charAt(0).toUpperCase() + pageType.slice(1, 7);
+  let addButtonLabel = '';
+  if (pageType === 'subjects') addButtonLabel = 'Subject';
+  else if (pageType === 'id-cards') addButtonLabel = 'ID Card';
+  else if (pageType === 'calendar') addButtonLabel = 'Event';
+  else if (pageType === 'notices') addButtonLabel = 'Notice';
+  else addButtonLabel = pageType.charAt(0).toUpperCase() + pageType.slice(1, 7);
 
   additionalButtons.push({
-    id: `add-${pageType === 'subjects' ? 'subject' : pageType === 'id-cards' ? 'id-card' : pageType.slice(0, -1)}`,
+    id: `add-${pageType === 'subjects' ? 'subject' : pageType === 'id-cards' ? 'id-card' : pageType === 'calendar' ? 'event' : pageType === 'notices' ? 'notice' : pageType.slice(0, -1)}`,
     label: `Add ${addButtonLabel}`,
     className: 'bg-[#2F80ED] text-white hover:bg-blue-600 rounded-lg',
     variant: 'primary',
@@ -252,6 +380,10 @@ export const ActionButtons = ({ pageType, onRefresh }: ActionButtonsProps) => {
           onClose={closeModal}
           onSuccess={handleSuccess}
         />
+      ) : pageType === 'calendar' ? (
+        <AddEventModal open={isModalOpen} onClose={closeModal} />
+      ) : pageType === 'notices' ? (
+        <CreateNoticeModal open={isModalOpen} onClose={closeModal} />
       ) : (
         <AddUserFormModal
           isOpen={isModalOpen}
