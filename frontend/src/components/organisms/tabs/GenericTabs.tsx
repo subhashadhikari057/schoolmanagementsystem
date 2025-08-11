@@ -22,7 +22,7 @@ export default function Tabs({
   return (
     <div className={` w-full ${className}`}>
       <TabGroup defaultIndex={defaultIndex}>
-        <TabList className='flex rounded-full items-center justify-between mb-4 bg-white shadow-sm p-1'>
+        <TabList className='flex rounded-full items-center justify-between mb-4 bg-white shadow-sm p-1 overflow-x-auto no-scrollbar'>
           {tabs.map((tab, idx) => (
             <Tab key={tab.name} className='flex-1 focus:outline-none'>
               {({ selected }) => (
@@ -30,7 +30,7 @@ export default function Tabs({
                   onClick={() => {}}
                   label={tab.name}
                   as='div'
-                  className={`w-full px-8 py-2 rounded-full font-medium transition-colors duration-200 text-center ${
+                  className={`w-full min-w-max px-6 sm:px-8 py-2 rounded-full font-medium transition-colors duration-200 text-center ${
                     selected
                       ? 'bg-blue-600 text-white shadow-lg'
                       : 'bg-white text-gray-700 hover:bg-gray-100'

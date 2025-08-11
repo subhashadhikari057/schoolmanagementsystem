@@ -104,7 +104,7 @@ export const GenericList = <T extends BaseItem>({
   };
 
   return (
-    <div className='px-1 sm:px-2 lg:px-0 mr-4 lg:mr-0'>
+    <div className='px-1 sm:px-2 lg:px-0 max-w-7xl mx-auto'>
       <div className='bg-white p-2 sm:p-3 lg:p-4 rounded-lg shadow mb-4 sm:mb-6'>
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6'>
           <SectionTitle
