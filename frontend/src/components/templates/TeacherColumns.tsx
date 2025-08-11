@@ -27,7 +27,7 @@ export const getTeacherColumns = (
         name={item.name}
         id={item.employeeId || 'N/A'}
         avatar={item.avatar}
-        idLabel=''
+        idLabel='ID:'
       />
     ),
   },
