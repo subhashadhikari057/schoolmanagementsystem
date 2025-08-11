@@ -489,7 +489,6 @@ export default function AddUserFormModal({
             subjects: subjectsRes.data || [],
 
             classes: mappedClasses,
-
           });
         } else {
           toast.error('Failed to load form data', {
@@ -644,7 +643,6 @@ export default function AddUserFormModal({
       if (formData.isClassTeacher && (!formData.class || !formData.section))
         return 'Please select both class and section when assigning as class teacher';
     }
-
 
     if (userType === 'student') {
       if (!formData.class) return 'Please select a class for the student';
