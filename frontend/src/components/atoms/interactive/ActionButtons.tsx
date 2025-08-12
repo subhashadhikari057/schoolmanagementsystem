@@ -15,6 +15,7 @@ import AddUserFormModal, {
 import AddSubjectFormModal from '@/components/organisms/modals/AddSubjectFormModal';
 import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
 import AddClassModal from '@/components/organisms/modals/AddClassModal';
+import GenerateEmailModal from '@/components/organisms/modals/GenerateEmailModal';
 
 interface ActionButtonConfig {
   id: string;
@@ -50,6 +51,7 @@ interface ActionButtonsProps {
 const getActionButtonsConfig = (
   pageType: string,
   openAddModal: () => void,
+  openSendCommModal?: () => void,
 ): ActionButtonConfig[] => {
   if (pageType === 'fee-management') {
     return [
@@ -249,17 +251,18 @@ const getActionButtonsConfig = (
 
   const additionalButtons: ActionButtonConfig[] = [];
 
-  if (pageType === 'students') {
+  if (
+    pageType === 'students' ||
+    pageType === 'parents' ||
+    pageType === 'teachers'
+  ) {
     additionalButtons.push({
       id: 'mass-emails',
       label: 'Mass Generate Emails',
       variant: 'emails',
       className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
       icon: <Mail size={16} />,
-      onClick: () =>
-        alert(
-          '📧 Mass Email Generation - Create bulk email accounts for all selected students with automated password distribution!',
-        ),
+      onClick: () => {}, // will be patched in ActionButtons
     });
   }
 
@@ -278,11 +281,10 @@ const getActionButtonsConfig = (
   }
 
   if (
-    pageType !== 'staff' &&
-    pageType !== 'subjects' &&
-    pageType !== 'id-cards' &&
-    pageType !== 'classes' &&
-    pageType !== 'calendar'
+    pageType === 'staff' ||
+    pageType === 'parents' ||
+    pageType === 'teachers' ||
+    pageType === 'students'
   ) {
     additionalButtons.push({
       id: 'send-communication',
@@ -290,10 +292,7 @@ const getActionButtonsConfig = (
       variant: 'communication',
       className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
       icon: <MessageSquare size={16} />,
-      onClick: () =>
-        alert(
-          `📢 Send Communication - Broadcast messages, announcements, and updates to all ${pageType}!`,
-        ),
+      onClick: openSendCommModal || (() => {}),
     });
   }
 
@@ -316,13 +315,19 @@ const getActionButtonsConfig = (
   return [...baseButtons, ...additionalButtons];
 };
 
+import SendCommunicationModal from '@/components/organisms/modals/SendCommunicationModal';
+
 export const ActionButtons = ({
   pageType,
   onRefresh,
   onAddNew,
 }: ActionButtonsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSendCommModalOpen, setIsSendCommModalOpen] = useState(false);
+  const [isMassEmailModalOpen, setIsMassEmailModalOpen] = useState(false);
 
+  const openMassEmailModal = () => setIsMassEmailModalOpen(true);
+  const closeMassEmailModal = () => setIsMassEmailModalOpen(false);
   const openAddModal = () => {
     if (onAddNew) {
       onAddNew();
@@ -339,7 +344,28 @@ export const ActionButtons = ({
     }
   };
 
-  const actionButtonsConfig = getActionButtonsConfig(pageType, openAddModal);
+  const actionButtonsConfig = getActionButtonsConfig(
+    pageType,
+    openAddModal,
+    pageType === 'staff' ||
+      pageType === 'parents' ||
+      pageType === 'teachers' ||
+      pageType === 'students'
+      ? () => setIsSendCommModalOpen(true)
+      : undefined,
+  );
+
+  // Patch the onClick for Mass Generate Emails button if present
+  if (
+    pageType === 'students' ||
+    pageType === 'parents' ||
+    pageType === 'teachers'
+  ) {
+    const idx = actionButtonsConfig.findIndex(b => b.id === 'mass-emails');
+    if (idx !== -1) {
+      actionButtonsConfig[idx].onClick = openMassEmailModal;
+    }
+  }
 
   const getUserType = (pageType: string): UserType => {
     switch (pageType) {
@@ -405,6 +431,32 @@ export const ActionButtons = ({
           onClose={closeModal}
           onSuccess={handleSuccess}
           userType={userType}
+        />
+      )}
+
+      {(pageType === 'staff' ||
+        pageType === 'parents' ||
+        pageType === 'teachers' ||
+        pageType === 'students') && (
+        <SendCommunicationModal
+          open={isSendCommModalOpen}
+          onClose={() => setIsSendCommModalOpen(false)}
+        />
+      )}
+
+      {(pageType === 'students' ||
+        pageType === 'parents' ||
+        pageType === 'teachers') && (
+        <GenerateEmailModal
+          open={isMassEmailModalOpen}
+          onClose={closeMassEmailModal}
+          userType={
+            pageType === 'students'
+              ? 'student'
+              : pageType === 'parents'
+                ? 'parent'
+                : 'teacher'
+          }
         />
       )}
     </>

@@ -268,23 +268,24 @@ export default function Dropdown({
   return (
     <div
       ref={dropdownRef}
-      className={`relative inline-block text-left ${className || ''}`}
+      className={`relative inline-block text-left min-w-[160px] w-full ${className || ''}`}
     >
       {/* Filter Button */}
       <button
         onClick={toggleFilterDropdown}
-        className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm w-full'
+        className='flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-blue-50 focus:ring-2 focus:ring-blue-200 transition-all text-sm w-full min-w-[160px] max-w-xs font-medium outline-none'
+        type='button'
       >
         {icon && <span className='text-gray-500'>{icon}</span>}
-        <span className='text-gray-700'>{selectedOption?.label}</span>
+        <span className='text-gray-700 truncate'>{selectedOption?.label}</span>
         {isFilterOpen ? (
           <ChevronUp
-            size={16}
+            size={18}
             className='text-gray-500 transition-transform ml-auto'
           />
         ) : (
           <ChevronDown
-            size={16}
+            size={18}
             className='text-gray-500 transition-transform ml-auto'
           />
         )}
@@ -292,10 +293,10 @@ export default function Dropdown({
 
       {/* Filter Dropdown Menu - Only show when isFilterOpen is true */}
       {isFilterOpen && (
-        <div className='absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50'>
-          <div className='p-1'>
+        <div className='absolute top-full left-0 mt-2 w-full min-w-[160px] max-w-xs bg-white border border-gray-200 rounded-xl shadow-xl z-50 animate-fade-in'>
+          <div className='py-1'>
             {title && (
-              <div className='px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100'>
+              <div className='px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100'>
                 {title}
               </div>
             )}
@@ -303,11 +304,12 @@ export default function Dropdown({
               <button
                 key={option.value}
                 onClick={() => handleOptionClick(option.value)}
-                className={`flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors ${
+                className={`flex items-center w-full px-4 py-2 text-sm rounded-lg transition-all duration-150 ${
                   selectedValue === option.value
-                    ? 'bg-blue-100 text-blue-700 font-medium'
+                    ? 'bg-blue-100 text-blue-700 font-semibold shadow-sm'
                     : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
                 }`}
+                type='button'
               >
                 {option.label}
                 {selectedValue === option.value && (
