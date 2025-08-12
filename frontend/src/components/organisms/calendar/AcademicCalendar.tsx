@@ -178,9 +178,24 @@ const CustomADCalendar = ({ events }: { events: Event[] }) => {
           {englishWeekdays.map((day, index) => (
             <div
               key={index}
-              className='text-center py-2 px-2 bg-gradient-to-b from-gray-100 to-gray-200 rounded-lg shadow-sm'
+              className={`text-center py-2 px-2 rounded-lg shadow-sm ${
+                index === 6 // Saturday is index 6
+                  ? 'bg-gradient-to-b from-red-500 to-red-600'
+                  : 'bg-gradient-to-b from-gray-100 to-gray-200'
+              }`}
             >
-              <span className='text-sm font-semibold text-gray-700'>{day}</span>
+              <span
+                className={`text-sm font-semibold ${
+                  index === 6 ? 'text-white' : 'text-gray-700'
+                }`}
+              >
+                {day}
+                {index === 6 && (
+                  <span className='block text-xs text-red-100 mt-1'>
+                    Holiday
+                  </span>
+                )}
+              </span>
             </div>
           ))}
         </div>
@@ -199,6 +214,14 @@ const CustomADCalendar = ({ events }: { events: Event[] }) => {
             const dayEvents = getEventsForDate(day);
             const hasEvents = dayEvents.length > 0;
 
+            // Check if this day is Saturday (6 in JavaScript Date.getDay())
+            const currentDayDate = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              day,
+            );
+            const isSaturday = currentDayDate.getDay() === 6;
+
             return (
               <button
                 key={index}
@@ -210,20 +233,25 @@ const CustomADCalendar = ({ events }: { events: Event[] }) => {
                       ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-emerald-300'
                       : isSelected
                         ? 'bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-teal-300'
-                        : hasEvents
-                          ? 'bg-gradient-to-br from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-gray-800 border border-amber-300'
-                          : 'bg-white hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50 text-gray-700 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300'
+                        : isSaturday
+                          ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
+                          : hasEvents
+                            ? 'bg-gradient-to-br from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-gray-800 border border-amber-300'
+                            : 'bg-white hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50 text-gray-700 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300'
                   }
                 `}
               >
                 <div className='flex flex-col items-center justify-center h-full'>
                   <span
-                    className={`text-base ${isTodayDate || isSelected ? 'text-white' : hasEvents ? 'text-gray-800' : 'text-gray-900'}`}
+                    className={`text-base ${isTodayDate || isSelected || isSaturday ? 'text-white' : hasEvents ? 'text-gray-800' : 'text-gray-900'}`}
                   >
                     {day}
                   </span>
                   {isTodayDate && (
                     <span className='text-xs text-emerald-100 mt-1'>Today</span>
+                  )}
+                  {isSaturday && !isTodayDate && (
+                    <span className='text-xs text-red-100 mt-1'>Holiday</span>
                   )}
                   {hasEvents && !isTodayDate && !isSelected && (
                     <div className='absolute bottom-1 right-1 w-2 h-2 bg-amber-500 rounded-full'></div>
@@ -595,9 +623,22 @@ const CustomBSCalendar = ({ events: _events }: { events: Event[] }) => {
           {nepaliWeekdays.map((day, index) => (
             <div
               key={index}
-              className='text-center py-2 px-2 bg-gradient-to-b from-gray-100 to-gray-200 rounded-lg shadow-sm'
+              className={`text-center py-2 px-2 rounded-lg shadow-sm ${
+                index === 6 // Saturday is index 6 (शनि)
+                  ? 'bg-gradient-to-b from-red-500 to-red-600'
+                  : 'bg-gradient-to-b from-gray-100 to-gray-200'
+              }`}
             >
-              <span className='text-sm font-semibold text-gray-700'>{day}</span>
+              <span
+                className={`text-sm font-semibold ${
+                  index === 6 ? 'text-white' : 'text-gray-700'
+                }`}
+              >
+                {day}
+                {index === 6 && (
+                  <span className='block text-xs text-red-100 mt-1'>बिदा</span>
+                )}
+              </span>
             </div>
           ))}
         </div>
@@ -614,6 +655,26 @@ const CustomBSCalendar = ({ events: _events }: { events: Event[] }) => {
               `${currentBSDate.year}-${currentBSDate.month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
             const isTodayDate = isToday(day);
 
+            // Check if this day is Saturday (convert BS date to AD to get weekday)
+            let isSaturday = false;
+            try {
+              const adDate = bs2ad(
+                currentBSDate.year,
+                currentBSDate.month,
+                day,
+              );
+              if (adDate) {
+                const dayDate = new Date(
+                  adDate.year,
+                  adDate.month - 1,
+                  adDate.date,
+                );
+                isSaturday = dayDate.getDay() === 6; // Saturday is 6
+              }
+            } catch (error) {
+              console.debug('Saturday detection error:', error);
+            }
+
             return (
               <button
                 key={index}
@@ -625,18 +686,23 @@ const CustomBSCalendar = ({ events: _events }: { events: Event[] }) => {
                       ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-300'
                       : isSelected
                         ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-300'
-                        : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
+                        : isSaturday
+                          ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
+                          : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
                   }
                 `}
               >
                 <div className='flex flex-col items-center justify-center h-full'>
                   <span
-                    className={`text-base ${isTodayDate || isSelected ? 'text-white' : 'text-gray-900'}`}
+                    className={`text-base ${isTodayDate || isSelected || isSaturday ? 'text-white' : 'text-gray-900'}`}
                   >
                     {day}
                   </span>
                   {isTodayDate && (
                     <span className='text-xs text-blue-100 mt-1'>आज</span>
+                  )}
+                  {isSaturday && !isTodayDate && (
+                    <span className='text-xs text-red-100 mt-1'>बिदा</span>
                   )}
                 </div>
               </button>
