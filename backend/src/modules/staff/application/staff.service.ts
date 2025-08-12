@@ -75,6 +75,7 @@ export class StaffService {
             ? new Date(profile.employmentDate)
             : new Date(),
           employmentStatus: 'active', // Default to active
+          experienceYears: profile.experienceYears || 0,
 
           // Salary info
           basicSalary: profile.salary

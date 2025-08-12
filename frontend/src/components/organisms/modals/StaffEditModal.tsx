@@ -40,6 +40,7 @@ interface EditStaffFormData {
   department: string;
   basicSalary: string;
   employmentStatus: string;
+  experienceYears: string;
   bio: string;
 
   // Address
@@ -106,6 +107,7 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
     department: '',
     basicSalary: '',
     employmentStatus: 'active',
+    experienceYears: '',
     bio: '',
     street: '',
     city: '',
@@ -133,6 +135,7 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
         department: staff.department || '',
         basicSalary: staff.basicSalary?.toString() || '',
         employmentStatus: staff.employmentStatus || 'active',
+        experienceYears: staff.experienceYears?.toString() || '',
         bio: staff.profile?.bio || '',
         street: '',
         city: '',
@@ -216,6 +219,9 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
             ? parseFloat(formData.basicSalary)
             : undefined,
           employmentStatus: formData.employmentStatus,
+          experienceYears: formData.experienceYears
+            ? parseInt(formData.experienceYears)
+            : undefined,
           bio: formData.bio.trim() || undefined,
           address: {
             street: formData.street.trim() || undefined,
@@ -426,6 +432,23 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Experience (Years)
+                </label>
+                <input
+                  type='number'
+                  name='experienceYears'
+                  value={formData.experienceYears}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
+                  placeholder='Enter years of experience'
+                  min='0'
+                  step='1'
+                />
               </div>
             </div>
           </div>

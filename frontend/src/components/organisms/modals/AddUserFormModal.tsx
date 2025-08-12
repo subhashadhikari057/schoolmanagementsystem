@@ -743,6 +743,13 @@ export default function AddUserFormModal({
                 socialLinks: undefined, // Not collected in form
                 profilePhotoUrl: undefined, // Not sent
               },
+              bankDetails: {
+                bankName: formData.bankName || undefined,
+                bankAccountNumber: formData.bankAccountNumber || undefined,
+                bankBranch: formData.bankBranch || undefined,
+                panNumber: formData.panNumber || undefined,
+                citizenshipNumber: formData.citizenshipNumber || undefined,
+              },
             };
             response = await staffService.createStaff(staffPayload);
             break;
