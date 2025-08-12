@@ -19,6 +19,7 @@ import {
   Building,
   Briefcase,
   UserCheck,
+  Landmark,
 } from 'lucide-react';
 import { StaffMember } from '@/components/templates/StaffColumns';
 import Avatar from '@/components/atoms/display/Avatar';
@@ -132,7 +133,7 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
           </div>
 
           {/* Details Grid */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mt-6'>
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6'>
             {/* Employment Details */}
             <div className='bg-gray-50 rounded-lg p-4'>
               <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
@@ -274,6 +275,52 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                       : staff.basicSalary
                         ? `$${typeof staff.basicSalary === 'number' ? staff.basicSalary.toLocaleString() : staff.basicSalary}`
                         : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bank Account Details */}
+            <div className='bg-purple-50 rounded-lg p-4 md:col-span-2 lg:col-span-1'>
+              <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
+                <Landmark className='h-4 w-4 mr-2 text-purple-600' />
+                Bank Account Details
+              </h4>
+              <div className='space-y-2'>
+                <div>
+                  <span className='text-xs text-gray-500 block'>Bank Name</span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {staff.bankName || 'Not provided'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Account Number
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {staff.bankAccountNumber || 'Not provided'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>Branch</span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {staff.bankBranch || 'Not provided'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    PAN Number
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {staff.panNumber || 'Not provided'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Citizenship Number
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {staff.citizenshipNumber || 'Not provided'}
                   </span>
                 </div>
               </div>

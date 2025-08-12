@@ -52,7 +52,67 @@ export interface CreateStaffProfileData {
   };
 }
 
+// Bank details sub-schema
+export interface CreateStaffBankData {
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankBranch?: string;
+  panNumber?: string;
+  citizenshipNumber?: string;
+}
+
 export interface CreateStaffRequest {
   user: CreateStaffUserData;
   profile: CreateStaffProfileData;
+  bankDetails?: CreateStaffBankData;
+}
+
+// Update interfaces
+export interface UpdateStaffUserData {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateStaffProfileData {
+  qualification?: string;
+  designation?: string;
+  department?: string;
+  experienceYears?: number;
+  employmentDate?: string;
+  salary?: number;
+  employmentStatus?: 'active' | 'on_leave' | 'resigned' | 'terminated';
+  bio?: string;
+  emergencyContact?: {
+    name?: string;
+    phone?: string;
+    relationship?: string;
+  };
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+  };
+  socialLinks?: {
+    linkedin?: string;
+    twitter?: string;
+    website?: string;
+  };
+}
+
+export interface UpdateStaffBankData {
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankBranch?: string;
+  panNumber?: string;
+  citizenshipNumber?: string;
+}
+
+export interface UpdateStaffRequest {
+  user?: UpdateStaffUserData;
+  profile?: UpdateStaffProfileData;
+  bankDetails?: UpdateStaffBankData;
 }

@@ -16,6 +16,7 @@ import {
   MapPin,
   Phone,
   Mail,
+  Landmark,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StaffMember } from '@/components/templates/StaffColumns';
@@ -47,6 +48,13 @@ interface EditStaffFormData {
   state: string;
   zipCode: string;
   country: string;
+
+  // Bank details
+  bankName: string;
+  bankAccountNumber: string;
+  bankBranch: string;
+  panNumber: string;
+  citizenshipNumber: string;
 }
 
 const DEPARTMENT_OPTIONS = [
@@ -104,6 +112,11 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
     state: '',
     zipCode: '',
     country: '',
+    bankName: '',
+    bankAccountNumber: '',
+    bankBranch: '',
+    panNumber: '',
+    citizenshipNumber: '',
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -126,6 +139,11 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
         state: '',
         zipCode: '',
         country: '',
+        bankName: staff.bankName || '',
+        bankAccountNumber: staff.bankAccountNumber || '',
+        bankBranch: staff.bankBranch || '',
+        panNumber: staff.panNumber || '',
+        citizenshipNumber: staff.citizenshipNumber || '',
       });
       setError(null);
     }
@@ -163,6 +181,24 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
       return;
     }
 
+    // Show confirmation toast
+    const confirmed = await new Promise<boolean>(resolve => {
+      toast('Confirm Changes', {
+        description: `Are you sure you want to update ${formData.fullName}'s information?`,
+        action: {
+          label: 'Update',
+          onClick: () => resolve(true),
+        },
+        cancel: {
+          label: 'Cancel',
+          onClick: () => resolve(false),
+        },
+        duration: Infinity,
+      });
+    });
+
+    if (!confirmed) return;
+
     setIsLoading(true);
     setError(null);
 
@@ -188,6 +224,13 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
             zipCode: formData.zipCode.trim() || undefined,
             country: formData.country.trim() || undefined,
           },
+        },
+        bankDetails: {
+          bankName: formData.bankName.trim() || undefined,
+          bankAccountNumber: formData.bankAccountNumber.trim() || undefined,
+          bankBranch: formData.bankBranch.trim() || undefined,
+          panNumber: formData.panNumber.trim() || undefined,
+          citizenshipNumber: formData.citizenshipNumber.trim() || undefined,
         },
       };
 
@@ -224,7 +267,7 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
   if (!isOpen || !staff) return null;
 
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+    <div className='fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
       <div className='bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto'>
         {/* Header */}
         <div className='flex items-center justify-between p-6 border-b border-gray-200'>
@@ -434,6 +477,94 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 resize-none'
                 placeholder='Brief description about the staff member'
               />
+            </div>
+          </div>
+
+          {/* Bank Account Details */}
+          <div className='space-y-4'>
+            <h3 className='text-lg font-medium text-gray-900 flex items-center'>
+              <Landmark className='h-5 w-5 mr-2 text-purple-600' />
+              Bank Account Details
+            </h3>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Bank Name
+                </label>
+                <div className='relative'>
+                  <Landmark className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+                  <input
+                    type='text'
+                    name='bankName'
+                    value={formData.bankName}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
+                    placeholder='Enter bank name'
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Account Number
+                </label>
+                <input
+                  type='text'
+                  name='bankAccountNumber'
+                  value={formData.bankAccountNumber}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
+                  placeholder='Enter account number'
+                />
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Bank Branch
+                </label>
+                <input
+                  type='text'
+                  name='bankBranch'
+                  value={formData.bankBranch}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
+                  placeholder='Enter branch name'
+                />
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  PAN Number
+                </label>
+                <input
+                  type='text'
+                  name='panNumber'
+                  value={formData.panNumber}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
+                  placeholder='Enter PAN number'
+                />
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Citizenship Number
+                </label>
+                <input
+                  type='text'
+                  name='citizenshipNumber'
+                  value={formData.citizenshipNumber}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
+                  placeholder='Enter citizenship number'
+                />
+              </div>
             </div>
           </div>
 

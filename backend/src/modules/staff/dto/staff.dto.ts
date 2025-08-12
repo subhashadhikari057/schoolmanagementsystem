@@ -76,11 +76,23 @@ export const CreateStaffProfileSchema = z.object({
 });
 
 // ---------------------------
+// Subschema for bank details
+// ---------------------------
+export const CreateStaffBankSchema = z.object({
+  bankName: z.string().optional(),
+  bankAccountNumber: z.string().optional(),
+  bankBranch: z.string().optional(),
+  panNumber: z.string().optional(),
+  citizenshipNumber: z.string().optional(),
+});
+
+// ---------------------------
 // CreateStaff DTO
 // ---------------------------
 export const CreateStaffDto = z.object({
   user: CreateStaffUserSchema,
   profile: CreateStaffProfileSchema,
+  bankDetails: CreateStaffBankSchema.optional(),
 });
 
 export type CreateStaffDtoType = z.infer<typeof CreateStaffDto>;
@@ -135,6 +147,7 @@ export const UpdateStaffByAdminDto = z.object({
         .optional(),
     })
     .optional(),
+  bankDetails: CreateStaffBankSchema.partial().optional(),
 });
 
 export type UpdateStaffByAdminDtoType = z.infer<typeof UpdateStaffByAdminDto>;

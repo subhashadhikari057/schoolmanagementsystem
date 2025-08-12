@@ -162,8 +162,8 @@ export class TeacherService {
                   bankDetails: bankDetails
                     ? {
                         bankName: bankDetails.bankName,
-                        accountNumber: bankDetails.accountNumber,
-                        branch: bankDetails.branch,
+                        bankAccountNumber: bankDetails.bankAccountNumber,
+                        bankBranch: bankDetails.bankBranch,
                         panNumber: bankDetails.panNumber,
                         citizenshipNumber: bankDetails.citizenshipNumber,
                       }
@@ -423,8 +423,8 @@ export class TeacherService {
 
       // Extract bank details
       bankName: bankDetails.bankName,
-      bankAccountNumber: bankDetails.accountNumber,
-      bankBranch: bankDetails.branch,
+      bankAccountNumber: bankDetails.bankAccountNumber,
+      bankBranch: bankDetails.bankBranch,
       panNumber: bankDetails.panNumber,
       citizenshipNumber: bankDetails.citizenshipNumber,
 
@@ -600,13 +600,13 @@ export class TeacherService {
         profileUpdate.additionalData.bankDetails.bankName =
           dto.bankDetails.bankName;
       }
-      if (dto.bankDetails.accountNumber) {
-        profileUpdate.additionalData.bankDetails.accountNumber =
-          dto.bankDetails.accountNumber;
+      if (dto.bankDetails.bankAccountNumber) {
+        profileUpdate.additionalData.bankDetails.bankAccountNumber =
+          dto.bankDetails.bankAccountNumber;
       }
-      if (dto.bankDetails.branch) {
-        profileUpdate.additionalData.bankDetails.branch =
-          dto.bankDetails.branch;
+      if (dto.bankDetails.bankBranch) {
+        profileUpdate.additionalData.bankDetails.bankBranch =
+          dto.bankDetails.bankBranch;
       }
       if (dto.bankDetails.panNumber) {
         profileUpdate.additionalData.bankDetails.panNumber =
