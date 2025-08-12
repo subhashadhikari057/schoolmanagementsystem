@@ -46,6 +46,14 @@ const mockStaff: StaffMember[] = [
     employmentStatus: 'active',
     createdAt: '2023-01-15T00:00:00Z',
     createdById: 'system',
+
+    // Bank account details
+    bankName: 'First National Bank',
+    bankAccountNumber: '1234567890123456',
+    bankBranch: 'Springfield Downtown Branch',
+    panNumber: 'ABCDE1234F',
+    citizenshipNumber: '12345678901',
+
     profile: {
       bio: 'Experienced administrator with focus on educational institutions.',
     },

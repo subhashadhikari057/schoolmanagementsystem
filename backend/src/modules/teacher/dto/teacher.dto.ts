@@ -84,8 +84,8 @@ export const CreateTeacherAdditionalSchema = z.object({
 // ---------------------------
 export const CreateTeacherBankSchema = z.object({
   bankName: z.string().optional(),
-  accountNumber: z.string().optional(),
-  branch: z.string().optional(),
+  bankAccountNumber: z.string().optional(),
+  bankBranch: z.string().optional(),
   panNumber: z.string().optional(),
   citizenshipNumber: z.string().optional(),
 });

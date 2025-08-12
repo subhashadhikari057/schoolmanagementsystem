@@ -295,6 +295,13 @@ model Teacher {
   allowances  Decimal @db.Decimal(10,2)
   totalSalary Decimal @db.Decimal(10,2)
 
+  // Bank account details
+  bankName           String?
+  bankAccountNumber  String?
+  bankBranch         String?
+  panNumber          String?
+  citizenshipNumber  String?
+
   isClassTeacher Boolean @default(false)
   languagesKnown Json?  @default("[]")
   certifications String?
@@ -396,10 +403,18 @@ model Staff {
   designation      String?
   department       String?
   employmentDate   DateTime?
+  employmentStatus String? @default("active")
 
   basicSalary Decimal @db.Decimal(10, 2)
   allowances  Decimal @db.Decimal(10, 2)
   totalSalary Decimal @db.Decimal(10, 2)
+
+  // Bank account details
+  bankName           String?
+  bankAccountNumber  String?
+  bankBranch         String?
+  panNumber          String?
+  citizenshipNumber  String?
 
   permissions String[] // optional for granular access only for admins
 

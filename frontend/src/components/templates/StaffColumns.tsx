@@ -31,6 +31,14 @@ export interface StaffMember {
   employmentDate?: string;
   experienceYears?: number;
   employmentStatus?: string;
+
+  // Bank account details
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankBranch?: string;
+  panNumber?: string;
+  citizenshipNumber?: string;
+
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string;

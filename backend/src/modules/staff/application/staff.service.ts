@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
 import {
@@ -21,37 +25,87 @@ export class StaffService {
     ip?: string,
     userAgent?: string,
   ) {
-    const { user, profile } = dto;
+    const { user, profile, bankDetails } = dto;
+
+    // Check for duplicate email
+    const existingEmailStaff = await this.prisma.staff.findFirst({
+      where: {
+        email: user.email,
+        deletedAt: null,
+      },
+    });
+    if (existingEmailStaff) {
+      throw new ConflictException(
+        `Staff member with email ${user.email} already exists`,
+      );
+    }
+
+    // Check for duplicate phone if provided
+    if (user.phone) {
+      const existingPhoneStaff = await this.prisma.staff.findFirst({
+        where: {
+          phone: user.phone,
+          deletedAt: null,
+        },
+      });
+      if (existingPhoneStaff) {
+        throw new ConflictException(
+          `Staff member with phone ${user.phone} already exists`,
+        );
+      }
+    }
 
     // Staff are static records - no user accounts needed
     const staff = await this.prisma.$transaction(async prisma => {
-      // Create staff record only (no user account)
+      // Create staff record with all fields
       const staff = await prisma.staff.create({
         data: {
+          // Basic user info
           email: user.email,
           fullName: user.fullName,
-          designation: profile.designation,
           firstName: user.fullName?.split(' ')[0] || 'Unknown',
-          middleName: null,
-          lastName: user.fullName?.split(' ').slice(1).join(' ') || 'Unknown',
-          dob: new Date('1990-01-01'), // Default DOB, will be updated later
-          gender: 'Not Specified',
+          middleName: user.fullName?.split(' ')[1] || null,
+          lastName: user.fullName?.split(' ').slice(-1)[0] || 'Unknown',
           phone: user.phone || '',
+
+          // Professional info
+          designation: profile.designation || '',
+          department: profile.department || '',
+          employmentDate: profile.employmentDate
+            ? new Date(profile.employmentDate)
+            : new Date(),
+          employmentStatus: 'active', // Default to active
+
+          // Salary info
+          basicSalary: profile.salary
+            ? parseFloat(profile.salary.toString())
+            : 0,
+          allowances: 0, // Default allowances
+          totalSalary: profile.salary
+            ? parseFloat(profile.salary.toString())
+            : 0,
+
+          // Personal info (use defaults for now, can be updated later)
+          dob: new Date('1990-01-01'), // Default DOB
+          gender: 'Not Specified',
+          bloodGroup: null,
+          maritalStatus: null,
           emergencyContact:
             typeof profile.emergencyContact === 'string'
               ? profile.emergencyContact
               : profile.emergencyContact?.phone || '',
-          basicSalary: profile.salary
-            ? parseFloat(profile.salary.toString())
-            : 0,
-          allowances: 0,
-          totalSalary: profile.salary
-            ? parseFloat(profile.salary.toString())
-            : 0,
-          department: profile.department,
-          employmentDate: profile.employmentDate
-            ? new Date(profile.employmentDate)
-            : new Date(),
+
+          // Bank details
+          bankName: bankDetails?.bankName || null,
+          bankAccountNumber: bankDetails?.bankAccountNumber || null,
+          bankBranch: bankDetails?.bankBranch || null,
+          panNumber: bankDetails?.panNumber || null,
+          citizenshipNumber: bankDetails?.citizenshipNumber || null,
+
+          // Permissions (empty for regular staff)
+          permissions: [],
+
+          // Audit fields
           createdById: createdBy,
         },
       });
@@ -95,6 +149,11 @@ export class StaffService {
           designation: staff.designation,
           department: staff.department,
           employmentDate: staff.employmentDate,
+          bankName: staff.bankName,
+          bankAccountNumber: staff.bankAccountNumber,
+          bankBranch: staff.bankBranch,
+          panNumber: staff.panNumber,
+          citizenshipNumber: staff.citizenshipNumber,
         },
         message:
           'Staff member created as static record. No login credentials needed.',
@@ -287,6 +346,33 @@ export class StaffService {
           await prisma.staffProfile.updateMany({
             where: { staffId: id },
             data: profileUpdateData,
+          });
+        }
+      }
+
+      // Update bank details if provided
+      if (dto.bankDetails) {
+        const bankUpdateData: any = {
+          updatedById: updatedBy,
+          updatedAt: new Date(),
+        };
+
+        if (dto.bankDetails.bankName !== undefined)
+          bankUpdateData.bankName = dto.bankDetails.bankName;
+        if (dto.bankDetails.bankAccountNumber !== undefined)
+          bankUpdateData.bankAccountNumber = dto.bankDetails.bankAccountNumber;
+        if (dto.bankDetails.bankBranch !== undefined)
+          bankUpdateData.bankBranch = dto.bankDetails.bankBranch;
+        if (dto.bankDetails.panNumber !== undefined)
+          bankUpdateData.panNumber = dto.bankDetails.panNumber;
+        if (dto.bankDetails.citizenshipNumber !== undefined)
+          bankUpdateData.citizenshipNumber = dto.bankDetails.citizenshipNumber;
+
+        if (Object.keys(bankUpdateData).length > 2) {
+          // More than just updatedById and updatedAt
+          await prisma.staff.update({
+            where: { id },
+            data: bankUpdateData,
           });
         }
       }

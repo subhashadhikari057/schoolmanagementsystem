@@ -22,8 +22,8 @@ export interface TeacherAdditionalData {
   pinCode?: string;
   bankDetails?: {
     bankName?: string;
-    accountNumber?: string;
-    branch?: string;
+    bankAccountNumber?: string;
+    bankBranch?: string;
     panNumber?: string;
     citizenshipNumber?: string;
   };
