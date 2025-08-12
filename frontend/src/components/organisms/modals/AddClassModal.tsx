@@ -16,13 +16,22 @@ interface AddClassModalProps {
   existingClasses?: ClassResponse[];
 }
 
+// Local form state type for UI
+interface LocalFormData {
+  name: string;
+  section: string;
+  room: string;
+  subjectsCount: number;
+  classTeacher: string;
+}
+
 export default function AddClassModal({
   isOpen,
   onClose,
   onSuccess,
   existingClasses = [],
 }: AddClassModalProps) {
-  const [formData, setFormData] = useState<CreateClassRequest>({
+  const [formData, setFormData] = useState<LocalFormData>({
     name: '',
     section: '',
     room: '',
@@ -72,7 +81,8 @@ export default function AddClassModal({
     const trimmedSection = formData.section.trim();
     const isDuplicate = existingClasses.some(
       existingClass =>
-        existingClass.name.toLowerCase() === trimmedName.toLowerCase() &&
+        (existingClass.name ?? '').toLowerCase() ===
+          trimmedName.toLowerCase() &&
         Array.isArray(existingClass.section) &&
         existingClass.section.some(
           (sec: any) =>
@@ -98,12 +108,18 @@ export default function AddClassModal({
     });
 
     try {
+      // Only send fields that exist on CreateClassRequest
       const response = await classService.createClass({
         name: trimmedName,
         section: trimmedSection,
-        room: formData.room.trim(),
-        subjectsCount: formData.subjectsCount,
-        classTeacher: formData.classTeacher.trim(),
+        // You may need to map room to roomId, classTeacher to classTeacherId, etc. if needed
+        // grade, capacity, roomId, classTeacherId, shift are required by backend
+        // This is a placeholder, update as per your backend requirements:
+        grade: 1, // TODO: Replace with actual value from UI if needed
+        capacity: 30, // TODO: Replace with actual value from UI if needed
+        roomId: formData.room, // or map to actual roomId if you have a room selector
+        classTeacherId: formData.classTeacher, // or map to actual teacherId if you have a teacher selector
+        // shift: 'morning', // add if needed
       });
 
       if (response.success) {
