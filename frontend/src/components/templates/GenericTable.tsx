@@ -126,7 +126,7 @@ const GenericTable = <T extends BaseItem>({
   };
 
   return (
-    <div className='bg-white rounded-lg shadow overflow-hidden'>
+    <div className='bg-white rounded-lg shadow overflow-hidden w-full'>
       {data.length === 0 ? (
         <div className='text-center py-12'>
           <p className='text-gray-500'>{emptyMessage}</p>
@@ -134,7 +134,7 @@ const GenericTable = <T extends BaseItem>({
       ) : (
         <>
           {/* Desktop Table */}
-          <div className='hidden lg:block overflow-x-auto'>
+          <div className='hidden lg:block w-full overflow-x-auto'>
             <table className='min-w-full divide-y divide-gray-200'>
               <thead className='bg-gray-50'>
                 <tr>
@@ -181,19 +181,22 @@ const GenericTable = <T extends BaseItem>({
           </div>
 
           {/* Mobile Cards */}
-          <div className='lg:hidden'>
+          <div className='lg:hidden w-full'>
             {data.map(item => (
               <div
                 key={item.id}
-                className='p-4 border-b border-gray-200 last:border-b-0'
+                className='p-3 sm:p-4 border-b border-gray-200 last:border-b-0 bg-white'
               >
                 <div className='space-y-2'>
                   {columns.map(column => (
-                    <div key={column.key} className='flex justify-between'>
-                      <span className='text-sm font-medium text-gray-500'>
+                    <div
+                      key={column.key}
+                      className='flex flex-col xs:flex-row xs:justify-between gap-1'
+                    >
+                      <span className='text-xs font-medium text-gray-500'>
                         {column.mobileLabel || column.header}:
                       </span>
-                      <span className='text-sm text-gray-900'>
+                      <span className='text-sm text-gray-900 break-words'>
                         {renderCellContent(item, column)}
                       </span>
                     </div>

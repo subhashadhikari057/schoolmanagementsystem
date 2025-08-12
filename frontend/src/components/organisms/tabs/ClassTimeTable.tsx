@@ -119,13 +119,14 @@ export default function ClassTimeTable() {
   ];
 
   return (
-    <div className='p-6 bg-gray-50 min-h-screen'>
+    <div className='min-h-screen bg-gray-50 px-3 sm:px-4 lg:px-6 py-4'>
       <SectionTitle text='Class Timetable Viewer' level={1} className='mb-1' />
       <p className='text-gray-600 mb-4'>
         View detailed class schedules with teacher and room information
       </p>
 
-      <div className='flex flex-wrap gap-6 items-center mb-6'>
+      {/* Controls */}
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6'>
         <div>
           <label className='block text-sm font-medium text-gray-700 mb-1'>
             Grade:
@@ -136,7 +137,7 @@ export default function ClassTimeTable() {
             selectedValue={selectedGrade}
             onSelect={setSelectedGrade}
             placeholder='Select Grade'
-            className='min-w-[120px]'
+            className='min-w-[140px]'
           />
         </div>
         <div>
@@ -149,10 +150,10 @@ export default function ClassTimeTable() {
             selectedValue={selectedSection}
             onSelect={setSelectedSection}
             placeholder='Select Section'
-            className='min-w-[80px]'
+            className='min-w-[100px]'
           />
         </div>
-        <div className='flex flex-col gap-1 text-sm text-gray-700'>
+        <div className='flex flex-col gap-1 text-sm text-gray-700 lg:col-span-1'>
           <span>
             Teacher:{' '}
             <b>
@@ -169,24 +170,27 @@ export default function ClassTimeTable() {
             Room: <b>{timetableData.room}</b>
           </span>
         </div>
-        <div className='flex gap-2 ml-auto'>
-          {actionButtons.map(btn => (
-            <ToggleButton
-              key={btn.id}
-              onClick={btn.onClick}
-              className={btn.className}
-            >
-              <div className='flex items-center gap-2'>
-                {btn.icon}
-                <span>{btn.label}</span>
-              </div>
-            </ToggleButton>
-          ))}
+        {/* Actions */}
+        <div className='sm:col-span-2 lg:col-span-1'>
+          <div className='grid grid-cols-2 sm:flex sm:flex-wrap gap-2 justify-start sm:justify-end'>
+            {actionButtons.map(btn => (
+              <ToggleButton
+                key={btn.id}
+                onClick={btn.onClick}
+                className={btn.className + ' w-full sm:w-auto'}
+              >
+                <div className='flex items-center gap-2 justify-center'>
+                  {btn.icon}
+                  <span className='hidden sm:inline'>{btn.label}</span>
+                </div>
+              </ToggleButton>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className='overflow-x-auto bg-white rounded-md shadow mb-6'>
-        <table className='min-w-[900px] w-full border-collapse'>
+      <div className='overflow-x-auto no-scrollbar bg-white rounded-md shadow mb-6'>
+        <table className='min-w-[720px] sm:min-w-[900px] w-full border-collapse'>
           <thead>
             <tr className='bg-gray-100'>
               <th className='p-2 border border-gray-200'>Time Slot</th>

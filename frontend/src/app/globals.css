@@ -101,6 +101,15 @@ body {
   }
 }
 
+/* Hide scrollbars but keep scrollability for overflow containers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
 /* Tablet specific adjustments */
 @media (min-width: 768px) and (max-width: 1023px) {
   .sidebar {
@@ -122,13 +131,16 @@ body {
 
 /* Scrollbar styles for sidebar */
 .sidebar-scroll {
-  overflow-y: hidden;
+  overflow-y: auto; /* Ensure scrollable by default (works on mobile too) */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   scrollbar-gutter: stable;
-  
 }
 
-.sidebar-scroll:hover {
-  overflow-y: auto;
+/* Optional: keep previous behavior for pointer devices, but not required */
+@media (hover: hover) {
+  .sidebar-scroll:hover {
+    overflow-y: auto;
+  }
 }
 
 .sidebar-scroll::-webkit-scrollbar {

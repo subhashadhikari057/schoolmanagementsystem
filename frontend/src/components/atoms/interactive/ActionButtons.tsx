@@ -360,13 +360,17 @@ export const ActionButtons = ({
 
   return (
     <>
-      <div className='flex gap-2'>
+      <div className='grid grid-cols-2 sm:flex sm:flex-row gap-2 w-full'>
         {actionButtonsConfig.map(button => (
-          <div key={button.id} onClick={button.onClick}>
-            <ToggleButton className={button.className}>
-              <div className='flex items-center gap-2'>
+          <div
+            key={button.id}
+            onClick={button.onClick}
+            className='w-full sm:w-auto'
+          >
+            <ToggleButton className={button.className + ' w-full sm:w-auto'}>
+              <div className='flex items-center gap-2 justify-center'>
                 {button.icon}
-                <span>{button.label}</span>
+                <span className='hidden sm:inline'>{button.label}</span>
               </div>
             </ToggleButton>
           </div>

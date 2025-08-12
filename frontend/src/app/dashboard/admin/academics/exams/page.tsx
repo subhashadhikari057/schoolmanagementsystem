@@ -67,9 +67,13 @@ function ExamSummaryCards() {
 export default function ExamsPage() {
   const [showModal, setShowModal] = useState(false);
   return (
-    <div className='p-8 min-h-screen'>
-      <ExamSummaryCards />
-      <div className='flex justify-center mt-12'>
+    <div className='min-h-screen bg-background'>
+      <div className='px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 lg:pt-6'>
+        <div className='max-w-7xl mx-auto'>
+          <ExamSummaryCards />
+        </div>
+      </div>
+      <div className='flex justify-center mt-6 sm:mt-10 lg:mt-12 px-3 sm:px-4 lg:px-6 pb-6'>
         <div className='w-full max-w-2xl'>
           <ExaminationManagementPanel onCreateExam={() => setShowModal(true)} />
         </div>

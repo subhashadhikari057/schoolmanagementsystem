@@ -212,13 +212,18 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
   };
 
   return (
-    <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto'>
+    <div
+      className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4'
+      role='dialog'
+      aria-modal='true'
+      onClick={onClose}
+    >
       <div
-        className='bg-white rounded-xl w-full max-w-4xl shadow-2xl animate-in fade-in duration-300'
+        className='bg-white rounded-xl w-full max-w-full sm:max-w-3xl lg:max-w-4xl shadow-2xl animate-in fade-in duration-300 max-h-[90vh] overflow-y-auto'
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className='relative bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-t-xl border-b border-gray-100'>
+        <div className='sticky top-0 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 rounded-t-xl border-b border-gray-100 z-10'>
           <button
             onClick={onClose}
             className='absolute top-4 right-4 p-2 rounded-full hover:bg-white/50 transition-colors'
@@ -226,27 +231,29 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
             <X className='h-5 w-5 text-gray-500' />
           </button>
 
-          <h2 className='text-2xl font-bold text-gray-800'>Teacher Profile</h2>
-          <p className='text-gray-600 mt-1'>
+          <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>
+            Teacher Profile
+          </h2>
+          <p className='text-gray-600 mt-1 text-sm sm:text-base'>
             Detailed information about this teacher
           </p>
         </div>
 
         {/* Content */}
-        <div className='p-6'>
+        <div className='p-4 sm:p-6'>
           {/* Basic Info */}
-          <div className='flex flex-col md:flex-row gap-6 pb-6 border-b border-gray-200'>
+          <div className='flex flex-col md:flex-row gap-4 sm:gap-6 pb-6 border-b border-gray-200'>
             <div className='flex-shrink-0'>
               <Avatar
                 name={teacherDetails.name}
-                className='w-32 h-32 rounded-xl shadow-md'
+                className='w-24 h-24 sm:w-32 sm:h-32 rounded-xl shadow-md'
                 showInitials={true}
                 src={teacherDetails.avatar}
               />
             </div>
 
             <div className='flex-grow'>
-              <h3 className='text-xl font-bold text-gray-900'>
+              <h3 className='text-lg sm:text-xl font-bold text-gray-900'>
                 {teacherDetails.firstName && teacherDetails.lastName
                   ? teacherDetails.middleName
                     ? `${teacherDetails.firstName} ${teacherDetails.middleName} ${teacherDetails.lastName}`
@@ -277,11 +284,11 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
               </div>
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-3 mt-4'>
-                <div className='flex items-center gap-2 text-sm text-gray-600'>
+                <div className='flex items-center gap-2 text-sm text-gray-600 break-words'>
                   <Mail className='h-4 w-4 text-gray-400' />
                   <span>{teacherDetails.email || 'N/A'}</span>
                 </div>
-                <div className='flex items-center gap-2 text-sm text-gray-600'>
+                <div className='flex items-center gap-2 text-sm text-gray-600 break-words'>
                   <Phone className='h-4 w-4 text-gray-400' />
                   <span>
                     {teacherDetails.phone ||
@@ -289,7 +296,7 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
                       'N/A'}
                   </span>
                 </div>
-                <div className='flex items-center gap-2 text-sm text-gray-600'>
+                <div className='flex items-center gap-2 text-sm text-gray-600 break-words'>
                   <MapPin className='h-4 w-4 text-gray-400' />
                   <span>
                     {teacherDetails.street
@@ -308,7 +315,7 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
           </div>
 
           {/* Details Grid */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mt-6'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-6'>
             {/* Qualification & Specialization */}
             <div className='bg-gray-50 rounded-lg p-4'>
               <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
@@ -503,7 +510,7 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className='bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end'>
+        <div className='bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 rounded-b-xl flex justify-end sticky bottom-0'>
           <button
             onClick={onClose}
             className='px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors'

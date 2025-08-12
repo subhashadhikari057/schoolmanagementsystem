@@ -49,9 +49,9 @@ export default function CreateNoticeModal({
     'General',
   ];
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/20'>
-      <div className='bg-white rounded-xl shadow-xl w-full max-w-lg p-0'>
-        <div className='flex items-center justify-between px-6 pt-6 pb-2 border-b'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/20 overflow-y-auto'>
+      <div className='bg-white rounded-xl shadow-xl w-full max-w-lg p-0 mx-2 my-6'>
+        <div className='flex items-center justify-between px-4 sm:px-6 pt-6 pb-2 border-b'>
           <SectionTitle text='Create New Notice' />
           <button
             onClick={onClose}
@@ -60,8 +60,8 @@ export default function CreateNoticeModal({
             ×
           </button>
         </div>
-        <form className='p-6 space-y-4'>
-          <div className='grid grid-cols-2 gap-4'>
+        <form className='p-4 sm:p-6 space-y-4'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
             <div>
               <Label>Notice Title *</Label>
               <Input
@@ -100,7 +100,7 @@ export default function CreateNoticeModal({
               placeholder='Write your notice content here...'
             />
           </div>
-          <div className='grid grid-cols-2 gap-4'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
             <div>
               <Label>Publish Date</Label>
               <Input
@@ -124,7 +124,7 @@ export default function CreateNoticeModal({
           </div>
           <div>
             <Label>Recipients *</Label>
-            <div className='grid grid-cols-3 gap-2'>
+            <div className='grid grid-cols-2 xs:grid-cols-3 gap-2'>
               {recipientOptions.map(opt => (
                 <Checkbox
                   key={opt.value}
@@ -144,7 +144,7 @@ export default function CreateNoticeModal({
           </div>
           <div>
             <Label>Categories</Label>
-            <div className='flex flex-wrap gap-3'>
+            <div className='flex flex-wrap gap-2 sm:gap-3'>
               {categoryOptions.map(cat => (
                 <Checkbox
                   key={cat}
@@ -164,7 +164,7 @@ export default function CreateNoticeModal({
           </div>
           <div>
             <Label>Attachments</Label>
-            <div className='flex gap-2 items-center'>
+            <div className='flex flex-col xs:flex-row gap-2 items-stretch xs:items-center'>
               <input
                 type='file'
                 multiple
@@ -195,7 +195,7 @@ export default function CreateNoticeModal({
               onChange={() => setForm(f => ({ ...f, sendSMS: !f.sendSMS }))}
             />
           </div>
-          <div className='flex justify-end gap-2 mt-6'>
+          <div className='flex flex-col xs:flex-row justify-end gap-2 mt-6'>
             <Button className='bg-gray-100 text-gray-700 px-4 py-2 rounded'>
               Save as Draft
             </Button>

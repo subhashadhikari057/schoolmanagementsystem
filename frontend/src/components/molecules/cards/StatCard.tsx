@@ -23,9 +23,9 @@ export default function StatCard({
 }) {
   return (
     <div
-      className={`bg-white rounded-xl border border-gray-200 p-3 sm:p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow min-w-0 ${className}`}
+      className={`bg-white rounded-xl border border-gray-200 p-3 xs:p-4 sm:p-5 lg:p-6 shadow-sm hover:shadow-md transition-shadow min-w-0 w-full ${className}`}
     >
-      <div className='flex items-start justify-between gap-2 sm:gap-3 lg:gap-4'>
+      <div className='flex items-start justify-between gap-2 sm:gap-3 lg:gap-4 w-full'>
         <div className='flex-1 min-w-0'>
           <MetricDisplay
             value={value}

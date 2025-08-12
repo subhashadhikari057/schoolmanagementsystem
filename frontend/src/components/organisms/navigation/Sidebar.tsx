@@ -22,6 +22,9 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHoveringLogo, setIsHoveringLogo] = useState(false);
+  const [isHoverExpanded, setIsHoverExpanded] = useState(false);
+  const enableHoverExpand = true; // Always allow hover-to-expand
+  const [suppressHover, setSuppressHover] = useState(false); // prevents hover expand until next mouse leave
 
   const { user } = useAuth();
 
@@ -50,7 +53,17 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
   const sidebarRole = getSidebarRole(user?.role);
 
   const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
+    // If we are collapsing on desktop while the cursor is inside,
+    // suppress hover expansion until the next mouseleave
+    if (!isCollapsed) {
+      setSuppressHover(true);
+      setIsHoverExpanded(false);
+      setIsCollapsed(true);
+      return;
+    }
+    // Expanding via button clears suppression
+    setSuppressHover(false);
+    setIsCollapsed(false);
   };
 
   // Development mode bypass
@@ -64,6 +77,9 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
 
   // Use dev role if in development mode without user
   const effectiveRole = showInDev && !user ? devRole : sidebarRole;
+
+  const expandedByHover =
+    isCollapsed && isHoverExpanded && enableHoverExpand && !suppressHover;
 
   return (
     <>
@@ -83,9 +99,32 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
     h-screen border-r border-gray-200 px-4 py-2 bg-white
     transition-all duration-300 ease-in-out
     ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-    ${isCollapsed ? 'w-20' : 'w-64'}
+    ${expandedByHover ? 'w-64' : isCollapsed ? 'w-20' : 'w-64'}
     shadow-lg md:shadow-none
   `}
+        onMouseEnter={() => {
+          if (
+            !isOpen &&
+            isCollapsed &&
+            !suppressHover &&
+            typeof window !== 'undefined' &&
+            window.innerWidth >= 768
+          ) {
+            setIsHoverExpanded(true);
+          }
+        }}
+        onMouseLeave={() => {
+          if (
+            !isOpen &&
+            isCollapsed &&
+            typeof window !== 'undefined' &&
+            window.innerWidth >= 768
+          ) {
+            setIsHoverExpanded(false);
+          }
+          // Leaving the sidebar clears suppression so next enter can expand
+          if (suppressHover) setSuppressHover(false);
+        }}
       >
         {/* Logo and Toggle Container */}
         <div
@@ -95,8 +134,12 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
         >
           {/* Mobile Close Button */}
           <button
-            onClick={onToggle}
-            className='md:hidden absolute right-3 top-3 p-1 rounded-md hover:bg-gray-100 text-gray-600'
+            type='button'
+            onClick={e => {
+              e.stopPropagation();
+              onToggle?.();
+            }}
+            className='md:hidden absolute right-3 top-3 z-10 p-1 rounded-md hover:bg-gray-100 text-gray-600'
             aria-label='Close menu'
           >
             <X size={18} />
@@ -144,7 +187,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
         )}
 
         {/* Navigation Sections */}
-        <nav className='space-y-6'>
+        <nav className='space-y-6 pb-20 md:pb-6 lg:pb-4'>
           {sidebarItems[effectiveRole]?.map(
             (
               section: {
@@ -155,7 +198,9 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
             ) => (
               <div key={index} className='mb-4'>
                 <h3 className='mb-2 text-xs font-semibold text-gray-500 uppercase'>
-                  {isCollapsed && !isOpen ? '' : section.title}
+                  {isCollapsed && !expandedByHover && !isOpen
+                    ? ''
+                    : section.title}
                 </h3>
                 <ul className='space-y-2'>
                   {section.items.map(
@@ -180,7 +225,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                             onClick={onToggle} // Close sidebar when navigation link is clicked on mobile
                             className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
                               text-foreground hover:bg-muted-hover hover:font-bold
-                              ${isCollapsed ? 'justify-center' : ''}
+                              ${isCollapsed && !expandedByHover ? 'justify-center' : ''}
                               ${isActive ? 'bg-gray-100 font-bold text-primary' : ''}`}
                             title={isCollapsed ? item.label : ''}
                           >
@@ -188,7 +233,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                               size={16}
                               className={`flex-shrink-0 text-gray-500`}
                             />
-                            {!isCollapsed && (
+                            {(!isCollapsed || expandedByHover) && (
                               <span className='truncate'>{item.label}</span>
                             )}
                           </Link>
@@ -212,14 +257,16 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                   onClick={onToggle}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
                     text-foreground hover:bg-muted-hover hover:font-bold
-                    ${isCollapsed ? 'justify-center' : ''}`}
+                    ${isCollapsed && !expandedByHover ? 'justify-center' : ''}`}
                   title={isCollapsed ? 'My Account' : ''}
                 >
                   <Icons.UserCog
                     size={16}
                     className='flex-shrink-0 text-gray-500'
                   />
-                  {!isCollapsed && <span className='truncate'>My Account</span>}
+                  {(!isCollapsed || expandedByHover) && (
+                    <span className='truncate'>My Account</span>
+                  )}
                 </Link>
               </li>
             </ul>
@@ -234,14 +281,16 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                   onClick={onToggle}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
                     text-foreground hover:bg-muted-hover hover:font-bold
-                    ${isCollapsed ? 'justify-center' : ''}`}
+                    ${isCollapsed && !expandedByHover ? 'justify-center' : ''}`}
                   title={isCollapsed ? 'My Account' : ''}
                 >
                   <Icons.UserCog
                     size={16}
                     className='flex-shrink-0 text-gray-500'
                   />
-                  {!isCollapsed && <span className='truncate'>My Account</span>}
+                  {(!isCollapsed || expandedByHover) && (
+                    <span className='truncate'>My Account</span>
+                  )}
                 </Link>
               </li>
             </ul>
