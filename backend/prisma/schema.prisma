@@ -404,6 +404,7 @@ model Staff {
   department       String?
   employmentDate   DateTime?
   employmentStatus String? @default("active")
+  experienceYears  Int?
 
   basicSalary Decimal @db.Decimal(10, 2)
   allowances  Decimal @db.Decimal(10, 2)
