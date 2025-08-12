@@ -20,6 +20,7 @@ export interface CreateClassRequest {
   capacity: number;
   roomId: string;
   classTeacherId?: string; // Optional class teacher
+  shift?: 'morning' | 'day'; // Class shift
 }
 
 export interface UpdateClassRequest {
@@ -39,12 +40,35 @@ export interface ClassResponse {
   capacity: number;
   roomId: string;
   classTeacherId?: string;
+  shift?: 'morning' | 'day';
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string;
   createdById?: string;
   updatedById?: string;
   deletedById?: string;
+  // Additional fields from API response
+  room?: {
+    roomNo: string;
+    name?: string;
+    floor: number;
+    building?: string;
+  };
+  classTeacher?: {
+    id: string;
+    user?: {
+      fullName: string;
+      email: string;
+    };
+    employeeId?: string;
+  };
+  students?: Array<{
+    id: string;
+    rollNumber: string;
+    user: {
+      fullName: string;
+    };
+  }>;
 }
 
 // ============================================================================

@@ -13,6 +13,7 @@ export interface TeacherFilters {
   search: string;
   designation: string;
   subjects: string;
+  employeeId?: string; // Added for employee ID search
 }
 
 interface TeacherSearchFilterProps {
@@ -112,7 +113,7 @@ const TeacherSearchFilter: React.FC<TeacherSearchFilterProps> = ({
           </div>
           <input
             type='text'
-            placeholder='Search teachers by name, email, phone...'
+            placeholder='Search teachers by name, email, phone, employee ID...'
             className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
             value={filters.search}
             onChange={handleSearchChange}

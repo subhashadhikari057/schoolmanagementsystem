@@ -173,7 +173,7 @@ const TeachersPage = () => {
                     : 'Inactive',
               email: teacher.email,
               phone: teacher.phone,
-              employeeId: teacher.employeeId,
+              employeeId: teacher.employeeId || '',
               designation: teacher.designation,
               department: teacher.department,
               joinedDate: teacher.employmentDate
@@ -228,7 +228,10 @@ const TeachersPage = () => {
           teacher.name?.toLowerCase().includes(searchTerm) ||
           teacher.email?.toLowerCase().includes(searchTerm) ||
           teacher.department?.toLowerCase().includes(searchTerm) ||
-          teacher.designation?.toLowerCase().includes(searchTerm),
+          teacher.designation?.toLowerCase().includes(searchTerm) ||
+          // Add search by employee ID - use non-strict comparison to handle both string and number types
+          (teacher.employeeId &&
+            teacher.employeeId.toString().toLowerCase().includes(searchTerm)),
       );
     }
 

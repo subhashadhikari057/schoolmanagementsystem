@@ -44,6 +44,7 @@ interface ActionButtonsProps {
     | 'leave-requests'
     | 'fee-management';
   onRefresh?: () => void;
+  onAddNew?: () => void;
 }
 
 const getActionButtonsConfig = (
@@ -315,10 +316,20 @@ const getActionButtonsConfig = (
   return [...baseButtons, ...additionalButtons];
 };
 
-export const ActionButtons = ({ pageType, onRefresh }: ActionButtonsProps) => {
+export const ActionButtons = ({
+  pageType,
+  onRefresh,
+  onAddNew,
+}: ActionButtonsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const openAddModal = () => setIsModalOpen(true);
+  const openAddModal = () => {
+    if (onAddNew) {
+      onAddNew();
+    } else {
+      setIsModalOpen(true);
+    }
+  };
   const closeModal = () => setIsModalOpen(false);
 
   const handleSuccess = () => {
