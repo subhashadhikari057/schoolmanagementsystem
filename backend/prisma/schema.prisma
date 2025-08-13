@@ -547,3 +547,48 @@ model UserSession {
 
   user User @relation(fields: [userId], references: [id])
 }
+
+// =========================
+// 📅 Calendar Management
+// =========================
+
+model CalendarEntry {
+  id          String @id @default(uuid())
+  name        String
+  type        CalendarEntryType
+  
+  // Date information
+  startDate   DateTime
+  endDate     DateTime
+  
+  // Event-specific fields
+  venue       String?
+  
+  // Holiday-specific fields
+  holidayType HolidayType?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+  
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+  
+  @@index([type])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+enum CalendarEntryType {
+  HOLIDAY
+  EVENT
+}
+
+enum HolidayType {
+  NATIONAL
+  SCHOOL
+}

@@ -16,6 +16,7 @@ import { StudentModule } from './modules/student/student.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { FileModule } from './modules/files/file.module';
 import { RoomModule } from './modules/room/room.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { RoomModule } from './modules/room/room.module';
     StudentModule,
     StaffModule,
     FileModule,
+    CalendarModule,
   ],
 })
 export class AppModule implements NestModule {
