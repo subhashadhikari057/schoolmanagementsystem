@@ -11,6 +11,7 @@ export * from './client';
 
 // Service exports
 export * from './services';
+export * from './calendar';
 
 // Type exports
 export * from './types';
