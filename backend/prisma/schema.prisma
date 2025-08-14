@@ -85,6 +85,7 @@ model Class {
   students       Student[]
   assignedSubjects ClassSubject[]
   teacherAssignments TeacherClass[] @relation("ClassTeacherAssignments")
+  attendanceRecords AttendanceRecord[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -186,6 +187,7 @@ model Student {
 
   guardians Guardian[]
   parents   ParentStudentLink[]
+  attendanceRecords AttendanceRecord[]
 
   profile StudentProfile?
 
@@ -591,4 +593,46 @@ enum CalendarEntryType {
 enum HolidayType {
   NATIONAL
   SCHOOL
+}
+
+// =========================
+// 📊 Attendance Management
+// =========================
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+  UNKNOWN
+}
+
+model AttendanceRecord {
+  id               String @id @default(uuid())
+  studentId        String
+  classId          String
+  attendanceDate   DateTime @db.Date
+  status           AttendanceStatus @default(UNKNOWN)
+  remarks          String?
+  additionalMetadata Json? @default("{}")
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([studentId, attendanceDate])
+  @@index([studentId])
+  @@index([classId])
+  @@index([attendanceDate])
+  @@index([status])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
 }
