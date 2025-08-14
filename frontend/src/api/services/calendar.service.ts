@@ -32,7 +32,6 @@ export class CalendarService {
     dto: CreateCalendarEntryDto,
   ): Promise<CalendarEntryResponseDto> {
     try {
-      console.log('Creating calendar entry:', dto);
       const response = await httpClient.post<CalendarEntryResponseDto>(
         this.baseUrl,
         dto,
@@ -51,15 +50,10 @@ export class CalendarService {
     query?: CalendarEntriesQueryDto,
   ): Promise<CalendarEntriesResponseDto> {
     try {
-      console.log('Fetching calendar entries', { query });
       const response = await httpClient.get<CalendarEntriesResponseDto>(
         this.baseUrl,
         query,
       );
-      console.log('Calendar entries fetched successfully', {
-        count: response.data.entries.length,
-        total: response.data.pagination.total,
-      });
       return response.data;
     } catch (error) {
       console.error('Failed to fetch calendar entries:', error);
@@ -72,7 +66,6 @@ export class CalendarService {
    */
   async getUpcomingEntries(limit = 10): Promise<CalendarEntryResponseDto[]> {
     try {
-      console.log('Fetching upcoming calendar entries', { limit });
       const response = await httpClient.get<CalendarEntryResponseDto[]>(
         `${this.baseUrl}/upcoming`,
         { limit },
@@ -94,7 +87,6 @@ export class CalendarService {
     thisMonth: number;
   }> {
     try {
-      console.log('Fetching calendar statistics');
       const response = await httpClient.get<{
         total: number;
         holidays: number;
@@ -113,7 +105,6 @@ export class CalendarService {
    */
   async getCalendarEntryById(id: string): Promise<CalendarEntryResponseDto> {
     try {
-      console.log('Fetching calendar entry by ID:', id);
       const response = await httpClient.get<CalendarEntryResponseDto>(
         `${this.baseUrl}/${id}`,
       );
@@ -132,7 +123,6 @@ export class CalendarService {
     dto: UpdateCalendarEntryDto,
   ): Promise<CalendarEntryResponseDto> {
     try {
-      console.log('Updating calendar entry:', { id, dto });
       const response = await httpClient.patch<CalendarEntryResponseDto>(
         `${this.baseUrl}/${id}`,
         dto,
@@ -149,7 +139,6 @@ export class CalendarService {
    */
   async deleteCalendarEntry(id: string): Promise<{ message: string }> {
     try {
-      console.log('Deleting calendar entry:', id);
       const response = await httpClient.delete<{ message: string }>(
         `${this.baseUrl}/${id}`,
       );
@@ -167,7 +156,6 @@ export class CalendarService {
     dto: BulkCalendarOperationDto,
   ): Promise<{ success: number; failed: number }> {
     try {
-      console.log('Performing bulk calendar operation:', dto);
       const response = await httpClient.post<{
         success: number;
         failed: number;

@@ -12,7 +12,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
-// Note: For now using console logging, can be replaced with proper audit service later
 import {
   CreateCalendarEntryDto,
   UpdateCalendarEntryDto,
@@ -35,8 +34,7 @@ export class CalendarService {
     dto: CreateCalendarEntryDto,
     userId: string,
   ): Promise<CalendarEntryResponseDto> {
-    // Simple logging without audit for now
-    console.log('Creating calendar entry', { dto, userId });
+    // Calendar entry creation logic
 
     try {
       const data: Prisma.CalendarEntryCreateInput = {
@@ -53,13 +51,8 @@ export class CalendarService {
         data,
       });
 
-      console.log('Calendar entry created successfully', { entryId: entry.id });
       return this.mapToResponseDto(entry);
     } catch (error) {
-      console.error('Failed to create calendar entry', {
-        error: error.message,
-        dto,
-      });
       throw new BadRequestException('Failed to create calendar entry');
     }
   }
@@ -70,8 +63,6 @@ export class CalendarService {
   async findMany(
     query: CalendarEntriesQueryDto,
   ): Promise<CalendarEntriesResponseDto> {
-    console.log('Fetching calendar entries', { query });
-
     const {
       page = 1,
       limit = 20,
@@ -146,17 +137,8 @@ export class CalendarService {
         },
       };
 
-      console.log('Calendar entries fetched successfully', {
-        count: entries.length,
-        total,
-      });
-
       return response;
     } catch (error) {
-      console.error('Failed to fetch calendar entries', {
-        error: error.message,
-        query,
-      });
       throw new BadRequestException('Failed to fetch calendar entries');
     }
   }
@@ -165,8 +147,6 @@ export class CalendarService {
    * Get a single calendar entry by ID
    */
   async findOne(id: string): Promise<CalendarEntryResponseDto> {
-    console.log('Fetching calendar entry', { id });
-
     const entry = await this.prisma.calendarEntry.findFirst({
       where: {
         id,
@@ -189,8 +169,6 @@ export class CalendarService {
     dto: UpdateCalendarEntryDto,
     userId: string,
   ): Promise<CalendarEntryResponseDto> {
-    console.log('Updating calendar entry', { id, dto, userId });
-
     // Check if entry exists
     const existingEntry = await this.prisma.calendarEntry.findFirst({
       where: {
@@ -222,14 +200,8 @@ export class CalendarService {
         data: updateData,
       });
 
-      console.log('Calendar entry updated successfully', { id });
       return this.mapToResponseDto(updatedEntry);
     } catch (error) {
-      console.error('Failed to update calendar entry', {
-        error: error.message,
-        id,
-        dto,
-      });
       throw new BadRequestException('Failed to update calendar entry');
     }
   }
@@ -238,8 +210,6 @@ export class CalendarService {
    * Delete a calendar entry (soft delete)
    */
   async remove(id: string, userId: string): Promise<void> {
-    console.log('Deleting calendar entry', { id, userId });
-
     const entry = await this.prisma.calendarEntry.findFirst({
       where: {
         id,
@@ -259,13 +229,7 @@ export class CalendarService {
           deletedById: userId,
         },
       });
-
-      console.log('Calendar entry deleted successfully', { id });
     } catch (error) {
-      console.error('Failed to delete calendar entry', {
-        error: error.message,
-        id,
-      });
       throw new BadRequestException('Failed to delete calendar entry');
     }
   }
@@ -277,8 +241,6 @@ export class CalendarService {
     dto: BulkCalendarOperationDto,
     userId: string,
   ): Promise<{ success: number; failed: number }> {
-    console.log('Performing bulk operation', { dto, userId });
-
     const { entryIds, action } = dto;
     let success = 0;
     let failed = 0;
@@ -308,15 +270,10 @@ export class CalendarService {
 
         success++;
       } catch (error) {
-        console.error('Bulk operation failed for entry', {
-          error: error.message,
-          entryId,
-        });
         failed++;
       }
     }
 
-    console.log('Bulk operation completed', { success, failed, action });
     return { success, failed };
   }
 
@@ -324,8 +281,6 @@ export class CalendarService {
    * Get upcoming events (for dashboard/widgets)
    */
   async getUpcoming(limit: number = 10): Promise<CalendarEntryResponseDto[]> {
-    console.log('Fetching upcoming events', { limit });
-
     const entries = await this.prisma.calendarEntry.findMany({
       where: {
         deletedAt: null,
@@ -349,8 +304,6 @@ export class CalendarService {
     events: number;
     thisMonth: number;
   }> {
-    console.log('Fetching calendar statistics');
-
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(
