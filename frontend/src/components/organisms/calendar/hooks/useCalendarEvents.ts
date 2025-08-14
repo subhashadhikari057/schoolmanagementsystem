@@ -171,9 +171,15 @@ export const useCalendarEvents = (
     await fetchEvents();
   }, [fetchEvents]);
 
+  // Track if we've already made the initial fetch
+  const initialFetchDone = useRef(false);
+
   // Initial load - only run once when component mounts
   useEffect(() => {
-    fetchEvents();
+    if (!initialFetchDone.current) {
+      initialFetchDone.current = true;
+      fetchEvents();
+    }
   }, []); // Empty dependency array to prevent infinite loop
 
   return {

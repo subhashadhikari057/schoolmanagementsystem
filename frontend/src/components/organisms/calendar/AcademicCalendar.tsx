@@ -885,7 +885,6 @@ export default function AcademicCalendar({
                 onRefresh={handleRefresh}
                 externalRefreshing={isRefreshing}
                 onEventClick={event => {
-                  console.log('Event clicked:', event);
                   // TODO: Add event click handler (open event details modal)
                 }}
               />

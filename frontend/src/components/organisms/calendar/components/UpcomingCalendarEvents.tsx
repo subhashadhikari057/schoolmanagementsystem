@@ -162,8 +162,8 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
 
   // Fetch upcoming events from API
   const fetchUpcomingEvents = useCallback(async () => {
-    if (externalEvents) {
-      return; // Don't fetch if external events are provided
+    if (externalEvents !== undefined) {
+      return; // Don't fetch if external events prop is provided (even if empty array)
     }
 
     setLoading(true);
@@ -194,14 +194,13 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
         );
 
       setEvents(upcomingEvents);
-      setHasMore(upcomingEvents.length > displayLimit);
     } catch (err) {
       console.error('Failed to fetch upcoming events:', err);
       setError(err instanceof Error ? err.message : 'Failed to load events');
     } finally {
       setLoading(false);
     }
-  }, [daysAhead, displayLimit, externalEvents]);
+  }, [daysAhead, externalEvents]);
 
   // Handle refresh
   const handleRefresh = useCallback(async () => {
@@ -236,12 +235,12 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
     setHasMore(hasMoreToShow);
   }, [hasMoreToShow]);
 
-  // Fetch events on mount and when dependencies change
+  // Fetch events on mount ONLY if no external events prop is provided
   useEffect(() => {
-    if (!externalEvents) {
+    if (externalEvents === undefined) {
       fetchUpcomingEvents();
     }
-  }, [fetchUpcomingEvents, externalEvents]);
+  }, []); // Only run on mount
 
   // Update events when external events change
   useEffect(() => {
