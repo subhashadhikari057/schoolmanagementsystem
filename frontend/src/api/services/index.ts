@@ -11,3 +11,4 @@ export * from './class.service';
 export * from './teacher.service';
 export * from './subject.service';
 export * from './staff.service';
+export * from './calendar.service';

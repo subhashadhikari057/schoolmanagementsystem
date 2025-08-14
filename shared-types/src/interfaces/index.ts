@@ -13,3 +13,6 @@ export * from './api/pagination.interface';
 // Common Interfaces
 export * from './common/audit.interface';
 export * from './common/metadata.interface';
+
+// Calendar Interfaces
+export * from './calendar/calendar.interface';

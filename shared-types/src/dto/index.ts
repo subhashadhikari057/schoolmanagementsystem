@@ -22,6 +22,9 @@ export * from './auth/session.dto';
 export * from './user/user.dto';
 export * from './user/profile.dto';
 
+// Calendar DTOs
+export * from './calendar/calendar.dto';
+
 // Student Module DTOs
 export * from './student/student.dto';
 
@@ -56,9 +59,6 @@ export * from './files/file-upload.dto';
 
 // Platform Module DTOs
 export * from './platform/feature-flag.dto';
-
-// Calendar Module DTOs
-export * from './calendar/calendar.dto';
 
 // Configuration Module DTOs
 export * from './configuration/configuration.dto';
