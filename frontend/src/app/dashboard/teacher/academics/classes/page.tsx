@@ -1,11 +1,11 @@
 'use client';
 
 import SectionTitle from '@/components/atoms/display/SectionTitle';
-import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { teacherService } from '@/api/services/teacher.service';
 import { useAuth } from '@/hooks/useAuth';
 import React, { useState, useEffect, useCallback } from 'react';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Users, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface TeacherClass {
   class: {
@@ -20,6 +20,7 @@ interface TeacherClass {
 
 export default function TeacherClassesPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [classes, setClasses] = useState<TeacherClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,15 +49,9 @@ export default function TeacherClassesPage() {
     loadClasses();
   }, [loadClasses]);
 
-  // Transform classes data for Statsgrid
-  const classItems = classes.map(classItem => ({
-    status: classItem.class.currentEnrollment
-      ? `${classItem.class.currentEnrollment}/${classItem.class.capacity || 30} Students`
-      : 'No Students',
-    title: `Grade ${classItem.class.grade} - Section ${classItem.class.section}`,
-    subtitle: 'Class Teacher',
-    tone: 'blue' as const,
-  }));
+  const handleClassClick = (classId: string) => {
+    router.push(`/dashboard/teacher/academics/classes/${classId}`);
+  };
 
   if (loading) {
     return (
@@ -110,12 +105,41 @@ export default function TeacherClassesPage() {
 
       {/* Classes Grid */}
       {classes.length > 0 ? (
-        <Statsgrid
-          variant='classes'
-          items={classItems}
-          classesSize='lg'
-          className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4'
-        />
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+          {classes.map(classItem => (
+            <div
+              key={classItem.class.id}
+              onClick={() => handleClassClick(classItem.class.id)}
+              className='bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer group p-6'
+            >
+              <div className='flex items-center justify-between mb-4'>
+                <div
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700`}
+                >
+                  {classItem.class.currentEnrollment
+                    ? `${classItem.class.currentEnrollment}/${classItem.class.capacity || 30} Students`
+                    : 'No Students'}
+                </div>
+                <ChevronRight className='w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors' />
+              </div>
+
+              <div className='space-y-2'>
+                <h3 className='text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors'>
+                  Grade {classItem.class.grade} - Section{' '}
+                  {classItem.class.section}
+                </h3>
+                <p className='text-sm text-gray-600'>Class Teacher</p>
+              </div>
+
+              <div className='mt-4 flex items-center gap-2'>
+                <Users className='w-4 h-4 text-gray-400' />
+                <span className='text-sm text-gray-600'>
+                  {classItem.class.currentEnrollment || 0} Students enrolled
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className='text-center py-12'>
           <GraduationCap className='mx-auto h-12 w-12 text-gray-400 mb-4' />
