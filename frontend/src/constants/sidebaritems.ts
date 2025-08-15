@@ -173,11 +173,6 @@ export const sidebarItems = {
           path: '/dashboard/teacher/academics/classes',
         },
         {
-          label: 'My Subjects',
-          icon: 'BookCopy',
-          path: '/dashboard/teacher/academics/subjects',
-        },
-        {
           label: 'Class Routine',
           icon: 'CalendarClock',
           path: '/dashboard/teacher/academics/routine',

@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import SectionTitle from '@/components/atoms/display/SectionTitle';
-import Label from '@/components/atoms/display/Label';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import Button from '@/components/atoms/form-controls/Button';
-import { Edit, Eye, Clock, Users, Calendar } from 'lucide-react';
+import { Users, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
+import { assignmentService } from '@/api/services/assignment.service';
+import { teacherService } from '@/api/services/teacher.service';
+import { useAuth } from '@/hooks/useAuth';
+import { AssignmentResponse } from '@/api/types/assignment';
 
-interface Assignment {
+interface ProcessedAssignment {
   id: string;
   title: string;
   class: string;
@@ -19,79 +21,107 @@ interface Assignment {
   graded: number;
   status: 'active' | 'completed' | 'overdue';
   priority: 'low' | 'medium' | 'high';
+  originalData: AssignmentResponse;
 }
 
-export default function AllAssignmentsTab() {
+interface AllAssignmentsTabProps {
+  refreshTrigger?: number;
+}
+
+export default function AllAssignmentsTab({
+  refreshTrigger,
+}: AllAssignmentsTabProps) {
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'incomplete' | 'completed'
   >('all');
-  const [subjectFilter, setSubjectFilter] = useState<
-    'all' | 'science' | 'math' | 'physics' | 'chemistry'
-  >('all');
+  const [subjectFilter, setSubjectFilter] = useState<string>('all');
 
-  const assignments: Assignment[] = [
-    {
-      id: '1',
-      title: 'An essay about Railway In Nepal (minimum 300 words)',
-      class: 'Class 8-A',
-      subject: 'Science',
-      dueDate: '8/15/2025',
-      totalStudents: 50,
-      submissions: 12,
-      graded: 5,
-      status: 'active',
-      priority: 'medium',
-    },
-    {
-      id: '2',
-      title: 'Complete Coordinate Geometry Problem Set, Page-34',
-      class: 'Class 9-A',
-      subject: 'Optional Mathematics',
-      dueDate: '8/18/2025',
-      totalStudents: 30,
-      submissions: 25,
-      graded: 20,
-      status: 'active',
-      priority: 'high',
-    },
-    {
-      id: '3',
-      title: "Physics Lab Report - Newton's Laws of Motion",
-      class: 'Class 11-A',
-      subject: 'Physics Lab',
-      dueDate: '8/20/2025',
-      totalStudents: 18,
-      submissions: 8,
-      graded: 0,
-      status: 'active',
-      priority: 'medium',
-    },
-    {
-      id: '4',
-      title: 'Chemical Bonding Theory Questions',
-      class: 'Class 12-B',
-      subject: 'Chemistry Theory',
-      dueDate: '8/10/2025',
-      totalStudents: 22,
-      submissions: 22,
-      graded: 22,
-      status: 'completed',
-      priority: 'low',
-    },
-    {
-      id: '5',
-      title: 'Photosynthesis Diagram and Explanation',
-      class: 'Class 7-B',
-      subject: 'Science',
-      dueDate: '8/8/2025',
-      totalStudents: 32,
-      submissions: 28,
-      graded: 15,
-      status: 'overdue',
-      priority: 'high',
-    },
-  ];
+  // API data state
+  const [assignments, setAssignments] = useState<ProcessedAssignment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [subjects, setSubjects] = useState<string[]>([]);
+
+  const loadAssignments = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // First get the teacher record to get teacher ID
+      const teacherResponse = await teacherService.getCurrentTeacher();
+      const teacherId = teacherResponse.data.id;
+
+      const response =
+        await assignmentService.getAssignmentsByTeacher(teacherId);
+      const assignmentData = response.data;
+
+      // Process assignments data
+      const processedAssignments: ProcessedAssignment[] = assignmentData.map(
+        (assignment: AssignmentResponse) => {
+          const submissionCount = assignment._count?.submissions || 0;
+          const gradedCount =
+            assignment.submissions?.filter(sub => sub.isCompleted).length || 0;
+          const totalStudents = assignment.class.students?.length || 0;
+
+          // Determine status
+          let status: 'active' | 'completed' | 'overdue' = 'active';
+          if (assignment.dueDate && new Date(assignment.dueDate) < new Date()) {
+            status = 'overdue';
+          } else if (
+            submissionCount === totalStudents &&
+            gradedCount === submissionCount
+          ) {
+            status = 'completed';
+          }
+
+          // Get priority from metadata
+          const priority =
+            (assignment.additionalMetadata as any)?.priority || 'medium';
+
+          return {
+            id: assignment.id,
+            title: assignment.title,
+            class: `Grade ${assignment.class.grade} - Section ${assignment.class.section}`,
+            subject: assignment.subject.name,
+            dueDate: assignment.dueDate
+              ? new Date(assignment.dueDate).toLocaleDateString()
+              : 'No due date',
+            totalStudents,
+            submissions: submissionCount,
+            graded: gradedCount,
+            status,
+            priority,
+            originalData: assignment,
+          };
+        },
+      );
+
+      setAssignments(processedAssignments);
+
+      // Extract unique subjects for filter
+      const uniqueSubjects = [
+        ...new Set(processedAssignments.map(a => a.subject)),
+      ];
+      setSubjects(uniqueSubjects);
+    } catch (error) {
+      console.error('Failed to load assignments:', error);
+      setError('Failed to load assignments. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Load assignments data
+  useEffect(() => {
+    loadAssignments();
+  }, [loadAssignments, refreshTrigger]);
 
   const filteredAssignments = useMemo(() => {
     return assignments.filter(assignment => {
@@ -101,10 +131,12 @@ export default function AllAssignmentsTab() {
         assignment.subject.toLowerCase().includes(query.toLowerCase());
 
       const matchesStatus =
-        statusFilter === 'all' || assignment.status === statusFilter;
+        statusFilter === 'all' ||
+        (statusFilter === 'completed' && assignment.status === 'completed') ||
+        (statusFilter === 'incomplete' && assignment.status !== 'completed');
+
       const matchesSubject =
-        subjectFilter === 'all' ||
-        assignment.subject.toLowerCase().includes(subjectFilter);
+        subjectFilter === 'all' || assignment.subject === subjectFilter;
 
       return matchesQuery && matchesStatus && matchesSubject;
     });
@@ -169,17 +201,13 @@ export default function AllAssignmentsTab() {
             title='Filter Subject'
             options={[
               { value: 'all', label: 'All Subjects' },
-              { value: 'science', label: 'Science' },
-              { value: 'math', label: 'Math' },
-              { value: 'physics', label: 'Physics' },
-              { value: 'chemistry', label: 'Chemistry' },
+              ...subjects.map(subject => ({
+                value: subject,
+                label: subject,
+              })),
             ]}
             selectedValue={subjectFilter}
-            onSelect={value =>
-              setSubjectFilter(
-                value as 'all' | 'science' | 'math' | 'physics' | 'chemistry',
-              )
-            }
+            onSelect={value => setSubjectFilter(value)}
             className='max-w-xs'
           />
         </div>
@@ -187,119 +215,155 @@ export default function AllAssignmentsTab() {
 
       {/* Assignments List */}
       <div className='space-y-4'>
-        {filteredAssignments.map(assignment => (
-          <div
-            key={assignment.id}
-            className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'
-          >
-            <div className='flex items-start justify-between mb-4'>
-              <div className='flex-1'>
-                <div className='flex items-center gap-3 mb-3'>
-                  <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}
-                  >
-                    {assignment.status}
-                  </span>
-                  <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(assignment.priority)}`}
-                  >
-                    {assignment.priority} priority
-                  </span>
-                  <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700'>
-                    {assignment.subject}
-                  </span>
-                </div>
-
-                <h3 className='text-lg font-semibold text-gray-900 mb-2'>
-                  {assignment.title}
-                </h3>
-
-                <div className='flex items-center gap-6 text-sm text-gray-600'>
-                  <div className='flex items-center gap-2'>
-                    <Users className='w-4 h-4' />
-                    <span>{assignment.class}</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Calendar className='w-4 h-4' />
-                    <span>Due: {assignment.dueDate}</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Users className='w-4 h-4' />
-                    <span>{assignment.totalStudents} students</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className='flex gap-3'>
-                <Button
-                  label='Edit'
-                  className='bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200'
-                />
-                <Button
-                  label='View Details'
-                  className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700'
-                />
-              </div>
+        {loading ? (
+          <div className='flex items-center justify-center py-12'>
+            <div className='text-center'>
+              <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
+              <p className='text-gray-600'>Loading assignments...</p>
             </div>
-
-            {/* Progress Bars */}
-            <div className='space-y-3'>
-              <div>
-                <div className='flex justify-between text-sm mb-1'>
-                  <span className='text-gray-600'>Submissions</span>
-                  <span className='text-gray-900'>
-                    {assignment.submissions}/{assignment.totalStudents} (
-                    {Math.round(
-                      (assignment.submissions / assignment.totalStudents) * 100,
-                    )}
-                    %)
-                  </span>
-                </div>
-                <div className='w-full bg-gray-200 rounded-full h-2'>
-                  <div
-                    className='bg-blue-600 h-2 rounded-full transition-all duration-300'
-                    style={{
-                      width: `${(assignment.submissions / assignment.totalStudents) * 100}%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              <div>
-                <div className='flex justify-between text-sm mb-1'>
-                  <span className='text-gray-600'>Graded</span>
-                  <span className='text-gray-900'>
-                    {assignment.graded}/{assignment.submissions} (
-                    {assignment.submissions > 0
-                      ? Math.round(
-                          (assignment.graded / assignment.submissions) * 100,
-                        )
-                      : 0}
-                    %)
-                  </span>
-                </div>
-                <div className='w-full bg-gray-200 rounded-full h-2'>
-                  <div
-                    className='bg-green-600 h-2 rounded-full transition-all duration-300'
-                    style={{
-                      width: `${assignment.submissions > 0 ? (assignment.graded / assignment.submissions) * 100 : 0}%`,
-                    }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Pending Review */}
-            {assignment.status === 'active' &&
-              assignment.submissions > assignment.graded && (
-                <div className='mt-4 pt-4 border-t border-gray-200'>
-                  <span className='text-orange-600 text-sm font-medium'>
-                    {assignment.submissions - assignment.graded} pending review
-                  </span>
-                </div>
-              )}
           </div>
-        ))}
+        ) : error ? (
+          <div className='flex items-center justify-center py-12'>
+            <div className='text-center'>
+              <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-4' />
+              <p className='text-red-600 mb-4'>{error}</p>
+              <Button
+                onClick={loadAssignments}
+                className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 mx-auto'
+              >
+                <RefreshCw className='w-4 h-4' />
+                Try Again
+              </Button>
+            </div>
+          </div>
+        ) : filteredAssignments.length === 0 ? (
+          <div className='flex items-center justify-center py-12'>
+            <div className='text-center'>
+              <Calendar className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+              <p className='text-gray-600'>
+                {assignments.length === 0
+                  ? 'No assignments found. Create your first assignment to get started!'
+                  : 'No assignments match your current filters.'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          filteredAssignments.map(assignment => (
+            <div
+              key={assignment.id}
+              className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'
+            >
+              <div className='flex items-start justify-between mb-4'>
+                <div className='flex-1'>
+                  <div className='flex items-center gap-3 mb-3'>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}
+                    >
+                      {assignment.status}
+                    </span>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(assignment.priority)}`}
+                    >
+                      {assignment.priority} priority
+                    </span>
+                    <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700'>
+                      {assignment.subject}
+                    </span>
+                  </div>
+
+                  <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+                    {assignment.title}
+                  </h3>
+
+                  <div className='flex items-center gap-6 text-sm text-gray-600'>
+                    <div className='flex items-center gap-2'>
+                      <Users className='w-4 h-4' />
+                      <span>{assignment.class}</span>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <Calendar className='w-4 h-4' />
+                      <span>Due: {assignment.dueDate}</span>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <Users className='w-4 h-4' />
+                      <span>{assignment.totalStudents} students</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className='flex gap-3'>
+                  <Button
+                    label='Edit'
+                    className='bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200'
+                  />
+                  <Button
+                    label='View Details'
+                    className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700'
+                  />
+                </div>
+              </div>
+
+              {/* Progress Bars */}
+              <div className='space-y-3'>
+                <div>
+                  <div className='flex justify-between text-sm mb-1'>
+                    <span className='text-gray-600'>Submissions</span>
+                    <span className='text-gray-900'>
+                      {assignment.submissions}/{assignment.totalStudents} (
+                      {Math.round(
+                        (assignment.submissions / assignment.totalStudents) *
+                          100,
+                      )}
+                      %)
+                    </span>
+                  </div>
+                  <div className='w-full bg-gray-200 rounded-full h-2'>
+                    <div
+                      className='bg-blue-600 h-2 rounded-full transition-all duration-300'
+                      style={{
+                        width: `${(assignment.submissions / assignment.totalStudents) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className='flex justify-between text-sm mb-1'>
+                    <span className='text-gray-600'>Graded</span>
+                    <span className='text-gray-900'>
+                      {assignment.graded}/{assignment.submissions} (
+                      {assignment.submissions > 0
+                        ? Math.round(
+                            (assignment.graded / assignment.submissions) * 100,
+                          )
+                        : 0}
+                      %)
+                    </span>
+                  </div>
+                  <div className='w-full bg-gray-200 rounded-full h-2'>
+                    <div
+                      className='bg-green-600 h-2 rounded-full transition-all duration-300'
+                      style={{
+                        width: `${assignment.submissions > 0 ? (assignment.graded / assignment.submissions) * 100 : 0}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pending Review */}
+              {assignment.status === 'active' &&
+                assignment.submissions > assignment.graded && (
+                  <div className='mt-4 pt-4 border-t border-gray-200'>
+                    <span className='text-orange-600 text-sm font-medium'>
+                      {assignment.submissions - assignment.graded} pending
+                      review
+                    </span>
+                  </div>
+                )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

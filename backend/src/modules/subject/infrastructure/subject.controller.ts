@@ -25,11 +25,11 @@ import { Roles } from '../../../shared/decorators/roles.decorator';
 import { UserRole } from '@sms/shared-types';
 
 @Controller('api/v1/subjects')
-@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
 export class SubjectController {
   constructor(private readonly subjectService: SubjectService) {}
 
   @Post()
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body(new ZodValidationPipe(CreateSubjectDto)) body: CreateSubjectDtoType,
@@ -45,16 +45,19 @@ export class SubjectController {
   }
 
   @Get()
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findAll() {
     return this.subjectService.findAll();
   }
 
   @Get(':id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findById(@Param('id') id: string) {
     return this.subjectService.findById(id);
   }
 
   @Patch(':id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateSubjectDto)) body: UpdateSubjectDtoType,
@@ -71,6 +74,7 @@ export class SubjectController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   async softDelete(
     @Param('id') id: string,

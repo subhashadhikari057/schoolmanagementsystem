@@ -16,8 +16,9 @@ import {
   UpdateSubmissionDto,
 } from '../dto/submission.dto';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
-import { RoleAccess } from '../../../shared/decorators/roles.decorator';
+import { RoleAccess, Roles } from '../../../shared/decorators/roles.decorator';
 import { UserId } from '../../../shared/decorators/user.decorator';
+import { UserRole } from '@sms/shared-types';
 
 @Controller('api/v1/submissions')
 @UseGuards(JwtAuthGuard)
@@ -67,7 +68,7 @@ export class SubmissionController {
    * Available to teachers and admins
    */
   @Put(':id/grade')
-  @RoleAccess.Academic()
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async gradeSubmission(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateSubmissionDto: UpdateSubmissionDto,
@@ -94,7 +95,7 @@ export class SubmissionController {
    * Available to teachers and admins
    */
   @Delete(':id')
-  @RoleAccess.Academic()
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async delete(
     @Param('id', ParseUUIDPipe) id: string,
     @UserId() userId: string,
@@ -118,7 +119,7 @@ export class SubmissionController {
    * Available to teachers and admins
    */
   @Get('assignment/:assignmentId')
-  @RoleAccess.Academic()
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findByAssignment(
     @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
   ) {

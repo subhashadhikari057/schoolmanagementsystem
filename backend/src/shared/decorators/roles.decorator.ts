@@ -143,6 +143,17 @@ export class RolesGuard implements CanActivate {
     // Check specific roles requirement
     if (requiredRoles && requiredRoles.length > 0) {
       const hasRequiredRole = requiredRoles.includes(userRole);
+
+      // Debug logging
+      console.log('🔍 Role check details:', {
+        userRole,
+        requiredRoles,
+        hasRequiredRole,
+        userObject: user,
+        endpoint: request.url,
+        method: request.method,
+      });
+
       if (!hasRequiredRole) {
         this.logger.warn(
           `Access denied: User ${user.id} with role ${userRole} attempted to access route requiring roles: ${requiredRoles.join(', ')}`,
