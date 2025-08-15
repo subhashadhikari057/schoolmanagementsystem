@@ -8,6 +8,7 @@ import {
   FileText,
   Settings,
   UserPlus,
+  Users,
 } from 'lucide-react';
 import React from 'react';
 import type { ClassResponse } from '@/api/services/class.service';
@@ -65,56 +66,73 @@ export const mockEvents: Event[] = [
 ];
 
 // Mock Quick Actions Data
-export const mockQuickActions: QuickAction[] = [
+export const teacherQuickActions: QuickAction[] = [
+  {
+    id: 'attendance-report',
+    title: 'Attendance Report',
+    icon: React.createElement(Users, { className: 'w-6 h-6' }),
+    onClick: () => {},
+  },
+  {
+    id: 'grade-summary',
+    title: 'Grade Summary',
+    icon: React.createElement(FileText, { className: 'w-6 h-6' }),
+    onClick: () => {},
+  },
+  {
+    id: 'class-schedule',
+    title: 'Class Schedule',
+    icon: React.createElement(CalendarPlus, { className: 'w-6 h-6' }),
+    onClick: () => {},
+  },
+  {
+    id: 'syllabus-progress',
+    title: 'Syllabus Progress',
+    icon: React.createElement(FileText, { className: 'w-6 h-6' }),
+    onClick: () => {},
+  },
+];
+
+export const adminQuickActions: QuickAction[] = [
   {
     id: '1',
     title: 'Add New Student',
     icon: React.createElement(UserPlus, { className: 'w-6 h-6' }),
-    onClick: () => {
-      // This will be handled by the component
-    },
+    onClick: () => {},
   },
   {
     id: '2',
     title: 'Add New Teacher',
     icon: React.createElement(GraduationCap, { className: 'w-6 h-6' }),
-    onClick: () => {
-      // This will be handled by the component
-    },
+    onClick: () => {},
   },
   {
     id: '3',
     title: 'Generate ID',
     icon: React.createElement(IdCard, { className: 'w-6 h-6' }),
-    onClick: () => {
-      // This will be handled by the component
-    },
+    onClick: () => {},
   },
   {
     id: '4',
     title: 'Create Event',
     icon: React.createElement(CalendarPlus, { className: 'w-6 h-6' }),
-    onClick: () => {
-      // This will be handled by the component
-    },
+    onClick: () => {},
   },
   {
     id: '5',
     title: 'Process Files',
     icon: React.createElement(FileText, { className: 'w-6 h-6' }),
-    onClick: () => {
-      // This will be handled by the component
-    },
+    onClick: () => {},
   },
   {
     id: '6',
     title: 'System Settings',
     icon: React.createElement(Settings, { className: 'w-6 h-6' }),
-    onClick: () => {
-      // This will be handled by the component
-    },
+    onClick: () => {},
   },
 ];
+
+// Usage: import the correct quick actions for the role
 
 // Route mappings for quick actions
 export const quickActionRoutes: Record<string, string> = {
@@ -131,22 +149,10 @@ export const mockClasses: ClassResponse[] = [
   {
     id: 'class-1',
     name: 'Grade 10',
-    sections: [
-      {
-        id: 'section-1',
-        name: 'A',
-        classId: 'class-1',
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-02T00:00:00Z',
-      },
-      {
-        id: 'section-2',
-        name: 'B',
-        classId: 'class-1',
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-02T00:00:00Z',
-      },
-    ],
+    section: 'A',
+    grade: 10,
+    capacity: 40,
+    roomId: 'room-101',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-02T00:00:00Z',
     createdById: 'admin-1',
@@ -155,15 +161,10 @@ export const mockClasses: ClassResponse[] = [
   {
     id: 'class-2',
     name: 'Grade 11',
-    sections: [
-      {
-        id: 'section-3',
-        name: 'A',
-        classId: 'class-2',
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-02T00:00:00Z',
-      },
-    ],
+    section: 'A',
+    grade: 11,
+    capacity: 35,
+    roomId: 'room-102',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-02T00:00:00Z',
     createdById: 'admin-1',

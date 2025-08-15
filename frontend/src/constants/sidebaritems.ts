@@ -159,4 +159,150 @@ export const sidebarItems = {
       ],
     },
   ],
+  teacher: [
+    {
+      title: 'GENERAL',
+      items: [{ label: 'Dashboard', icon: 'Home', path: '/dashboard/teacher' }],
+    },
+    {
+      title: 'ACADEMICS',
+      items: [
+        {
+          label: 'My Classes',
+          icon: 'Users',
+          path: '/dashboard/teacher/academics/classes',
+        },
+        {
+          label: 'My Subjects',
+          icon: 'BookCopy',
+          path: '/dashboard/teacher/academics/subjects',
+        },
+        {
+          label: 'Class Routine',
+          icon: 'CalendarClock',
+          path: '/dashboard/teacher/academics/routine',
+        },
+        {
+          label: 'Attendance',
+          icon: 'PenSquare',
+          path: '/dashboard/teacher/academics/attendance',
+        },
+        {
+          label: 'Assignments',
+          icon: 'CheckSquare',
+          path: '/dashboard/teacher/academics/assignments',
+        },
+        {
+          label: 'Exams & Results',
+          icon: 'ClipboardCheck',
+          path: '/dashboard/teacher/academics/results',
+        },
+      ],
+    },
+    {
+      title: 'COMMUNICATION',
+      items: [
+        {
+          label: 'Notices',
+          icon: 'Megaphone',
+          path: '/dashboard/teacher/communication/notices',
+        },
+        {
+          label: 'Student Complaints',
+          icon: 'MessageSquareWarning',
+          path: '/dashboard/teacher/communication/complaints',
+        },
+      ],
+    },
+    {
+      title: 'PERSONAL',
+      items: [
+        {
+          label: 'Leave Requests',
+          icon: 'Mailbox',
+          path: '/dashboard/teacher/personal/leave',
+        },
+      ],
+    },
+  ],
+  student: [
+    {
+      title: 'STUDENT DASHBOARD',
+      items: [
+        { label: 'Dashboard', icon: 'Home', path: '/dashboard/student' },
+        {
+          label: 'My Classes',
+          icon: 'Layers',
+          path: '/dashboard/student/classes',
+        },
+        {
+          label: 'Assignments',
+          icon: 'CheckSquare',
+          path: '/dashboard/student/assignments',
+        },
+        {
+          label: 'Attendance',
+          icon: 'CalendarCheck',
+          path: '/dashboard/student/attendance',
+        },
+        {
+          label: 'Exams',
+          icon: 'ClipboardList',
+          path: '/dashboard/student/exams',
+        },
+        {
+          label: 'Notices',
+          icon: 'Megaphone',
+          path: '/dashboard/student/notices',
+        },
+      ],
+    },
+  ],
+  parent: [
+    {
+      title: 'PARENT DASHBOARD',
+      items: [
+        { label: 'Dashboard', icon: 'Home', path: '/dashboard/parent' },
+        {
+          label: 'My Children',
+          icon: 'Users',
+          path: '/dashboard/parent/children',
+        },
+        {
+          label: 'Attendance',
+          icon: 'CalendarCheck',
+          path: '/dashboard/parent/attendance',
+        },
+        {
+          label: 'Exams',
+          icon: 'ClipboardList',
+          path: '/dashboard/parent/exams',
+        },
+        {
+          label: 'Notices',
+          icon: 'Megaphone',
+          path: '/dashboard/parent/notices',
+        },
+      ],
+    },
+  ],
+  staff: [
+    {
+      title: 'STAFF DASHBOARD',
+      items: [
+        { label: 'Dashboard', icon: 'Home', path: '/dashboard/staff' },
+        { label: 'Tasks', icon: 'CheckSquare', path: '/dashboard/staff/tasks' },
+        {
+          label: 'Attendance',
+          icon: 'CalendarCheck',
+          path: '/dashboard/staff/attendance',
+        },
+        {
+          label: 'Notices',
+          icon: 'Megaphone',
+          path: '/dashboard/staff/notices',
+        },
+      ],
+    },
+  ],
 };
