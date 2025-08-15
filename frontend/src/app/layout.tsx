@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
 import { AnalyticsOverviewProvider } from '@/context/AnalyticsOverviewContext';
+import AuthProvider from '@/context/AuthProvider';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--font-plus-jakarta-sans',
@@ -25,7 +26,9 @@ export default function RootLayout({
         <meta name='viewport' content='width=device-width, initial-scale=1.0' />
       </head>
       <body className={`${plusJakartaSans.variable} antialiased`}>
-        <AnalyticsOverviewProvider>{children}</AnalyticsOverviewProvider>
+        <AuthProvider>
+          <AnalyticsOverviewProvider>{children}</AnalyticsOverviewProvider>
+        </AuthProvider>
         <Toaster
           position='top-right'
           richColors

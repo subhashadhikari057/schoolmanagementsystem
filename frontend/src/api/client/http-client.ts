@@ -12,6 +12,7 @@ import {
   RequestConfig,
   HttpMethod,
 } from '../types/common';
+import { dispatchApiErrorEvent } from './api-interceptor';
 
 // ============================================================================
 // HTTP Client Configuration
@@ -224,9 +225,13 @@ export class HttpClient {
 
           // Handle 401 Unauthorized - session expired
           if (response.status === 401 && !url.includes('/auth/')) {
+            // Dispatch API error event for token expiry handlers
+            dispatchApiErrorEvent(apiError);
             return this.handleUnauthorized(method, url, data, config);
           }
 
+          // Dispatch API error event for other errors
+          dispatchApiErrorEvent(apiError);
           throw apiError;
         }
 
@@ -354,6 +359,14 @@ export class HttpClient {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('auth:session-expired'));
       }
+
+      // Dispatch API error for token expiry handler
+      dispatchApiErrorEvent({
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Session expired. Please login again.',
+        code: 'SESSION_EXPIRED',
+      });
 
       throw {
         statusCode: 401,
