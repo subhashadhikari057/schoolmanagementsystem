@@ -444,6 +444,27 @@ export default function AddParentFormModal({
       );
 
       if (response.success) {
+        // Log the generated password to console for testing purposes
+        // Note: Parent creation might return password in different structure
+        const tempPassword = (response.data as any)?.temporaryPassword;
+        if (tempPassword) {
+          console.log('👨‍👩‍👧‍👦 PARENT ACCOUNT CREATED SUCCESSFULLY! 👨‍👩‍👧‍👦');
+          console.table({
+            Email: response.data.email || formData.email,
+            'Generated Password': tempPassword,
+            'Parent Name': response.data.fullName || formData.fullName,
+            'Parent ID': response.data.id || 'Not available',
+            Phone: formData.phone,
+            'Children Count': formData.children.filter(child => child.fullName)
+              .length,
+          });
+          console.log('💡 Use these credentials to test login functionality');
+          console.log(
+            '⚠️  This password will be shown only once for security reasons',
+          );
+          console.log('🔗 Go to login page to test these credentials');
+        }
+
         toast.success('Parent account created successfully!');
         setFormData(initialFormData);
         setImagePreview(null);

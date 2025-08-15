@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, FileText } from 'lucide-react';
 import Button from '@/components/atoms/form-controls/Button';
-import SectionTitle from '@/components/atoms/display/SectionTitle';
+
 import { assignmentService } from '@/api/services/assignment.service';
 import { teacherService } from '@/api/services/teacher.service';
 import { classService, ClassResponse } from '@/api/services/class.service';
@@ -30,23 +30,18 @@ export default function AssignmentsTab({ classDetails }: AssignmentsTabProps) {
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [backendClassData, setBackendClassData] =
     useState<ClassResponse | null>(null);
-  const [classDataLoading, setClassDataLoading] = useState(true);
 
   // Load real class data from backend
   const loadClassData = useCallback(async () => {
     if (!classDetails.id) {
-      setClassDataLoading(false);
       return;
     }
 
     try {
-      setClassDataLoading(true);
       const response = await classService.getClassById(classDetails.id);
       setBackendClassData(response.data);
     } catch (error) {
       console.error('Failed to load class data:', error);
-    } finally {
-      setClassDataLoading(false);
     }
   }, [classDetails.id]);
 

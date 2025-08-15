@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { Search, Users } from 'lucide-react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
-import UserInfoCell from '@/components/molecules/display/UserInfoCell';
-import ContactCell from '@/components/molecules/display/ContactCell';
+
 import Button from '@/components/atoms/form-controls/Button';
 
 interface ClassDetails {

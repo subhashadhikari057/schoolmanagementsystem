@@ -1,5 +1,5 @@
 // components/organisms/Tabs.tsx
-import { useState } from 'react';
+
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/react';
 import ReusableButton from '@/components/atoms/form-controls/Button';
 
@@ -23,7 +23,7 @@ export default function Tabs({
     <div className={` w-full ${className}`}>
       <TabGroup defaultIndex={defaultIndex}>
         <TabList className='flex rounded-full items-center justify-between mb-2 bg-white shadow-sm p-2 overflow-x-auto no-scrollbar'>
-          {tabs.map((tab, idx) => (
+          {tabs.map((tab, _idx) => (
             <Tab key={tab.name} className='flex-1 focus:outline-none'>
               {({ selected }) => (
                 <ReusableButton

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, FileText, Calendar, CheckCircle } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import Button from '@/components/atoms/form-controls/Button';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';

@@ -83,7 +83,8 @@ export default function AllAssignmentsTab({
 
           // Get priority from metadata
           const priority =
-            (assignment.additionalMetadata as any)?.priority || 'medium';
+            ((assignment.additionalMetadata as Record<string, unknown>)
+              ?.priority as 'low' | 'medium' | 'high') || 'medium';
 
           return {
             id: assignment.id,

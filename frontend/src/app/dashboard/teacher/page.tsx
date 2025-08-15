@@ -30,33 +30,6 @@ interface TeacherSubject {
   };
 }
 
-const dummyStatsData = [
-  {
-    value: '6',
-    label: "Today's Classes",
-    change: '2 completed, 4 upcoming',
-    color: 'bg-blue-600',
-  },
-  {
-    value: '158',
-    label: 'Total Students',
-    change: 'Across all classes',
-    color: 'bg-green-600',
-  },
-  {
-    value: '12',
-    label: 'Pending Reviews',
-    change: 'Assignments to grade',
-    color: 'bg-orange-600',
-  },
-  {
-    value: '89%',
-    label: 'Monthly Average',
-    change: '2% from last month',
-    color: 'bg-purple-600',
-  },
-];
-
 interface TeacherClass {
   class: {
     id: string;
@@ -208,7 +181,7 @@ export default function TeacherDashboard() {
             <Statsgrid
               variant='solid'
               stats={statsData.map(s => ({
-                icon: () => null as any,
+                icon: () => null as React.ReactNode,
                 bgColor: s.color,
                 iconColor: '',
                 value: s.value,

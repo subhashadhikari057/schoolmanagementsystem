@@ -459,6 +459,24 @@ export default function AddStaffFormModal({
       const response = await staffService.createStaff(staffData);
 
       if (response.success) {
+        // Log the generated password to console for testing purposes
+        if (response.data?.temporaryPassword) {
+          console.log('👥 STAFF MEMBER CREATED SUCCESSFULLY! 👥');
+          console.table({
+            Email: response.data.staff?.email || formData.email,
+            'Generated Password': response.data.temporaryPassword,
+            'Staff Name': response.data.staff?.fullName || formData.fullName,
+            'Staff ID': response.data.staff?.id || 'Not available',
+            Department: formData.department,
+            Designation: formData.designation,
+          });
+          console.log('💡 Use these credentials to test login functionality');
+          console.log(
+            '⚠️  This password will be shown only once for security reasons',
+          );
+          console.log('🔗 Go to login page to test these credentials');
+        }
+
         toast.success('Staff member created successfully!');
         setFormData(initialFormData);
         setImagePreview(null);

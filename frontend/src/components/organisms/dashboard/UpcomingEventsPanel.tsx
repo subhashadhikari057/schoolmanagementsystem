@@ -1,7 +1,7 @@
 import React from 'react';
 import ChartHeader from '@/components/molecules/interactive/ChartHeader';
 import Icon from '@/components/atoms/display/Icon';
-import Label from '@/components/atoms/display/Label';
+
 import { Calendar, MapPin, Clock } from 'lucide-react';
 import Button from '@/components/atoms/form-controls/Button';
 

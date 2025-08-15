@@ -68,7 +68,14 @@ export default function ClassDetailPage() {
       // Get teacher's classes and find the specific class
       const response = await teacherService.getMyClasses();
       const foundClass = response.data.find(
-        (tc: any) => tc.class.id === classId,
+        (tc: {
+          class: {
+            id: string;
+            grade: number;
+            section: string;
+            currentEnrollment?: number;
+          };
+        }) => tc.class.id === classId,
       );
 
       if (!foundClass) {
