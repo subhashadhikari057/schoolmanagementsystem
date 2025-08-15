@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation';
 import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import ProfileDropdown from '@/components/molecules/interactive/Dropdown';
 import { useAuth } from '@/hooks/useAuth';
-import { isDevMockEnabled } from '@/utils';
+// import { isDevMockEnabled } from '@/utils';
 
 type SidebarRole = 'Superadmin' | 'teacher' | 'student' | 'parent' | 'staff';
 
@@ -50,7 +50,16 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
     }
   };
 
-  const sidebarRole = getSidebarRole(user?.role);
+  // const sidebarRole = getSidebarRole(user?.role);
+
+  // DEV-ONLY: Use path to override sidebar role for development
+  let sidebarRole = getSidebarRole(user?.role);
+  if (
+    typeof window !== 'undefined' &&
+    pathname?.includes('dashboard/teacher')
+  ) {
+    sidebarRole = 'teacher';
+  }
 
   const toggleSidebar = () => {
     // If we are collapsing on desktop while the cursor is inside,
@@ -66,17 +75,8 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
     setIsCollapsed(false);
   };
 
-  // Development mode bypass
-  const showInDev = isDevMockEnabled();
-  const devRole = 'Superadmin'; // Default role for development
-
-  // Early return if no user or no sidebar items for role (unless in dev mode)
-  if (!showInDev && (!user || !sidebarItems[sidebarRole])) {
-    return null;
-  }
-
-  // Use dev role if in development mode without user
-  const effectiveRole = showInDev && !user ? devRole : sidebarRole;
+  // Use only actual user role for sidebar
+  const effectiveRole = sidebarRole;
 
   const expandedByHover =
     isCollapsed && isHoverExpanded && enableHoverExpand && !suppressHover;
@@ -248,30 +248,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
         </nav>
 
         {/* My Account Link at the end */}
-        {isDevMockEnabled() && !user && (
-          <div className='mb-4 mt-2'>
-            <ul className='space-y-2'>
-              <li>
-                <Link
-                  href='/dashboard/system/myprofile/devuser'
-                  onClick={onToggle}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
-                    text-foreground hover:bg-muted-hover hover:font-bold
-                    ${isCollapsed && !expandedByHover ? 'justify-center' : ''}`}
-                  title={isCollapsed ? 'My Account' : ''}
-                >
-                  <Icons.UserCog
-                    size={16}
-                    className='flex-shrink-0 text-gray-500'
-                  />
-                  {(!isCollapsed || expandedByHover) && (
-                    <span className='truncate'>My Account</span>
-                  )}
-                </Link>
-              </li>
-            </ul>
-          </div>
-        )}
+        {/* Removed dev mode My Account link */}
         {user && (
           <div className='mb-4 mt-2'>
             <ul className='space-y-2'>

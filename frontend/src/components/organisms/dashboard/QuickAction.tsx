@@ -14,6 +14,9 @@ interface QuickActionsProps {
 export default function QuickActions({ actions }: QuickActionsProps) {
   const router = useRouter();
 
+  // Ensure actions is always an array
+  const safeActions = Array.isArray(actions) ? actions : [];
+
   const handleActionClick = (action: QuickAction) => {
     const route = quickActionRoutes[action.id];
     if (route) {
@@ -27,8 +30,8 @@ export default function QuickActions({ actions }: QuickActionsProps) {
     <div className='bg-white rounded-xl border border-gray-200 p-6 max-w-7xl mx-auto'>
       <SectionHeader title='Quick Actions' />
       <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4'>
-        {actions.length > 0 ? (
-          actions.map(action => (
+        {safeActions.length > 0 ? (
+          safeActions.map(action => (
             <QuickActionItems
               key={action.id}
               quickActions={{

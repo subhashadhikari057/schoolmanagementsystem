@@ -12,7 +12,7 @@ import ExamPerformanceChart from '@/components/organisms/dashboard/ExamPerforman
 import FeeCollectionChart from '@/components/organisms/dashboard/FeeCollectionChart';
 import AttendanceOverview from '@/components/organisms/dashboard/AttendanceOverview';
 import SystemHealthOverview from '@/components/organisms/dashboard/SystemHealthOverview';
-import { mockQuickActions } from '@/constants/mockData';
+import { adminQuickActions } from '@/constants/mockData';
 
 const statsData = [
   {
@@ -83,7 +83,7 @@ export default function AdminDashboard() {
               <NotificationPanel />
             </div>
             <div className='lg:col-span-12 mt-4 lg:mt-0'>
-              <QuickActions actions={mockQuickActions} />
+              <QuickActions actions={adminQuickActions} />
             </div>
           </div>
 
