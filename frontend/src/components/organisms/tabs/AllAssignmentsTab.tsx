@@ -6,6 +6,7 @@ import Dropdown from '@/components/molecules/interactive/Dropdown';
 import Button from '@/components/atoms/form-controls/Button';
 import { Users, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 import { assignmentService } from '@/api/services/assignment.service';
+import { teacherService } from '@/api/services/teacher.service';
 import { useAuth } from '@/hooks/useAuth';
 import { AssignmentResponse } from '@/api/types/assignment';
 
@@ -23,7 +24,13 @@ interface ProcessedAssignment {
   originalData: AssignmentResponse;
 }
 
-export default function AllAssignmentsTab() {
+interface AllAssignmentsTabProps {
+  refreshTrigger?: number;
+}
+
+export default function AllAssignmentsTab({
+  refreshTrigger,
+}: AllAssignmentsTabProps) {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<
@@ -38,7 +45,7 @@ export default function AllAssignmentsTab() {
   const [subjects, setSubjects] = useState<string[]>([]);
 
   const loadAssignments = useCallback(async () => {
-    if (!user?.teacherId) {
+    if (!user?.id) {
       setLoading(false);
       return;
     }
@@ -47,9 +54,12 @@ export default function AllAssignmentsTab() {
       setLoading(true);
       setError(null);
 
-      const response = await assignmentService.getAssignmentsByTeacher(
-        user.teacherId,
-      );
+      // First get the teacher record to get teacher ID
+      const teacherResponse = await teacherService.getCurrentTeacher();
+      const teacherId = teacherResponse.data.id;
+
+      const response =
+        await assignmentService.getAssignmentsByTeacher(teacherId);
       const assignmentData = response.data;
 
       // Process assignments data
@@ -111,7 +121,7 @@ export default function AllAssignmentsTab() {
   // Load assignments data
   useEffect(() => {
     loadAssignments();
-  }, [loadAssignments]);
+  }, [loadAssignments, refreshTrigger]);
 
   const filteredAssignments = useMemo(() => {
     return assignments.filter(assignment => {

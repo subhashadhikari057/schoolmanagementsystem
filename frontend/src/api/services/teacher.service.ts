@@ -25,6 +25,8 @@ const TEACHER_ENDPOINTS = {
   CREATE: 'api/v1/teachers',
   LIST: 'api/v1/teachers',
   GET_ME: 'api/v1/teachers/me',
+  GET_MY_SUBJECTS: 'api/v1/teachers/me/subjects',
+  GET_MY_CLASSES: 'api/v1/teachers/me/classes',
   GET_BY_ID: (id: string) => `api/v1/teachers/${id}`,
   UPDATE_BY_ADMIN: (id: string) => `api/v1/teachers/${id}`,
   UPDATE_SELF: 'api/v1/teachers/profile',
@@ -256,7 +258,49 @@ export class TeacherService {
   // ========================================================================
 
   /**
-   * Get teacher's assigned subjects
+   * Get current teacher's own assigned subjects
+   */
+  async getMySubjects(): Promise<
+    ApiResponse<Array<{ subject: { id: string; name: string; code: string } }>>
+  > {
+    return this.httpClient.get<
+      Array<{ subject: { id: string; name: string; code: string } }>
+    >(TEACHER_ENDPOINTS.GET_MY_SUBJECTS, undefined, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Get current teacher's own assigned classes
+   */
+  async getMyClasses(): Promise<
+    ApiResponse<
+      Array<{
+        class: {
+          id: string;
+          grade: number;
+          section: string;
+          currentEnrollment?: number;
+        };
+      }>
+    >
+  > {
+    return this.httpClient.get<
+      Array<{
+        class: {
+          id: string;
+          grade: number;
+          section: string;
+          currentEnrollment?: number;
+        };
+      }>
+    >(TEACHER_ENDPOINTS.GET_MY_CLASSES, undefined, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Get teacher's assigned subjects (admin only)
    */
   async getTeacherSubjects(
     teacherId: string,
@@ -271,11 +315,9 @@ export class TeacherService {
   }
 
   /**
-   * Get teacher's assigned classes
+   * Get teacher's assigned classes (admin only)
    */
-  async getTeacherClasses(
-    teacherId: string,
-  ): Promise<
+  async getTeacherClasses(teacherId: string): Promise<
     ApiResponse<
       Array<{
         class: {

@@ -89,10 +89,13 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   const [teachers, setTeachers] = useState<TeacherOption[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
+  // Normalize role to handle backend inconsistencies (e.g., TEACHER -> teacher)
+  const normalizedRole = user?.role?.toLowerCase().replace(/_/g, '');
+
   // Check if current user is a teacher
-  const isTeacher = user?.role === 'teacher';
+  const isTeacher = normalizedRole === 'teacher';
   const isAdminOrSuperAdmin =
-    user?.role === 'admin' || user?.role === 'superadmin';
+    normalizedRole === 'admin' || normalizedRole === 'superadmin';
 
   // Form state - only fields that match backend DTO
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
@@ -111,15 +114,13 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
 
     try {
       if (isTeacher && user?.id) {
-        // For teachers: First get their teacher record to get teacher ID
-        const teacherResponse = await teacherService.getCurrentTeacher();
-        const teacherId = teacherResponse.data.id;
-
-        // Then load only their assigned classes and subjects
-        const [classesResponse, subjectsResponse] = await Promise.all([
-          teacherService.getTeacherClasses(teacherId),
-          teacherService.getTeacherSubjects(teacherId),
-        ]);
+        // For teachers: Load their own assigned classes and subjects directly
+        const [classesResponse, subjectsResponse, teacherResponse] =
+          await Promise.all([
+            teacherService.getMyClasses(),
+            teacherService.getMySubjects(),
+            teacherService.getCurrentTeacher(),
+          ]);
 
         // Transform teacher's classes data
         const transformedClasses: ClassOption[] = classesResponse.data.map(
@@ -144,7 +145,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
         setTeachers([]); // Teachers don't need to see other teachers
 
         // Auto-assign teacher to themselves
-        setSelectedTeacher(teacherId);
+        setSelectedTeacher(teacherResponse.data.id);
       } else if (isAdminOrSuperAdmin) {
         // For admins: Load all classes, subjects, and teachers
         const [classesResponse, subjectsResponse, teachersResponse] =

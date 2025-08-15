@@ -438,11 +438,60 @@ export class TeacherService {
       include: {
         user: true,
         profile: true,
-        subjectAssignments: true,
+        subjectAssignments: {
+          include: {
+            subject: true,
+          },
+        },
+        classAssignments: {
+          where: { deletedAt: null },
+          include: {
+            class: true,
+          },
+        },
       },
     });
     if (!teacher) throw new NotFoundException('Teacher not found');
-    return teacher;
+
+    // Get classes where this teacher is the class teacher
+    const classTeacherClasses = await this.prisma.class.findMany({
+      where: {
+        classTeacherId: teacher.id,
+        deletedAt: null,
+      },
+    });
+
+    // Merge class teacher classes with explicit assignments
+    const assignedClassIds = teacher.classAssignments.map(
+      assignment => assignment.classId,
+    );
+
+    // Add class teacher classes that aren't already explicitly assigned
+    const additionalClassAssignments = classTeacherClasses
+      .filter(cls => !assignedClassIds.includes(cls.id))
+      .map(cls => ({
+        id: `class-teacher-${cls.id}`, // Unique ID for class teacher relationship
+        teacherId: teacher.id,
+        classId: cls.id,
+        createdAt: cls.createdAt,
+        updatedAt: cls.updatedAt,
+        deletedAt: null,
+        createdById: cls.createdById,
+        updatedById: cls.updatedById,
+        deletedById: cls.deletedById,
+        class: cls,
+      }));
+
+    // Merge both types of class assignments
+    const allClassAssignments = [
+      ...teacher.classAssignments,
+      ...additionalClassAssignments,
+    ];
+
+    return {
+      ...teacher,
+      classAssignments: allClassAssignments,
+    };
   }
 
   // Helper method to get teacher profile additionalData
@@ -774,7 +823,13 @@ export class TeacherService {
   async getSubjects(id: string) {
     const teacher = await this.prisma.teacher.findUnique({
       where: { id },
-      include: { subjectAssignments: true },
+      include: {
+        subjectAssignments: {
+          include: {
+            subject: true,
+          },
+        },
+      },
     });
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
@@ -929,9 +984,31 @@ export class TeacherService {
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
 
-    return teacher.classAssignments.map(assignment => ({
+    // Get classes where this teacher is the class teacher
+    const classTeacherClasses = await this.prisma.class.findMany({
+      where: {
+        classTeacherId: teacherId,
+        deletedAt: null,
+      },
+    });
+
+    // Start with explicitly assigned classes
+    const assignedClasses = teacher.classAssignments.map(assignment => ({
       class: assignment.class,
     }));
+
+    // Add class teacher classes (if not already in assigned classes)
+    const assignedClassIds = assignedClasses.map(ac => ac.class.id);
+
+    classTeacherClasses.forEach(cls => {
+      if (!assignedClassIds.includes(cls.id)) {
+        assignedClasses.push({
+          class: cls,
+        });
+      }
+    });
+
+    return assignedClasses;
   }
 
   async removeClass(

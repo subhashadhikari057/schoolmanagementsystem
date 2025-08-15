@@ -13,8 +13,10 @@ import DeadlinesTab from '@/components/organisms/tabs/DeadlinesTab';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import CreateAssignmentModal from '@/components/organisms/modals/CreateAssignmentModal';
 import { assignmentService } from '@/api/services/assignment.service';
+import { teacherService } from '@/api/services/teacher.service';
 import { useAuth } from '@/hooks/useAuth';
 import { AssignmentStats } from '@/api/types/assignment';
+import { toast } from 'sonner';
 
 export default function AssignmentsPage() {
   const { user } = useAuth();
@@ -22,9 +24,10 @@ export default function AssignmentsPage() {
   const [stats, setStats] = useState<AssignmentStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const loadAssignmentStats = useCallback(async () => {
-    if (!user?.teacherId) {
+    if (!user?.id) {
       setLoading(false);
       return;
     }
@@ -32,9 +35,12 @@ export default function AssignmentsPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await assignmentService.getAssignmentStats(
-        user.teacherId,
-      );
+
+      // First get the teacher record to get teacher ID
+      const teacherResponse = await teacherService.getCurrentTeacher();
+      const teacherId = teacherResponse.data.id;
+
+      const response = await assignmentService.getAssignmentStats(teacherId);
       setStats(response.data);
     } catch (error) {
       console.error('Failed to load assignment stats:', error);
@@ -64,8 +70,14 @@ export default function AssignmentsPage() {
   };
 
   const handleAssignmentCreated = () => {
-    // Refresh stats after creating assignment
+    // Show success toast
+    toast.success('Assignment created successfully!', {
+      description: 'Your assignment has been created and assigned to students.',
+    });
+
+    // Refresh stats and assignments list
     loadAssignmentStats();
+    setRefreshTrigger(prev => prev + 1);
   };
 
   // Transform stats data for Statsgrid component
@@ -169,7 +181,12 @@ export default function AssignmentsPage() {
               {/* Tabs */}
               <Tabs
                 tabs={[
-                  { name: 'All', content: <AllAssignmentsTab /> },
+                  {
+                    name: 'All',
+                    content: (
+                      <AllAssignmentsTab refreshTrigger={refreshTrigger} />
+                    ),
+                  },
                   { name: 'Submissions', content: <SubmissionsTab /> },
                   { name: 'Grading', content: <GradingTab /> },
                   { name: 'Deadlines', content: <DeadlinesTab /> },
