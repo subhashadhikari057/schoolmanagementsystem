@@ -142,6 +142,12 @@ const TeachersPage = () => {
   const loadTeachers = async () => {
     setIsLoading(true);
     setError(null);
+
+    // Close all modals and clear selected teacher to prevent stale state
+    setViewModalOpen(false);
+    setEditModalOpen(false);
+    setDeleteModalOpen(false);
+    setSelectedTeacher(null);
     if (isDevMockEnabled()) {
       // Use mock data
       setTimeout(() => {

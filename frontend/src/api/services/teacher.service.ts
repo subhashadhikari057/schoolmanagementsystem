@@ -31,6 +31,8 @@ const TEACHER_ENDPOINTS = {
   DELETE: (id: string) => `api/v1/teachers/${id}`,
   ASSIGN_SUBJECTS: (id: string) => `api/v1/teachers/${id}/subjects`,
   ASSIGN_CLASSES: (id: string) => `api/v1/teachers/${id}/classes`,
+  NEXT_EMPLOYEE_ID: 'api/v1/teachers/next-employee-id',
+  CALCULATE_SALARY: 'api/v1/teachers/calculate-salary',
 } as const;
 
 // ============================================================================
@@ -103,8 +105,8 @@ export class TeacherService {
       highestQualification: data.highestQualification || '',
     };
     if (data.employeeId) professionalData.employeeId = data.employeeId;
-    if (data.experience)
-      professionalData.experienceYears = parseInt(data.experience);
+    if (data.experienceYears)
+      professionalData.experienceYears = Number(data.experienceYears);
     if (data.specialization)
       professionalData.specialization = data.specialization;
     if (data.designation) professionalData.designation = data.designation;
@@ -142,8 +144,8 @@ export class TeacherService {
       const bankData: any = {};
       if (data.bankName) bankData.bankName = data.bankName;
       if (data.bankAccountNumber)
-        bankData.accountNumber = data.bankAccountNumber;
-      if (data.bankBranch) bankData.branch = data.bankBranch;
+        bankData.bankAccountNumber = data.bankAccountNumber;
+      if (data.bankBranch) bankData.bankBranch = data.bankBranch;
       if (data.panNumber) bankData.panNumber = data.panNumber;
       if (data.citizenshipNumber)
         bankData.citizenshipNumber = data.citizenshipNumber;
@@ -264,6 +266,46 @@ export class TeacherService {
       TEACHER_ENDPOINTS.ASSIGN_CLASSES(teacherId),
       { classAssignments },
       { requiresAuth: true },
+    );
+  }
+
+  /**
+   * Get next auto-generated employee ID
+   */
+  async getNextEmployeeId(): Promise<
+    ApiResponse<{
+      employeeId: string;
+      sequence: number;
+      year: number;
+    }>
+  > {
+    return this.httpClient.get(TEACHER_ENDPOINTS.NEXT_EMPLOYEE_ID, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Calculate total salary from basic salary and allowances
+   */
+  async calculateSalary(
+    basicSalary: number,
+    allowances: number,
+  ): Promise<
+    ApiResponse<{
+      basicSalary: number;
+      allowances: number;
+      totalSalary: number;
+    }>
+  > {
+    return this.httpClient.post(
+      TEACHER_ENDPOINTS.CALCULATE_SALARY,
+      {
+        basicSalary,
+        allowances,
+      },
+      {
+        requiresAuth: true,
+      },
     );
   }
 }

@@ -36,7 +36,7 @@ model User {
 
   teacher Teacher?
   student Student?
-  parentLinks ParentStudentLink[] @relation("ParentLink")
+  parent Parent?
 
   @@index([createdById])
   @@index([updatedById])
@@ -231,22 +231,85 @@ model Guardian {
 // 👪 Parent Management
 // =========================
 
+model Parent {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Personal Information
+  dateOfBirth DateTime?
+  gender      String?
+  occupation  String?
+  workPlace   String?
+  workPhone   String?
+
+  // Emergency Contact
+  emergencyContactName         String?
+  emergencyContactPhone        String?
+  emergencyContactRelationship String?
+
+  // Address Information
+  street   String?
+  city     String?
+  state    String?
+  pinCode  String?
+  country  String?
+
+  // Additional Information
+  notes              String?
+  specialInstructions String?
+
+  // Relations
+  children ParentStudentLink[] @relation("ParentChildren")
+  profile  ParentProfile?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ParentProfile {
+  id       String @id @default(uuid())
+  parentId String @unique
+  parent   Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  profilePhotoUrl String?
+  bio             String?
+  socialLinks     Json?   @default("{}")
+  additionalData  Json?   @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+}
+
 model ParentStudentLink {
   id String @id @default(uuid())
 
-  parentId String?
-  parent   User?   @relation("ParentLink", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId String
+  parent   Parent @relation("ParentChildren", fields: [parentId], references: [id], onDelete: Cascade)
 
   studentId String
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  relationship String?
-  isPrimary    Boolean  @default(false)
-  contactName   String?
-  contactEmail  String?
-  contactPhone  String?
+  relationship String
+  isPrimary    Boolean @default(false)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
 }
 
 model Address {

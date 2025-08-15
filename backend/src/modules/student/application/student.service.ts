@@ -32,23 +32,51 @@ export class StudentService {
   ) {
     const { user, parents, profile, address, guardians, ...studentData } = dto;
 
-    // 1. Check if student email already exists
-    const existingStudentUser = await this.prisma.user.findUnique({
-      where: { email: user.email },
+    // 1. Check if student email already exists (exclude soft-deleted users)
+    const existingStudentUser = await this.prisma.user.findFirst({
+      where: {
+        email: user.email,
+        deletedAt: null, // Only check active (non-soft-deleted) users
+      },
     });
     if (existingStudentUser)
       throw new ConflictException('Student email already exists');
 
-    // 2. Check if any parent email already exists
+    // Clean up any legacy soft-deleted users with the same email (defensive programming)
+    await this.prisma.user.updateMany({
+      where: {
+        email: user.email,
+        deletedAt: { not: null }, // Only soft-deleted users
+      },
+      data: {
+        email: `legacy_deleted_${Date.now()}_${Math.random().toString(36).substring(7)}@deleted.local`,
+      },
+    });
+
+    // 2. Check if any parent email already exists (exclude soft-deleted users)
     for (const parent of parents) {
-      const existingParent = await this.prisma.user.findUnique({
-        where: { email: parent.email },
+      const existingParent = await this.prisma.user.findFirst({
+        where: {
+          email: parent.email,
+          deletedAt: null, // Only check active (non-soft-deleted) users
+        },
       });
       if (existingParent) {
         throw new ConflictException(
           `Parent with email ${parent.email} already exists. Use the existing parents API instead.`,
         );
       }
+
+      // Clean up any legacy soft-deleted users with the same parent email (defensive programming)
+      await this.prisma.user.updateMany({
+        where: {
+          email: parent.email,
+          deletedAt: { not: null }, // Only soft-deleted users
+        },
+        data: {
+          email: `legacy_deleted_${Date.now()}_${Math.random().toString(36).substring(7)}@deleted.local`,
+        },
+      });
     }
 
     try {
@@ -162,30 +190,28 @@ export class StudentService {
               },
             });
 
+            // Create parent profile
+            const newParent = await tx.parent.create({
+              data: {
+                userId: newParentUser.id,
+              },
+            });
+
             // Create parent-student link
             await tx.parentStudentLink.create({
               data: {
-                parentId: newParentUser.id,
+                parentId: newParent.id,
                 studentId: newStudent.id,
                 relationship: parent.relationship,
                 isPrimary: parent.isPrimary,
-                contactName: parent.fullName,
-                contactEmail: parent.email,
-                contactPhone: parent.phone,
               },
             });
           } else {
-            // Create parent-student link without user account
-            await tx.parentStudentLink.create({
-              data: {
-                studentId: newStudent.id,
-                relationship: parent.relationship,
-                isPrimary: parent.isPrimary,
-                contactName: parent.fullName,
-                contactEmail: parent.email,
-                contactPhone: parent.phone,
-              },
-            });
+            // For parents without user accounts, we need to find existing parent or skip
+            // This case should be handled by the createStudentWithExistingParents method
+            throw new BadRequestException(
+              'Cannot create parent link without user account. Use existing parents API.',
+            );
           }
         }
 
@@ -224,21 +250,38 @@ export class StudentService {
   ) {
     const { user, parents, profile, address, guardians, ...studentData } = dto;
 
-    // 1. Check if student email already exists
-    const existingStudentUser = await this.prisma.user.findUnique({
-      where: { email: user.email },
+    // 1. Check if student email already exists (exclude soft-deleted users)
+    const existingStudentUser = await this.prisma.user.findFirst({
+      where: {
+        email: user.email,
+        deletedAt: null, // Only check active (non-soft-deleted) users
+      },
     });
     if (existingStudentUser)
       throw new ConflictException('Student email already exists');
 
-    // 2. Verify primary parent exists
+    // Clean up any legacy soft-deleted users with the same email (defensive programming)
+    await this.prisma.user.updateMany({
+      where: {
+        email: user.email,
+        deletedAt: { not: null }, // Only soft-deleted users
+      },
+      data: {
+        email: `legacy_deleted_${Date.now()}_${Math.random().toString(36).substring(7)}@deleted.local`,
+      },
+    });
+
+    // 2. Verify primary parent exists (exclude soft-deleted users)
     const primaryParent = parents.find(p => p.isPrimary);
     if (!primaryParent) {
       throw new BadRequestException('Primary parent must be specified');
     }
 
-    const existingPrimaryParent = await this.prisma.user.findUnique({
-      where: { email: primaryParent.email },
+    const existingPrimaryParent = await this.prisma.user.findFirst({
+      where: {
+        email: primaryParent.email,
+        deletedAt: null, // Only check active (non-soft-deleted) users
+      },
     });
     if (!existingPrimaryParent) {
       throw new NotFoundException('Primary parent not found');
@@ -333,34 +376,30 @@ export class StudentService {
 
         // 9. Create parent-student links
         for (const parent of parents) {
-          const existingParent = await tx.user.findUnique({
-            where: { email: parent.email },
+          const existingParentUser = await tx.user.findFirst({
+            where: {
+              email: parent.email,
+              deletedAt: null, // Only check active (non-soft-deleted) users
+            },
+            include: {
+              parent: true,
+            },
           });
 
-          if (existingParent) {
+          if (existingParentUser && existingParentUser.parent) {
             // Link existing parent
             await tx.parentStudentLink.create({
               data: {
-                parentId: existingParent.id,
+                parentId: existingParentUser.parent.id,
                 studentId: newStudent.id,
                 relationship: parent.relationship,
                 isPrimary: parent.isPrimary,
-                contactName: existingParent.fullName,
-                contactEmail: existingParent.email,
-                contactPhone: existingParent.phone,
               },
             });
-          } else if (parent.fullName) {
-            // Create contact-only link for non-primary parents
-            await tx.parentStudentLink.create({
-              data: {
-                studentId: newStudent.id,
-                relationship: parent.relationship,
-                isPrimary: parent.isPrimary,
-                contactName: parent.fullName,
-                contactEmail: parent.email,
-              },
-            });
+          } else {
+            throw new NotFoundException(
+              `Parent with email ${parent.email} not found. Please create the parent account first.`,
+            );
           }
         }
 
@@ -426,11 +465,15 @@ export class StudentService {
         parents: {
           include: {
             parent: {
-              select: {
-                id: true,
-                fullName: true,
-                email: true,
-                phone: true,
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                    phone: true,
+                  },
+                },
               },
             },
           },
@@ -650,12 +693,14 @@ export class StudentService {
           deletedAt: null,
         },
         include: {
-          parentLinks: {
+          parent: {
             include: {
-              student: {
-                include: {
-                  user: true,
-                  class: true,
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  phone: true,
                 },
               },
             },
@@ -690,9 +735,18 @@ export class StudentService {
 
   // ✅ Find children of parent
   async findChildrenOfParent(parentUserId: string) {
+    // First find the parent record
+    const parent = await this.prisma.parent.findUnique({
+      where: { userId: parentUserId },
+    });
+
+    if (!parent) {
+      throw new NotFoundException('Parent not found');
+    }
+
     const parentLinks = await this.prisma.parentStudentLink.findMany({
       where: {
-        parentId: parentUserId,
+        parentId: parent.id,
       },
       include: {
         student: {
@@ -875,6 +929,7 @@ export class StudentService {
   ) {
     const student = await this.prisma.student.findUnique({
       where: { id },
+      include: { user: true },
     });
 
     if (!student || student.deletedAt) {
@@ -889,6 +944,11 @@ export class StudentService {
           update: {
             deletedAt: new Date(),
             isActive: false,
+            // Nullify unique fields to avoid conflicts when creating new users
+            email: `deleted_${student.userId}_${Date.now()}@deleted.local`,
+            phone: student.user.phone
+              ? `deleted_${student.userId}_${Date.now()}`
+              : null,
           },
         },
       },

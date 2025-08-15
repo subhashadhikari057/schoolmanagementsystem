@@ -105,13 +105,59 @@ export class TeacherController {
       };
     } catch (error) {
       if (error.name === 'ZodError') {
+        console.error(
+          'Zod Validation Error:',
+          JSON.stringify(error.errors, null, 2),
+        );
         throw new BadRequestException({
           message: 'Validation failed',
           errors: error.errors,
+          details: error.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message,
+            received: err.received,
+          })),
         });
       }
+      console.error('Teacher Creation Error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get next auto-generated employee ID
+   */
+  @Get('next-employee-id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async getNextEmployeeId() {
+    const currentYear = new Date().getFullYear();
+    const teacherCount = await this.teacherService.getTeacherCount();
+    const nextEmployeeId = `T-${currentYear}-${(teacherCount + 1).toString().padStart(4, '0')}`;
+
+    return {
+      employeeId: nextEmployeeId,
+      sequence: teacherCount + 1,
+      year: currentYear,
+    };
+  }
+
+  /**
+   * Calculate total salary from basic salary and allowances
+   */
+  @Post('calculate-salary')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async calculateSalary(
+    @Body() body: { basicSalary?: number; allowances?: number },
+  ) {
+    const basicSalary = body.basicSalary || 0;
+    const allowances = body.allowances || 0;
+    const totalSalary = basicSalary + allowances;
+
+    return {
+      basicSalary,
+      allowances,
+      totalSalary,
+    };
   }
 
   /**

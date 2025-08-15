@@ -57,18 +57,26 @@ async function main() {
     },
   });
 
-  const class10 = await prisma.class.create({
-    data: {
-      grade: 10,
-      section: 'A',
-      capacity: 30,
-      roomId: room.id,
-    },
+  let class10 = await prisma.class.findFirst({
+    where: { grade: 10, section: 'A' },
   });
 
+  if (!class10) {
+    class10 = await prisma.class.create({
+      data: {
+        grade: 10,
+        section: 'A',
+        capacity: 30,
+        roomId: room.id,
+      },
+    });
+  }
+
   // 4. Create Subject
-  const math = await prisma.subject.create({
-    data: {
+  const math = await prisma.subject.upsert({
+    where: { code: 'MATH' },
+    update: {},
+    create: {
       name: 'Mathematics',
       code: 'MATH',
       maxMarks: 100,
@@ -77,8 +85,10 @@ async function main() {
   });
 
   // 5. Create Teacher User and Record
-  const teacherUser = await prisma.user.create({
-    data: {
+  const teacherUser = await prisma.user.upsert({
+    where: { email: 'teacher@gmail.com' },
+    update: {},
+    create: {
       email: 'teacher@gmail.com',
       fullName: 'Teacher User',
       passwordHash: await argon2.hash('teacher123'),
@@ -92,8 +102,10 @@ async function main() {
     },
   });
 
-  const teacher = await prisma.teacher.create({
-    data: {
+  const teacher = await prisma.teacher.upsert({
+    where: { userId: teacherUser.id },
+    update: {},
+    create: {
       userId: teacherUser.id,
       joiningDate: new Date(),
       designation: 'Mathematics Teacher',
@@ -109,8 +121,17 @@ async function main() {
   });
 
   // 6. Assign Subject to Teacher and Class
-  await prisma.classSubject.create({
-    data: {
+  await prisma.classSubject.upsert({
+    where: {
+      classId_subjectId: {
+        classId: class10.id,
+        subjectId: math.id,
+      },
+    },
+    update: {
+      teacherId: teacher.id,
+    },
+    create: {
       classId: class10.id,
       subjectId: math.id,
       teacherId: teacher.id,
@@ -118,8 +139,10 @@ async function main() {
   });
 
   // 7. Create Student User and Record
-  const studentUser = await prisma.user.create({
-    data: {
+  const studentUser = await prisma.user.upsert({
+    where: { email: 'student@gmail.com' },
+    update: {},
+    create: {
       email: 'student@gmail.com',
       fullName: 'John Doe',
       passwordHash: await argon2.hash('student123'),
@@ -143,8 +166,10 @@ async function main() {
     },
   });
 
-  const student = await prisma.student.create({
-    data: {
+  const student = await prisma.student.upsert({
+    where: { userId: studentUser.id },
+    update: {},
+    create: {
       userId: studentUser.id,
       classId: class10.id,
       rollNumber: '001',
@@ -161,8 +186,10 @@ async function main() {
   });
 
   // 8. Create Parent User and Link
-  const parentUser = await prisma.user.create({
-    data: {
+  const parentUser = await prisma.user.upsert({
+    where: { email: 'parent@gmail.com' },
+    update: {},
+    create: {
       email: 'parent@gmail.com',
       fullName: 'Parent User',
       passwordHash: await argon2.hash('parent123'),
@@ -176,12 +203,35 @@ async function main() {
     },
   });
 
-  await prisma.parentStudentLink.create({
-    data: {
-      parentId: parentUser.id,
+  // Create Parent profile
+  const parent = await prisma.parent.upsert({
+    where: { userId: parentUser.id },
+    update: {},
+    create: {
+      userId: parentUser.id,
+      occupation: 'Business Owner',
+      street: 'Naya Bazar',
+      city: 'Kathmandu',
+      state: 'Bagmati',
+      pinCode: '44600',
+      country: 'Nepal',
+    },
+  });
+
+  // Create Parent-Student link
+  await prisma.parentStudentLink.upsert({
+    where: {
+      parentId_studentId: {
+        parentId: parent.id,
+        studentId: student.id,
+      },
+    },
+    update: {},
+    create: {
+      parentId: parent.id,
       studentId: student.id,
       isPrimary: true,
-      relationship: 'Father',
+      relationship: 'father',
     },
   });
 

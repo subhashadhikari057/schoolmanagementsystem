@@ -24,6 +24,7 @@ import { FileModule } from './modules/files/file.module';
 import { RoomModule } from './modules/room/room.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { AssignmentModule } from './modules/assignment/assignment.module';
+import { ParentModule } from './modules/parent/parent.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AssignmentModule } from './modules/assignment/assignment.module';
     TeacherModule,
     ClassModule,
     StudentModule,
+    ParentModule,
     StaffModule,
     FileModule,
     CalendarModule,

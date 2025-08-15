@@ -9,9 +9,10 @@ import {
   Plus,
   Printer,
 } from 'lucide-react';
-import AddUserFormModal, {
-  UserType,
-} from '@/components/organisms/modals/AddUserFormModal';
+import AddTeacherFormModal from '@/components/organisms/modals/AddTeacherFormModal';
+import AddStudentFormModal from '@/components/organisms/modals/AddStudentFormModal';
+import AddStaffFormModal from '@/components/organisms/modals/AddStaffFormModal';
+import AddParentFormModal from '@/components/organisms/modals/AddParentFormModal';
 import AddSubjectFormModal from '@/components/organisms/modals/AddSubjectFormModal';
 import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
 import AddClassModal from '@/components/organisms/modals/AddClassModal';
@@ -367,23 +368,6 @@ export const ActionButtons = ({
     }
   }
 
-  const getUserType = (pageType: string): UserType => {
-    switch (pageType) {
-      case 'teachers':
-        return 'teacher';
-      case 'students':
-        return 'student';
-      case 'parents':
-        return 'parent';
-      case 'staff':
-        return 'staff';
-      default:
-        return 'student';
-    }
-  };
-
-  const userType = getUserType(pageType);
-
   return (
     <>
       <div className='grid grid-cols-2 sm:flex sm:flex-row gap-2 w-full'>
@@ -425,14 +409,31 @@ export const ActionButtons = ({
         <AddEventModal open={isModalOpen} onClose={closeModal} />
       ) : pageType === 'notices' ? (
         <CreateNoticeModal open={isModalOpen} onClose={closeModal} />
-      ) : (
-        <AddUserFormModal
+      ) : pageType === 'teachers' ? (
+        <AddTeacherFormModal
           isOpen={isModalOpen}
           onClose={closeModal}
           onSuccess={handleSuccess}
-          userType={userType}
         />
-      )}
+      ) : pageType === 'students' ? (
+        <AddStudentFormModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : pageType === 'staff' ? (
+        <AddStaffFormModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : pageType === 'parents' ? (
+        <AddParentFormModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : null}
 
       {(pageType === 'staff' ||
         pageType === 'parents' ||

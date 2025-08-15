@@ -325,7 +325,14 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
 
   // Populate form when teacher data changes
   useEffect(() => {
-    if (teacher) {
+    if (teacher && teacher.id) {
+      // Validate teacher ID
+      const teacherId = String(teacher.id);
+      if (!teacherId || teacherId === 'undefined' || teacherId === 'null') {
+        console.error('Invalid teacher ID:', teacherId);
+        return;
+      }
+
       // Split name into first, middle and last name
       const nameParts = teacher.name.split(' ');
       const firstName = nameParts[0] || '';
@@ -337,9 +344,7 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
       // Get detailed teacher data
       const fetchTeacherDetails = async () => {
         try {
-          const response = await teacherService.getTeacherById(
-            String(teacher.id),
-          );
+          const response = await teacherService.getTeacherById(teacherId);
           if (response.success && response.data) {
             const teacherData = response.data;
 
@@ -371,22 +376,32 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
 
             const professionalDetails = (teacherData as any).professional || {};
 
+            // Helper function to convert ISO date to yyyy-MM-dd format
+            const formatDateForInput = (
+              dateString: string | null | undefined,
+            ): string => {
+              if (!dateString) return '';
+              try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return '';
+                return date.toISOString().split('T')[0]; // Extract yyyy-MM-dd part
+              } catch {
+                return '';
+              }
+            };
+
             // Use the name parts directly from the API response if available
             setFormData({
               firstName: teacherData.firstName || firstName,
               middleName: teacherData.middleName || middleName || '',
               lastName: teacherData.lastName || lastName,
               email: teacher.email || teacherData.email || '',
-              phone:
-                teacherData.phone ||
-                personalDetails.phone ||
-                teacher.phone ||
-                '',
-              dateOfBirth:
+              phone: teacherData.phone || teacher.phone || '',
+              dateOfBirth: formatDateForInput(
                 teacherData.dateOfBirth ||
-                personalDetails.dateOfBirth ||
-                (teacher.dateOfBirth as string) ||
-                '',
+                  personalDetails.dateOfBirth ||
+                  (teacher.dateOfBirth as string),
+              ),
               gender:
                 teacherData.gender ||
                 personalDetails.gender ||
@@ -453,11 +468,12 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
                 professionalDetails.experienceYears ||
                 teacher.experienceYears ||
                 0,
-              joinedDate:
+              joinedDate: formatDateForInput(
                 teacherData.employmentDate ||
-                professionalDetails.joiningDate ||
-                teacher.joinedDate ||
-                '',
+                  (teacherData as any).joiningDate ||
+                  professionalDetails.joiningDate ||
+                  teacher.joinedDate,
+              ),
 
               // Bank and Legal Information - fix property names from API
               bankName:
@@ -500,6 +516,20 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
         } catch (err) {
           console.error('Error fetching teacher details:', err);
 
+          // Helper function for fallback formatting
+          const formatDateForInputFallback = (
+            dateString: string | null | undefined,
+          ): string => {
+            if (!dateString) return '';
+            try {
+              const date = new Date(dateString);
+              if (isNaN(date.getTime())) return '';
+              return date.toISOString().split('T')[0];
+            } catch {
+              return '';
+            }
+          };
+
           // Fallback to basic data
           setFormData({
             firstName,
@@ -507,7 +537,7 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
             lastName,
             email: teacher.email || '',
             phone: teacher.phone || '',
-            dateOfBirth: teacher.dateOfBirth || '',
+            dateOfBirth: formatDateForInputFallback(teacher.dateOfBirth),
             gender: teacher.gender || '',
             bloodGroup: teacher.bloodGroup || '',
             maritalStatus: teacher.maritalStatus || '',
@@ -522,7 +552,7 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
             qualification: teacher.qualification || '',
             // Removed specialization field as requested
             experienceYears: teacher.experienceYears || 0,
-            joinedDate: teacher.joinedDate || '',
+            joinedDate: formatDateForInputFallback(teacher.joinedDate),
 
             // Bank and Legal Information
             bankName: teacher.bankName || '',
@@ -550,10 +580,10 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >,
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: type === 'number' ? parseInt(value) || 0 : value,
     }));
   };
 
@@ -590,79 +620,96 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent multiple submissions
+    if (isLoading) return;
+
     setIsLoading(true);
     setError(null);
 
     try {
-      // Prepare data for API
-      const formDataToSend = new FormData();
+      // Prepare data for API - send as JSON, not FormData
+      // User data - filter out empty strings
+      const userData = Object.fromEntries(
+        Object.entries({
+          firstName: formData.firstName,
+          middleName: formData.middleName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+        }).filter(([_, value]) => value && value.trim() !== ''),
+      );
 
-      // User data
-      const userData = {
-        firstName: formData.firstName,
-        middleName: formData.middleName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
+      // Personal data - filter out empty strings
+      const personalData = Object.fromEntries(
+        Object.entries({
+          dateOfBirth: formData.dateOfBirth,
+          gender: formData.gender,
+          bloodGroup: formData.bloodGroup,
+          maritalStatus: formData.maritalStatus,
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          pinCode: formData.pinCode,
+        }).filter(([_, value]) => value && value.trim() !== ''),
+      );
+
+      // Professional data - filter out empty strings and ensure proper types
+      const professionalData = Object.fromEntries(
+        Object.entries({
+          designation: formData.designation,
+          department: formData.department,
+          highestQualification: formData.qualification,
+          experienceYears:
+            formData.experienceYears > 0 ? formData.experienceYears : undefined,
+          joiningDate: formData.joinedDate,
+        }).filter(([key, value]) => {
+          if (key === 'experienceYears') return value !== undefined;
+          return value && typeof value === 'string' && value.trim() !== '';
+        }),
+      );
+
+      // Subjects data
+      const subjectsData = {
+        subjects: formData.subjects.length > 0 ? formData.subjects : undefined,
       };
-      formDataToSend.append('user', JSON.stringify(userData));
 
-      // Personal data
-      const personalData = {
-        dateOfBirth: formData.dateOfBirth,
-        gender: formData.gender,
-        bloodGroup: formData.bloodGroup,
-        maritalStatus: formData.maritalStatus,
-        street: formData.street,
-        city: formData.city,
-        state: formData.state,
-        pinCode: formData.pinCode,
-      };
-      formDataToSend.append('personal', JSON.stringify(personalData));
+      // Bank details - filter out empty strings
+      const bankData = Object.fromEntries(
+        Object.entries({
+          bankName: formData.bankName,
+          bankAccountNumber: formData.bankAccountNumber,
+          bankBranch: formData.bankBranch,
+          panNumber: formData.panNumber,
+          citizenshipNumber: formData.citizenshipNumber,
+        }).filter(([_, value]) => value && value.trim() !== ''),
+      );
 
-      // Professional data
-      const professionalData = {
-        designation: formData.designation,
-        department: formData.department,
-        qualification: formData.qualification,
-        // Removed specialization field as requested
-        experienceYears: formData.experienceYears,
-        joinedDate: formData.joinedDate,
-      };
-      formDataToSend.append('professional', JSON.stringify(professionalData));
+      // Build the update payload matching UpdateTeacherByAdminDto structure
+      const teacherData: any = {};
 
-      // Subjects
-      formDataToSend.append('subjects', JSON.stringify(formData.subjects));
-
-      // Status
-      formDataToSend.append('status', formData.status);
-
-      // Photo
-      if (formData.photo) {
-        formDataToSend.append('photo', formData.photo);
+      // Only include sections with data
+      if (Object.values(userData).some(val => val)) {
+        teacherData.user = userData;
       }
 
-      // Bank and legal data
-      const bankData = {
-        bankName: formData.bankName,
-        accountNumber: formData.bankAccountNumber,
-        branch: formData.bankBranch,
-        panNumber: formData.panNumber,
-        citizenshipNumber: formData.citizenshipNumber,
-      };
-      formDataToSend.append('bankDetails', JSON.stringify(bankData));
+      if (Object.values(personalData).some(val => val)) {
+        teacherData.personal = personalData;
+      }
 
-      // Call API to update teacher
-      // Convert FormData to appropriate request format
-      // Use type assertion to handle type compatibility issues
-      const teacherData = {
-        user: userData,
-        personal: personalData as any,
-        professional: professionalData as any,
-        subjects: { subjects: formData.subjects },
-        bankDetails: bankData,
-        status: formData.status,
-      };
+      if (Object.values(professionalData).some(val => val)) {
+        teacherData.professional = professionalData;
+      }
+
+      if (subjectsData.subjects && subjectsData.subjects.length > 0) {
+        teacherData.subjects = subjectsData;
+      }
+
+      if (Object.values(bankData).some(val => val)) {
+        teacherData.bankDetails = bankData;
+      }
+
+      console.log('Sending teacher update data:', teacherData);
 
       const response = await teacherService.updateTeacherByAdmin(
         String(teacher.id),
