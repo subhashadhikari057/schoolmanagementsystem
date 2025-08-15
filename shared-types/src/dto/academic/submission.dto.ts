@@ -1,9 +1,11 @@
-import { SubmissionStatus } from '../../enums/academic/submission-status.enum';
-
 export interface SubmissionDto {
   id: string;
-  assignment_id: string;
-  student_id: string;
-  status: SubmissionStatus;
-  submitted_at?: Date;
+  assignmentId: string;
+  studentId: string;
+  submittedAt?: Date;
+  isCompleted: boolean;
+  feedback?: string;
+  fileLinks?: string[];
+  createdAt: Date;
+  updatedAt?: Date;
 }

@@ -57,6 +57,7 @@ model Subject {
 
   assignedClasses ClassSubject[]
   teacherAssignments TeacherSubject[] @relation("SubjectTeacherAssignments")
+  assignments Assignment[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -85,6 +86,7 @@ model Class {
   students       Student[]
   assignedSubjects ClassSubject[]
   teacherAssignments TeacherClass[] @relation("ClassTeacherAssignments")
+  assignments Assignment[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
@@ -186,6 +188,7 @@ model Student {
 
   guardians Guardian[]
   parents   ParentStudentLink[]
+  submissions Submission[]
 
   profile StudentProfile?
 
@@ -276,6 +279,7 @@ model Teacher {
   classAssignments   TeacherClass[] @relation("TeacherClassAssignments")
   classSubjects      ClassSubject[] @relation("TeacherClassSubjects")
   classesAsTeacher   Class[] @relation("ClassTeacher")
+  assignments        Assignment[]
 
   dob          DateTime
   gender       String
@@ -591,4 +595,70 @@ enum CalendarEntryType {
 enum HolidayType {
   NATIONAL
   SCHOOL
+}
+
+// =========================
+// 📝 Assignment Management
+// =========================
+
+model Assignment {
+  id          String @id @default(uuid())
+  title       String
+  description String?
+  classId     String
+  subjectId   String
+  teacherId   String
+  dueDate     DateTime?
+  additionalMetadata Json? @default("{}")
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+
+  submissions Submission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@index([classId])
+  @@index([subjectId])
+  @@index([teacherId])
+  @@index([dueDate])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Submission {
+  id           String @id @default(uuid())
+  assignmentId String
+  studentId    String
+  submittedAt  DateTime? @default(now())
+  isCompleted  Boolean @default(false)
+  feedback     String?
+  fileLinks    Json? @default("[]")
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime?
+  deletedAt DateTime?
+
+  createdById String? @db.Uuid
+  updatedById String? @db.Uuid
+  deletedById String? @db.Uuid
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
+  @@index([isCompleted])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
 }
