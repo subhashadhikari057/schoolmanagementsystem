@@ -1,27 +1,122 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Button from '@/components/atoms/form-controls/Button';
-import { Plus } from 'lucide-react';
+import { Plus, BookOpen, Users, Clock, CheckCircle } from 'lucide-react';
 import Tabs from '@/components/organisms/tabs/GenericTabs';
 import AllAssignmentsTab from '@/components/organisms/tabs/AllAssignmentsTab';
 import SubmissionsTab from '@/components/organisms/tabs/SubmissionsTab';
 import GradingTab from '@/components/organisms/tabs/GradingTab';
 import DeadlinesTab from '@/components/organisms/tabs/DeadlinesTab';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
-
-const statsData = [
-  {
-    value: '6',
-    label: 'Total Assignments',
-    change: '2 completed, 4 upcoming',
-    color: 'bg-blue-600',
-  },
-];
+import CreateAssignmentModal from '@/components/organisms/modals/CreateAssignmentModal';
+import { assignmentService } from '@/api/services/assignment.service';
+import { teacherService } from '@/api/services/teacher.service';
+import { useAuth } from '@/hooks/useAuth';
+import { AssignmentStats } from '@/api/types/assignment';
+import { toast } from 'sonner';
 
 export default function AssignmentsPage() {
+  const { user } = useAuth();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [stats, setStats] = useState<AssignmentStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const loadAssignmentStats = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // First get the teacher record to get teacher ID
+      const teacherResponse = await teacherService.getCurrentTeacher();
+      const teacherId = teacherResponse.data.id;
+
+      const response = await assignmentService.getAssignmentStats(teacherId);
+      setStats(response.data);
+    } catch (error) {
+      console.error('Failed to load assignment stats:', error);
+      setError('Failed to load assignment statistics');
+      // Set default stats on error
+      setStats({
+        totalAssignments: 0,
+        completedAssignments: 0,
+        upcomingAssignments: 0,
+        overdueAssignments: 0,
+        totalSubmissions: 0,
+        pendingSubmissions: 0,
+        gradedSubmissions: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Load assignment statistics
+  useEffect(() => {
+    loadAssignmentStats();
+  }, [loadAssignmentStats]);
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleAssignmentCreated = () => {
+    // Show success toast
+    toast.success('Assignment created successfully!', {
+      description: 'Your assignment has been created and assigned to students.',
+    });
+
+    // Refresh stats and assignments list
+    loadAssignmentStats();
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Transform stats data for Statsgrid component
+  const statsData = stats
+    ? [
+        {
+          value: stats.totalAssignments.toString(),
+          label: 'Total Assignments',
+          change: `${stats.completedAssignments} completed, ${stats.upcomingAssignments} upcoming`,
+          color: 'bg-blue-600',
+          icon: BookOpen,
+        },
+        {
+          value: stats.totalSubmissions.toString(),
+          label: 'Total Submissions',
+          change: `${stats.gradedSubmissions} graded, ${stats.pendingSubmissions} pending`,
+          color: 'bg-green-600',
+          icon: Users,
+        },
+        {
+          value: stats.upcomingAssignments.toString(),
+          label: 'Upcoming Assignments',
+          change:
+            stats.overdueAssignments > 0
+              ? `${stats.overdueAssignments} overdue`
+              : 'On track',
+          color: 'bg-yellow-600',
+          icon: Clock,
+        },
+        {
+          value: `${Math.round((stats.gradedSubmissions / Math.max(stats.totalSubmissions, 1)) * 100)}%`,
+          label: 'Grading Progress',
+          change: `${stats.gradedSubmissions}/${stats.totalSubmissions} submissions`,
+          color: 'bg-purple-600',
+          icon: CheckCircle,
+        },
+      ]
+    : [];
+
   return (
     <div className='min-h-screen bg-background'>
       <div className='px-3 sm:px-4 lg:px-6 pt-2 sm:pt-3 lg:pt-4'>
@@ -36,7 +131,10 @@ export default function AssignmentsPage() {
               Manage school assignments and communicate with students here!
             </Label>
           </div>
-          <Button className='bg-blue-600 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2'>
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            className='bg-blue-600 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2'
+          >
             <Plus className='w-4 h-4' />
             <span>New Assignment</span>
           </Button>
@@ -44,31 +142,67 @@ export default function AssignmentsPage() {
       </div>
       <div className='px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
         <div className='max-w-7xl mx-auto space-y-4 sm:space-y-5 lg:space-y-6 mt-4 sm:mt-5 lg:mt-6'>
-          {/* Top metrics via Statsgrid solid variant */}
-          <Statsgrid
-            variant='solid'
-            stats={statsData.map(s => ({
-              icon: () => null as any,
-              bgColor: s.color,
-              iconColor: '',
-              value: s.value,
-              label: s.label,
-              change: s.change,
-              isPositive: true,
-            }))}
-          />
+          {/* Loading State */}
+          {loading ? (
+            <div className='flex items-center justify-center py-8'>
+              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
+              <span className='ml-3 text-gray-600'>
+                Loading assignment data...
+              </span>
+            </div>
+          ) : error ? (
+            <div className='flex items-center justify-center py-8'>
+              <div className='text-center'>
+                <p className='text-red-600 mb-2'>{error}</p>
+                <Button
+                  onClick={loadAssignmentStats}
+                  className='text-blue-600 hover:text-blue-700'
+                >
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Top metrics via Statsgrid solid variant */}
+              <Statsgrid
+                variant='solid'
+                stats={statsData.map(s => ({
+                  icon: s.icon,
+                  bgColor: s.color,
+                  iconColor: 'text-white',
+                  value: s.value,
+                  label: s.label,
+                  change: s.change,
+                  isPositive: true,
+                }))}
+              />
 
-          {/* Tabs */}
-          <Tabs
-            tabs={[
-              { name: 'All', content: <AllAssignmentsTab /> },
-              { name: 'Submissions', content: <SubmissionsTab /> },
-              { name: 'Grading', content: <GradingTab /> },
-              { name: 'Deadlines', content: <DeadlinesTab /> },
-            ]}
-          />
+              {/* Tabs */}
+              <Tabs
+                tabs={[
+                  {
+                    name: 'All',
+                    content: (
+                      <AllAssignmentsTab refreshTrigger={refreshTrigger} />
+                    ),
+                  },
+                  { name: 'Submissions', content: <SubmissionsTab /> },
+                  { name: 'Grading', content: <GradingTab /> },
+                  { name: 'Deadlines', content: <DeadlinesTab /> },
+                ]}
+              />
+            </>
+          )}
         </div>
       </div>
+
+      {/* Create Assignment Modal */}
+      <CreateAssignmentModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSuccess={handleAssignmentCreated}
+      />
     </div>
   );
 }

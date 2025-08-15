@@ -1,15 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Panel from '@/components/organisms/dashboard/UpcomingEventsPanel';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import Button from '@/components/atoms/form-controls/Button';
 import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
-import { FlaskConical, Calculator, Calendar, UserCheck } from 'lucide-react';
+import { teacherService } from '@/api/services/teacher.service';
+import { useAuth } from '@/hooks/useAuth';
+import { BookOpen, FlaskConical, Calculator } from 'lucide-react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
+import Link from 'next/link';
 
-const statsData = [
+interface TeacherSubject {
+  subject: {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    maxMarks?: number;
+    passMarks?: number;
+  };
+}
+
+const dummyStatsData = [
   {
     value: '6',
     label: "Today's Classes",
@@ -36,64 +50,73 @@ const statsData = [
   },
 ];
 
-export default function TeacherDashboard() {
-  const [showAttendance, setShowAttendance] = useState(false);
+interface TeacherClass {
+  class: {
+    id: string;
+    grade: number;
+    section: string;
+    capacity?: number;
+    status?: string;
+    currentEnrollment?: number;
+  };
+}
 
-  const classes: {
-    status: string;
-    title: string;
-    subtitle: string;
-    tone: 'green' | 'blue' | 'gray';
-  }[] = [
-    {
-      status: 'Completed',
-      title: 'Class 7 - B',
-      subtitle: 'Science Class',
-      tone: 'green',
-    },
-    {
-      status: 'Completed',
-      title: 'Class 7 - B',
-      subtitle: 'Science Class',
-      tone: 'green',
-    },
-    {
-      status: 'In Time',
-      title: 'Class 8 - A',
-      subtitle: 'Science Class',
-      tone: 'blue',
-    },
-    {
-      status: '9:10am - 10:10am',
-      title: 'Class 7 - B',
-      subtitle: 'Science Class',
-      tone: 'gray',
-    },
-    {
-      status: 'in 10 mins',
-      title: 'Class 7 - B',
-      subtitle: 'Science Class',
-      tone: 'blue',
-    },
-    {
-      status: 'Completed',
-      title: 'Class 7 - B',
-      subtitle: 'Science Class',
-      tone: 'green',
-    },
-    {
-      status: 'Completed',
-      title: 'Class 7 - B',
-      subtitle: 'Science Class',
-      tone: 'green',
-    },
-    {
-      status: '9:10am - 10:10am',
-      title: 'Class 7 - B',
-      subtitle: 'Science Class',
-      tone: 'gray',
-    },
-  ];
+export default function TeacherDashboard() {
+  const { user } = useAuth();
+  const [showAttendance, setShowAttendance] = useState(false);
+  const [subjects, setSubjects] = useState<TeacherSubject[]>([]);
+  const [subjectsLoading, setSubjectsLoading] = useState(true);
+  const [classes, setClasses] = useState<TeacherClass[]>([]);
+  const [classesLoading, setClassesLoading] = useState(true);
+
+  const loadSubjects = useCallback(async () => {
+    if (!user?.id) {
+      setSubjectsLoading(false);
+      return;
+    }
+
+    try {
+      setSubjectsLoading(true);
+      const response = await teacherService.getMySubjects();
+      setSubjects(response.data);
+    } catch (error) {
+      console.error('Failed to load subjects:', error);
+    } finally {
+      setSubjectsLoading(false);
+    }
+  }, [user]);
+
+  const loadClasses = useCallback(async () => {
+    if (!user?.id) {
+      setClassesLoading(false);
+      return;
+    }
+
+    try {
+      setClassesLoading(true);
+      const response = await teacherService.getMyClasses();
+      setClasses(response.data);
+    } catch (error) {
+      console.error('Failed to load classes:', error);
+    } finally {
+      setClassesLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadSubjects();
+    loadClasses();
+  }, [loadSubjects, loadClasses]);
+
+  // Transform classes for display
+  const classItems = classes.map(classItem => ({
+    status: classItem.class.currentEnrollment
+      ? `${classItem.class.currentEnrollment}/${classItem.class.capacity || 30} Students`
+      : 'No Students',
+    title: `Grade ${classItem.class.grade} - Section ${classItem.class.section}`,
+    subtitle: 'Class Teacher',
+    tone: 'blue' as const,
+  }));
 
   const assignments = [
     {
@@ -110,12 +133,50 @@ export default function TeacherDashboard() {
     },
   ];
 
-  const assignedSubjects = [
-    { label: 'Science', icon: FlaskConical },
-    { label: 'Optional Maths', icon: Calculator },
-    { label: 'Class Routine', icon: Calendar },
-    { label: 'Student Reports', icon: UserCheck },
+  // Calculate dynamic stats from real data
+  const totalStudents = classes.reduce(
+    (sum, c) => sum + (c.class.currentEnrollment || 0),
+    0,
+  );
+
+  const statsData = [
+    {
+      value: classes.length.toString(),
+      label: 'My Classes',
+      change: classes.length > 0 ? 'As Class Teacher' : 'No assignments',
+      color: 'bg-blue-600',
+    },
+    {
+      value: totalStudents.toString(),
+      label: 'Total Students',
+      change: 'Across all classes',
+      color: 'bg-green-600',
+    },
+    {
+      value: subjects.length.toString(),
+      label: 'My Subjects',
+      change: subjects.length > 0 ? 'Teaching subjects' : 'No assignments',
+      color: 'bg-orange-600',
+    },
+    {
+      value: Math.round(totalStudents / Math.max(classes.length, 1)).toString(),
+      label: 'Avg Class Size',
+      change: 'Students per class',
+      color: 'bg-purple-600',
+    },
   ];
+
+  // Transform subjects for display - original Panel format
+  const assignedSubjects = subjects.map(subjectItem => ({
+    id: subjectItem.subject.id,
+    label: subjectItem.subject.name,
+    code: subjectItem.subject.code,
+    icon: subjectItem.subject.name.toLowerCase().includes('science')
+      ? FlaskConical
+      : subjectItem.subject.name.toLowerCase().includes('math')
+        ? Calculator
+        : BookOpen,
+  }));
 
   return (
     <div className='min-h-screen bg-background'>
@@ -133,18 +194,28 @@ export default function TeacherDashboard() {
       <div className='px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
         <div className='max-w-7xl mx-auto space-y-4 sm:space-y-5 lg:space-y-6 mt-4 sm:mt-5 lg:mt-6'>
           {/* Top metrics via Statsgrid solid variant */}
-          <Statsgrid
-            variant='solid'
-            stats={statsData.map(s => ({
-              icon: () => null as any,
-              bgColor: s.color,
-              iconColor: '',
-              value: s.value,
-              label: s.label,
-              change: s.change,
-              isPositive: true,
-            }))}
-          />
+          {classesLoading || subjectsLoading ? (
+            <div className='animate-pulse'>
+              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className='h-24 bg-gray-200 rounded-lg'></div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <Statsgrid
+              variant='solid'
+              stats={statsData.map(s => ({
+                icon: () => null as any,
+                bgColor: s.color,
+                iconColor: '',
+                value: s.value,
+                label: s.label,
+                change: s.change,
+                isPositive: true,
+              }))}
+            />
+          )}
 
           {/* Attendance CTA */}
           <div className='rounded-xl border border-blue-200 bg-blue-50/60'>
@@ -177,15 +248,31 @@ export default function TeacherDashboard() {
                 level={3}
                 className='text-sm font-semibold text-gray-700'
               />
-              <Label className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'>
-                View All
-              </Label>
+              <Link href='/dashboard/teacher/academics/classes'>
+                <Label className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'>
+                  View All
+                </Label>
+              </Link>
             </div>
-            <Statsgrid
-              variant='classes'
-              items={classes.slice(0, 8)}
-              className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3'
-            />
+            {classesLoading ? (
+              <div className='animate-pulse'>
+                <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3'>
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className='h-16 bg-gray-200 rounded-lg'></div>
+                  ))}
+                </div>
+              </div>
+            ) : classes.length > 0 ? (
+              <Statsgrid
+                variant='classes'
+                items={classItems.slice(0, 8)}
+                className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3'
+              />
+            ) : (
+              <div className='text-center py-6 bg-gray-50 rounded-lg'>
+                <p className='text-sm text-gray-500'>No classes assigned yet</p>
+              </div>
+            )}
           </div>
 
           {/* Assignments to grade */}
@@ -207,7 +294,7 @@ export default function TeacherDashboard() {
             />
           </div>
 
-          {/* Events and Assigned Subjects */}
+          {/* Events and My Subjects */}
           <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
             <div className='lg:col-span-8'>
               <Panel
@@ -218,16 +305,18 @@ export default function TeacherDashboard() {
               />
             </div>
             <div className='lg:col-span-4'>
-              <Panel
-                variant='subjects'
-                title='Assigned Subjects'
-                className='!bg-transparent !border-0 !p-0 !rounded-none !shadow-none'
-                subjects={assignedSubjects.map((s, idx) => ({
-                  id: `sub-${idx}`,
-                  label: s.label,
-                  icon: s.icon,
-                }))}
-              />
+              {subjectsLoading ? (
+                <div className='animate-pulse'>
+                  <div className='h-32 bg-gray-200 rounded-lg'></div>
+                </div>
+              ) : (
+                <Panel
+                  variant='subjects'
+                  title='My Subjects'
+                  className='!bg-transparent !border-0 !p-0 !rounded-none !shadow-none'
+                  subjects={assignedSubjects}
+                />
+              )}
             </div>
           </div>
         </div>
