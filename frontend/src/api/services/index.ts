@@ -6,9 +6,11 @@
  * =============================================================================
  */
 
+export * from './assignment.service';
 export * from './auth.service';
-export * from './class.service';
-export * from './teacher.service';
-export * from './subject.service';
-export * from './staff.service';
 export * from './calendar.service';
+export * from './class.service';
+export * from './staff.service';
+export * from './submission.service';
+export * from './subject.service';
+export * from './teacher.service';
