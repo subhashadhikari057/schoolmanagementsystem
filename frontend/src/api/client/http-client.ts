@@ -13,6 +13,7 @@ import {
   HttpMethod,
 } from '../types/common';
 import { dispatchApiErrorEvent } from './api-interceptor';
+import { csrfService } from '../services/csrf.service';
 
 // ============================================================================
 // HTTP Client Configuration
@@ -115,6 +116,25 @@ export class HttpClient {
     // Add authorization header if token is available and auth is required
     if (config.requiresAuth !== false && this.accessToken) {
       headers.Authorization = `Bearer ${this.accessToken}`;
+    }
+
+    // Add CSRF token for mutation requests (except auth endpoints)
+    const isMutation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/logout') ||
+      url.includes('/csrf/token');
+
+    if (isMutation && !isAuthEndpoint && !config.skipCsrf) {
+      try {
+        const csrfHeaders = await csrfService.addTokenToHeaders();
+        Object.assign(headers, csrfHeaders);
+      } catch (error) {
+        console.warn('Failed to add CSRF token to request:', error);
+        // Continue without CSRF token - the server will reject if needed
+        // This allows the app to work even if CSRF is not available
+      }
     }
 
     // Build full URL
@@ -228,6 +248,25 @@ export class HttpClient {
             // Dispatch API error event for token expiry handlers
             dispatchApiErrorEvent(apiError);
             return this.handleUnauthorized(method, url, data, config);
+          }
+
+          // Handle 403 Forbidden - CSRF token validation failed
+          if (
+            response.status === 403 &&
+            apiError.code === 'CSRF_VALIDATION_FAILED'
+          ) {
+            // Try to refresh CSRF token and retry the request once
+            if (!config.csrfRetry) {
+              try {
+                await csrfService.fetchToken(); // Get a fresh token
+                return this.makeRequest(method, url, data, {
+                  ...config,
+                  csrfRetry: true, // Mark as retry to prevent infinite loop
+                });
+              } catch (csrfError) {
+                console.error('Failed to refresh CSRF token:', csrfError);
+              }
+            }
           }
 
           // Dispatch API error event for other errors

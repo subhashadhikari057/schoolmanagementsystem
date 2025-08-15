@@ -7,6 +7,7 @@ export const UPLOAD_PATHS = {
   TEACHER_PROFILES: 'uploads/teachers/profiles',
   STUDENT_PROFILES: 'uploads/students/profiles',
   STAFF_PROFILES: 'uploads/staff/profiles',
+  PARENT_PROFILES: 'uploads/parents/profiles',
   DOCUMENTS: 'uploads/documents',
 } as const;
 

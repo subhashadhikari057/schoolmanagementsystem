@@ -35,13 +35,22 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
 
   // Fetch detailed teacher data when modal opens
   useEffect(() => {
-    if (isOpen && teacher) {
+    if (isOpen && teacher && teacher.id) {
       setLoading(true);
       setError(null);
 
+      // Validate teacher ID before making API call
+      const teacherId = String(teacher.id);
+      if (!teacherId || teacherId === 'undefined' || teacherId === 'null') {
+        setError('Invalid teacher ID');
+        setTeacherDetails(teacher);
+        setLoading(false);
+        return;
+      }
+
       // Fetch detailed teacher data from API
       teacherService
-        .getTeacherById(String(teacher.id))
+        .getTeacherById(teacherId)
         .then(response => {
           if (response.success && response.data) {
             // Map API response to Teacher interface
@@ -206,7 +215,7 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
         month: 'long',
         day: 'numeric',
       });
-    } catch (e) {
+    } catch {
       return dateString;
     }
   };

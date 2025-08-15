@@ -115,6 +115,11 @@ export interface TeacherListResponse {
   employmentDate?: string;
   experienceYears?: number;
 
+  // Name parts (returned by findById)
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+
   // Personal Information
   dateOfBirth?: string;
   gender?: string;
@@ -123,6 +128,7 @@ export interface TeacherListResponse {
   street?: string;
   city?: string;
   state?: string;
+  province?: string; // Added province field
   pinCode?: string;
   address?: string;
 
@@ -258,7 +264,7 @@ export interface TeacherFormData {
   // Professional Information
   employeeId?: string;
   joiningDate?: string;
-  experience?: string;
+  experienceYears?: number;
   highestQualification?: string;
   specialization?: string;
   designation?: string;

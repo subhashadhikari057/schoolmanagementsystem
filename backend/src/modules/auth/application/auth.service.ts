@@ -195,11 +195,20 @@ export class AuthService {
     });
     const tokenHash: string = await hashToken(refreshToken);
 
+    // Extract basic device info from user agent
+    const deviceInfo = this.extractDeviceInfo(userAgent);
+
+    // Create new session with device info
     await this.prisma.userSession.create({
       data: {
         id: sessionId,
         userId: user.id,
         tokenHash,
+        ipAddress: ip,
+        userAgent,
+        deviceInfo,
+        isCurrentDevice: true,
+        lastActivityAt: new Date(),
       },
     });
 
@@ -265,10 +274,50 @@ export class AuthService {
       throw new ForbiddenException('Session not found or revoked');
     }
 
+    // Check if token matches current hash
     const isValid: boolean = await verifyTokenHash(
       refreshToken,
       session.tokenHash,
     );
+
+    // If current token is invalid, check if it matches the previous token hash
+    // This indicates a potential token reuse attack
+    if (!isValid && session.previousTokenHash) {
+      const isPreviousToken = await verifyTokenHash(
+        refreshToken,
+        session.previousTokenHash,
+      );
+
+      if (isPreviousToken) {
+        // Token reuse detected! Revoke all user sessions as security measure
+        await this.prisma.userSession.updateMany({
+          where: { userId: session.userId, revokedAt: null },
+          data: {
+            revokedAt: new Date(),
+            revokeReason: 'SECURITY_TOKEN_REUSE_DETECTED',
+          },
+        });
+
+        // Log security event
+        await this.auditService.record({
+          action: 'TOKEN_REUSE_DETECTED',
+          status: 'FAIL',
+          module: 'AUTH',
+          userId: session.userId,
+          ipAddress: ip,
+          userAgent,
+          details: {
+            sessionId: session.id,
+            securityAction: 'All sessions revoked',
+          },
+        });
+
+        throw new ForbiddenException(
+          'Security violation detected. All sessions have been revoked.',
+        );
+      }
+    }
+
     if (!isValid) {
       throw new UnauthorizedException('Refresh token does not match session');
     }
@@ -297,8 +346,10 @@ export class AuthService {
       where: { id: session.id },
       data: {
         tokenHash: newTokenHash,
+        previousTokenHash: session.tokenHash, // Store previous hash for reuse detection
         ipAddress: ip,
         userAgent,
+        lastActivityAt: new Date(),
       },
     });
 
@@ -477,5 +528,63 @@ export class AuthService {
       module: 'AUTH',
       userId: data.userId,
     });
+  }
+
+  /**
+   * Extract basic device info from user agent string
+   * @param userAgent The user agent string from the request
+   * @returns A string with basic device info
+   */
+  private extractDeviceInfo(userAgent: string): string {
+    if (!userAgent) return 'Unknown device';
+
+    try {
+      // Extract browser
+      let browser = 'Unknown browser';
+      if (userAgent.includes('Chrome') && !userAgent.includes('Chromium')) {
+        browser = 'Chrome';
+      } else if (userAgent.includes('Firefox')) {
+        browser = 'Firefox';
+      } else if (
+        userAgent.includes('Safari') &&
+        !userAgent.includes('Chrome')
+      ) {
+        browser = 'Safari';
+      } else if (userAgent.includes('Edge')) {
+        browser = 'Edge';
+      } else if (userAgent.includes('MSIE') || userAgent.includes('Trident/')) {
+        browser = 'Internet Explorer';
+      }
+
+      // Extract OS
+      let os = 'Unknown OS';
+      if (userAgent.includes('Windows')) {
+        os = 'Windows';
+      } else if (userAgent.includes('Mac OS')) {
+        os = 'macOS';
+      } else if (userAgent.includes('Linux')) {
+        os = 'Linux';
+      } else if (userAgent.includes('Android')) {
+        os = 'Android';
+      } else if (
+        userAgent.includes('iOS') ||
+        userAgent.includes('iPhone') ||
+        userAgent.includes('iPad')
+      ) {
+        os = 'iOS';
+      }
+
+      // Extract device type
+      let deviceType = 'Desktop';
+      if (userAgent.includes('Mobile')) {
+        deviceType = 'Mobile';
+      } else if (userAgent.includes('Tablet') || userAgent.includes('iPad')) {
+        deviceType = 'Tablet';
+      }
+
+      return `${browser} on ${os} (${deviceType})`;
+    } catch (error) {
+      return 'Unknown device';
+    }
   }
 }
