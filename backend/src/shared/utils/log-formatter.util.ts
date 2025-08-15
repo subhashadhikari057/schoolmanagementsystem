@@ -189,7 +189,9 @@ export class LogFormatter {
     filteredEntries = filteredEntries.slice(-maxLines);
 
     console.log(
-      chalk.bold(chalk.cyan(`\n📋 Log Entries (${filteredEntries.length} shown)\n`)),
+      chalk.bold(
+        chalk.cyan(`\n📋 Log Entries (${filteredEntries.length} shown)\n`),
+      ),
     );
 
     filteredEntries.forEach((entry, index) => {

@@ -12,6 +12,9 @@ export * from './common';
 // Authentication types
 export * from './auth';
 
+// Assignment types
+export * from './assignment';
+
 // Teacher types
 export * from './teacher';
 

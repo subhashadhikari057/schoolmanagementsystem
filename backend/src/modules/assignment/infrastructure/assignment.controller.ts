@@ -18,8 +18,9 @@ import {
   AssignmentFiltersDto,
 } from '../dto/assignment.dto';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
-import { RoleAccess } from '../../../shared/decorators/roles.decorator';
+import { RoleAccess, Roles } from '../../../shared/decorators/roles.decorator';
 import { UserId } from '../../../shared/decorators/user.decorator';
+import { UserRole } from '@sms/shared-types';
 
 @Controller('api/v1/assignments')
 @UseGuards(JwtAuthGuard)
@@ -31,7 +32,7 @@ export class AssignmentController {
    * Available to teachers and super admins
    */
   @Post()
-  @RoleAccess.Academic() // This allows SUPER_ADMIN, ADMIN, and TEACHER
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER) // Explicitly allow teachers
   async create(
     @Body() createAssignmentDto: CreateAssignmentDto,
     @UserId() userId: string,
@@ -84,7 +85,7 @@ export class AssignmentController {
    * Available to teachers and super admins
    */
   @Put(':id')
-  @RoleAccess.Academic()
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateAssignmentDto: UpdateAssignmentDto,
@@ -111,7 +112,7 @@ export class AssignmentController {
    * Available to teachers and super admins
    */
   @Delete(':id')
-  @RoleAccess.Academic()
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async delete(
     @Param('id', ParseUUIDPipe) id: string,
     @UserId() userId: string,

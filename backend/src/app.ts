@@ -8,7 +8,6 @@ export async function createApp() {
 
   app.use(json()); // Enable JSON body parser
 
-
   const prisma = app.get(PrismaService);
   await prisma.$connect();
   console.log('✅ DB connected');

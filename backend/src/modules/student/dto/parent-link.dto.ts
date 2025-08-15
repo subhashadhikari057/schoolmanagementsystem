@@ -8,17 +8,14 @@ export const CreateParentLinkDto = z.object({
 
 export type CreateParentLinkDtoType = z.infer<typeof CreateParentLinkDto>;
 
-
 export const UpdateParentLinkDto = z.object({
-    isPrimary: z.boolean(),
-  });
-  
-  export type UpdateParentLinkDtoType = z.infer<typeof UpdateParentLinkDto>;
+  isPrimary: z.boolean(),
+});
 
-  
-  export const UnlinkParentDto = z.object({
-    parentId: z.string().uuid({ message: 'Invalid parent ID' }),
-  });
-  
-  export type UnlinkParentDtoType = z.infer<typeof UnlinkParentDto>;
-  
+export type UpdateParentLinkDtoType = z.infer<typeof UpdateParentLinkDto>;
+
+export const UnlinkParentDto = z.object({
+  parentId: z.string().uuid({ message: 'Invalid parent ID' }),
+});
+
+export type UnlinkParentDtoType = z.infer<typeof UnlinkParentDto>;

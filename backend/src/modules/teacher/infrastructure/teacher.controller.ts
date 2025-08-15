@@ -189,7 +189,7 @@ export class TeacherController {
   }
 
   @Get()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findAll() {
     return this.teacherService.findAll();
   }
@@ -198,6 +198,20 @@ export class TeacherController {
   @Roles(UserRole.TEACHER)
   async getSelf(@CurrentUser() user: any) {
     return this.teacherService.findByUserId(user.id);
+  }
+
+  @Get('me/subjects')
+  @Roles(UserRole.TEACHER)
+  async getMySubjects(@CurrentUser() user: any) {
+    const teacher = await this.teacherService.findByUserId(user.id);
+    return this.teacherService.getSubjects(teacher.id);
+  }
+
+  @Get('me/classes')
+  @Roles(UserRole.TEACHER)
+  async getMyClasses(@CurrentUser() user: any) {
+    const teacher = await this.teacherService.findByUserId(user.id);
+    return this.teacherService.getAssignedClasses(teacher.id);
   }
 
   @Get(':id')
