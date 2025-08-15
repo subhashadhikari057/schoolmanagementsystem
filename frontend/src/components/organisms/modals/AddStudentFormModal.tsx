@@ -550,6 +550,52 @@ export default function AddStudentFormModal({
       );
 
       if (response.success) {
+        // Log any generated passwords to console for testing purposes
+        if (
+          response.data?.temporaryPassword ||
+          response.data?.parentCredentials
+        ) {
+          console.log('🎓 STUDENT CREATED SUCCESSFULLY! 🎓');
+
+          // Log student credentials if available
+          if (response.data?.temporaryPassword) {
+            console.table({
+              'Student Email': response.data.student?.email || formData.email,
+              'Generated Password': response.data.temporaryPassword,
+              'Student Name':
+                response.data.student?.fullName ||
+                `${formData.firstName} ${formData.lastName}`,
+              'Student ID': response.data.student?.id || 'Not available',
+              'Roll Number': formData.rollNumber,
+              Class: formData.classId || 'Not assigned',
+            });
+          }
+
+          // Log parent credentials if available
+          if (
+            response.data?.parentCredentials &&
+            Array.isArray(response.data.parentCredentials)
+          ) {
+            console.log('👨‍👩‍👧‍👦 PARENT ACCOUNTS CREATED:');
+            response.data.parentCredentials.forEach(
+              (parent: any, index: number) => {
+                console.table({
+                  [`Parent ${index + 1} Email`]: parent.email,
+                  [`Parent ${index + 1} Password`]: parent.temporaryPassword,
+                  [`Parent ${index + 1} Name`]: parent.fullName,
+                  [`Parent ${index + 1} ID`]: parent.id,
+                });
+              },
+            );
+          }
+
+          console.log('💡 Use these credentials to test login functionality');
+          console.log(
+            '⚠️  These passwords will be shown only once for security reasons',
+          );
+          console.log('🔗 Go to login page to test these credentials');
+        }
+
         toast.success('Student created successfully!');
         setFormData(initialFormData);
         setImagePreview(null);

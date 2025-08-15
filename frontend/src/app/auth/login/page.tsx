@@ -87,10 +87,30 @@ export default function LoginPage() {
         password: data.password as string,
       };
 
-      await login(credentials);
+      const loginResult = await login(credentials);
 
-      // The login hook will set the user data, we can redirect based on role
-      // The redirect will happen in useEffect below
+      // Check if password change is required
+      if (
+        loginResult?.requirePasswordChange &&
+        loginResult.tempToken &&
+        loginResult.userInfo
+      ) {
+        // Store temp data securely in sessionStorage (more secure than localStorage for temp data)
+        sessionStorage.setItem(
+          'temp_password_change_token',
+          loginResult.tempToken,
+        );
+        sessionStorage.setItem(
+          'temp_password_change_user',
+          JSON.stringify(loginResult.userInfo),
+        );
+
+        // Redirect to password change page WITHOUT exposing sensitive data in URL
+        router.push('/auth/change-password');
+        return;
+      }
+
+      // Normal login - the redirect will happen in useEffect below
     } catch (error) {
       console.error('Login failed:', error);
       // Error is handled by useAuth hook and displayed in the form

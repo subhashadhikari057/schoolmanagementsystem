@@ -632,6 +632,23 @@ export default function AddTeacherFormModal({
       const response = await teacherService.createTeacher(teacherData as any);
 
       if (response.success) {
+        // Log the generated password to console for testing purposes
+        if (response.data.temporaryPassword) {
+          console.log('🔐 TEACHER CREATED SUCCESSFULLY! 🔐');
+          console.table({
+            Email: response.data.teacher.email,
+            'Generated Password': response.data.temporaryPassword,
+            'Teacher Name': response.data.teacher.fullName,
+            'Teacher ID': response.data.teacher.id,
+            'Employee ID': response.data.teacher.employeeId || 'Not set',
+          });
+          console.log('💡 Use these credentials to test login functionality');
+          console.log(
+            '⚠️  This password will be shown only once for security reasons',
+          );
+          console.log('🔗 Go to login page to test these credentials');
+        }
+
         toast.success('Teacher created successfully!');
         setFormData(initialFormData);
         setImagePreview(null);
