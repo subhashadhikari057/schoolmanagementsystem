@@ -1,20 +1,59 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import LoginForm from '@/components/organisms/auth/LoginForm';
 import BannerSlider from '@/components/organisms/content/BannerSlider';
 import { authCarouselBanners } from '@/constants/carouselData';
 import { LoginRequest } from '@/api/types/auth';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, isLoading, error, user, isAuthenticated } = useAuth();
+  const [redirectMessage, setRedirectMessage] = useState<string | null>(null);
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
+
+  // Check for session expiry message on mount - client-side only
+  useEffect(() => {
+    // Delay to prevent hydration mismatch
+    const checkRedirectMessage = () => {
+      const message = sessionStorage.getItem('auth_redirect_message');
+      const path = sessionStorage.getItem('auth_redirect_path');
+
+      if (message) {
+        setRedirectMessage(message);
+        sessionStorage.removeItem('auth_redirect_message');
+
+        // Show toast message for session expiry with delay
+        setTimeout(() => {
+          toast.error(message);
+        }, 100);
+      }
+
+      if (path) {
+        setRedirectPath(path);
+      }
+    };
+
+    // Run after a short delay to ensure hydration is complete
+    const timeoutId = setTimeout(checkRedirectMessage, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   // Redirect based on user role after successful login
   useEffect(() => {
     if (isAuthenticated && user) {
+      // If we have a saved redirect path from session expiry, use that
+      if (redirectPath) {
+        router.push(redirectPath);
+        sessionStorage.removeItem('auth_redirect_path');
+        return;
+      }
+
+      // Otherwise, redirect based on role
       const getDashboardRoute = (role: string) => {
         switch (role?.toUpperCase()) {
           case 'SUPER_ADMIN':
@@ -38,7 +77,7 @@ export default function LoginPage() {
       const dashboardRoute = getDashboardRoute(user.role);
       router.push(dashboardRoute);
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, router, redirectPath]);
 
   const handleLogin = async (data: Record<string, unknown>) => {
     try {
@@ -74,20 +113,29 @@ export default function LoginPage() {
       }}
     >
       <div className='flex items-center justify-center px-4 py-8 sm:px-6 md:px-8 lg:px-10 lg:py-16 w-full min-h-screen lg:min-h-0'>
-        <LoginForm
-          description='login to access SMS Portal 👋'
-          title='SMS'
-          subtitle='Welcome,'
-          emailLabel='Email'
-          passwordLabel='Password'
-          buttonLabel={isLoading ? 'Signing in...' : 'Login'}
-          onSubmit={handleLogin}
-        />
-        {error && (
-          <div className='mt-4 p-3 bg-red-50 border border-red-200 rounded-md'>
-            <p className='text-sm text-red-600'>{error}</p>
-          </div>
-        )}
+        <div className='w-full max-w-md'>
+          {redirectMessage && (
+            <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-md'>
+              <p className='text-sm text-red-600'>{redirectMessage}</p>
+            </div>
+          )}
+
+          <LoginForm
+            description='login to access SMS Portal 👋'
+            title='SMS'
+            subtitle='Welcome,'
+            emailLabel='Email'
+            passwordLabel='Password'
+            buttonLabel={isLoading ? 'Signing in...' : 'Login'}
+            onSubmit={handleLogin}
+          />
+
+          {error && (
+            <div className='mt-4 p-3 bg-red-50 border border-red-200 rounded-md'>
+              <p className='text-sm text-red-600'>{error}</p>
+            </div>
+          )}
+        </div>
       </div>
       <div className='hidden lg:block'>
         <BannerSlider banners={authCarouselBanners} />
