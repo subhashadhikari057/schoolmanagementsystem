@@ -7,10 +7,17 @@ import Button from '@/components/atoms/form-controls/Button';
 import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
 import { teacherService } from '@/api/services/teacher.service';
 import { useAuth } from '@/hooks/useAuth';
-import { BookOpen, FlaskConical, Calculator } from 'lucide-react';
+import {
+  BookOpen,
+  FlaskConical,
+  Calculator,
+  Users,
+  ChevronRight,
+} from 'lucide-react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface TeacherSubject {
   subject: {
@@ -63,6 +70,7 @@ interface TeacherClass {
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
+  const router = useRouter();
   const [showAttendance, setShowAttendance] = useState(false);
   const [subjects, setSubjects] = useState<TeacherSubject[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
@@ -108,15 +116,9 @@ export default function TeacherDashboard() {
     loadClasses();
   }, [loadSubjects, loadClasses]);
 
-  // Transform classes for display
-  const classItems = classes.map(classItem => ({
-    status: classItem.class.currentEnrollment
-      ? `${classItem.class.currentEnrollment}/${classItem.class.capacity || 30} Students`
-      : 'No Students',
-    title: `Grade ${classItem.class.grade} - Section ${classItem.class.section}`,
-    subtitle: 'Class Teacher',
-    tone: 'blue' as const,
-  }));
+  const handleClassClick = (classId: string) => {
+    router.push(`/dashboard/teacher/academics/classes/${classId}`);
+  };
 
   const assignments = [
     {
@@ -263,11 +265,38 @@ export default function TeacherDashboard() {
                 </div>
               </div>
             ) : classes.length > 0 ? (
-              <Statsgrid
-                variant='classes'
-                items={classItems.slice(0, 8)}
-                className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3'
-              />
+              <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3'>
+                {classes.slice(0, 8).map(classItem => (
+                  <div
+                    key={classItem.class.id}
+                    onClick={() => handleClassClick(classItem.class.id)}
+                    className='bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer group p-3'
+                  >
+                    <div className='flex items-center justify-between mb-2'>
+                      <div className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700'>
+                        {classItem.class.currentEnrollment
+                          ? `${classItem.class.currentEnrollment}/${classItem.class.capacity || 30}`
+                          : '0/30'}
+                      </div>
+                      <ChevronRight className='w-3 h-3 text-gray-400 group-hover:text-blue-600 transition-colors' />
+                    </div>
+
+                    <div className='space-y-1'>
+                      <h3 className='text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors'>
+                        Grade {classItem.class.grade}-{classItem.class.section}
+                      </h3>
+                      <p className='text-xs text-gray-600'>Class Teacher</p>
+                    </div>
+
+                    <div className='mt-2 flex items-center gap-1'>
+                      <Users className='w-3 h-3 text-gray-400' />
+                      <span className='text-xs text-gray-600'>
+                        {classItem.class.currentEnrollment || 0} students
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className='text-center py-6 bg-gray-50 rounded-lg'>
                 <p className='text-sm text-gray-500'>No classes assigned yet</p>
