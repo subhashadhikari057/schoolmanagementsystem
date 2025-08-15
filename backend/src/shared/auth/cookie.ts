@@ -10,6 +10,7 @@ export const COOKIE_OPTIONS = {
     sameSite: env.COOKIE_SAME_SITE,
     maxAge: env.ACCESS_TOKEN_EXPIRES_IN,
     domain: env.COOKIE_DOMAIN || undefined,
+    path: '/api', // Restrict to API paths only
   },
   refreshToken: {
     httpOnly: true,
@@ -17,6 +18,7 @@ export const COOKIE_OPTIONS = {
     sameSite: env.COOKIE_SAME_SITE,
     maxAge: env.REFRESH_TOKEN_EXPIRES_IN,
     domain: env.COOKIE_DOMAIN || undefined,
+    path: '/api/v1/auth', // Restrict to auth endpoints only for better security
   },
 };
 

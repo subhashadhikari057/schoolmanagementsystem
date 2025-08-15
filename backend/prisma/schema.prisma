@@ -540,14 +540,18 @@ model AuditLog {
 }
 
 model UserSession {
-  id        String @id @default(uuid())
-  userId    String
-  tokenHash String
-  loginAt   DateTime @default(now())
-  lastActivityAt DateTime?
-  revokedAt   DateTime?
-  ipAddress   String?
-  userAgent   String?
+  id              String @id @default(uuid())
+  userId          String
+  tokenHash       String
+  previousTokenHash String?
+  loginAt         DateTime @default(now())
+  lastActivityAt  DateTime?
+  revokedAt       DateTime?
+  ipAddress       String?
+  userAgent       String?
+  deviceInfo      String?
+  revokeReason    String?
+  isCurrentDevice Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id])
 }

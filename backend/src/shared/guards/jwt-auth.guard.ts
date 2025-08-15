@@ -17,7 +17,8 @@ import {
 import { Reflector } from '@nestjs/core/services';
 import { Request } from 'express';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
-import { verifyToken } from '../auth/jwt.util';
+import { verifyToken, isTokenExpired } from '../auth/jwt.util';
+import { AuthError } from '../error-handling/auth-error.util';
 import { UserRole } from '@sms/shared-types';
 
 /**
@@ -94,14 +95,18 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException('Access token is required');
+      const errorResponse = AuthError.unauthorized('Access token is required');
+      throw new UnauthorizedException(errorResponse);
     }
 
     try {
       // Verify JWT token
       const payload = verifyToken(token) as JwtPayload;
       if (!payload || !payload.userId || !payload.sessionId) {
-        throw new UnauthorizedException('Invalid token payload');
+        const errorResponse = AuthError.invalidToken({
+          reason: 'Invalid token payload',
+        });
+        throw new UnauthorizedException(errorResponse);
       }
 
       // Validate session and get user data
@@ -110,7 +115,10 @@ export class JwtAuthGuard implements CanActivate {
         payload.sessionId,
       );
       if (!user) {
-        throw new UnauthorizedException('Invalid session or user not found');
+        const errorResponse = AuthError.sessionExpired({
+          reason: 'Invalid session or user not found',
+        });
+        throw new UnauthorizedException(errorResponse);
       }
 
       // Attach user to request for downstream use
@@ -128,7 +136,15 @@ export class JwtAuthGuard implements CanActivate {
         throw error;
       }
 
-      throw new UnauthorizedException('Invalid or expired token');
+      // Check if token is expired
+      const isExpired = isTokenExpired(token);
+      if (isExpired) {
+        const errorResponse = AuthError.tokenExpired();
+        throw new UnauthorizedException(errorResponse);
+      }
+
+      const errorResponse = AuthError.invalidToken();
+      throw new UnauthorizedException(errorResponse);
     }
   }
 

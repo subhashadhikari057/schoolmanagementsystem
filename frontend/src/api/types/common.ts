@@ -50,6 +50,8 @@ export interface RequestConfig {
   retries?: number;
   requiresAuth?: boolean;
   headers?: Record<string, string>;
+  csrfRetry?: boolean; // Flag to prevent infinite CSRF token refresh loops
+  skipCsrf?: boolean; // Skip CSRF token for this request
 }
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';

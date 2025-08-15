@@ -19,6 +19,7 @@ import {
   RegisterRequest,
 } from '../types/auth';
 import { ApiResponse } from '../types/common';
+import { csrfService } from './csrf.service';
 
 // ============================================================================
 // API Endpoints
@@ -71,6 +72,9 @@ export class AuthService {
         {},
         { requiresAuth: false }, // Auth is handled by cookies
       );
+
+      // Clear CSRF token on successful logout
+      csrfService.clearToken();
 
       return response;
     } catch (error) {
