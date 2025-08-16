@@ -37,6 +37,7 @@ const StudentsPage = () => {
     search: '',
     class: '',
     section: '',
+    ethnicity: '',
   });
 
   // State for class and section options (loaded from API)
@@ -151,6 +152,7 @@ const StudentsPage = () => {
   // Extract filter values to avoid dependency array issues
   const classFilter = filters.class || '';
   const searchFilter = filters.search || '';
+  const ethnicityFilter = filters.ethnicity || '';
 
   // Load students data function
   const loadStudents = useCallback(async () => {
@@ -163,6 +165,7 @@ const StudentsPage = () => {
         limit: itemsPerPage,
         search: searchFilter,
         classId: classFilter,
+        ethnicity: ethnicityFilter,
         sortBy: 'createdAt',
         sortOrder: 'desc',
       });
@@ -246,12 +249,12 @@ const StudentsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, itemsPerPage, searchFilter, classFilter]);
+  }, [currentPage, itemsPerPage, searchFilter, classFilter, ethnicityFilter]);
 
   // Load students data when page, filters change
   useEffect(() => {
     loadStudents();
-  }, [loadStudents, currentPage, classFilter, searchFilter]);
+  }, [loadStudents, currentPage, classFilter, searchFilter, ethnicityFilter]);
 
   // Handle filter changes
   const handleFilterChange = (newFilters: StudentFilters) => {

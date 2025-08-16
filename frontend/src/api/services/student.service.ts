@@ -29,6 +29,7 @@ export interface CreateStudentRequest {
     dateOfBirth?: string;
     gender?: 'male' | 'female' | 'other';
     bloodGroup?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+    ethnicity?: string;
     maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
     address?: string;
     street?: string;
@@ -119,6 +120,7 @@ export interface UpdateStudentByAdminRequest {
     dateOfBirth?: string;
     gender?: 'male' | 'female' | 'other';
     bloodGroup?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+    ethnicity?: string;
     maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
     address?: string;
     street?: string;
@@ -188,6 +190,7 @@ export interface StudentQueryParams {
   page?: number;
   search?: string;
   classId?: string;
+  ethnicity?: string;
   academicStatus?: 'active' | 'suspended' | 'graduated' | 'transferred';
   feeStatus?: 'paid' | 'pending' | 'overdue' | 'partial';
   sortBy?: 'name' | 'rollNumber' | 'admissionDate' | 'createdAt';
@@ -211,6 +214,7 @@ export interface StudentResponse {
   dateOfBirth?: string;
   gender?: string;
   bloodGroup?: string;
+  ethnicity?: string;
   maritalStatus?: string;
   address?: string;
   street?: string;

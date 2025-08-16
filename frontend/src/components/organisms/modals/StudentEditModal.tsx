@@ -18,6 +18,7 @@ import { Student } from '@/components/templates/listConfigurations';
 import { studentService } from '@/api/services/student.service';
 import { classService } from '@/api/services/class.service';
 import { toast } from 'sonner';
+import EthnicitySelect from '@/components/molecules/form/EthnicitySelect';
 
 interface StudentEditModalProps {
   isOpen: boolean;
@@ -167,6 +168,7 @@ interface EditStudentForm {
   dateOfBirth: string;
   gender: string;
   bloodGroup: string;
+  ethnicity: string;
   address: string;
   street: string;
   city: string;
@@ -224,6 +226,7 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
     dateOfBirth: '',
     gender: '',
     bloodGroup: '',
+    ethnicity: '',
     address: '',
     street: '',
     city: '',
@@ -325,6 +328,7 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
               dateOfBirth: formatDateForInput(details.dateOfBirth),
               gender: details.gender || '',
               bloodGroup: details.bloodGroup || '',
+              ethnicity: details.ethnicity || '',
               address: details.address || '',
               street: details.street || '',
               city: details.city || '',
@@ -412,6 +416,7 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
           dateOfBirth: formData.dateOfBirth,
           gender: formData.gender,
           bloodGroup: formData.bloodGroup,
+          ethnicity: formData.ethnicity,
           address: formData.address,
           street: formData.street,
           city: formData.city,
@@ -646,6 +651,16 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
                   onChange={handleInputChange}
                   options={BLOOD_GROUPS}
                   placeholder='Select blood group'
+                />
+
+                <EthnicitySelect
+                  label='Ethnicity'
+                  value={formData.ethnicity}
+                  onChange={value =>
+                    setFormData(prev => ({ ...prev, ethnicity: value }))
+                  }
+                  placeholder='Select ethnicity'
+                  className='mt-4'
                 />
               </div>
             </div>

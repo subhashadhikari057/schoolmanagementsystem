@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Filter, X } from 'lucide-react';
 import { debounce } from 'lodash';
+import EthnicitySelect from '@/components/molecules/form/EthnicitySelect';
 
 interface FilterOption {
   value: string;
@@ -13,6 +14,7 @@ export interface StudentFilters {
   search: string;
   class: string;
   section: string;
+  ethnicity: string;
 }
 
 interface StudentSearchFilterProps {
@@ -34,6 +36,7 @@ const StudentSearchFilter: React.FC<StudentSearchFilterProps> = ({
     search: initialFilters.search || '',
     class: initialFilters.class || '',
     section: initialFilters.section || '',
+    ethnicity: initialFilters.ethnicity || '',
   });
 
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
@@ -44,6 +47,7 @@ const StudentSearchFilter: React.FC<StudentSearchFilterProps> = ({
     let count = 0;
     if (filters.class) count++;
     if (filters.section) count++;
+    if (filters.ethnicity) count++;
     setActiveFiltersCount(count);
   }, [filters]);
 
@@ -90,6 +94,7 @@ const StudentSearchFilter: React.FC<StudentSearchFilterProps> = ({
       search: '',
       class: '',
       section: '',
+      ethnicity: '',
     };
     setFilters(clearedFilters);
     onFilterChange(clearedFilters);
@@ -154,7 +159,7 @@ const StudentSearchFilter: React.FC<StudentSearchFilterProps> = ({
 
       {/* Filter Options */}
       {isFilterExpanded && (
-        <div className='mt-4 grid grid-cols-1 md:grid-cols-2 gap-4'>
+        <div className='mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
           {/* Class Filter */}
           <div className='relative'>
             <label className='block text-sm font-medium text-gray-700 mb-1'>
@@ -216,6 +221,31 @@ const StudentSearchFilter: React.FC<StudentSearchFilterProps> = ({
               )}
             </div>
           </div>
+
+          {/* Ethnicity Filter */}
+          <div className='relative'>
+            <EthnicitySelect
+              label='Ethnicity'
+              value={filters.ethnicity}
+              onChange={value => {
+                const newFilters = { ...filters, ethnicity: value };
+                setFilters(newFilters);
+                onFilterChange(newFilters);
+              }}
+              placeholder='All Ethnicities'
+              className='w-full'
+            />
+            {filters.ethnicity && (
+              <button
+                type='button'
+                className='absolute top-8 right-3 flex items-center justify-center w-6 h-6 bg-white rounded-full border border-gray-300 hover:bg-gray-50'
+                onClick={() => clearFilter('ethnicity')}
+                title='Clear ethnicity filter'
+              >
+                <X size={14} className='text-gray-400 hover:text-gray-600' />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -247,6 +277,18 @@ const StudentSearchFilter: React.FC<StudentSearchFilterProps> = ({
                 type='button'
                 className='ml-1 inline-flex'
                 onClick={() => clearFilter('section')}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+          {filters.ethnicity && (
+            <div className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
+              Ethnicity: {filters.ethnicity}
+              <button
+                type='button'
+                className='ml-1 inline-flex'
+                onClick={() => clearFilter('ethnicity')}
               >
                 <X size={12} />
               </button>
