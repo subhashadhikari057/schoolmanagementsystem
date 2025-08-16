@@ -21,6 +21,7 @@ export const CreateStudentPersonalSchema = z.object({
   bloodGroup: z
     .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
     .optional(),
+  ethnicity: z.string().optional(),
   address: z.string().optional(),
   street: z.string().optional(),
   city: z.string().optional(),
@@ -178,6 +179,7 @@ export const UpdateStudentByAdminPersonalSchema = z.object({
   bloodGroup: z
     .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
     .optional(),
+  ethnicity: z.string().optional(),
   maritalStatus: z
     .enum(['single', 'married', 'divorced', 'widowed'])
     .optional(),
@@ -238,6 +240,7 @@ export const UpdateStudentSelfUserSchema = z.object({
 });
 
 export const UpdateStudentSelfPersonalSchema = z.object({
+  ethnicity: z.string().optional(),
   address: z.string().optional(),
   street: z.string().optional(),
   city: z.string().optional(),
@@ -266,6 +269,7 @@ export const GetAllStudentsDto = z.object({
   page: z.coerce.number().min(1).optional().default(1),
   search: z.string().optional(),
   classId: z.string().optional(),
+  ethnicity: z.string().optional(),
   academicStatus: z
     .enum(['active', 'suspended', 'graduated', 'transferred'])
     .optional(),
@@ -296,6 +300,7 @@ export const StudentResponseDto = z.object({
   dateOfBirth: z.string().optional(),
   gender: z.string().optional(),
   bloodGroup: z.string().optional(),
+  ethnicity: z.string().optional(),
   maritalStatus: z.string().optional(),
   address: z.string().optional(),
   street: z.string().optional(),
