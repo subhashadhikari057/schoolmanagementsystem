@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import GenericList from '@/components/templates/GenericList';
 import {
   getListConfig,
@@ -9,8 +9,39 @@ import {
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import { Users, UserCheck, Phone, Mail } from 'lucide-react';
+import { toast } from 'sonner';
 
 const ParentsPage = () => {
+  // State for parents data
+  const [parents, setParents] = useState<Parent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Action handlers for parent rows
+  const handleParentAction = (action: string, parent: Parent) => {
+    switch (action) {
+      case 'view':
+        toast.info(`View parent: ${parent.name}`);
+        // TODO: Open view parent modal
+        break;
+      case 'edit':
+        toast.info(`Edit parent: ${parent.name}`);
+        // TODO: Open edit parent modal
+        break;
+      case 'delete':
+        if (confirm(`Are you sure you want to delete ${parent.name}?`)) {
+          toast.success(`Parent ${parent.name} deleted successfully`);
+          // TODO: Call delete API and refresh data
+        }
+        break;
+      case 'status':
+        toast.info(`Toggle status for: ${parent.name}`);
+        // TODO: Call status change API
+        break;
+      default:
+        console.log('Action:', action, 'for parent:', parent.id);
+    }
+  };
+
   // Parent-specific stats data
   const parentStats = [
     {
@@ -127,6 +158,7 @@ const ParentsPage = () => {
             totalPages={12}
             totalItems={120}
             itemsPerPage={10}
+            onItemAction={handleParentAction}
             customActions={<ActionButtons pageType='parents' />}
           />
         </div>

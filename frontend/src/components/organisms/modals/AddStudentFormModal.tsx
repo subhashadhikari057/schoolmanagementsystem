@@ -5,17 +5,19 @@ import {
   X,
   User,
   Users,
-  Mail,
-  Phone,
-  Camera,
   BookOpen,
+  Mail,
+  Camera,
   Plus,
   UserPlus,
+  Heart,
+  Shield,
+  GraduationCap,
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { classService } from '@/api/services/class.service';
 import { studentService } from '@/api/services/student.service';
-import { parentService } from '@/api/services/parent.service';
 
 interface AddStudentFormModalProps {
   isOpen: boolean;
@@ -23,92 +25,134 @@ interface AddStudentFormModalProps {
   onSuccess: () => void;
 }
 
-interface StudentFormData {
-  // User Information
-  fullName: string;
+interface GuardianInfo {
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  relation: string;
+}
+
+interface ParentAccountInfo {
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   email: string;
   phone: string;
+  relationship: string;
+  isPrimary: boolean;
+  createUserAccount: boolean;
+  occupation?: string;
+}
 
-  // Parent Mode Selection
-  parentMode: 'new' | 'existing';
+interface StudentFormData {
+  // User Information
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  email: string;
+  phone?: string;
 
-  // Student Specific Information
-  classId: string;
-  rollNumber: string;
-  admissionDate: string;
-  dob: string;
+  // Personal Information
+  dateOfBirth: string;
   gender: string;
   bloodGroup?: string;
-
-  // Parent Information
-  fatherName: string;
-  motherName: string;
-  fatherPhone: string;
-  motherPhone: string;
-  fatherEmail: string;
-  motherEmail: string;
-  fatherOccupation?: string;
-  motherOccupation?: string;
-
-  // Address Information
+  address?: string;
   street?: string;
   city?: string;
   state?: string;
   pinCode?: string;
 
-  // Additional Parents/Guardians
-  guardians: Array<{
-    fullName: string;
-    phone: string;
-    email: string;
-    relation: string;
-  }>;
+  // Academic Information
+  classId: string;
+  rollNumber?: string; // Auto-generated
+  admissionDate: string;
+  studentId?: string;
+  academicStatus?: string;
+  transportMode?: string;
 
-  // Profile Photo
-  photo?: File | null;
+  // Parent Information (basic info stored in student record)
+  fatherFirstName: string;
+  fatherMiddleName?: string;
+  fatherLastName: string;
+  fatherPhone?: string;
+  fatherEmail: string;
+  fatherOccupation?: string;
 
-  // Emergency Contact
-  emergencyContactName?: string;
-  emergencyContactPhone?: string;
-  emergencyContactRelation?: string;
+  motherFirstName: string;
+  motherMiddleName?: string;
+  motherLastName: string;
+  motherPhone?: string;
+  motherEmail: string;
+  motherOccupation?: string;
+
+  // Parent User Accounts to Create
+  parents: ParentAccountInfo[];
+
+  // Additional Guardians (non-user accounts)
+  guardians: GuardianInfo[];
+
+  // Medical Information
+  medicalConditions?: string;
+  allergies?: string;
 
   // Additional Information
   interests?: string;
-  medicalConditions?: string;
-  allergies?: string;
+  specialNeeds?: string;
+  bio?: string;
+
+  // Emergency Contact
+  emergencyContact?: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+
+  // Profile Photo
+  photo?: File | null;
 }
 
 const initialFormData: StudentFormData = {
-  fullName: '',
+  firstName: '',
+  middleName: '',
+  lastName: '',
   email: '',
   phone: '',
-  parentMode: 'new',
-  classId: '',
-  rollNumber: '',
-  admissionDate: '',
-  dob: '',
+  dateOfBirth: '',
   gender: '',
   bloodGroup: '',
-  fatherName: '',
-  motherName: '',
-  fatherPhone: '',
-  motherPhone: '',
-  fatherEmail: '',
-  motherEmail: '',
-  fatherOccupation: '',
-  motherOccupation: '',
+  address: '',
   street: '',
   city: '',
   state: '',
   pinCode: '',
+  classId: '',
+  rollNumber: '',
+  admissionDate: '',
+  studentId: '',
+  academicStatus: 'active',
+  transportMode: '',
+  fatherFirstName: '',
+  fatherMiddleName: '',
+  fatherLastName: '',
+  fatherPhone: '',
+  fatherEmail: '',
+  fatherOccupation: '',
+  motherFirstName: '',
+  motherMiddleName: '',
+  motherLastName: '',
+  motherPhone: '',
+  motherEmail: '',
+  motherOccupation: '',
+  parents: [],
   guardians: [],
-  photo: null,
-  emergencyContactName: '',
-  emergencyContactPhone: '',
-  emergencyContactRelation: '',
-  interests: '',
   medicalConditions: '',
   allergies: '',
+  interests: '',
+  specialNeeds: '',
+  bio: '',
+  photo: null,
 };
 
 // Form validation errors
@@ -171,7 +215,7 @@ const LabeledSelect: React.FC<{
   name: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  options: Array<{ value: string; label: string }>;
+  options: Array<{ value: string; label: string }> | string[];
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
@@ -203,11 +247,20 @@ const LabeledSelect: React.FC<{
       aria-invalid={error ? 'true' : 'false'}
     >
       <option value=''>{placeholder}</option>
-      {options.map(option => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
+      {options.map((option, index) => {
+        if (typeof option === 'string') {
+          return (
+            <option key={index} value={option}>
+              {option}
+            </option>
+          );
+        }
+        return (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        );
+      })}
     </select>
     {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
   </div>
@@ -285,21 +338,54 @@ export default function AddStudentFormModal({
   const [availableClasses, setAvailableClasses] = useState<any[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  // Load classes
+  // Auto-generation states
+  const [autoStudentId, setAutoStudentId] = useState<string>('');
+  const [studentIdLoading, setStudentIdLoading] = useState(false);
+
+  const loadNextStudentId = useCallback(async () => {
+    try {
+      setStudentIdLoading(true);
+      // Generate student ID based on current year and count
+      const currentYear = new Date().getFullYear();
+      const response = await studentService.getStudentCount();
+      const count = response.success ? response.data.count : 0;
+      const studentId = `S-${currentYear}-${(count + 1).toString().padStart(4, '0')}`;
+
+      setAutoStudentId(studentId);
+      setFormData(prev => {
+        if (!prev.studentId) {
+          return { ...prev, studentId };
+        }
+        return prev;
+      });
+    } catch (error) {
+      console.error('Failed to generate student ID:', error);
+    } finally {
+      setStudentIdLoading(false);
+    }
+  }, []);
+
+  // Load classes and generate student ID
   useEffect(() => {
     if (isOpen) {
       loadClasses();
+      loadNextStudentId();
     }
-  }, [isOpen]);
+  }, [isOpen, loadNextStudentId]);
 
   const loadClasses = async () => {
     try {
       const response = await classService.getAllClasses();
-      if (response.success) {
-        setAvailableClasses(response.data || []);
+      if (response.success && response.data) {
+        setAvailableClasses(response.data);
+        console.log('Loaded classes:', response.data.length, 'classes');
+      } else {
+        console.warn('Failed to load classes:', response.message);
+        toast.error('Failed to load classes. Please refresh and try again.');
       }
     } catch (error) {
       console.error('Failed to load classes:', error);
+      toast.error('Error loading classes. Please check your connection.');
     }
   };
 
@@ -310,11 +396,11 @@ export default function AddStudentFormModal({
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
       >,
     ) => {
-      const { name, value } = e.target;
+      const { name, value, type } = e.target;
 
       setFormData(prev => ({
         ...prev,
-        [name]: value,
+        [name]: type === 'number' ? (value === '' ? 0 : Number(value)) : value,
       }));
 
       // Clear error when user starts typing
@@ -328,13 +414,24 @@ export default function AddStudentFormModal({
     [errors],
   );
 
+  // Handle checkbox changes
+  const handleCheckboxChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, checked } = e.target;
+      setFormData(prev => ({
+        ...prev,
+        [name]: checked,
+      }));
+    },
+    [],
+  );
+
   // Handle file upload
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
         if (file.size > 5 * 1024 * 1024) {
-          // 5MB limit
           toast.error('File size should be less than 5MB');
           return;
         }
@@ -355,13 +452,60 @@ export default function AddStudentFormModal({
     [],
   );
 
+  // Handle parent account changes
+  const addParentAccount = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      parents: [
+        ...prev.parents,
+        {
+          firstName: '',
+          middleName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          relationship: 'father',
+          isPrimary: prev.parents.length === 0, // First parent is primary
+          createUserAccount: true,
+          occupation: '',
+        },
+      ],
+    }));
+  }, []);
+
+  const removeParentAccount = useCallback((index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      parents: prev.parents.filter((_, i) => i !== index),
+    }));
+  }, []);
+
+  const handleParentAccountChange = useCallback(
+    (index: number, field: string, value: string | boolean) => {
+      setFormData(prev => ({
+        ...prev,
+        parents: prev.parents.map((parent, i) =>
+          i === index ? { ...parent, [field]: value } : parent,
+        ),
+      }));
+    },
+    [],
+  );
+
   // Handle guardian changes
   const addGuardian = useCallback(() => {
     setFormData(prev => ({
       ...prev,
       guardians: [
         ...prev.guardians,
-        { fullName: '', phone: '', email: '', relation: '' },
+        {
+          firstName: '',
+          middleName: '',
+          lastName: '',
+          phone: '',
+          email: '',
+          relation: '',
+        },
       ],
     }));
   }, []);
@@ -385,24 +529,99 @@ export default function AddStudentFormModal({
     [],
   );
 
+  // Auto-populate parent accounts from basic parent info
+  const populateParentAccounts = useCallback(() => {
+    const newParents: ParentAccountInfo[] = [];
+
+    if (
+      formData.fatherFirstName &&
+      formData.fatherLastName &&
+      formData.fatherEmail
+    ) {
+      newParents.push({
+        firstName: formData.fatherFirstName,
+        middleName: formData.fatherMiddleName || '',
+        lastName: formData.fatherLastName,
+        email: formData.fatherEmail,
+        phone: formData.fatherPhone || '',
+        relationship: 'father',
+        isPrimary: true,
+        createUserAccount: true,
+        occupation: formData.fatherOccupation,
+      });
+    }
+
+    if (
+      formData.motherFirstName &&
+      formData.motherLastName &&
+      formData.motherEmail
+    ) {
+      newParents.push({
+        firstName: formData.motherFirstName,
+        middleName: formData.motherMiddleName || '',
+        lastName: formData.motherLastName,
+        email: formData.motherEmail,
+        phone: formData.motherPhone || '',
+        relationship: 'mother',
+        isPrimary: false,
+        createUserAccount: true,
+        occupation: formData.motherOccupation,
+      });
+    }
+
+    setFormData(prev => ({ ...prev, parents: newParents }));
+  }, [
+    formData.fatherFirstName,
+    formData.fatherMiddleName,
+    formData.fatherLastName,
+    formData.fatherEmail,
+    formData.fatherPhone,
+    formData.fatherOccupation,
+    formData.motherFirstName,
+    formData.motherMiddleName,
+    formData.motherLastName,
+    formData.motherEmail,
+    formData.motherPhone,
+    formData.motherOccupation,
+  ]);
+
+  // Scroll to first error field
+  const scrollToError = (fieldName: string) => {
+    const element = document.querySelector(
+      `[name="${fieldName}"]`,
+    ) as HTMLElement;
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.focus();
+    }
+  };
+
   // Form validation
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
     // Required fields
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!formData.firstName.trim())
+      newErrors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!formData.dateOfBirth)
+      newErrors.dateOfBirth = 'Date of birth is required';
+    if (!formData.gender) newErrors.gender = 'Gender is required';
     if (!formData.classId) newErrors.classId = 'Class is required';
-    if (!formData.rollNumber.trim())
-      newErrors.rollNumber = 'Roll number is required';
+    // Roll number is optional - will be auto-generated if not provided
+    // if (!formData.rollNumber?.trim())
+    //   newErrors.rollNumber = 'Roll number is required';
     if (!formData.admissionDate)
       newErrors.admissionDate = 'Admission date is required';
-    if (!formData.dob) newErrors.dob = 'Date of birth is required';
-    if (!formData.gender) newErrors.gender = 'Gender is required';
-    if (!formData.fatherName.trim())
-      newErrors.fatherName = 'Father name is required';
-    if (!formData.motherName.trim())
-      newErrors.motherName = 'Mother name is required';
+    if (!formData.fatherFirstName.trim())
+      newErrors.fatherFirstName = 'Father first name is required';
+    if (!formData.fatherLastName.trim())
+      newErrors.fatherLastName = 'Father last name is required';
+    if (!formData.motherFirstName.trim())
+      newErrors.motherFirstName = 'Mother first name is required';
+    if (!formData.motherLastName.trim())
+      newErrors.motherLastName = 'Mother last name is required';
     if (!formData.fatherEmail.trim())
       newErrors.fatherEmail = 'Father email is required';
     if (!formData.motherEmail.trim())
@@ -440,15 +659,46 @@ export default function AddStudentFormModal({
 
     // Date validation
     const today = new Date();
-    const dobDate = new Date(formData.dob);
+    const dobDate = new Date(formData.dateOfBirth);
     const admissionDate = new Date(formData.admissionDate);
 
     if (dobDate >= today) {
-      newErrors.dob = 'Date of birth must be in the past';
+      newErrors.dateOfBirth = 'Date of birth must be in the past';
     }
     if (admissionDate > today) {
       newErrors.admissionDate = 'Admission date cannot be in the future';
     }
+
+    // Parent account validation
+    formData.parents.forEach((parent, index) => {
+      if (!parent.firstName.trim()) {
+        newErrors[`parent-${index}-firstName`] =
+          'Parent first name is required';
+      }
+      if (!parent.lastName.trim()) {
+        newErrors[`parent-${index}-lastName`] = 'Parent last name is required';
+      }
+      if (!parent.email.trim()) {
+        newErrors[`parent-${index}-email`] = 'Parent email is required';
+      } else if (!emailRegex.test(parent.email)) {
+        newErrors[`parent-${index}-email`] = 'Invalid email format';
+      }
+      if (!parent.relationship) {
+        newErrors[`parent-${index}-relationship`] = 'Relationship is required';
+      }
+    });
+
+    // Guardian validation
+    formData.guardians.forEach((guardian, index) => {
+      if (guardian.firstName && (!guardian.phone || !guardian.email)) {
+        if (!guardian.phone) {
+          newErrors[`guardian-${index}-phone`] = 'Guardian phone is required';
+        }
+        if (!guardian.email) {
+          newErrors[`guardian-${index}-email`] = 'Guardian email is required';
+        }
+      }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -459,98 +709,171 @@ export default function AddStudentFormModal({
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error('Please fix the validation errors');
+      // Find first error field and scroll to it
+      const errorFields = Object.keys(errors);
+      if (errorFields.length > 0) {
+        scrollToError(errorFields[0]);
+      }
+
+      // Show specific validation errors
+      const missingFields: string[] = [];
+      const fieldLabels: { [key: string]: string } = {
+        firstName: 'First Name',
+        lastName: 'Last Name',
+        email: 'Email',
+        dateOfBirth: 'Date of Birth',
+        gender: 'Gender',
+        classId: 'Class',
+        admissionDate: 'Admission Date',
+        fatherFirstName: 'Father First Name',
+        fatherLastName: 'Father Last Name',
+        fatherEmail: 'Father Email',
+        motherFirstName: 'Mother First Name',
+        motherLastName: 'Mother Last Name',
+        motherEmail: 'Mother Email',
+      };
+
+      errorFields.forEach(field => {
+        const label = fieldLabels[field] || field;
+        missingFields.push(label);
+      });
+
+      if (missingFields.length > 0) {
+        if (missingFields.length <= 3) {
+          toast.error(`Please fix: ${missingFields.join(', ')}`);
+        } else {
+          toast.error(
+            `Please fix ${missingFields.length} validation errors. First: ${missingFields[0]}`,
+          );
+        }
+      } else {
+        toast.error('Please fix the validation errors and try again');
+      }
       return;
     }
 
     setLoading(true);
 
     try {
-      // Transform form data to match backend DTO
+      // Transform form data to match backend DTO structure
       const studentData = {
+        // User fields
         user: {
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-        },
-        classId: formData.classId,
-        rollNumber: formData.rollNumber,
-        admissionDate: formData.admissionDate,
-        email: formData.email,
-        dob: formData.dob,
-        gender: formData.gender as 'male' | 'female' | 'other',
-        bloodGroup: formData.bloodGroup,
-        imageUrl: undefined, // Will be set after photo upload
-
-        // Parent information
-        fatherName: formData.fatherName,
-        motherName: formData.motherName,
-        fatherPhone: formData.fatherPhone,
-        motherPhone: formData.motherPhone,
-        fatherEmail: formData.fatherEmail,
-        motherEmail: formData.motherEmail,
-        fatherOccupation: formData.fatherOccupation,
-        motherOccupation: formData.motherOccupation,
-
-        // Address
-        address: {
-          street: formData.street,
-          city: formData.city,
-          state: formData.state,
-          pinCode: formData.pinCode,
+          firstName: formData.firstName.trim(),
+          middleName: formData.middleName?.trim() || undefined,
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone?.trim() || undefined,
         },
 
-        // Guardians
-        guardians: formData.guardians.filter(
-          g => g.fullName && g.phone && g.email,
+        // Personal fields
+        personal: {
+          dateOfBirth: formData.dateOfBirth,
+          gender: formData.gender as 'male' | 'female' | 'other',
+          bloodGroup:
+            (formData.bloodGroup as
+              | 'A+'
+              | 'A-'
+              | 'B+'
+              | 'B-'
+              | 'AB+'
+              | 'AB-'
+              | 'O+'
+              | 'O-') || undefined,
+          address: formData.address?.trim() || undefined,
+          street: formData.street?.trim() || undefined,
+          city: formData.city?.trim() || undefined,
+          state: formData.state?.trim() || undefined,
+          pinCode: formData.pinCode?.trim() || undefined,
+        },
+
+        // Academic fields
+        academic: {
+          classId: formData.classId,
+          rollNumber: formData.rollNumber?.trim() || undefined, // Will be auto-generated by backend
+          admissionDate: formData.admissionDate,
+          studentId: formData.studentId?.trim() || undefined,
+          academicStatus:
+            (formData.academicStatus as
+              | 'active'
+              | 'suspended'
+              | 'graduated'
+              | 'transferred') || 'active',
+          transportMode: formData.transportMode?.trim() || undefined,
+        },
+
+        // Parent info (basic info stored in student record)
+        parentInfo: {
+          fatherFirstName: formData.fatherFirstName.trim(),
+          fatherMiddleName: formData.fatherMiddleName?.trim() || undefined,
+          fatherLastName: formData.fatherLastName.trim(),
+          motherFirstName: formData.motherFirstName.trim(),
+          motherMiddleName: formData.motherMiddleName?.trim() || undefined,
+          motherLastName: formData.motherLastName.trim(),
+          fatherPhone: formData.fatherPhone?.trim() || undefined,
+          motherPhone: formData.motherPhone?.trim() || undefined,
+          fatherEmail: formData.fatherEmail.trim(),
+          motherEmail: formData.motherEmail.trim(),
+          fatherOccupation: formData.fatherOccupation?.trim() || undefined,
+          motherOccupation: formData.motherOccupation?.trim() || undefined,
+        },
+
+        // Parent user accounts to create
+        parents: formData.parents.filter(
+          parent => parent.firstName && parent.lastName && parent.email,
         ),
 
-        // Parents for user account creation
-        parents: [
-          {
-            fullName: formData.fatherName,
-            email: formData.fatherEmail,
-            phone: formData.fatherPhone,
-            relationship: 'father',
-            isPrimary: true,
-            createUserAccount: true,
-          },
-          {
-            fullName: formData.motherName,
-            email: formData.motherEmail,
-            phone: formData.motherPhone,
-            relationship: 'mother',
-            isPrimary: false,
-            createUserAccount: false,
-          },
-        ],
+        // Guardians (non-user accounts)
+        guardians: formData.guardians
+          .filter(
+            guardian =>
+              guardian.firstName &&
+              guardian.lastName &&
+              guardian.phone &&
+              guardian.email,
+          )
+          .map(guardian => ({
+            firstName: guardian.firstName,
+            middleName: guardian.middleName || undefined,
+            lastName: guardian.lastName,
+            phone: guardian.phone,
+            email: guardian.email,
+            relation: guardian.relation,
+          })),
 
-        // Profile
+        // Additional information
+        additional: {
+          medicalConditions: formData.medicalConditions?.trim() || undefined,
+          allergies: formData.allergies?.trim() || undefined,
+          interests: formData.interests?.trim() || undefined,
+          specialNeeds: formData.specialNeeds?.trim() || undefined,
+          bio: formData.bio?.trim() || undefined,
+          emergencyContact: formData.emergencyContact || undefined,
+        },
+
+        // Profile information
         profile: {
-          emergencyContact: formData.emergencyContactName
-            ? {
-                name: formData.emergencyContactName,
-                phone: formData.emergencyContactPhone,
-                relationship: formData.emergencyContactRelation,
-              }
-            : undefined,
+          emergencyContact: formData.emergencyContact || undefined,
           interests: formData.interests
             ? { interests: formData.interests }
             : undefined,
           additionalData: {
-            medicalConditions: formData.medicalConditions,
-            allergies: formData.allergies,
+            medicalConditions: formData.medicalConditions?.trim() || undefined,
+            allergies: formData.allergies?.trim() || undefined,
+            specialNeeds: formData.specialNeeds?.trim() || undefined,
           },
         },
       };
 
-      const response = await studentService.createStudentWithNewParents(
+      console.log('Student data being sent:', studentData);
+
+      const response = await studentService.createStudent(
         studentData,
         formData.photo || undefined,
       );
 
       if (response.success) {
-        // Log any generated passwords to console for testing purposes
+        // Log generated credentials to console for testing purposes
         if (
           response.data?.temporaryPassword ||
           response.data?.parentCredentials
@@ -566,7 +889,7 @@ export default function AddStudentFormModal({
                 response.data.student?.fullName ||
                 `${formData.firstName} ${formData.lastName}`,
               'Student ID': response.data.student?.id || 'Not available',
-              'Roll Number': formData.rollNumber,
+
               Class: formData.classId || 'Not assigned',
             });
           }
@@ -584,6 +907,7 @@ export default function AddStudentFormModal({
                   [`Parent ${index + 1} Password`]: parent.temporaryPassword,
                   [`Parent ${index + 1} Name`]: parent.fullName,
                   [`Parent ${index + 1} ID`]: parent.id,
+                  [`Parent ${index + 1} Relationship`]: parent.relationship,
                 });
               },
             );
@@ -606,7 +930,96 @@ export default function AddStudentFormModal({
       }
     } catch (error: any) {
       console.error('Error creating student:', error);
-      toast.error(error.message || 'Failed to create student');
+
+      // Handle conflict errors (409)
+      if (error.statusCode === 409) {
+        const conflictMessage = error.message || 'A conflict occurred';
+        let userFriendlyMessage = '';
+        let fieldToScroll = '';
+
+        // Convert technical error messages to user-friendly ones
+        if (conflictMessage.toLowerCase().includes('email')) {
+          userFriendlyMessage =
+            'This email address is already registered in the system. Please use a different email address.';
+          fieldToScroll = 'email';
+        } else if (conflictMessage.toLowerCase().includes('phone')) {
+          userFriendlyMessage =
+            'This phone number is already registered in the system. Please use a different phone number.';
+          fieldToScroll = 'phone';
+        } else if (conflictMessage.toLowerCase().includes('student id')) {
+          userFriendlyMessage =
+            'This Student ID is already in use. Please use a different Student ID or leave it blank for auto-generation.';
+          fieldToScroll = 'studentId';
+        } else if (conflictMessage.toLowerCase().includes('roll number')) {
+          userFriendlyMessage =
+            'This Roll Number is already assigned in the selected class. Please use a different roll number.';
+          fieldToScroll = 'rollNumber';
+        } else {
+          userFriendlyMessage =
+            'Some information you entered already exists in our system. Please check and modify the highlighted fields.';
+        }
+
+        toast.error(userFriendlyMessage, { duration: 10000 });
+
+        // Scroll to the problematic field
+        if (fieldToScroll) {
+          scrollToError(fieldToScroll);
+        }
+
+        setLoading(false);
+        return;
+      }
+
+      // Handle validation errors with user-friendly messages
+      if (error.statusCode === 400 && error.details) {
+        const fieldErrors: { [key: string]: string } = {};
+        const friendlyMessages: string[] = [];
+
+        error.details.forEach((detail: any) => {
+          const field = detail.field;
+          let friendlyMessage = detail.message;
+
+          // Convert technical field names to user-friendly names
+          const fieldNames: { [key: string]: string } = {
+            'user.firstName': 'First Name',
+            'user.lastName': 'Last Name',
+            'user.email': 'Email Address',
+            'user.phone': 'Phone Number',
+            'academic.classId': 'Class',
+
+            'academic.admissionDate': 'Admission Date',
+            'personal.dateOfBirth': 'Date of Birth',
+            'personal.gender': 'Gender',
+            'parentInfo.fatherName': 'Father Name',
+            'parentInfo.motherName': 'Mother Name',
+            'parentInfo.fatherEmail': 'Father Email',
+            'parentInfo.motherEmail': 'Mother Email',
+          };
+
+          const displayField = fieldNames[field] || field;
+          friendlyMessage = friendlyMessage.replace(field, displayField);
+
+          fieldErrors[field] = friendlyMessage;
+          friendlyMessages.push(`${displayField}: ${friendlyMessage}`);
+        });
+
+        setErrors(fieldErrors);
+
+        // Show user-friendly toast with specific issues
+        if (friendlyMessages.length <= 3) {
+          friendlyMessages.forEach(msg => toast.error(msg, { duration: 5000 }));
+        } else {
+          toast.error(
+            `Please check the following fields: ${friendlyMessages.slice(0, 3).join(', ')} and ${friendlyMessages.length - 3} more`,
+            { duration: 6000 },
+          );
+        }
+      } else {
+        toast.error(
+          error.message ||
+            'Failed to create student. Please check all required fields.',
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -651,15 +1064,16 @@ export default function AddStudentFormModal({
       />
 
       {/* Modal */}
-      <div className='relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden'>
+      <div className='relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden'>
         {/* Header */}
         <div className='bg-gradient-to-br from-orange-500 to-red-600 px-6 py-4 flex items-center justify-between text-white'>
           <div className='flex items-center'>
-            <User size={24} className='mr-3' />
+            <GraduationCap size={24} className='mr-3' />
             <div>
               <h2 className='text-xl font-bold'>Add New Student</h2>
               <p className='text-orange-100 text-sm'>
-                Enter student information and academic details
+                Enter student information, academic details, and parent
+                information
               </p>
             </div>
           </div>
@@ -675,18 +1089,58 @@ export default function AddStudentFormModal({
         {/* Content */}
         <div className='p-6 overflow-y-auto max-h-[calc(90vh-80px)]'>
           <form onSubmit={handleSubmit} className='space-y-6'>
-            {/* Student Information */}
+            {/* Error Summary */}
+            {Object.keys(errors).length > 0 && (
+              <div className='bg-red-50 border border-red-200 rounded-md p-4 mb-6'>
+                <div className='flex'>
+                  <AlertCircle className='h-5 w-5 text-red-400 mt-0.5' />
+                  <div className='ml-3'>
+                    <h3 className='text-sm font-medium text-red-800'>
+                      Please fix the following errors:
+                    </h3>
+                    <div className='mt-2 text-sm text-red-700'>
+                      <ul className='list-disc pl-5 space-y-1'>
+                        {Object.entries(errors).map(([field, message]) => (
+                          <li key={field}>{message}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Student Basic Information */}
             <FormSection title='Student Information' icon={User}>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                 <LabeledInput
-                  label='Full Name'
-                  name='fullName'
-                  value={formData.fullName}
+                  label='First Name'
+                  name='firstName'
+                  value={formData.firstName}
                   onChange={handleInputChange}
-                  placeholder='Enter student full name'
+                  placeholder='Enter first name'
                   required
-                  error={errors.fullName}
+                  error={errors.firstName}
                 />
+                <LabeledInput
+                  label='Middle Name'
+                  name='middleName'
+                  value={formData.middleName || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter middle name'
+                />
+                <LabeledInput
+                  label='Last Name'
+                  name='lastName'
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  placeholder='Enter last name'
+                  required
+                  error={errors.lastName}
+                />
+              </div>
+
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
                 <LabeledInput
                   label='Email Address'
                   name='email'
@@ -697,24 +1151,25 @@ export default function AddStudentFormModal({
                   required
                   error={errors.email}
                 />
-              </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-4'>
                 <LabeledInput
                   label='Phone Number'
                   name='phone'
-                  value={formData.phone}
+                  value={formData.phone || ''}
                   onChange={handleInputChange}
                   placeholder='Enter phone number'
+                  error={errors.phone}
                 />
+              </div>
+
+              <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mt-4'>
                 <LabeledInput
                   label='Date of Birth'
-                  name='dob'
+                  name='dateOfBirth'
                   type='date'
-                  value={formData.dob}
+                  value={formData.dateOfBirth}
                   onChange={handleInputChange}
                   required
-                  error={errors.dob}
+                  error={errors.dateOfBirth}
                 />
                 <LabeledSelect
                   label='Gender'
@@ -730,24 +1185,12 @@ export default function AddStudentFormModal({
                   required
                   error={errors.gender}
                 />
-              </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
                 <LabeledSelect
                   label='Blood Group'
                   name='bloodGroup'
                   value={formData.bloodGroup || ''}
                   onChange={handleInputChange}
-                  options={[
-                    { value: 'A+', label: 'A+' },
-                    { value: 'A-', label: 'A-' },
-                    { value: 'B+', label: 'B+' },
-                    { value: 'B-', label: 'B-' },
-                    { value: 'AB+', label: 'AB+' },
-                    { value: 'AB-', label: 'AB-' },
-                    { value: 'O+', label: 'O+' },
-                    { value: 'O-', label: 'O-' },
-                  ]}
+                  options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']}
                   placeholder='Select blood group'
                 />
               </div>
@@ -787,147 +1230,33 @@ export default function AddStudentFormModal({
               </div>
             </FormSection>
 
-            {/* Academic Information */}
-            <FormSection title='Academic Information' icon={BookOpen}>
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                <LabeledSelect
-                  label='Class'
-                  name='classId'
-                  value={formData.classId}
-                  onChange={handleInputChange}
-                  options={availableClasses.map(cls => ({
-                    value: cls.id,
-                    label: `${cls.name} - ${cls.section || 'A'}`,
-                  }))}
-                  placeholder='Select class'
-                  required
-                  error={errors.classId}
-                />
-                <LabeledInput
-                  label='Roll Number'
-                  name='rollNumber'
-                  value={formData.rollNumber}
-                  onChange={handleInputChange}
-                  placeholder='Enter roll number'
-                  required
-                  error={errors.rollNumber}
-                />
-                <LabeledInput
-                  label='Admission Date'
-                  name='admissionDate'
-                  type='date'
-                  value={formData.admissionDate}
-                  onChange={handleInputChange}
-                  required
-                  error={errors.admissionDate}
-                />
-              </div>
-            </FormSection>
-
-            {/* Parent Information */}
-            <FormSection title='Parent Information' icon={Users}>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                {/* Father Information */}
-                <div className='space-y-4'>
-                  <h4 className='font-medium text-gray-900 border-b pb-2'>
-                    Father Details
-                  </h4>
-                  <LabeledInput
-                    label='Father Name'
-                    name='fatherName'
-                    value={formData.fatherName}
-                    onChange={handleInputChange}
-                    placeholder='Enter father name'
-                    required
-                    error={errors.fatherName}
-                  />
-                  <LabeledInput
-                    label='Father Email'
-                    name='fatherEmail'
-                    type='email'
-                    value={formData.fatherEmail}
-                    onChange={handleInputChange}
-                    placeholder='Enter father email'
-                    required
-                    error={errors.fatherEmail}
-                  />
-                  <LabeledInput
-                    label='Father Phone'
-                    name='fatherPhone'
-                    value={formData.fatherPhone}
-                    onChange={handleInputChange}
-                    placeholder='Enter father phone'
-                    error={errors.fatherPhone}
-                  />
-                  <LabeledInput
-                    label='Father Occupation'
-                    name='fatherOccupation'
-                    value={formData.fatherOccupation || ''}
-                    onChange={handleInputChange}
-                    placeholder='Enter father occupation'
-                  />
-                </div>
-
-                {/* Mother Information */}
-                <div className='space-y-4'>
-                  <h4 className='font-medium text-gray-900 border-b pb-2'>
-                    Mother Details
-                  </h4>
-                  <LabeledInput
-                    label='Mother Name'
-                    name='motherName'
-                    value={formData.motherName}
-                    onChange={handleInputChange}
-                    placeholder='Enter mother name'
-                    required
-                    error={errors.motherName}
-                  />
-                  <LabeledInput
-                    label='Mother Email'
-                    name='motherEmail'
-                    type='email'
-                    value={formData.motherEmail}
-                    onChange={handleInputChange}
-                    placeholder='Enter mother email'
-                    required
-                    error={errors.motherEmail}
-                  />
-                  <LabeledInput
-                    label='Mother Phone'
-                    name='motherPhone'
-                    value={formData.motherPhone}
-                    onChange={handleInputChange}
-                    placeholder='Enter mother phone'
-                    error={errors.motherPhone}
-                  />
-                  <LabeledInput
-                    label='Mother Occupation'
-                    name='motherOccupation'
-                    value={formData.motherOccupation || ''}
-                    onChange={handleInputChange}
-                    placeholder='Enter mother occupation'
-                  />
-                </div>
-              </div>
-            </FormSection>
-
             {/* Address Information */}
             <FormSection title='Address Information' icon={Mail}>
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <LabeledInput
-                  label='Street'
-                  name='street'
-                  value={formData.street || ''}
+                <LabeledTextarea
+                  label='Full Address'
+                  name='address'
+                  value={formData.address || ''}
                   onChange={handleInputChange}
-                  placeholder='Enter street address'
+                  placeholder='Enter complete address'
+                  rows={3}
                 />
-                <LabeledInput
-                  label='City'
-                  name='city'
-                  value={formData.city || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter city'
-                />
+                <div className='space-y-4'>
+                  <LabeledInput
+                    label='Street'
+                    name='street'
+                    value={formData.street || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter street'
+                  />
+                  <LabeledInput
+                    label='City'
+                    name='city'
+                    value={formData.city || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter city'
+                  />
+                </div>
               </div>
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
                 <LabeledInput
@@ -947,8 +1276,397 @@ export default function AddStudentFormModal({
               </div>
             </FormSection>
 
+            {/* Academic Information */}
+            <FormSection title='Academic Information' icon={BookOpen}>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <LabeledSelect
+                  label='Class'
+                  name='classId'
+                  value={formData.classId}
+                  onChange={handleInputChange}
+                  options={availableClasses.map(cls => ({
+                    value: cls.id,
+                    label: `Grade ${cls.grade} ${cls.section || ''}`,
+                  }))}
+                  placeholder={
+                    availableClasses.length === 0
+                      ? 'Loading classes...'
+                      : 'Select class'
+                  }
+                  required
+                  error={errors.classId}
+                  disabled={availableClasses.length === 0}
+                />
+                <LabeledInput
+                  label='Admission Date'
+                  name='admissionDate'
+                  type='date'
+                  value={formData.admissionDate}
+                  onChange={handleInputChange}
+                  required
+                  error={errors.admissionDate}
+                />
+              </div>
+
+              <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mt-4'>
+                <div className='relative'>
+                  <LabeledInput
+                    label='Student ID'
+                    name='studentId'
+                    value={formData.studentId || ''}
+                    onChange={handleInputChange}
+                    placeholder={
+                      autoStudentId
+                        ? `Auto: ${autoStudentId}`
+                        : 'Auto-generated'
+                    }
+                  />
+                  {autoStudentId && (
+                    <div className='flex items-center mt-1'>
+                      <span className='text-xs text-orange-600 flex items-center'>
+                        ✨ Auto-generated:{' '}
+                        <strong className='ml-1'>{autoStudentId}</strong>
+                      </span>
+                      {studentIdLoading && (
+                        <div className='ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-orange-600'></div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <LabeledSelect
+                  label='Academic Status'
+                  name='academicStatus'
+                  value={formData.academicStatus || ''}
+                  onChange={handleInputChange}
+                  options={[
+                    { value: 'active', label: 'Active' },
+                    { value: 'suspended', label: 'Suspended' },
+                    { value: 'graduated', label: 'Graduated' },
+                    { value: 'transferred', label: 'Transferred' },
+                  ]}
+                  placeholder='Select status'
+                />
+                <LabeledSelect
+                  label='Transport Mode (Optional)'
+                  name='transportMode'
+                  value={formData.transportMode || ''}
+                  onChange={handleInputChange}
+                  options={[
+                    'school_bus',
+                    'private_vehicle',
+                    'walking',
+                    'cycling',
+                    'public_transport',
+                    'other',
+                  ]}
+                  placeholder='Select transport (optional)'
+                />
+              </div>
+            </FormSection>
+
+            {/* Parent Information */}
+            <FormSection title='Parent Information' icon={Users}>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                {/* Father Information */}
+                <div className='space-y-4'>
+                  <h4 className='font-medium text-gray-900 border-b pb-2'>
+                    Father Details
+                  </h4>
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                    <LabeledInput
+                      label='First Name'
+                      name='fatherFirstName'
+                      value={formData.fatherFirstName}
+                      onChange={handleInputChange}
+                      placeholder='Enter first name'
+                      required
+                      error={errors.fatherFirstName}
+                    />
+                    <LabeledInput
+                      label='Middle Name'
+                      name='fatherMiddleName'
+                      value={formData.fatherMiddleName || ''}
+                      onChange={handleInputChange}
+                      placeholder='Enter middle name'
+                    />
+                    <LabeledInput
+                      label='Last Name'
+                      name='fatherLastName'
+                      value={formData.fatherLastName}
+                      onChange={handleInputChange}
+                      placeholder='Enter last name'
+                      required
+                      error={errors.fatherLastName}
+                    />
+                  </div>
+                  <LabeledInput
+                    label='Father Email'
+                    name='fatherEmail'
+                    type='email'
+                    value={formData.fatherEmail}
+                    onChange={handleInputChange}
+                    placeholder='Enter father email'
+                    required
+                    error={errors.fatherEmail}
+                  />
+                  <LabeledInput
+                    label='Father Phone'
+                    name='fatherPhone'
+                    value={formData.fatherPhone || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter father phone'
+                    error={errors.fatherPhone}
+                  />
+                  <LabeledInput
+                    label='Father Occupation'
+                    name='fatherOccupation'
+                    value={formData.fatherOccupation || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter father occupation'
+                  />
+                </div>
+
+                {/* Mother Information */}
+                <div className='space-y-4'>
+                  <h4 className='font-medium text-gray-900 border-b pb-2'>
+                    Mother Details
+                  </h4>
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                    <LabeledInput
+                      label='First Name'
+                      name='motherFirstName'
+                      value={formData.motherFirstName}
+                      onChange={handleInputChange}
+                      placeholder='Enter first name'
+                      required
+                      error={errors.motherFirstName}
+                    />
+                    <LabeledInput
+                      label='Middle Name'
+                      name='motherMiddleName'
+                      value={formData.motherMiddleName || ''}
+                      onChange={handleInputChange}
+                      placeholder='Enter middle name'
+                    />
+                    <LabeledInput
+                      label='Last Name'
+                      name='motherLastName'
+                      value={formData.motherLastName}
+                      onChange={handleInputChange}
+                      placeholder='Enter last name'
+                      required
+                      error={errors.motherLastName}
+                    />
+                  </div>
+                  <LabeledInput
+                    label='Mother Email'
+                    name='motherEmail'
+                    type='email'
+                    value={formData.motherEmail}
+                    onChange={handleInputChange}
+                    placeholder='Enter mother email'
+                    required
+                    error={errors.motherEmail}
+                  />
+                  <LabeledInput
+                    label='Mother Phone'
+                    name='motherPhone'
+                    value={formData.motherPhone || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter mother phone'
+                    error={errors.motherPhone}
+                  />
+                  <LabeledInput
+                    label='Mother Occupation'
+                    name='motherOccupation'
+                    value={formData.motherOccupation || ''}
+                    onChange={handleInputChange}
+                    placeholder='Enter mother occupation'
+                  />
+                </div>
+              </div>
+
+              {/* Auto-populate button */}
+              <div className='mt-4 flex justify-center'>
+                <button
+                  type='button'
+                  onClick={populateParentAccounts}
+                  className='px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors duration-200 flex items-center'
+                >
+                  <UserPlus size={16} className='mr-2' />
+                  Create Parent User Accounts
+                </button>
+              </div>
+            </FormSection>
+
+            {/* Parent User Accounts */}
+            {formData.parents.length > 0 && (
+              <FormSection title='Parent User Accounts' icon={Users}>
+                <div className='space-y-4'>
+                  {formData.parents.map((parent, index) => (
+                    <div key={index} className='border rounded-lg p-4 bg-white'>
+                      <div className='flex justify-between items-center mb-4'>
+                        <h5 className='font-medium text-gray-900'>
+                          Parent Account {index + 1}
+                        </h5>
+                        <button
+                          type='button'
+                          onClick={() => removeParentAccount(index)}
+                          className='text-red-600 hover:text-red-800 text-sm'
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                        <LabeledInput
+                          label='First Name'
+                          name={`parent-${index}-firstName`}
+                          value={parent.firstName}
+                          onChange={e =>
+                            handleParentAccountChange(
+                              index,
+                              'firstName',
+                              e.target.value,
+                            )
+                          }
+                          placeholder='Enter first name'
+                          error={errors[`parent-${index}-firstName`]}
+                        />
+                        <LabeledInput
+                          label='Last Name'
+                          name={`parent-${index}-lastName`}
+                          value={parent.lastName}
+                          onChange={e =>
+                            handleParentAccountChange(
+                              index,
+                              'lastName',
+                              e.target.value,
+                            )
+                          }
+                          placeholder='Enter last name'
+                          error={errors[`parent-${index}-lastName`]}
+                        />
+                        <LabeledInput
+                          label='Email'
+                          name={`parent-${index}-email`}
+                          type='email'
+                          value={parent.email}
+                          onChange={e =>
+                            handleParentAccountChange(
+                              index,
+                              'email',
+                              e.target.value,
+                            )
+                          }
+                          placeholder='Enter email address'
+                          error={errors[`parent-${index}-email`]}
+                        />
+                      </div>
+                      <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-4'>
+                        <LabeledInput
+                          label='Phone'
+                          name={`parent-${index}-phone`}
+                          value={parent.phone}
+                          onChange={e =>
+                            handleParentAccountChange(
+                              index,
+                              'phone',
+                              e.target.value,
+                            )
+                          }
+                          placeholder='Enter phone number'
+                        />
+                        <LabeledSelect
+                          label='Relationship'
+                          name={`parent-${index}-relationship`}
+                          value={parent.relationship}
+                          onChange={e =>
+                            handleParentAccountChange(
+                              index,
+                              'relationship',
+                              e.target.value,
+                            )
+                          }
+                          options={[
+                            { value: 'father', label: 'Father' },
+                            { value: 'mother', label: 'Mother' },
+                            { value: 'guardian', label: 'Guardian' },
+                            { value: 'stepfather', label: 'Step Father' },
+                            { value: 'stepmother', label: 'Step Mother' },
+                            { value: 'grandfather', label: 'Grandfather' },
+                            { value: 'grandmother', label: 'Grandmother' },
+                            { value: 'uncle', label: 'Uncle' },
+                            { value: 'aunt', label: 'Aunt' },
+                            { value: 'other', label: 'Other' },
+                          ]}
+                          placeholder='Select relationship'
+                          error={errors[`parent-${index}-relationship`]}
+                        />
+                        <LabeledInput
+                          label='Occupation'
+                          name={`parent-${index}-occupation`}
+                          value={parent.occupation || ''}
+                          onChange={e =>
+                            handleParentAccountChange(
+                              index,
+                              'occupation',
+                              e.target.value,
+                            )
+                          }
+                          placeholder='Enter occupation'
+                        />
+                      </div>
+                      <div className='flex items-center space-x-4 mt-4'>
+                        <label className='flex items-center'>
+                          <input
+                            type='checkbox'
+                            checked={parent.isPrimary}
+                            onChange={e =>
+                              handleParentAccountChange(
+                                index,
+                                'isPrimary',
+                                e.target.checked,
+                              )
+                            }
+                            className='rounded border-gray-300 text-orange-600 focus:ring-orange-500'
+                          />
+                          <span className='ml-2 text-sm'>Primary Contact</span>
+                        </label>
+                        <label className='flex items-center'>
+                          <input
+                            type='checkbox'
+                            checked={parent.createUserAccount}
+                            onChange={e =>
+                              handleParentAccountChange(
+                                index,
+                                'createUserAccount',
+                                e.target.checked,
+                              )
+                            }
+                            className='rounded border-gray-300 text-orange-600 focus:ring-orange-500'
+                          />
+                          <span className='ml-2 text-sm'>
+                            Create Login Account
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type='button'
+                    onClick={addParentAccount}
+                    className='w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-gray-600 hover:border-orange-500 hover:text-orange-600 transition-colors duration-200 flex items-center justify-center'
+                  >
+                    <Plus size={20} className='mr-2' />
+                    Add Parent Account
+                  </button>
+                </div>
+              </FormSection>
+            )}
+
             {/* Additional Guardians */}
-            <FormSection title='Additional Guardians' icon={UserPlus}>
+            <FormSection title='Additional Guardians' icon={Shield}>
               <div className='space-y-4'>
                 {formData.guardians.map((guardian, index) => (
                   <div key={index} className='border rounded-lg p-4 bg-white'>
@@ -964,19 +1682,32 @@ export default function AddStudentFormModal({
                         Remove
                       </button>
                     </div>
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                       <LabeledInput
-                        label='Full Name'
-                        name={`guardian-${index}-fullName`}
-                        value={guardian.fullName}
+                        label='First Name'
+                        name={`guardian-${index}-firstName`}
+                        value={guardian.firstName}
                         onChange={e =>
                           handleGuardianChange(
                             index,
-                            'fullName',
+                            'firstName',
                             e.target.value,
                           )
                         }
-                        placeholder='Enter guardian name'
+                        placeholder='Enter first name'
+                      />
+                      <LabeledInput
+                        label='Last Name'
+                        name={`guardian-${index}-lastName`}
+                        value={guardian.lastName}
+                        onChange={e =>
+                          handleGuardianChange(
+                            index,
+                            'lastName',
+                            e.target.value,
+                          )
+                        }
+                        placeholder='Enter last name'
                       />
                       <LabeledInput
                         label='Relation'
@@ -1001,6 +1732,7 @@ export default function AddStudentFormModal({
                           handleGuardianChange(index, 'phone', e.target.value)
                         }
                         placeholder='Enter phone number'
+                        error={errors[`guardian-${index}-phone`]}
                       />
                       <LabeledInput
                         label='Email'
@@ -1011,6 +1743,7 @@ export default function AddStudentFormModal({
                           handleGuardianChange(index, 'email', e.target.value)
                         }
                         placeholder='Enter email address'
+                        error={errors[`guardian-${index}-email`]}
                       />
                     </div>
                   </div>
@@ -1027,44 +1760,9 @@ export default function AddStudentFormModal({
               </div>
             </FormSection>
 
-            {/* Emergency Contact */}
-            <FormSection title='Emergency Contact' icon={Phone}>
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                <LabeledInput
-                  label='Contact Name'
-                  name='emergencyContactName'
-                  value={formData.emergencyContactName || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter contact name'
-                />
-                <LabeledInput
-                  label='Contact Phone'
-                  name='emergencyContactPhone'
-                  value={formData.emergencyContactPhone || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter contact phone'
-                />
-                <LabeledInput
-                  label='Relation'
-                  name='emergencyContactRelation'
-                  value={formData.emergencyContactRelation || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter relation'
-                />
-              </div>
-            </FormSection>
-
-            {/* Additional Information */}
-            <FormSection title='Additional Information' icon={Plus}>
-              <div className='space-y-4'>
-                <LabeledTextarea
-                  label='Interests'
-                  name='interests'
-                  value={formData.interests || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter student interests and hobbies'
-                  rows={3}
-                />
+            {/* Medical & Health Information */}
+            <FormSection title='Medical & Health Information' icon={Heart}>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <LabeledTextarea
                   label='Medical Conditions'
                   name='medicalConditions'
@@ -1079,6 +1777,38 @@ export default function AddStudentFormModal({
                   value={formData.allergies || ''}
                   onChange={handleInputChange}
                   placeholder='Enter any known allergies'
+                  rows={3}
+                />
+              </div>
+              <div className='mt-4'>
+                <LabeledTextarea
+                  label='Special Needs'
+                  name='specialNeeds'
+                  value={formData.specialNeeds || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter any special needs or requirements'
+                  rows={3}
+                />
+              </div>
+            </FormSection>
+
+            {/* Additional Information */}
+            <FormSection title='Additional Information' icon={Plus}>
+              <div className='space-y-4'>
+                <LabeledTextarea
+                  label='Interests & Hobbies'
+                  name='interests'
+                  value={formData.interests || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter student interests and hobbies'
+                  rows={3}
+                />
+                <LabeledTextarea
+                  label='Bio'
+                  name='bio'
+                  value={formData.bio || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter a brief bio about the student'
                   rows={3}
                 />
               </div>
