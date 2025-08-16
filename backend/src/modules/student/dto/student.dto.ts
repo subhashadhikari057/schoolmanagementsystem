@@ -92,6 +92,26 @@ export const CreateStudentParentAccountSchema = z.object({
 });
 
 // ---------------------------
+// Subschema for linking existing parent
+// ---------------------------
+export const LinkExistingParentSchema = z.object({
+  parentId: z.string().min(1, 'Parent ID is required'),
+  relationship: z.enum([
+    'father',
+    'mother',
+    'guardian',
+    'stepfather',
+    'stepmother',
+    'grandfather',
+    'grandmother',
+    'uncle',
+    'aunt',
+    'other',
+  ]),
+  isPrimary: z.boolean().default(false),
+});
+
+// ---------------------------
 // Subschema for guardian information
 // ---------------------------
 export const CreateStudentGuardianSchema = z.object({
@@ -153,8 +173,9 @@ export const CreateStudentDto = z.object({
   user: CreateStudentUserSchema,
   personal: CreateStudentPersonalSchema.optional(),
   academic: CreateStudentAcademicSchema,
-  parentInfo: CreateStudentParentSchema,
+  parentInfo: CreateStudentParentSchema.optional(), // Optional when using existing parents
   parents: z.array(CreateStudentParentAccountSchema).optional(),
+  existingParents: z.array(LinkExistingParentSchema).optional(), // For linking existing parents
   guardians: z.array(CreateStudentGuardianSchema).optional(),
   additional: CreateStudentAdditionalSchema.optional(),
   profile: CreateStudentProfileSchema.optional(),

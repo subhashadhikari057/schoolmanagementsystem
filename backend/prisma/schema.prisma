@@ -34,6 +34,8 @@ model User {
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
+  @@index([fullName])
+  @@index([email])
 }
 
 model Subject {
@@ -140,11 +142,12 @@ model Student {
   dob               DateTime
   gender            String
   bloodGroup        String?
+  ethnicity         String?
   imageUrl          String?
   fatherPhone       String?
   motherPhone       String?
-  fatherEmail       String
-  motherEmail       String
+  fatherEmail       String?
+  motherEmail       String?
   fatherOccupation  String?
   motherOccupation  String?
   createdAt         DateTime            @default(now())
@@ -170,13 +173,12 @@ model Student {
   studentId         String?             @unique
   transportMode     String?
   updatedById       String?             @db.Uuid
-  fatherFirstName   String
+  fatherFirstName   String?
   fatherMiddleName  String?
-  fatherLastName    String
-  motherFirstName   String
+  fatherLastName    String?
+  motherFirstName   String?
   motherMiddleName  String?
-  motherLastName    String
-  ethnicity         String?
+  motherLastName    String?
   guardians         Guardian[]
   parents           ParentStudentLink[]
   class             Class               @relation(fields: [classId], references: [id])
@@ -191,8 +193,8 @@ model Student {
   @@index([updatedById])
   @@index([deletedById])
   @@index([academicStatus])
-  @@index([feeStatus])
   @@index([ethnicity])
+  @@index([feeStatus])
 }
 
 model StudentProfile {

@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { classService } from '@/api/services/class.service';
 import { studentService } from '@/api/services/student.service';
 import EthnicitySelect from '@/components/molecules/form/EthnicitySelect';
+import ParentSearchSelect from '@/components/molecules/form/ParentSearchSelect';
 
 interface AddStudentFormModalProps {
   isOpen: boolean;
@@ -45,6 +46,12 @@ interface ParentAccountInfo {
   isPrimary: boolean;
   createUserAccount: boolean;
   occupation?: string;
+}
+
+interface ExistingParentInfo {
+  parentId: string;
+  relationship: string;
+  isPrimary: boolean;
 }
 
 interface StudentFormData {
@@ -91,6 +98,12 @@ interface StudentFormData {
 
   // Parent User Accounts to Create
   parents: ParentAccountInfo[];
+
+  // Existing Parents to Link
+  existingParents: ExistingParentInfo[];
+
+  // Parent Selection Mode
+  parentSelectionMode: 'create' | 'existing';
 
   // Additional Guardians (non-user accounts)
   guardians: GuardianInfo[];
@@ -149,6 +162,8 @@ const initialFormData: StudentFormData = {
   motherEmail: '',
   motherOccupation: '',
   parents: [],
+  existingParents: [],
+  parentSelectionMode: 'create',
   guardians: [],
   medicalConditions: '',
   allergies: '',
@@ -617,29 +632,42 @@ export default function AddStudentFormModal({
     //   newErrors.rollNumber = 'Roll number is required';
     if (!formData.admissionDate)
       newErrors.admissionDate = 'Admission date is required';
-    if (!formData.fatherFirstName.trim())
-      newErrors.fatherFirstName = 'Father first name is required';
-    if (!formData.fatherLastName.trim())
-      newErrors.fatherLastName = 'Father last name is required';
-    if (!formData.motherFirstName.trim())
-      newErrors.motherFirstName = 'Mother first name is required';
-    if (!formData.motherLastName.trim())
-      newErrors.motherLastName = 'Mother last name is required';
-    if (!formData.fatherEmail.trim())
-      newErrors.fatherEmail = 'Father email is required';
-    if (!formData.motherEmail.trim())
-      newErrors.motherEmail = 'Mother email is required';
+
+    // Parent validation - only required when creating new parent accounts
+    if (formData.parentSelectionMode === 'create') {
+      if (!formData.fatherFirstName.trim())
+        newErrors.fatherFirstName = 'Father first name is required';
+      if (!formData.fatherLastName.trim())
+        newErrors.fatherLastName = 'Father last name is required';
+      if (!formData.motherFirstName.trim())
+        newErrors.motherFirstName = 'Mother first name is required';
+      if (!formData.motherLastName.trim())
+        newErrors.motherLastName = 'Mother last name is required';
+      if (!formData.fatherEmail.trim())
+        newErrors.fatherEmail = 'Father email is required';
+      if (!formData.motherEmail.trim())
+        newErrors.motherEmail = 'Mother email is required';
+    } else if (formData.parentSelectionMode === 'existing') {
+      // Validate that at least one parent is selected when linking existing parents
+      if (formData.existingParents.length === 0) {
+        newErrors.existingParents = 'Please select at least one parent to link';
+      }
+    }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email && !emailRegex.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    if (formData.fatherEmail && !emailRegex.test(formData.fatherEmail)) {
-      newErrors.fatherEmail = 'Please enter a valid father email address';
-    }
-    if (formData.motherEmail && !emailRegex.test(formData.motherEmail)) {
-      newErrors.motherEmail = 'Please enter a valid mother email address';
+
+    // Parent email validation - only when creating new parent accounts
+    if (formData.parentSelectionMode === 'create') {
+      if (formData.fatherEmail && !emailRegex.test(formData.fatherEmail)) {
+        newErrors.fatherEmail = 'Please enter a valid father email address';
+      }
+      if (formData.motherEmail && !emailRegex.test(formData.motherEmail)) {
+        newErrors.motherEmail = 'Please enter a valid mother email address';
+      }
     }
 
     // Phone validation
@@ -647,17 +675,21 @@ export default function AddStudentFormModal({
     if (formData.phone && !phoneRegex.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
-    if (
-      formData.fatherPhone &&
-      !phoneRegex.test(formData.fatherPhone.replace(/\D/g, ''))
-    ) {
-      newErrors.fatherPhone = 'Please enter a valid 10-digit phone number';
-    }
-    if (
-      formData.motherPhone &&
-      !phoneRegex.test(formData.motherPhone.replace(/\D/g, ''))
-    ) {
-      newErrors.motherPhone = 'Please enter a valid 10-digit phone number';
+
+    // Parent phone validation - only when creating new parent accounts
+    if (formData.parentSelectionMode === 'create') {
+      if (
+        formData.fatherPhone &&
+        !phoneRegex.test(formData.fatherPhone.replace(/\D/g, ''))
+      ) {
+        newErrors.fatherPhone = 'Please enter a valid 10-digit phone number';
+      }
+      if (
+        formData.motherPhone &&
+        !phoneRegex.test(formData.motherPhone.replace(/\D/g, ''))
+      ) {
+        newErrors.motherPhone = 'Please enter a valid 10-digit phone number';
+      }
     }
 
     // Date validation
@@ -806,26 +838,37 @@ export default function AddStudentFormModal({
           transportMode: formData.transportMode?.trim() || undefined,
         },
 
-        // Parent info (basic info stored in student record)
-        parentInfo: {
-          fatherFirstName: formData.fatherFirstName.trim(),
-          fatherMiddleName: formData.fatherMiddleName?.trim() || undefined,
-          fatherLastName: formData.fatherLastName.trim(),
-          motherFirstName: formData.motherFirstName.trim(),
-          motherMiddleName: formData.motherMiddleName?.trim() || undefined,
-          motherLastName: formData.motherLastName.trim(),
-          fatherPhone: formData.fatherPhone?.trim() || undefined,
-          motherPhone: formData.motherPhone?.trim() || undefined,
-          fatherEmail: formData.fatherEmail.trim(),
-          motherEmail: formData.motherEmail.trim(),
-          fatherOccupation: formData.fatherOccupation?.trim() || undefined,
-          motherOccupation: formData.motherOccupation?.trim() || undefined,
-        },
+        // Parent info (basic info stored in student record) - only when creating new parents
+        ...(formData.parentSelectionMode === 'create' && {
+          parentInfo: {
+            fatherFirstName: formData.fatherFirstName.trim(),
+            fatherMiddleName: formData.fatherMiddleName?.trim() || undefined,
+            fatherLastName: formData.fatherLastName.trim(),
+            motherFirstName: formData.motherFirstName.trim(),
+            motherMiddleName: formData.motherMiddleName?.trim() || undefined,
+            motherLastName: formData.motherLastName.trim(),
+            fatherPhone: formData.fatherPhone?.trim() || undefined,
+            motherPhone: formData.motherPhone?.trim() || undefined,
+            fatherEmail: formData.fatherEmail.trim(),
+            motherEmail: formData.motherEmail.trim(),
+            fatherOccupation: formData.fatherOccupation?.trim() || undefined,
+            motherOccupation: formData.motherOccupation?.trim() || undefined,
+          },
+        }),
 
-        // Parent user accounts to create
-        parents: formData.parents.filter(
-          parent => parent.firstName && parent.lastName && parent.email,
-        ),
+        // Parent user accounts to create (only if in create mode)
+        parents:
+          formData.parentSelectionMode === 'create'
+            ? formData.parents.filter(
+                parent => parent.firstName && parent.lastName && parent.email,
+              )
+            : [],
+
+        // Existing parents to link (only if in existing mode)
+        existingParents:
+          formData.parentSelectionMode === 'existing'
+            ? formData.existingParents
+            : [],
 
         // Guardians (non-user accounts)
         guardians: formData.guardians
@@ -1379,304 +1422,507 @@ export default function AddStudentFormModal({
 
             {/* Parent Information */}
             <FormSection title='Parent Information' icon={Users}>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                {/* Father Information */}
-                <div className='space-y-4'>
-                  <h4 className='font-medium text-gray-900 border-b pb-2'>
-                    Father Details
-                  </h4>
-                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                    <LabeledInput
-                      label='First Name'
-                      name='fatherFirstName'
-                      value={formData.fatherFirstName}
-                      onChange={handleInputChange}
-                      placeholder='Enter first name'
-                      required
-                      error={errors.fatherFirstName}
+              {/* Parent Selection Mode */}
+              <div className='mb-6 p-4 bg-gray-50 rounded-lg'>
+                <h4 className='font-medium text-gray-900 mb-3'>
+                  Parent Account Options
+                </h4>
+                <div className='space-y-3'>
+                  <label className='flex items-center'>
+                    <input
+                      type='radio'
+                      name='parentSelectionMode'
+                      value='create'
+                      checked={formData.parentSelectionMode === 'create'}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          parentSelectionMode: e.target.value as
+                            | 'create'
+                            | 'existing',
+                          existingParents: [], // Clear existing parents when switching to create mode
+                        }))
+                      }
+                      className='h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300'
                     />
-                    <LabeledInput
-                      label='Middle Name'
-                      name='fatherMiddleName'
-                      value={formData.fatherMiddleName || ''}
-                      onChange={handleInputChange}
-                      placeholder='Enter middle name'
-                    />
-                    <LabeledInput
-                      label='Last Name'
-                      name='fatherLastName'
-                      value={formData.fatherLastName}
-                      onChange={handleInputChange}
-                      placeholder='Enter last name'
-                      required
-                      error={errors.fatherLastName}
-                    />
-                  </div>
-                  <LabeledInput
-                    label='Father Email'
-                    name='fatherEmail'
-                    type='email'
-                    value={formData.fatherEmail}
-                    onChange={handleInputChange}
-                    placeholder='Enter father email'
-                    required
-                    error={errors.fatherEmail}
-                  />
-                  <LabeledInput
-                    label='Father Phone'
-                    name='fatherPhone'
-                    value={formData.fatherPhone || ''}
-                    onChange={handleInputChange}
-                    placeholder='Enter father phone'
-                    error={errors.fatherPhone}
-                  />
-                  <LabeledInput
-                    label='Father Occupation'
-                    name='fatherOccupation'
-                    value={formData.fatherOccupation || ''}
-                    onChange={handleInputChange}
-                    placeholder='Enter father occupation'
-                  />
-                </div>
+                    <span className='ml-2 text-sm font-medium text-gray-900'>
+                      Create new parent accounts
+                    </span>
+                  </label>
+                  <p className='ml-6 text-sm text-gray-600'>
+                    Create new user accounts for parents with login credentials
+                  </p>
 
-                {/* Mother Information */}
-                <div className='space-y-4'>
-                  <h4 className='font-medium text-gray-900 border-b pb-2'>
-                    Mother Details
-                  </h4>
-                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                    <LabeledInput
-                      label='First Name'
-                      name='motherFirstName'
-                      value={formData.motherFirstName}
-                      onChange={handleInputChange}
-                      placeholder='Enter first name'
-                      required
-                      error={errors.motherFirstName}
+                  <label className='flex items-center'>
+                    <input
+                      type='radio'
+                      name='parentSelectionMode'
+                      value='existing'
+                      checked={formData.parentSelectionMode === 'existing'}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          parentSelectionMode: e.target.value as
+                            | 'create'
+                            | 'existing',
+                          parents: [], // Clear new parents when switching to existing mode
+                        }))
+                      }
+                      className='h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300'
                     />
-                    <LabeledInput
-                      label='Middle Name'
-                      name='motherMiddleName'
-                      value={formData.motherMiddleName || ''}
-                      onChange={handleInputChange}
-                      placeholder='Enter middle name'
-                    />
-                    <LabeledInput
-                      label='Last Name'
-                      name='motherLastName'
-                      value={formData.motherLastName}
-                      onChange={handleInputChange}
-                      placeholder='Enter last name'
-                      required
-                      error={errors.motherLastName}
-                    />
-                  </div>
-                  <LabeledInput
-                    label='Mother Email'
-                    name='motherEmail'
-                    type='email'
-                    value={formData.motherEmail}
-                    onChange={handleInputChange}
-                    placeholder='Enter mother email'
-                    required
-                    error={errors.motherEmail}
-                  />
-                  <LabeledInput
-                    label='Mother Phone'
-                    name='motherPhone'
-                    value={formData.motherPhone || ''}
-                    onChange={handleInputChange}
-                    placeholder='Enter mother phone'
-                    error={errors.motherPhone}
-                  />
-                  <LabeledInput
-                    label='Mother Occupation'
-                    name='motherOccupation'
-                    value={formData.motherOccupation || ''}
-                    onChange={handleInputChange}
-                    placeholder='Enter mother occupation'
-                  />
+                    <span className='ml-2 text-sm font-medium text-gray-900'>
+                      Link to existing parent accounts
+                    </span>
+                  </label>
+                  <p className='ml-6 text-sm text-gray-600'>
+                    Link this student to parents who already have accounts (for
+                    siblings)
+                  </p>
                 </div>
               </div>
 
-              {/* Auto-populate button */}
-              <div className='mt-4 flex justify-center'>
-                <button
-                  type='button'
-                  onClick={populateParentAccounts}
-                  className='px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors duration-200 flex items-center'
-                >
-                  <UserPlus size={16} className='mr-2' />
-                  Create Parent User Accounts
-                </button>
-              </div>
-            </FormSection>
-
-            {/* Parent User Accounts */}
-            {formData.parents.length > 0 && (
-              <FormSection title='Parent User Accounts' icon={Users}>
-                <div className='space-y-4'>
-                  {formData.parents.map((parent, index) => (
-                    <div key={index} className='border rounded-lg p-4 bg-white'>
-                      <div className='flex justify-between items-center mb-4'>
-                        <h5 className='font-medium text-gray-900'>
-                          Parent Account {index + 1}
-                        </h5>
-                        <button
-                          type='button'
-                          onClick={() => removeParentAccount(index)}
-                          className='text-red-600 hover:text-red-800 text-sm'
-                        >
-                          Remove
-                        </button>
-                      </div>
+              {formData.parentSelectionMode === 'create' ? (
+                <>
+                  {/* Create New Parents Mode */}
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    {/* Father Information */}
+                    <div className='space-y-4'>
+                      <h4 className='font-medium text-gray-900 border-b pb-2'>
+                        Father Details
+                      </h4>
                       <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                         <LabeledInput
                           label='First Name'
-                          name={`parent-${index}-firstName`}
-                          value={parent.firstName}
-                          onChange={e =>
-                            handleParentAccountChange(
-                              index,
-                              'firstName',
-                              e.target.value,
-                            )
-                          }
+                          name='fatherFirstName'
+                          value={formData.fatherFirstName}
+                          onChange={handleInputChange}
                           placeholder='Enter first name'
-                          error={errors[`parent-${index}-firstName`]}
+                          required
+                          error={errors.fatherFirstName}
+                        />
+                        <LabeledInput
+                          label='Middle Name'
+                          name='fatherMiddleName'
+                          value={formData.fatherMiddleName || ''}
+                          onChange={handleInputChange}
+                          placeholder='Enter middle name'
                         />
                         <LabeledInput
                           label='Last Name'
-                          name={`parent-${index}-lastName`}
-                          value={parent.lastName}
-                          onChange={e =>
-                            handleParentAccountChange(
-                              index,
-                              'lastName',
-                              e.target.value,
-                            )
-                          }
+                          name='fatherLastName'
+                          value={formData.fatherLastName}
+                          onChange={handleInputChange}
                           placeholder='Enter last name'
-                          error={errors[`parent-${index}-lastName`]}
-                        />
-                        <LabeledInput
-                          label='Email'
-                          name={`parent-${index}-email`}
-                          type='email'
-                          value={parent.email}
-                          onChange={e =>
-                            handleParentAccountChange(
-                              index,
-                              'email',
-                              e.target.value,
-                            )
-                          }
-                          placeholder='Enter email address'
-                          error={errors[`parent-${index}-email`]}
+                          required
+                          error={errors.fatherLastName}
                         />
                       </div>
-                      <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-4'>
-                        <LabeledInput
-                          label='Phone'
-                          name={`parent-${index}-phone`}
-                          value={parent.phone}
-                          onChange={e =>
-                            handleParentAccountChange(
-                              index,
-                              'phone',
-                              e.target.value,
-                            )
-                          }
-                          placeholder='Enter phone number'
-                        />
-                        <LabeledSelect
-                          label='Relationship'
-                          name={`parent-${index}-relationship`}
-                          value={parent.relationship}
-                          onChange={e =>
-                            handleParentAccountChange(
-                              index,
-                              'relationship',
-                              e.target.value,
-                            )
-                          }
-                          options={[
-                            { value: 'father', label: 'Father' },
-                            { value: 'mother', label: 'Mother' },
-                            { value: 'guardian', label: 'Guardian' },
-                            { value: 'stepfather', label: 'Step Father' },
-                            { value: 'stepmother', label: 'Step Mother' },
-                            { value: 'grandfather', label: 'Grandfather' },
-                            { value: 'grandmother', label: 'Grandmother' },
-                            { value: 'uncle', label: 'Uncle' },
-                            { value: 'aunt', label: 'Aunt' },
-                            { value: 'other', label: 'Other' },
-                          ]}
-                          placeholder='Select relationship'
-                          error={errors[`parent-${index}-relationship`]}
-                        />
-                        <LabeledInput
-                          label='Occupation'
-                          name={`parent-${index}-occupation`}
-                          value={parent.occupation || ''}
-                          onChange={e =>
-                            handleParentAccountChange(
-                              index,
-                              'occupation',
-                              e.target.value,
-                            )
-                          }
-                          placeholder='Enter occupation'
-                        />
+                      <LabeledInput
+                        label='Father Email'
+                        name='fatherEmail'
+                        type='email'
+                        value={formData.fatherEmail}
+                        onChange={handleInputChange}
+                        placeholder='Enter father email'
+                        required
+                        error={errors.fatherEmail}
+                      />
+                      <LabeledInput
+                        label='Father Phone'
+                        name='fatherPhone'
+                        value={formData.fatherPhone || ''}
+                        onChange={handleInputChange}
+                        placeholder='Enter father phone'
+                        error={errors.fatherPhone}
+                      />
+                      <LabeledInput
+                        label='Father Occupation'
+                        name='fatherOccupation'
+                        value={formData.fatherOccupation || ''}
+                        onChange={handleInputChange}
+                        placeholder='Enter father occupation'
+                      />
+                    </div>
+                  </div>
+
+                  {/* Mother Information */}
+                  <div className='space-y-4'>
+                    <h4 className='font-medium text-gray-900 border-b pb-2'>
+                      Mother Details
+                    </h4>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                      <LabeledInput
+                        label='First Name'
+                        name='motherFirstName'
+                        value={formData.motherFirstName}
+                        onChange={handleInputChange}
+                        placeholder='Enter first name'
+                        required
+                        error={errors.motherFirstName}
+                      />
+                      <LabeledInput
+                        label='Middle Name'
+                        name='motherMiddleName'
+                        value={formData.motherMiddleName || ''}
+                        onChange={handleInputChange}
+                        placeholder='Enter middle name'
+                      />
+                      <LabeledInput
+                        label='Last Name'
+                        name='motherLastName'
+                        value={formData.motherLastName}
+                        onChange={handleInputChange}
+                        placeholder='Enter last name'
+                        required
+                        error={errors.motherLastName}
+                      />
+                    </div>
+                    <LabeledInput
+                      label='Mother Email'
+                      name='motherEmail'
+                      type='email'
+                      value={formData.motherEmail}
+                      onChange={handleInputChange}
+                      placeholder='Enter mother email'
+                      required
+                      error={errors.motherEmail}
+                    />
+                    <LabeledInput
+                      label='Mother Phone'
+                      name='motherPhone'
+                      value={formData.motherPhone || ''}
+                      onChange={handleInputChange}
+                      placeholder='Enter mother phone'
+                      error={errors.motherPhone}
+                    />
+                    <LabeledInput
+                      label='Mother Occupation'
+                      name='motherOccupation'
+                      value={formData.motherOccupation || ''}
+                      onChange={handleInputChange}
+                      placeholder='Enter mother occupation'
+                    />
+                  </div>
+
+                  {/* Auto-populate button */}
+                  <div className='mt-4 flex justify-center'>
+                    <button
+                      type='button'
+                      onClick={populateParentAccounts}
+                      className='px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors duration-200 flex items-center'
+                    >
+                      <UserPlus size={16} className='mr-2' />
+                      Create Parent User Accounts
+                    </button>
+                  </div>
+
+                  {/* Parent User Accounts */}
+                  {formData.parents.length > 0 && (
+                    <FormSection title='Parent User Accounts' icon={Users}>
+                      <div className='space-y-4'>
+                        {formData.parents.map((parent, index) => (
+                          <div
+                            key={index}
+                            className='border rounded-lg p-4 bg-white'
+                          >
+                            <div className='flex justify-between items-center mb-4'>
+                              <h5 className='font-medium text-gray-900'>
+                                Parent Account {index + 1}
+                              </h5>
+                              <button
+                                type='button'
+                                onClick={() => removeParentAccount(index)}
+                                className='text-red-600 hover:text-red-800 text-sm'
+                              >
+                                Remove
+                              </button>
+                            </div>
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                              <LabeledInput
+                                label='First Name'
+                                name={`parent-${index}-firstName`}
+                                value={parent.firstName}
+                                onChange={e =>
+                                  handleParentAccountChange(
+                                    index,
+                                    'firstName',
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder='Enter first name'
+                                error={errors[`parent-${index}-firstName`]}
+                              />
+                              <LabeledInput
+                                label='Last Name'
+                                name={`parent-${index}-lastName`}
+                                value={parent.lastName}
+                                onChange={e =>
+                                  handleParentAccountChange(
+                                    index,
+                                    'lastName',
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder='Enter last name'
+                                error={errors[`parent-${index}-lastName`]}
+                              />
+                              <LabeledInput
+                                label='Email'
+                                name={`parent-${index}-email`}
+                                type='email'
+                                value={parent.email}
+                                onChange={e =>
+                                  handleParentAccountChange(
+                                    index,
+                                    'email',
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder='Enter email address'
+                                error={errors[`parent-${index}-email`]}
+                              />
+                            </div>
+                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-4'>
+                              <LabeledInput
+                                label='Phone'
+                                name={`parent-${index}-phone`}
+                                value={parent.phone}
+                                onChange={e =>
+                                  handleParentAccountChange(
+                                    index,
+                                    'phone',
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder='Enter phone number'
+                              />
+                              <LabeledSelect
+                                label='Relationship'
+                                name={`parent-${index}-relationship`}
+                                value={parent.relationship}
+                                onChange={e =>
+                                  handleParentAccountChange(
+                                    index,
+                                    'relationship',
+                                    e.target.value,
+                                  )
+                                }
+                                options={[
+                                  { value: 'father', label: 'Father' },
+                                  { value: 'mother', label: 'Mother' },
+                                  { value: 'guardian', label: 'Guardian' },
+                                  { value: 'stepfather', label: 'Step Father' },
+                                  { value: 'stepmother', label: 'Step Mother' },
+                                  {
+                                    value: 'grandfather',
+                                    label: 'Grandfather',
+                                  },
+                                  {
+                                    value: 'grandmother',
+                                    label: 'Grandmother',
+                                  },
+                                  { value: 'uncle', label: 'Uncle' },
+                                  { value: 'aunt', label: 'Aunt' },
+                                  { value: 'other', label: 'Other' },
+                                ]}
+                                placeholder='Select relationship'
+                                error={errors[`parent-${index}-relationship`]}
+                              />
+                              <LabeledInput
+                                label='Occupation'
+                                name={`parent-${index}-occupation`}
+                                value={parent.occupation || ''}
+                                onChange={e =>
+                                  handleParentAccountChange(
+                                    index,
+                                    'occupation',
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder='Enter occupation'
+                              />
+                            </div>
+                            <div className='flex items-center space-x-4 mt-4'>
+                              <label className='flex items-center'>
+                                <input
+                                  type='checkbox'
+                                  checked={parent.isPrimary}
+                                  onChange={e =>
+                                    handleParentAccountChange(
+                                      index,
+                                      'isPrimary',
+                                      e.target.checked,
+                                    )
+                                  }
+                                  className='rounded border-gray-300 text-orange-600 focus:ring-orange-500'
+                                />
+                                <span className='ml-2 text-sm'>
+                                  Primary Contact
+                                </span>
+                              </label>
+                              <label className='flex items-center'>
+                                <input
+                                  type='checkbox'
+                                  checked={parent.createUserAccount}
+                                  onChange={e =>
+                                    handleParentAccountChange(
+                                      index,
+                                      'createUserAccount',
+                                      e.target.checked,
+                                    )
+                                  }
+                                  className='rounded border-gray-300 text-orange-600 focus:ring-orange-500'
+                                />
+                                <span className='ml-2 text-sm'>
+                                  Create Login Account
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        ))}
+
+                        <button
+                          type='button'
+                          onClick={addParentAccount}
+                          className='w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-gray-600 hover:border-orange-500 hover:text-orange-600 transition-colors duration-200 flex items-center justify-center'
+                        >
+                          <Plus size={20} className='mr-2' />
+                          Add Parent Account
+                        </button>
                       </div>
-                      <div className='flex items-center space-x-4 mt-4'>
-                        <label className='flex items-center'>
-                          <input
-                            type='checkbox'
-                            checked={parent.isPrimary}
-                            onChange={e =>
-                              handleParentAccountChange(
-                                index,
-                                'isPrimary',
-                                e.target.checked,
-                              )
-                            }
-                            className='rounded border-gray-300 text-orange-600 focus:ring-orange-500'
-                          />
-                          <span className='ml-2 text-sm'>Primary Contact</span>
-                        </label>
-                        <label className='flex items-center'>
-                          <input
-                            type='checkbox'
-                            checked={parent.createUserAccount}
-                            onChange={e =>
-                              handleParentAccountChange(
-                                index,
-                                'createUserAccount',
-                                e.target.checked,
-                              )
-                            }
-                            className='rounded border-gray-300 text-orange-600 focus:ring-orange-500'
-                          />
-                          <span className='ml-2 text-sm'>
-                            Create Login Account
-                          </span>
-                        </label>
+                    </FormSection>
+                  )}
+                </>
+              ) : (
+                // Link Existing Parents Mode
+                <div className='space-y-6'>
+                  <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+                    <div className='flex items-start'>
+                      <Users className='w-5 h-5 text-blue-600 mt-0.5 mr-2' />
+                      <div>
+                        <h4 className='font-medium text-blue-900 mb-1'>
+                          Link Existing Parents
+                        </h4>
+                        <p className='text-sm text-blue-700'>
+                          Search and select parents who already have accounts in
+                          the system. This is perfect for adding siblings to
+                          existing parent accounts.
+                        </p>
                       </div>
                     </div>
-                  ))}
+                  </div>
 
-                  <button
-                    type='button'
-                    onClick={addParentAccount}
-                    className='w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-gray-600 hover:border-orange-500 hover:text-orange-600 transition-colors duration-200 flex items-center justify-center'
-                  >
-                    <Plus size={20} className='mr-2' />
-                    Add Parent Account
-                  </button>
+                  {/* Father Selection */}
+                  <div className='space-y-4'>
+                    <h4 className='font-medium text-gray-900 border-b pb-2 flex items-center'>
+                      <Users className='w-4 h-4 mr-2' />
+                      Select Father/Guardian
+                    </h4>
+                    <ParentSearchSelect
+                      value={
+                        formData.existingParents.find(
+                          p => p.relationship === 'father',
+                        )?.parentId
+                      }
+                      onChange={parentId => {
+                        setFormData(prev => ({
+                          ...prev,
+                          existingParents: parentId
+                            ? [
+                                ...prev.existingParents.filter(
+                                  p => p.relationship !== 'father',
+                                ),
+                                {
+                                  parentId,
+                                  relationship: 'father',
+                                  isPrimary: true,
+                                },
+                              ]
+                            : prev.existingParents.filter(
+                                p => p.relationship !== 'father',
+                              ),
+                        }));
+                      }}
+                      placeholder='Search for father by name, email, or phone...'
+                      label='Father'
+                    />
+                  </div>
+
+                  {/* Mother Selection */}
+                  <div className='space-y-4'>
+                    <h4 className='font-medium text-gray-900 border-b pb-2 flex items-center'>
+                      <Users className='w-4 h-4 mr-2' />
+                      Select Mother/Guardian
+                    </h4>
+                    <ParentSearchSelect
+                      value={
+                        formData.existingParents.find(
+                          p => p.relationship === 'mother',
+                        )?.parentId
+                      }
+                      onChange={parentId => {
+                        setFormData(prev => ({
+                          ...prev,
+                          existingParents: parentId
+                            ? [
+                                ...prev.existingParents.filter(
+                                  p => p.relationship !== 'mother',
+                                ),
+                                {
+                                  parentId,
+                                  relationship: 'mother',
+                                  isPrimary: false,
+                                },
+                              ]
+                            : prev.existingParents.filter(
+                                p => p.relationship !== 'mother',
+                              ),
+                        }));
+                      }}
+                      placeholder='Search for mother by name, email, or phone...'
+                      label='Mother'
+                    />
+                  </div>
+
+                  {/* Selected Parents Summary */}
+                  {formData.existingParents.length > 0 && (
+                    <div className='bg-green-50 border border-green-200 rounded-lg p-4'>
+                      <h4 className='font-medium text-green-900 mb-2'>
+                        Selected Parents
+                      </h4>
+                      <div className='space-y-2'>
+                        {formData.existingParents.map((parent, index) => (
+                          <div
+                            key={index}
+                            className='flex items-center justify-between bg-white rounded p-2 border border-green-200'
+                          >
+                            <span className='text-sm text-gray-700'>
+                              {parent.relationship.charAt(0).toUpperCase() +
+                                parent.relationship.slice(1)}{' '}
+                              - ID: {parent.parentId}
+                            </span>
+                            <span
+                              className={`text-xs px-2 py-1 rounded ${parent.isPrimary ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}
+                            >
+                              {parent.isPrimary ? 'Primary' : 'Secondary'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Existing Parents Validation Error */}
+                  {errors.existingParents && (
+                    <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
+                      <p className='text-sm text-red-600'>
+                        {errors.existingParents}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </FormSection>
-            )}
+              )}
+            </FormSection>
 
             {/* Additional Guardians */}
             <FormSection title='Additional Guardians' icon={Shield}>

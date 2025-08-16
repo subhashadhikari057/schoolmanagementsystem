@@ -46,7 +46,7 @@ export interface CreateStudentRequest {
     feeStatus?: 'paid' | 'pending' | 'overdue' | 'partial';
     transportMode?: string;
   };
-  parentInfo: {
+  parentInfo?: {
     fatherFirstName: string;
     fatherMiddleName?: string;
     fatherLastName: string;
@@ -70,6 +70,11 @@ export interface CreateStudentRequest {
     isPrimary: boolean;
     createUserAccount: boolean;
     occupation?: string;
+  }>;
+  existingParents?: Array<{
+    parentId: string;
+    relationship: string;
+    isPrimary: boolean;
   }>;
   guardians?: Array<{
     firstName: string;
@@ -357,10 +362,17 @@ export class StudentService {
     }
 
     formData.append('academic', JSON.stringify(data.academic));
-    formData.append('parentInfo', JSON.stringify(data.parentInfo));
+
+    if (data.parentInfo) {
+      formData.append('parentInfo', JSON.stringify(data.parentInfo));
+    }
 
     if (data.parents) {
       formData.append('parents', JSON.stringify(data.parents));
+    }
+
+    if (data.existingParents) {
+      formData.append('existingParents', JSON.stringify(data.existingParents));
     }
 
     if (data.guardians) {

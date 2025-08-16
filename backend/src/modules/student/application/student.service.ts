@@ -36,6 +36,7 @@ export class StudentService {
       academic,
       parentInfo,
       parents,
+      existingParents,
       guardians,
       additional,
       profile,
@@ -231,19 +232,19 @@ export class StudentService {
           email: user.email,
           phone: user.phone,
 
-          // Parent Information
-          fatherFirstName: parentInfo.fatherFirstName,
-          fatherMiddleName: parentInfo.fatherMiddleName || null,
-          fatherLastName: parentInfo.fatherLastName,
-          motherFirstName: parentInfo.motherFirstName,
-          motherMiddleName: parentInfo.motherMiddleName || null,
-          motherLastName: parentInfo.motherLastName,
-          fatherPhone: parentInfo.fatherPhone,
-          motherPhone: parentInfo.motherPhone,
-          fatherEmail: parentInfo.fatherEmail,
-          motherEmail: parentInfo.motherEmail,
-          fatherOccupation: parentInfo.fatherOccupation,
-          motherOccupation: parentInfo.motherOccupation,
+          // Parent Information (only when parentInfo is provided)
+          fatherFirstName: parentInfo?.fatherFirstName || null,
+          fatherMiddleName: parentInfo?.fatherMiddleName || null,
+          fatherLastName: parentInfo?.fatherLastName || null,
+          motherFirstName: parentInfo?.motherFirstName || null,
+          motherMiddleName: parentInfo?.motherMiddleName || null,
+          motherLastName: parentInfo?.motherLastName || null,
+          fatherPhone: parentInfo?.fatherPhone || null,
+          motherPhone: parentInfo?.motherPhone || null,
+          fatherEmail: parentInfo?.fatherEmail || null,
+          motherEmail: parentInfo?.motherEmail || null,
+          fatherOccupation: parentInfo?.fatherOccupation || null,
+          motherOccupation: parentInfo?.motherOccupation || null,
 
           // Medical Information
           medicalConditions: additional?.medicalConditions,
@@ -388,6 +389,127 @@ export class StudentService {
               },
             });
           }
+        }
+      }
+
+      // Link existing parents if specified
+
+      if (existingParents && existingParents.length > 0) {
+        for (const existingParentData of existingParents) {
+          // Verify the parent exists and is active
+          const parentExists = await tx.parent.findFirst({
+            where: {
+              id: existingParentData.parentId,
+              deletedAt: null,
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  deletedAt: true,
+                },
+              },
+            },
+          });
+
+          if (!parentExists || parentExists.user.deletedAt !== null) {
+            throw new BadRequestException(
+              `Parent with ID ${existingParentData.parentId} not found or is inactive`,
+            );
+          }
+
+          // Check if this parent is already linked to this student
+          const existingLink = await tx.parentStudentLink.findFirst({
+            where: {
+              parentId: existingParentData.parentId,
+              studentId: newStudent.id,
+            },
+          });
+
+          if (existingLink) {
+            // Update relationship if different
+            if (existingLink.relationship !== existingParentData.relationship) {
+              await tx.parentStudentLink.update({
+                where: { id: existingLink.id },
+                data: {
+                  relationship: existingParentData.relationship,
+                  isPrimary: existingParentData.isPrimary || false,
+                },
+              });
+            }
+          } else {
+            // Create new link
+            await tx.parentStudentLink.create({
+              data: {
+                parentId: existingParentData.parentId,
+                studentId: newStudent.id,
+                relationship: existingParentData.relationship,
+                isPrimary: existingParentData.isPrimary || false,
+              },
+            });
+          }
+        }
+
+        // Update student record with linked parent information
+        const studentUpdateData: any = {};
+
+        // Get all linked parents with their details
+        const linkedParents = await tx.parentStudentLink.findMany({
+          where: {
+            studentId: newStudent.id,
+          },
+          include: {
+            parent: {
+              include: {
+                user: {
+                  select: {
+                    fullName: true,
+                    email: true,
+                    phone: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // Populate student fields based on relationship
+        for (const link of linkedParents) {
+          const parent = link.parent;
+          const relationship = link.relationship;
+
+          // Extract first, middle, and last names from fullName
+          const nameParts = parent.user.fullName.split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts[nameParts.length - 1] || '';
+          const middleName =
+            nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : null;
+
+          if (relationship === 'father') {
+            studentUpdateData.fatherFirstName = firstName;
+            studentUpdateData.fatherMiddleName = middleName;
+            studentUpdateData.fatherLastName = lastName;
+            studentUpdateData.fatherEmail = parent.user.email;
+            studentUpdateData.fatherPhone = parent.user.phone;
+            studentUpdateData.fatherOccupation = parent.occupation;
+          } else if (relationship === 'mother') {
+            studentUpdateData.motherFirstName = firstName;
+            studentUpdateData.motherMiddleName = middleName;
+            studentUpdateData.motherLastName = lastName;
+            studentUpdateData.motherEmail = parent.user.email;
+            studentUpdateData.motherPhone = parent.user.phone;
+            studentUpdateData.motherOccupation = parent.occupation;
+          }
+        }
+
+        // Update student record with parent information
+        if (Object.keys(studentUpdateData).length > 0) {
+          await tx.student.update({
+            where: { id: newStudent.id },
+            data: studentUpdateData,
+          });
         }
       }
 

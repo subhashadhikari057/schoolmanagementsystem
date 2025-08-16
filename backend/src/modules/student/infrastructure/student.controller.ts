@@ -60,7 +60,11 @@ export class StudentController {
       const safeJsonParse = (value: any) => {
         if (!value) return undefined;
         if (typeof value === 'object') return value; // Already parsed
-        if (typeof value === 'string') return JSON.parse(value); // Parse string
+        if (typeof value === 'string') {
+          // Handle the case where the string is literally "undefined"
+          if (value === 'undefined' || value === 'null') return undefined;
+          return JSON.parse(value); // Parse string
+        }
         return value;
       };
 
@@ -69,8 +73,13 @@ export class StudentController {
         user: body.user ? safeJsonParse(body.user) : {},
         personal: body.personal ? safeJsonParse(body.personal) : undefined,
         academic: body.academic ? safeJsonParse(body.academic) : {},
-        parentInfo: body.parentInfo ? safeJsonParse(body.parentInfo) : {},
+        parentInfo: body.parentInfo
+          ? safeJsonParse(body.parentInfo)
+          : undefined,
         parents: body.parents ? safeJsonParse(body.parents) : undefined,
+        existingParents: body.existingParents
+          ? safeJsonParse(body.existingParents)
+          : undefined,
         guardians: body.guardians ? safeJsonParse(body.guardians) : undefined,
         additional: body.additional
           ? safeJsonParse(body.additional)

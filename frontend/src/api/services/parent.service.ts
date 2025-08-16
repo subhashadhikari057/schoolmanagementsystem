@@ -146,6 +146,20 @@ export interface ParentQueryParams {
   search?: string;
 }
 
+export interface ParentSearchResult {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  occupation?: string;
+  existingChildren: {
+    id: string;
+    name: string;
+    class: string;
+    relationship: string;
+  }[];
+}
+
 export interface AddChildRequest {
   studentId: string;
   relationship: string;
@@ -341,6 +355,21 @@ export class ParentService {
     return this.httpClient.get<any[]>('api/v1/parents/available-students', {
       requiresAuth: true,
     });
+  }
+
+  /**
+   * Search parents for linking to students
+   */
+  async searchForLinking(
+    searchTerm: string,
+    limit: number = 20,
+  ): Promise<ApiResponse<ParentSearchResult[]>> {
+    return this.httpClient.get<ParentSearchResult[]>(
+      `api/v1/parents/search-for-linking?search=${encodeURIComponent(searchTerm)}&limit=${limit}`,
+      {
+        requiresAuth: true,
+      },
+    );
   }
 }
 

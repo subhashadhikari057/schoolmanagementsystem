@@ -54,25 +54,29 @@ export default function ChangePasswordPage() {
   // Get temp token and user info from sessionStorage (secure storage)
   useEffect(() => {
     // Check sessionStorage for temp data (more secure than URL params)
-    const storedToken = sessionStorage.getItem('temp_password_change_token');
-    const storedUserInfo = sessionStorage.getItem('temp_password_change_user');
+    if (typeof window !== 'undefined') {
+      const storedToken = sessionStorage.getItem('temp_password_change_token');
+      const storedUserInfo = sessionStorage.getItem(
+        'temp_password_change_user',
+      );
 
-    if (storedToken) {
-      setTempToken(storedToken);
-    }
-
-    if (storedUserInfo) {
-      try {
-        setUserInfo(JSON.parse(storedUserInfo));
-      } catch (error) {
-        console.error('Failed to parse stored user info:', error);
+      if (storedToken) {
+        setTempToken(storedToken);
       }
-    }
 
-    // If no token found, redirect to login
-    if (!storedToken) {
-      toast.error('Invalid or expired password change session');
-      router.push('/auth/login');
+      if (storedUserInfo) {
+        try {
+          setUserInfo(JSON.parse(storedUserInfo));
+        } catch (error) {
+          console.error('Failed to parse stored user info:', error);
+        }
+      }
+
+      // If no token found, redirect to login
+      if (!storedToken) {
+        toast.error('Invalid or expired password change session');
+        router.push('/auth/login');
+      }
     }
   }, [router]);
 
@@ -127,8 +131,10 @@ export default function ChangePasswordPage() {
       });
 
       // Clear temp data from sessionStorage
-      sessionStorage.removeItem('temp_password_change_token');
-      sessionStorage.removeItem('temp_password_change_user');
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('temp_password_change_token');
+        sessionStorage.removeItem('temp_password_change_user');
+      }
 
       toast.success('Password changed successfully!');
 
@@ -151,7 +157,11 @@ export default function ChangePasswordPage() {
     }
   };
 
-  if (!tempToken && !sessionStorage.getItem('temp_password_change_token')) {
+  if (
+    !tempToken &&
+    (typeof window === 'undefined' ||
+      !sessionStorage.getItem('temp_password_change_token'))
+  ) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
