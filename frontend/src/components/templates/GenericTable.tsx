@@ -1,7 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Pagination } from '../organisms/navigation/Pagination';
 import StatusBadge from '@/components/atoms/data/StatusBadge';
-import { Eye, Edit } from 'lucide-react';
 
 export interface BaseItem {
   id: number | string;
@@ -15,7 +14,7 @@ export interface TableColumn<T = BaseItem> {
     item: T,
     isSelected?: boolean,
     onSelect?: (id: string | number) => void,
-    onSubjectAction?: (action: string, subject: T) => void,
+    onItemAction?: (action: string, item: T) => void,
   ) => ReactNode;
   className?: string;
   mobileLabel?: string;
@@ -30,7 +29,7 @@ export interface GenericTableProps<T extends BaseItem> {
   itemsPerPage?: number;
   emptyMessage?: string;
   onItemAction?: (action: string, item: T) => void;
-  onSubjectAction?: (action: string, subject: T) => void;
+
   onPageChange?: (page: number) => void;
   enableSelection?: boolean;
   selectedItems?: (string | number)[];
@@ -46,7 +45,7 @@ const GenericTable = <T extends BaseItem>({
   itemsPerPage = 10,
   emptyMessage = 'No data available',
   onItemAction,
-  onSubjectAction,
+
   onPageChange,
   enableSelection = false,
   selectedItems = [],
@@ -113,16 +112,10 @@ const GenericTable = <T extends BaseItem>({
     // Use custom render function if provided
     if (column.render) {
       const isSelected = selectedItems.includes(item.id);
-      return column.render(item, isSelected, handleItemSelect, onSubjectAction);
+      return column.render(item, isSelected, handleItemSelect, onItemAction);
     }
     // Fall back to default rendering
     return renderCellValue(column.key, item[column.key]);
-  };
-
-  const handleAction = (action: string, item: T) => {
-    if (onItemAction) {
-      onItemAction(action, item);
-    }
   };
 
   return (
@@ -163,7 +156,7 @@ const GenericTable = <T extends BaseItem>({
               <tbody className='bg-white divide-y divide-gray-200'>
                 {data.map((item, index) => (
                   <tr
-                    key={item.id}
+                    key={`row-${item.id}-${index}`}
                     className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
                   >
                     {columns.map(column => (
@@ -182,9 +175,9 @@ const GenericTable = <T extends BaseItem>({
 
           {/* Mobile Cards */}
           <div className='lg:hidden w-full'>
-            {data.map(item => (
+            {data.map((item, index) => (
               <div
-                key={item.id}
+                key={`mobile-${item.id}-${index}`}
                 className='p-3 sm:p-4 border-b border-gray-200 last:border-b-0 bg-white'
               >
                 <div className='space-y-2'>

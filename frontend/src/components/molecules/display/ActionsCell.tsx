@@ -14,7 +14,14 @@ interface ActionsCellProps {
     | 'staff'
     | 'subject'
     | 'id-card';
-  status?: 'Active' | 'On Leave' | 'Inactive' | 'Suspended' | 'Transferred';
+  status?:
+    | 'Active'
+    | 'On Leave'
+    | 'Inactive'
+    | 'Suspended'
+    | 'Transferred'
+    | 'Warning'
+    | 'Graduated';
   viewLabel?: string;
   editLabel?: string;
   deleteLabel?: string;
@@ -92,8 +99,11 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
         return allActions.filter(action =>
           ['view', 'edit', 'delete'].includes(action.action),
         );
+      case 'student':
+        // For students: view, edit, toggle-status, delete
+        return allActions;
       default:
-        // For students, parents: view, edit, toggle-status
+        // For parents: view, edit, toggle-status (no delete)
         return allActions.filter(action => action.action !== 'delete');
     }
   };

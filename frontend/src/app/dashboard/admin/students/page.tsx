@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import GenericTable from '@/components/templates/GenericTable';
 import {
   getListConfig,
@@ -12,10 +12,12 @@ import { Users, UserCheck, AlertCircle, GraduationCap } from 'lucide-react';
 import StudentSearchFilter, {
   StudentFilters,
 } from '@/components/molecules/filters/StudentSearchFilter';
-// Commented out until these services are implemented
-// import { classService } from '@/api/services/class.service';
-// import { studentService } from '@/api/services/student.service';
+import { studentService } from '@/api/services/student.service';
+import { classService } from '@/api/services/class.service';
 import { toast } from 'sonner';
+import StudentViewModal from '@/components/organisms/modals/StudentViewModal';
+import StudentEditModal from '@/components/organisms/modals/StudentEditModal';
+import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
 
 const StudentsPage = () => {
   // State for students data
@@ -37,28 +39,20 @@ const StudentsPage = () => {
     section: '',
   });
 
-  // State for class and section options
-  const classOptions = [
-    { value: 'class-1', label: 'Class 1' },
-    { value: 'class-2', label: 'Class 2' },
-    { value: 'class-3', label: 'Class 3' },
-    { value: 'class-4', label: 'Class 4' },
-    { value: 'class-5', label: 'Class 5' },
-    { value: 'class-6', label: 'Class 6' },
-    { value: 'class-7', label: 'Class 7' },
-    { value: 'class-8', label: 'Class 8' },
-    { value: 'class-9', label: 'Class 9' },
-    { value: 'class-10', label: 'Class 10' },
-    { value: 'class-11', label: 'Class 11' },
-    { value: 'class-12', label: 'Class 12' },
-  ];
+  // State for class and section options (loaded from API)
+  const [classOptions, setClassOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [sectionOptions, setSectionOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
 
-  const sectionOptions = [
-    { value: 'section-a', label: 'Section A' },
-    { value: 'section-b', label: 'Section B' },
-    { value: 'section-c', label: 'Section C' },
-    { value: 'section-d', label: 'Section D' },
-  ];
+  // State for modals
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Student-specific stats data
   const studentStats = [
@@ -104,119 +98,169 @@ const StudentsPage = () => {
   useEffect(() => {
     const loadClassesAndSections = async () => {
       try {
-        // In a real application, we would fetch classes and sections from the API
-        // For now, we'll use the hardcoded options
-        // const response = await classService.getAllClasses();
-        // if (response.success && response.data) {
-        //   const classes = response.data.map(cls => ({
-        //     value: cls.id.toString(),
-        //     label: cls.name
-        //   }));
-        //   setClassOptions(classes);
-        // }
-      } catch (err) {
-        console.error('Error loading classes and sections:', err);
+        const response = await classService.getAllClasses();
+        if (response.success && response.data) {
+          // Transform class data to filter options
+          const classOpts = response.data.map(cls => ({
+            value: cls.id,
+            label: `Grade ${cls.grade} ${cls.section} (${cls.capacity} capacity)`,
+          }));
+          setClassOptions(classOpts);
+
+          // Extract unique sections
+          const sections = [...new Set(response.data.map(cls => cls.section))];
+          const sectionOpts = sections.map(section => ({
+            value: section.toLowerCase(),
+            label: `Section ${section}`,
+          }));
+          setSectionOptions(sectionOpts);
+        } else {
+          // Fallback to hardcoded options if API fails
+          const fallbackClasses = [
+            { value: 'class-1', label: 'Class 1' },
+            { value: 'class-2', label: 'Class 2' },
+            { value: 'class-3', label: 'Class 3' },
+            { value: 'class-4', label: 'Class 4' },
+            { value: 'class-5', label: 'Class 5' },
+            { value: 'class-6', label: 'Class 6' },
+            { value: 'class-7', label: 'Class 7' },
+            { value: 'class-8', label: 'Class 8' },
+            { value: 'class-9', label: 'Class 9' },
+            { value: 'class-10', label: 'Class 10' },
+            { value: 'class-11', label: 'Class 11' },
+            { value: 'class-12', label: 'Class 12' },
+          ];
+          const fallbackSections = [
+            { value: 'section-a', label: 'Section A' },
+            { value: 'section-b', label: 'Section B' },
+            { value: 'section-c', label: 'Section C' },
+            { value: 'section-d', label: 'Section D' },
+          ];
+          setClassOptions(fallbackClasses);
+          setSectionOptions(fallbackSections);
+        }
+      } catch (error) {
+        console.error('Error loading classes and sections:', error);
+        toast.error('Failed to load class options');
       }
     };
 
     loadClassesAndSections();
   }, []);
 
-  // Load students data
-  useEffect(() => {
-    const loadStudents = async () => {
-      setIsLoading(true);
-      setError(null);
+  // Extract filter values to avoid dependency array issues
+  const classFilter = filters.class || '';
+  const searchFilter = filters.search || '';
 
-      try {
-        // In a real application, we would fetch students from the API
-        // For now, we'll use mock data
-        // const response = await studentService.getAllStudents();
-        // if (response.success && response.data) {
-        //   setStudents(response.data);
-        //   setFilteredStudents(response.data);
-        //   setTotalItems(response.data.length);
-        //   setTotalPages(Math.ceil(response.data.length / itemsPerPage));
-        // }
+  // Load students data function
+  const loadStudents = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-        // Mock data for now
-        const mockStudents: Student[] = [
-          {
-            id: 1,
-            name: 'Emily Johnson',
-            rollNo: '2024001',
-            class: 'Grade 10 Section A',
-            parent: '1',
-            status: 'Active',
-            email: 'emily.johnson@student.edu',
-            attendance: { present: 145, total: 160 },
-            grade: 'Grade 10',
-            section: 'Section A',
-          },
-        ];
+    try {
+      const response = await studentService.getAllStudents({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchFilter,
+        classId: classFilter,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      });
 
-        setStudents(mockStudents);
-        setFilteredStudents(mockStudents);
-        setTotalItems(mockStudents.length);
-        setTotalPages(Math.ceil(mockStudents.length / itemsPerPage));
-      } catch (err) {
-        console.error('Error loading students:', err);
-        setError('Failed to load students data. Please try again later.');
-        toast.error('Failed to load students', {
-          description:
-            'There was a problem loading the students data. Please try again.',
-        });
-      } finally {
-        setIsLoading(false);
+      if (response.success && response.data) {
+        // Check if response.data has the expected structure
+        const studentsData = response.data.data || response.data || [];
+        const totalItems = response.data.total || 0;
+        const totalPages = response.data.totalPages || 1;
+
+        // Ensure studentsData is an array before mapping
+        if (Array.isArray(studentsData)) {
+          // Transform backend data to frontend format
+          const transformedStudents: Student[] = studentsData.map(
+            (student, index) => ({
+              id: student.id || `temp-${index}`, // Use original UUID string ID or temporary ID
+              name: student.fullName || 'Unknown',
+              rollNo: student.rollNumber || '',
+              class: student.className || 'No Class',
+              parent: '1', // Will be updated when parent data is available
+              status: (student.academicStatus === 'active'
+                ? 'Active'
+                : student.academicStatus === 'suspended'
+                  ? 'Suspended'
+                  : 'Active') as 'Active' | 'Suspended' | 'Warning',
+              email: student.email || '',
+              attendance: { present: 0, total: 0 }, // Placeholder until attendance is implemented
+              grade: student.className || 'No Grade', // Use actual class data
+              section: 'A', // Default section - will be updated when backend provides section data
+            }),
+          );
+
+          setStudents(transformedStudents);
+          setFilteredStudents(transformedStudents);
+          setTotalItems(totalItems);
+          setTotalPages(totalPages);
+        } else {
+          console.warn(
+            'Expected array of students but received:',
+            studentsData,
+          );
+          // Fallback to empty array if data is not an array
+          setStudents([]);
+          setFilteredStudents([]);
+          setTotalItems(0);
+          setTotalPages(1);
+        }
+      } else {
+        console.warn('API response not successful or missing data:', response);
+        // Fallback to empty array if API fails
+        setStudents([]);
+        setFilteredStudents([]);
+        setTotalItems(0);
+        setTotalPages(1);
       }
-    };
+    } catch (error) {
+      console.error('Error loading students:', error);
+      toast.error('Failed to load students');
 
+      // Fallback mock data for development
+      const mockStudents: Student[] = [
+        {
+          id: 'mock-1',
+          name: 'Emily Johnson',
+          rollNo: '2024001',
+          class: 'Grade 10 Section A',
+          parent: '1',
+          status: 'Active',
+          email: 'emily.johnson@student.edu',
+          attendance: { present: 145, total: 160 },
+          grade: 'Grade 10',
+          section: 'Section A',
+        },
+      ];
+
+      setStudents(mockStudents);
+      setFilteredStudents(mockStudents);
+      setTotalItems(mockStudents.length);
+      setTotalPages(Math.ceil(mockStudents.length / itemsPerPage));
+      setError('API connection failed - using mock data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, itemsPerPage, searchFilter, classFilter]);
+
+  // Load students data when page, filters change
+  useEffect(() => {
     loadStudents();
-  }, []);
+  }, [loadStudents, currentPage, classFilter, searchFilter]);
 
   // Handle filter changes
   const handleFilterChange = (newFilters: StudentFilters) => {
     setFilters(newFilters);
-    applyFilters(newFilters);
-  };
-
-  // Apply filters to students data
-  const applyFilters = (filters: StudentFilters) => {
-    let result = [...students];
-
-    // Apply search filter
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      result = result.filter(
-        student =>
-          student.name.toLowerCase().includes(searchTerm) ||
-          student.rollNo.toLowerCase().includes(searchTerm) ||
-          student.email?.toLowerCase().includes(searchTerm),
-      );
-    }
-
-    // Apply class filter
-    if (filters.class) {
-      result = result.filter(student => {
-        const studentClass =
-          student.grade?.toLowerCase() || student.class?.toLowerCase();
-        return studentClass?.includes(filters.class.toLowerCase());
-      });
-    }
-
-    // Apply section filter
-    if (filters.section) {
-      result = result.filter(student => {
-        const studentSection = student.section?.toLowerCase();
-        return studentSection?.includes(filters.section.toLowerCase());
-      });
-    }
-
-    setFilteredStudents(result);
-    setTotalItems(result.length);
-    setTotalPages(Math.ceil(result.length / itemsPerPage));
     setCurrentPage(1); // Reset to first page when filters change
+    // The useEffect with loadStudents will handle the API call with new filters
   };
+
+  // Note: Filters are now handled by backend API in loadStudents function
 
   // Calculate current page items
   const getCurrentPageItems = () => {
@@ -228,6 +272,126 @@ const StudentsPage = () => {
   // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  // Handle student actions
+  const handleStudentAction = async (action: string, student: Student) => {
+    // View action
+    if (action === 'view') {
+      setSelectedStudent(student);
+      setViewModalOpen(true);
+      return;
+    }
+
+    // Edit action
+    if (action === 'edit') {
+      setSelectedStudent(student);
+      setEditModalOpen(true);
+      return;
+    }
+
+    // Toggle status action
+    if (action === 'toggle-status') {
+      try {
+        const newStatus = student.status === 'Active' ? 'Suspended' : 'Active';
+
+        // Optimistically update UI first for better UX
+        const updatedStudent = {
+          ...student,
+          status: newStatus as
+            | 'Active'
+            | 'Suspended'
+            | 'Graduated'
+            | 'Transferred',
+        };
+        const updatedStudents = students.map(s =>
+          s.id === student.id ? updatedStudent : s,
+        );
+        setStudents(updatedStudents);
+
+        // Also update filtered students to reflect change immediately
+        const updatedFilteredStudents = filteredStudents.map(s =>
+          s.id === student.id ? updatedStudent : s,
+        );
+        setFilteredStudents(updatedFilteredStudents);
+
+        // Call API to update status
+        const response = await studentService.updateStudentByAdmin(
+          String(student.id),
+          {
+            academic: {
+              academicStatus: newStatus.toLowerCase() as
+                | 'active'
+                | 'suspended'
+                | 'graduated'
+                | 'transferred',
+            },
+          },
+        );
+
+        if (response.success) {
+          toast.success(`Student status updated to ${newStatus}`);
+        } else {
+          // Revert the optimistic update if API call failed
+          setStudents(students);
+          setFilteredStudents(filteredStudents);
+          toast.error(response.message || 'Failed to update student status');
+        }
+      } catch (err) {
+        console.error('Error updating student status:', err);
+        // Revert the optimistic update if API call failed
+        setStudents(students);
+        setFilteredStudents(filteredStudents);
+        toast.error('Failed to update student status');
+      }
+      return;
+    }
+
+    // Delete action
+    if (action === 'delete') {
+      setSelectedStudent(student);
+      setDeleteModalOpen(true);
+      return;
+    }
+
+    console.log('Unknown action:', action);
+  };
+
+  // Handle student deletion
+  const handleDeleteStudent = async () => {
+    if (!selectedStudent) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await studentService.deleteStudent(
+        String(selectedStudent.id),
+      );
+
+      if (response.success) {
+        // Remove student from local state
+        const updatedStudents = students.filter(
+          s => s.id !== selectedStudent.id,
+        );
+        const updatedFilteredStudents = filteredStudents.filter(
+          s => s.id !== selectedStudent.id,
+        );
+
+        setStudents(updatedStudents);
+        setFilteredStudents(updatedFilteredStudents);
+        setTotalItems(prev => prev - 1);
+
+        toast.success(`Student ${selectedStudent.name} deleted successfully`);
+        setDeleteModalOpen(false);
+        setSelectedStudent(null);
+      } else {
+        toast.error(response.message || 'Failed to delete student');
+      }
+    } catch (err) {
+      console.error('Error deleting student:', err);
+      toast.error('Failed to delete student');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -270,7 +434,7 @@ const StudentsPage = () => {
               <h2 className='text-lg font-semibold text-gray-800'>
                 Student Directory
               </h2>
-              <ActionButtons pageType='students' onRefresh={() => {}} />
+              <ActionButtons pageType='students' onRefresh={loadStudents} />
             </div>
 
             {isLoading ? (
@@ -297,12 +461,43 @@ const StudentsPage = () => {
                 totalItems={totalItems}
                 itemsPerPage={itemsPerPage}
                 onPageChange={handlePageChange}
+                onItemAction={handleStudentAction}
                 emptyMessage='No students found matching your filters'
               />
             )}
           </div>
         </div>
       </div>
+
+      {/* View Student Modal */}
+      <StudentViewModal
+        isOpen={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        student={selectedStudent}
+      />
+
+      {/* Edit Student Modal */}
+      <StudentEditModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        onSuccess={() => {
+          setEditModalOpen(false);
+          // Reload students data to reflect changes
+          loadStudents();
+        }}
+        student={selectedStudent}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteStudent}
+        title='Delete Student'
+        message='Are you sure you want to delete this student?'
+        itemName={selectedStudent?.name || ''}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

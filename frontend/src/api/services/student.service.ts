@@ -1,54 +1,236 @@
-/**
- * =============================================================================
- * Student Service
- * =============================================================================
- * Service for handling student-related API calls
- * =============================================================================
- */
-
 import { HttpClient } from '../client/http-client';
-import { ApiResponse } from '../types/common';
+import { ApiResponse } from '../types';
 
-// ============================================================================
-// API Endpoints
-// ============================================================================
-
-const STUDENT_ENDPOINTS = {
-  CREATE_WITH_NEW_PARENTS: 'api/v1/students/with-new-parents',
-  CREATE_WITH_EXISTING_PARENTS: 'api/v1/students/with-existing-parents',
-  CREATE_SIBLING: 'api/v1/students/sibling',
-  LIST: 'api/v1/students',
-  GET_BY_ID: (id: string) => `api/v1/students/${id}`,
-  UPDATE: (id: string) => `api/v1/students/${id}`,
-  DELETE: (id: string) => `api/v1/students/${id}`,
-  SET_PRIMARY_PARENT: (id: string) => `api/v1/students/${id}/primary-parent`,
-  UPSERT_PROFILE: (id: string) => `api/v1/students/${id}/profile`,
-  GET_BY_CLASS: (classId: string) => `api/v1/students/class/${classId}`,
-  GET_BY_PARENT: (parentId: string) => `api/v1/students/parent/${parentId}`,
+// Student endpoints
+export const STUDENT_ENDPOINTS = {
+  CREATE: '/api/v1/students',
+  GET_ALL: '/api/v1/students',
+  GET_BY_ID: (id: string) => `/api/v1/students/${id}`,
+  GET_BY_USER_ID: (userId: string) => `/api/v1/students/user/${userId}`,
+  UPDATE_BY_ADMIN: (id: string) => `/api/v1/students/${id}`,
+  UPDATE_SELF: '/api/v1/students/profile/self',
+  DELETE: (id: string) => `/api/v1/students/${id}`,
+  GET_PARENTS: (id: string) => `/api/v1/students/${id}/parents`,
+  GET_GUARDIANS: (id: string) => `/api/v1/students/${id}/guardians`,
+  GET_COUNT: '/api/v1/students/stats/count',
 } as const;
 
-// ============================================================================
-// Request/Response Types
-// ============================================================================
-
+// Types based on the backend DTOs
 export interface CreateStudentRequest {
   user: {
-    fullName: string;
+    firstName: string;
+    middleName?: string;
+    lastName: string;
     email: string;
     phone?: string;
+    password?: string;
   };
-  classId: string;
-  rollNumber: string;
-  admissionDate: string;
-  email: string;
-  dob: string;
-  gender: 'male' | 'female' | 'other';
-  bloodGroup?: string;
-  imageUrl?: string;
+  personal?: {
+    dateOfBirth?: string;
+    gender?: 'male' | 'female' | 'other';
+    bloodGroup?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+    maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
+    address?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    pinCode?: string;
+  };
+  academic: {
+    classId: string;
+    rollNumber?: string; // Optional - will be auto-generated if not provided
+    admissionDate: string;
+    studentId?: string;
+    academicStatus?: 'active' | 'suspended' | 'graduated' | 'transferred';
+    feeStatus?: 'paid' | 'pending' | 'overdue' | 'partial';
+    transportMode?: string;
+  };
+  parentInfo: {
+    fatherFirstName: string;
+    fatherMiddleName?: string;
+    fatherLastName: string;
+    fatherEmail: string;
+    fatherPhone?: string;
+    fatherOccupation?: string;
+    motherFirstName: string;
+    motherMiddleName?: string;
+    motherLastName: string;
+    motherEmail: string;
+    motherPhone?: string;
+    motherOccupation?: string;
+  };
+  parents?: Array<{
+    firstName: string;
+    middleName?: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    relationship: string;
+    isPrimary: boolean;
+    createUserAccount: boolean;
+    occupation?: string;
+  }>;
+  guardians?: Array<{
+    firstName: string;
+    middleName?: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    relation: string;
+  }>;
+  additional?: {
+    medicalConditions?: string;
+    allergies?: string;
+    interests?: string;
+    specialNeeds?: string;
+    bio?: string;
+    emergencyContact?: {
+      name: string;
+      phone: string;
+      relationship: string;
+    };
+  };
+  profile?: {
+    emergencyContact?: {
+      name: string;
+      phone: string;
+      relationship: string;
+    };
+    interests?: {
+      interests: string;
+    };
+    additionalData?: {
+      medicalConditions?: string;
+      allergies?: string;
+      specialNeeds?: string;
+    };
+  };
+}
 
-  // Parent information
-  fatherName: string;
-  motherName: string;
+export interface UpdateStudentByAdminRequest {
+  user?: {
+    firstName?: string;
+    middleName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+  };
+  personal?: {
+    dateOfBirth?: string;
+    gender?: 'male' | 'female' | 'other';
+    bloodGroup?: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+    maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
+    address?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    pinCode?: string;
+  };
+  academic?: {
+    classId?: string;
+    rollNumber?: string;
+    admissionDate?: string;
+    studentId?: string;
+    academicStatus?: 'active' | 'suspended' | 'graduated' | 'transferred';
+    feeStatus?: 'paid' | 'pending' | 'overdue' | 'partial';
+    transportMode?: string;
+  };
+  parentInfo?: {
+    fatherFirstName?: string;
+    fatherMiddleName?: string;
+    fatherLastName?: string;
+    fatherEmail?: string;
+    fatherPhone?: string;
+    fatherOccupation?: string;
+    motherFirstName?: string;
+    motherMiddleName?: string;
+    motherLastName?: string;
+    motherEmail?: string;
+    motherPhone?: string;
+    motherOccupation?: string;
+  };
+  additional?: {
+    medicalConditions?: string;
+    allergies?: string;
+    interests?: string;
+    specialNeeds?: string;
+    bio?: string;
+    emergencyContact?: {
+      name: string;
+      phone: string;
+      relationship: string;
+    };
+  };
+}
+
+export interface UpdateStudentSelfRequest {
+  user?: {
+    firstName?: string;
+    middleName?: string;
+    lastName?: string;
+    phone?: string;
+  };
+  personal?: {
+    address?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    pinCode?: string;
+  };
+  additional?: {
+    interests?: string;
+    bio?: string;
+  };
+}
+
+export interface StudentQueryParams {
+  limit?: number;
+  page?: number;
+  search?: string;
+  classId?: string;
+  academicStatus?: 'active' | 'suspended' | 'graduated' | 'transferred';
+  feeStatus?: 'paid' | 'pending' | 'overdue' | 'partial';
+  sortBy?: 'name' | 'rollNumber' | 'admissionDate' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface StudentResponse {
+  id: string;
+  fullName: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+  rollNumber: string;
+  studentId?: string;
+  classId: string;
+  className?: string;
+
+  // Personal Information
+  dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+  maritalStatus?: string;
+  address?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  pinCode?: string;
+
+  // Academic Information
+  admissionDate: string;
+  academicStatus: string;
+  feeStatus: string;
+  transportMode?: string;
+
+  // Parent Information
+  fatherFirstName: string;
+  fatherMiddleName?: string;
+  fatherLastName: string;
+  motherFirstName: string;
+  motherMiddleName?: string;
+  motherLastName: string;
   fatherPhone?: string;
   motherPhone?: string;
   fatherEmail: string;
@@ -56,120 +238,98 @@ export interface CreateStudentRequest {
   fatherOccupation?: string;
   motherOccupation?: string;
 
-  // Address
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    pinCode?: string;
-  };
+  // Medical Information
+  medicalConditions?: string;
+  allergies?: string;
 
-  // Guardians
+  // Additional Information
+  interests?: string;
+  specialNeeds?: string;
+
+  // Profile Information
+  profilePhotoUrl?: string;
+  bio?: string;
+
+  // System fields
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+
+  // Relations
+  parents?: Array<{
+    id: string;
+    fullName: string;
+    email: string;
+    relationship: string;
+    isPrimary: boolean;
+  }>;
+
   guardians?: Array<{
+    id: string;
     fullName: string;
     phone: string;
     email: string;
     relation: string;
   }>;
-
-  // Parents for user account creation
-  parents: Array<{
-    fullName: string;
-    email: string;
-    phone?: string;
-    relationship: string;
-    isPrimary: boolean;
-    createUserAccount?: boolean;
-  }>;
-
-  // Profile
-  profile?: {
-    emergencyContact?: any;
-    interests?: any;
-    additionalData?: any;
-    profilePhotoUrl?: string;
-  };
-}
-
-export interface UpdateStudentRequest {
-  fullName?: string;
-  phone?: string;
-  email?: string;
-  classId?: string;
-  rollNumber?: string;
-  admissionDate?: string;
-  dob?: string;
-  gender?: 'male' | 'female' | 'other';
-  bloodGroup?: string;
-  imageUrl?: string;
-
-  // Parent information
-  fatherName?: string;
-  motherName?: string;
-  fatherPhone?: string;
-  motherPhone?: string;
-  fatherEmail?: string;
-  motherEmail?: string;
-  fatherOccupation?: string;
-  motherOccupation?: string;
-
-  // Address
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    pinCode?: string;
-  };
-}
-
-export interface StudentResponse {
-  id: string;
-  userId: string;
-  fullName: string;
-  email: string;
-  phone?: string;
-  classId: string;
-  rollNumber: string;
-  admissionDate: string;
-  dob: string;
-  gender: 'male' | 'female' | 'other';
-  bloodGroup?: string;
-  imageUrl?: string;
-
-  // Parent information
-  fatherName: string;
-  motherName: string;
-  fatherPhone?: string;
-  motherPhone?: string;
-  fatherEmail: string;
-  motherEmail: string;
-  fatherOccupation?: string;
-  motherOccupation?: string;
-
-  createdAt: string;
-  updatedAt?: string;
-  deletedAt?: string | null;
 }
 
 export interface StudentListResponse {
-  students: StudentResponse[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  rollNumber: string;
+  studentId?: string;
+  className: string;
+  admissionDate: string;
+  academicStatus: string;
+  feeStatus: string;
+  profilePhotoUrl?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
-export interface StudentQueryParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  classId?: string;
-  sectionId?: string;
+export interface CreateStudentResponse {
+  student: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    rollNumber: string;
+    studentId?: string;
+    profilePhotoUrl?: string;
+  };
+  temporaryPassword?: string;
+  parentCredentials?: Array<{
+    id: string;
+    fullName: string;
+    email: string;
+    relationship: string;
+    temporaryPassword: string;
+  }>;
 }
 
-// ============================================================================
-// Student Service
-// ============================================================================
+export interface StudentCountResponse {
+  count: number;
+}
+
+export interface ParentInfo {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  relationship: string;
+  isPrimary: boolean;
+}
+
+export interface GuardianInfo {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  relation: string;
+  createdAt: string;
+}
 
 export class StudentService {
   private httpClient: HttpClient;
@@ -178,233 +338,191 @@ export class StudentService {
     this.httpClient = new HttpClient();
   }
 
-  /**
-   * Create a new student with new parents
-   */
-  async createStudentWithNewParents(
+  // Create student
+  async createStudent(
     data: CreateStudentRequest,
     profilePicture?: File,
-  ): Promise<ApiResponse<StudentResponse>> {
+  ): Promise<ApiResponse<CreateStudentResponse>> {
     const formData = new FormData();
 
-    // Append student data as JSON strings
+    // Structure data for backend (matching the controller's expected format)
     formData.append('user', JSON.stringify(data.user));
-    formData.append('classId', data.classId);
-    formData.append('rollNumber', data.rollNumber);
-    formData.append('admissionDate', data.admissionDate);
-    formData.append('email', data.email);
-    formData.append('dob', data.dob);
-    formData.append('gender', data.gender);
 
-    if (data.bloodGroup) formData.append('bloodGroup', data.bloodGroup);
-    if (data.imageUrl) formData.append('imageUrl', data.imageUrl);
+    if (data.personal) {
+      formData.append('personal', JSON.stringify(data.personal));
+    }
 
-    // Parent information
-    formData.append('fatherName', data.fatherName);
-    formData.append('motherName', data.motherName);
-    formData.append('fatherEmail', data.fatherEmail);
-    formData.append('motherEmail', data.motherEmail);
+    formData.append('academic', JSON.stringify(data.academic));
+    formData.append('parentInfo', JSON.stringify(data.parentInfo));
 
-    if (data.fatherPhone) formData.append('fatherPhone', data.fatherPhone);
-    if (data.motherPhone) formData.append('motherPhone', data.motherPhone);
-    if (data.fatherOccupation)
-      formData.append('fatherOccupation', data.fatherOccupation);
-    if (data.motherOccupation)
-      formData.append('motherOccupation', data.motherOccupation);
+    if (data.parents) {
+      formData.append('parents', JSON.stringify(data.parents));
+    }
 
-    // Address
-    if (data.address) formData.append('address', JSON.stringify(data.address));
-
-    // Guardians
-    if (data.guardians)
+    if (data.guardians) {
       formData.append('guardians', JSON.stringify(data.guardians));
-
-    // Parents
-    formData.append('parents', JSON.stringify(data.parents));
-
-    // Profile
-    if (data.profile) formData.append('profile', JSON.stringify(data.profile));
-
-    // Profile picture
-    if (profilePicture) {
-      formData.append('photo', profilePicture);
     }
 
-    return this.httpClient.post<StudentResponse>(
-      STUDENT_ENDPOINTS.CREATE_WITH_NEW_PARENTS,
-      formData,
-      {
-        requiresAuth: true,
-        headers: {
-          // Don't set Content-Type for FormData - let browser set it with boundary
-        },
-      },
-    );
-  }
+    if (data.additional) {
+      formData.append('additional', JSON.stringify(data.additional));
+    }
 
-  /**
-   * Create a new student with existing parents
-   */
-  async createStudentWithExistingParents(
-    data: CreateStudentRequest,
-    profilePicture?: File,
-  ): Promise<ApiResponse<StudentResponse>> {
-    const formData = new FormData();
-
-    // Similar to above but for existing parents endpoint
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        if (typeof value === 'object') {
-          formData.append(key, JSON.stringify(value));
-        } else {
-          formData.append(key, String(value));
-        }
-      }
-    });
+    if (data.profile) {
+      formData.append('profile', JSON.stringify(data.profile));
+    }
 
     if (profilePicture) {
       formData.append('photo', profilePicture);
     }
 
-    return this.httpClient.post<StudentResponse>(
-      STUDENT_ENDPOINTS.CREATE_WITH_EXISTING_PARENTS,
+    return this.httpClient.post<CreateStudentResponse>(
+      STUDENT_ENDPOINTS.CREATE,
       formData,
-      {
-        requiresAuth: true,
-      },
+      { requiresAuth: true },
     );
   }
 
-  /**
-   * Create a sibling student
-   */
-  async createSiblingStudent(
-    data: CreateStudentRequest,
-    profilePicture?: File,
-  ): Promise<ApiResponse<StudentResponse>> {
-    return this.createStudentWithExistingParents(data, profilePicture);
-  }
-
-  /**
-   * Get all students with optional filtering
-   */
-  async getAllStudents(
-    params?: StudentQueryParams,
-  ): Promise<ApiResponse<StudentListResponse>> {
-    const queryString = params
-      ? new URLSearchParams(
-          Object.entries(params)
-            .filter(([, value]) => value !== undefined && value !== null)
-            .map(([key, value]) => [key, String(value)]),
-        ).toString()
-      : '';
-
-    const url = queryString
-      ? `${STUDENT_ENDPOINTS.LIST}?${queryString}`
-      : STUDENT_ENDPOINTS.LIST;
-
-    return this.httpClient.get<StudentListResponse>(url, {
+  // Get all students with filtering and pagination
+  async getAllStudents(params?: StudentQueryParams): Promise<
+    ApiResponse<{
+      data: StudentListResponse[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>
+  > {
+    return this.httpClient.get(STUDENT_ENDPOINTS.GET_ALL, params, {
       requiresAuth: true,
     });
   }
 
-  /**
-   * Get student by ID
-   */
+  // Get student by ID
   async getStudentById(id: string): Promise<ApiResponse<StudentResponse>> {
     return this.httpClient.get<StudentResponse>(
       STUDENT_ENDPOINTS.GET_BY_ID(id),
-      {
-        requiresAuth: true,
-      },
+      undefined,
+      { requiresAuth: true },
     );
   }
 
-  /**
-   * Update student
-   */
-  async updateStudent(
-    id: string,
-    data: UpdateStudentRequest,
+  // Get student by user ID
+  async getStudentByUserId(
+    userId: string,
   ): Promise<ApiResponse<StudentResponse>> {
-    return this.httpClient.patch<StudentResponse>(
-      STUDENT_ENDPOINTS.UPDATE(id),
-      data,
-      {
-        requiresAuth: true,
-      },
+    return this.httpClient.get<StudentResponse>(
+      STUDENT_ENDPOINTS.GET_BY_USER_ID(userId),
+      undefined,
+      { requiresAuth: true },
     );
   }
 
-  /**
-   * Delete student (soft delete)
-   */
-  async deleteStudent(id: string): Promise<ApiResponse<void>> {
-    return this.httpClient.delete<void>(STUDENT_ENDPOINTS.DELETE(id), {
+  // Update student by admin
+  async updateStudentByAdmin(
+    id: string,
+    data: UpdateStudentByAdminRequest,
+  ): Promise<ApiResponse<{ message: string; id: string }>> {
+    return this.httpClient.patch(STUDENT_ENDPOINTS.UPDATE_BY_ADMIN(id), data, {
       requiresAuth: true,
     });
   }
 
-  /**
-   * Set primary parent for student
-   */
-  async setPrimaryParent(
-    studentId: string,
-    parentId: string,
-  ): Promise<ApiResponse<void>> {
-    return this.httpClient.patch<void>(
-      STUDENT_ENDPOINTS.SET_PRIMARY_PARENT(studentId),
-      { parentId },
-      {
-        requiresAuth: true,
-      },
+  // Update student profile (self)
+  async updateStudentSelf(
+    data: UpdateStudentSelfRequest,
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.httpClient.patch(STUDENT_ENDPOINTS.UPDATE_SELF, data, {
+      requiresAuth: true,
+    });
+  }
+
+  // Soft delete student
+  async deleteStudent(
+    id: string,
+  ): Promise<ApiResponse<{ message: string; id: string }>> {
+    return this.httpClient.delete(STUDENT_ENDPOINTS.DELETE(id), {
+      requiresAuth: true,
+    });
+  }
+
+  // Get student parents
+  async getStudentParents(id: string): Promise<ApiResponse<ParentInfo[]>> {
+    return this.httpClient.get<ParentInfo[]>(
+      STUDENT_ENDPOINTS.GET_PARENTS(id),
+      undefined,
+      { requiresAuth: true },
     );
   }
 
-  /**
-   * Upsert student profile
-   */
-  async upsertStudentProfile(
-    studentId: string,
-    profileData: any,
-  ): Promise<ApiResponse<any>> {
-    return this.httpClient.put<any>(
-      STUDENT_ENDPOINTS.UPSERT_PROFILE(studentId),
-      profileData,
-      {
-        requiresAuth: true,
-      },
+  // Get student guardians
+  async getStudentGuardians(id: string): Promise<ApiResponse<GuardianInfo[]>> {
+    return this.httpClient.get<GuardianInfo[]>(
+      STUDENT_ENDPOINTS.GET_GUARDIANS(id),
+      undefined,
+      { requiresAuth: true },
     );
   }
 
-  /**
-   * Get students by class
-   */
-  async getStudentsByClass(
-    classId: string,
-  ): Promise<ApiResponse<StudentResponse[]>> {
-    return this.httpClient.get<StudentResponse[]>(
-      STUDENT_ENDPOINTS.GET_BY_CLASS(classId),
-      {
-        requiresAuth: true,
-      },
+  // Get student count
+  async getStudentCount(): Promise<ApiResponse<StudentCountResponse>> {
+    return this.httpClient.get<StudentCountResponse>(
+      STUDENT_ENDPOINTS.GET_COUNT,
+      undefined,
+      { requiresAuth: true },
     );
   }
 
-  /**
-   * Get students by parent
-   */
-  async getStudentsByParent(
-    parentId: string,
-  ): Promise<ApiResponse<StudentResponse[]>> {
-    return this.httpClient.get<StudentResponse[]>(
-      STUDENT_ENDPOINTS.GET_BY_PARENT(parentId),
-      {
-        requiresAuth: true,
-      },
+  // Helper method to calculate next student ID (used in frontend)
+  async getNextStudentId(): Promise<{
+    success: boolean;
+    data: { studentId: string };
+    message: string;
+  }> {
+    try {
+      const response = await this.getStudentCount();
+      if (response.success) {
+        const currentYear = new Date().getFullYear();
+        const count = response.data.count;
+        const studentId = `S-${currentYear}-${(count + 1).toString().padStart(4, '0')}`;
+        return {
+          success: true,
+          data: { studentId },
+          message: 'Student ID generated successfully',
+        };
+      }
+      throw new Error('Failed to get student count');
+    } catch (error) {
+      return {
+        success: false,
+        data: { studentId: '' },
+        message: 'Failed to generate student ID',
+      };
+    }
+  }
+
+  // Get available classes with capacity information
+  async getAvailableClasses(): Promise<
+    ApiResponse<{
+      classes: Array<{
+        id: string;
+        name: string;
+        grade: number;
+        section: string;
+        capacity: number;
+        currentStudents: number;
+        availableSpots: number;
+        isFull: boolean;
+        roomNo: string;
+      }>;
+    }>
+  > {
+    return this.httpClient.get(
+      `/api/v1/classes/available-classes`,
+      {},
+      { requiresAuth: true },
     );
   }
 }
 
-// Export singleton instance
+// Export a singleton instance
 export const studentService = new StudentService();
