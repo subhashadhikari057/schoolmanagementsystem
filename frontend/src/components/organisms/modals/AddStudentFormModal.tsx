@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { classService } from '@/api/services/class.service';
 import { studentService } from '@/api/services/student.service';
+import EthnicitySelect from '@/components/molecules/form/EthnicitySelect';
 
 interface AddStudentFormModalProps {
   isOpen: boolean;
@@ -58,6 +59,7 @@ interface StudentFormData {
   dateOfBirth: string;
   gender: string;
   bloodGroup?: string;
+  ethnicity?: string;
   address?: string;
   street?: string;
   city?: string;
@@ -122,6 +124,7 @@ const initialFormData: StudentFormData = {
   dateOfBirth: '',
   gender: '',
   bloodGroup: '',
+  ethnicity: '',
   address: '',
   street: '',
   city: '',
@@ -780,6 +783,7 @@ export default function AddStudentFormModal({
               | 'AB-'
               | 'O+'
               | 'O-') || undefined,
+          ethnicity: formData.ethnicity?.trim() || undefined,
           address: formData.address?.trim() || undefined,
           street: formData.street?.trim() || undefined,
           city: formData.city?.trim() || undefined,
@@ -1192,6 +1196,15 @@ export default function AddStudentFormModal({
                   onChange={handleInputChange}
                   options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']}
                   placeholder='Select blood group'
+                />
+                <EthnicitySelect
+                  label='Ethnicity'
+                  value={formData.ethnicity || ''}
+                  onChange={value =>
+                    setFormData(prev => ({ ...prev, ethnicity: value }))
+                  }
+                  placeholder='Select ethnicity'
+                  className='mt-4'
                 />
               </div>
 

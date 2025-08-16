@@ -11,7 +11,6 @@ import {
   GraduationCap,
   Users,
   Heart,
-  FileText,
   AlertCircle,
   Loader2,
 } from 'lucide-react';
@@ -177,304 +176,365 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
     }
   };
 
-  const InfoItem: React.FC<{
-    icon: React.ReactNode;
-    label: string;
-    value: string | number | undefined;
-    className?: string;
-  }> = ({ icon, label, value, className = '' }) => (
-    <div className={`flex items-start space-x-3 ${className}`}>
-      <div className='text-gray-500 mt-1'>{icon}</div>
-      <div>
-        <p className='text-sm font-medium text-gray-700'>{label}</p>
-        <p className='text-sm text-gray-900'>{value || 'Not provided'}</p>
-      </div>
-    </div>
-  );
-
-  const InfoSection: React.FC<{
-    title: string;
-    children: React.ReactNode;
-    icon?: React.ReactNode;
-  }> = ({ title, children, icon }) => (
-    <div className='bg-gray-50 rounded-lg p-4'>
-      <div className='flex items-center space-x-2 mb-3'>
-        {icon && <div className='text-gray-600'>{icon}</div>}
-        <h3 className='font-semibold text-gray-900'>{title}</h3>
-      </div>
-      <div className='space-y-3'>{children}</div>
-    </div>
-  );
-
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-      <div className='bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden'>
+    <div
+      className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4'
+      role='dialog'
+      aria-modal='true'
+      onClick={onClose}
+    >
+      <div
+        className='bg-white rounded-xl w-full max-w-full sm:max-w-3xl lg:max-w-4xl shadow-2xl animate-in fade-in duration-300 max-h-[90vh] overflow-y-auto'
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className='flex items-center justify-between p-6 border-b border-gray-200'>
-          <div className='flex items-center space-x-3'>
-            <User className='h-6 w-6 text-blue-600' />
-            <h2 className='text-xl font-semibold text-gray-900'>
-              Student Details
-            </h2>
-          </div>
+        <div className='sticky top-0 bg-gradient-to-r from-green-50 to-emerald-50 p-4 sm:p-6 rounded-t-xl border-b border-gray-100 z-10'>
           <button
             onClick={onClose}
-            className='text-gray-400 hover:text-gray-600 transition-colors'
+            className='absolute top-4 right-4 p-2 rounded-full hover:bg-white/50 transition-colors'
           >
-            <X size={24} />
+            <X className='h-5 w-5 text-gray-500' />
           </button>
+
+          <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>
+            Student Profile
+          </h2>
+          <p className='text-gray-600 mt-1 text-sm sm:text-base'>
+            Detailed information about this student
+          </p>
         </div>
 
         {/* Content */}
-        <div className='p-6 overflow-y-auto max-h-[calc(90vh-140px)]'>
+        <div className='p-4 sm:p-6'>
           {loading && (
-            <div className='flex items-center justify-center py-12'>
-              <Loader2 className='h-8 w-8 animate-spin text-blue-600' />
-              <span className='ml-2 text-gray-600'>
-                Loading student details...
-              </span>
+            <div className='text-center py-12'>
+              <Loader2 className='h-8 w-8 animate-spin text-green-600 mx-auto mb-4' />
+              <p className='text-gray-700'>Loading student details...</p>
             </div>
           )}
 
           {error && !loading && (
-            <div className='flex items-center justify-center py-12'>
-              <div className='text-center'>
-                <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-4' />
-                <p className='text-red-600 mb-2'>
-                  Failed to load student details
-                </p>
-                <p className='text-gray-500 text-sm'>{error}</p>
-              </div>
+            <div className='text-center py-12'>
+              <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-4' />
+              <p className='text-red-600 mb-2 font-medium'>
+                Failed to load student details
+              </p>
+              <p className='text-gray-500 text-sm'>{error}</p>
             </div>
           )}
 
           {studentDetails && !loading && (
-            <div className='space-y-6'>
-              {/* Basic Information */}
-              <InfoSection title='Basic Information' icon={<User size={20} />}>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <InfoItem
-                    icon={<User size={16} />}
-                    label='Full Name'
-                    value={`${studentDetails.firstName || ''} ${studentDetails.middleName || ''} ${studentDetails.lastName || ''}`
-                      .replace(/\s+/g, ' ')
-                      .trim()}
-                  />
-                  <InfoItem
-                    icon={<GraduationCap size={16} />}
-                    label='Student ID'
-                    value={studentDetails.rollNumber}
-                  />
-                  <InfoItem
-                    icon={<Mail size={16} />}
-                    label='Email'
-                    value={studentDetails.email}
-                  />
-                  <InfoItem
-                    icon={<Phone size={16} />}
-                    label='Phone'
-                    value={studentDetails.phone || 'Not provided'}
-                  />
-                  <InfoItem
-                    icon={<Calendar size={16} />}
-                    label='Date of Birth'
-                    value={formatDate(studentDetails.dateOfBirth)}
-                  />
-                  <InfoItem
-                    icon={<User size={16} />}
-                    label='Gender'
-                    value={studentDetails.gender || 'Not provided'}
-                  />
+            <>
+              {/* Basic Info */}
+              <div className='flex flex-col md:flex-row gap-4 sm:gap-6 pb-6 border-b border-gray-200'>
+                <div className='flex-shrink-0'>
+                  <div className='w-24 h-24 sm:w-32 sm:h-32 rounded-xl shadow-md bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center'>
+                    <User className='w-12 h-12 sm:w-16 sm:h-16 text-green-600' />
+                  </div>
                 </div>
-              </InfoSection>
 
-              {/* Academic Information */}
-              <InfoSection
-                title='Academic Information'
-                icon={<GraduationCap size={20} />}
-              >
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <InfoItem
-                    icon={<GraduationCap size={16} />}
-                    label='Class'
-                    value={studentDetails.className || 'Not provided'}
-                  />
-                  <InfoItem
-                    icon={<FileText size={16} />}
-                    label='Roll Number'
-                    value={studentDetails.rollNumber}
-                  />
-                  <InfoItem
-                    icon={<Calendar size={16} />}
-                    label='Admission Date'
-                    value={formatDate(studentDetails.admissionDate)}
-                  />
-                  <InfoItem
-                    icon={<AlertCircle size={16} />}
-                    label='Status'
-                    value={studentDetails.academicStatus}
-                  />
+                <div className='flex-grow'>
+                  <h3 className='text-lg sm:text-xl font-bold text-gray-900'>
+                    {`${studentDetails.firstName || ''} ${studentDetails.middleName || ''} ${studentDetails.lastName || ''}`
+                      .replace(/\s+/g, ' ')
+                      .trim() || studentDetails.fullName}
+                  </h3>
+
+                  <div className='flex flex-wrap gap-2 mt-2'>
+                    <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
+                      {studentDetails.className || 'Student'}
+                    </span>
+                    <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+                      Roll No: {studentDetails.rollNumber}
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        studentDetails.academicStatus === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : studentDetails.academicStatus === 'suspended'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                    >
+                      {studentDetails.academicStatus?.charAt(0).toUpperCase() +
+                        studentDetails.academicStatus?.slice(1) || 'Active'}
+                    </span>
+                  </div>
+
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-3 mt-4'>
+                    <div className='flex items-center gap-2 text-sm text-gray-600 break-words'>
+                      <Mail className='h-4 w-4 text-gray-400' />
+                      <span>{studentDetails.email || 'N/A'}</span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600 break-words'>
+                      <Phone className='h-4 w-4 text-gray-400' />
+                      <span>{studentDetails.phone || 'N/A'}</span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <Calendar className='h-4 w-4 text-gray-400' />
+                      <span>DOB: {formatDate(studentDetails.dateOfBirth)}</span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <GraduationCap className='h-4 w-4 text-gray-400' />
+                      <span>
+                        Admitted: {formatDate(studentDetails.admissionDate)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </InfoSection>
+              </div>
+
+              {/* Details Grid */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-6'>
+                {/* Personal Information */}
+                <div className='bg-gray-50 rounded-lg p-4'>
+                  <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
+                    <User className='h-4 w-4 mr-2 text-green-600' />
+                    Personal Information
+                  </h4>
+                  <div className='space-y-2'>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Gender
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.gender || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Blood Group
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.bloodGroup || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Ethnicity
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.ethnicity || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Academic Information */}
+                <div className='bg-green-50 rounded-lg p-4'>
+                  <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
+                    <GraduationCap className='h-4 w-4 mr-2 text-green-600' />
+                    Academic Information
+                  </h4>
+                  <div className='space-y-2'>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>Class</span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.className || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Roll Number
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.rollNumber || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Student ID
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.studentId || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Fee Status
+                      </span>
+                      <span
+                        className={`text-sm font-medium ${
+                          studentDetails.feeStatus === 'paid'
+                            ? 'text-green-600'
+                            : studentDetails.feeStatus === 'overdue'
+                              ? 'text-red-600'
+                              : 'text-yellow-600'
+                        }`}
+                      >
+                        {studentDetails.feeStatus?.charAt(0).toUpperCase() +
+                          studentDetails.feeStatus?.slice(1) || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div className='bg-blue-50 rounded-lg p-4'>
+                  <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
+                    <MapPin className='h-4 w-4 mr-2 text-green-600' />
+                    Address Information
+                  </h4>
+                  <div className='space-y-2'>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Street
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.street || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>City</span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.city || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>State</span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.state || 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Pin Code
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.pinCode || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Information */}
+                <div className='bg-yellow-50 rounded-lg p-4'>
+                  <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
+                    <Heart className='h-4 w-4 mr-2 text-green-600' />
+                    Additional Information
+                  </h4>
+                  <div className='space-y-2'>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Medical Conditions
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.medicalConditions || 'None'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Allergies
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.allergies || 'None'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Special Needs
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.specialNeeds || 'None'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Parent Information */}
-              <InfoSection
-                title='Parent Information'
-                icon={<Users size={20} />}
-              >
+              <div className='bg-purple-50 rounded-lg p-4 mt-6'>
+                <h4 className='text-sm font-semibold text-gray-900 mb-4 flex items-center'>
+                  <Users className='h-4 w-4 mr-2 text-green-600' />
+                  Parent Information
+                </h4>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                   <div>
-                    <h4 className='font-medium text-gray-900 mb-3 border-b pb-2'>
+                    <h5 className='font-medium text-gray-900 mb-3 border-b pb-2'>
                       Father Details
-                    </h4>
-                    <div className='space-y-3'>
-                      <InfoItem
-                        icon={<User size={16} />}
-                        label='Name'
-                        value={
-                          `${studentDetails.fatherFirstName || ''} ${studentDetails.fatherMiddleName || ''} ${studentDetails.fatherLastName || ''}`
+                    </h5>
+                    <div className='space-y-2'>
+                      <div>
+                        <span className='text-xs text-gray-500 block'>
+                          Name
+                        </span>
+                        <span className='text-sm font-medium text-gray-900'>
+                          {`${studentDetails.fatherFirstName || ''} ${studentDetails.fatherMiddleName || ''} ${studentDetails.fatherLastName || ''}`
                             .replace(/\s+/g, ' ')
-                            .trim() || 'Not provided'
-                        }
-                      />
-                      <InfoItem
-                        icon={<Mail size={16} />}
-                        label='Email'
-                        value={studentDetails.fatherEmail || 'Not provided'}
-                      />
-                      <InfoItem
-                        icon={<Phone size={16} />}
-                        label='Phone'
-                        value={studentDetails.fatherPhone || 'Not provided'}
-                      />
-                      <InfoItem
-                        icon={<FileText size={16} />}
-                        label='Occupation'
-                        value={
-                          studentDetails.fatherOccupation || 'Not provided'
-                        }
-                      />
+                            .trim() || 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className='text-xs text-gray-500 block'>
+                          Email
+                        </span>
+                        <span className='text-sm font-medium text-gray-900'>
+                          {studentDetails.fatherEmail || 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className='text-xs text-gray-500 block'>
+                          Phone
+                        </span>
+                        <span className='text-sm font-medium text-gray-900'>
+                          {studentDetails.fatherPhone || 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className='text-xs text-gray-500 block'>
+                          Occupation
+                        </span>
+                        <span className='text-sm font-medium text-gray-900'>
+                          {studentDetails.fatherOccupation || 'N/A'}
+                        </span>
+                      </div>
                     </div>
                   </div>
+
                   <div>
-                    <h4 className='font-medium text-gray-900 mb-3 border-b pb-2'>
+                    <h5 className='font-medium text-gray-900 mb-3 border-b pb-2'>
                       Mother Details
-                    </h4>
-                    <div className='space-y-3'>
-                      <InfoItem
-                        icon={<User size={16} />}
-                        label='Name'
-                        value={
-                          `${studentDetails.motherFirstName || ''} ${studentDetails.motherMiddleName || ''} ${studentDetails.motherLastName || ''}`
+                    </h5>
+                    <div className='space-y-2'>
+                      <div>
+                        <span className='text-xs text-gray-500 block'>
+                          Name
+                        </span>
+                        <span className='text-sm font-medium text-gray-900'>
+                          {`${studentDetails.motherFirstName || ''} ${studentDetails.motherMiddleName || ''} ${studentDetails.motherLastName || ''}`
                             .replace(/\s+/g, ' ')
-                            .trim() || 'Not provided'
-                        }
-                      />
-                      <InfoItem
-                        icon={<Mail size={16} />}
-                        label='Email'
-                        value={studentDetails.motherEmail || 'Not provided'}
-                      />
-                      <InfoItem
-                        icon={<Phone size={16} />}
-                        label='Phone'
-                        value={studentDetails.motherPhone || 'Not provided'}
-                      />
-                      <InfoItem
-                        icon={<FileText size={16} />}
-                        label='Occupation'
-                        value={
-                          studentDetails.motherOccupation || 'Not provided'
-                        }
-                      />
+                            .trim() || 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className='text-xs text-gray-500 block'>
+                          Email
+                        </span>
+                        <span className='text-sm font-medium text-gray-900'>
+                          {studentDetails.motherEmail || 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className='text-xs text-gray-500 block'>
+                          Phone
+                        </span>
+                        <span className='text-sm font-medium text-gray-900'>
+                          {studentDetails.motherPhone || 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className='text-xs text-gray-500 block'>
+                          Occupation
+                        </span>
+                        <span className='text-sm font-medium text-gray-900'>
+                          {studentDetails.motherOccupation || 'N/A'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </InfoSection>
-
-              {/* Address Information */}
-              <InfoSection
-                title='Address Information'
-                icon={<MapPin size={20} />}
-              >
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <InfoItem
-                    icon={<MapPin size={16} />}
-                    label='Address'
-                    value={studentDetails.address || 'Not provided'}
-                  />
-                  <InfoItem
-                    icon={<MapPin size={16} />}
-                    label='City'
-                    value={studentDetails.city || 'Not provided'}
-                  />
-                  <InfoItem
-                    icon={<MapPin size={16} />}
-                    label='State'
-                    value={studentDetails.state || 'Not provided'}
-                  />
-                  <InfoItem
-                    icon={<MapPin size={16} />}
-                    label='PIN Code'
-                    value={studentDetails.pinCode || 'Not provided'}
-                  />
-                </div>
-              </InfoSection>
-
-              {/* Medical Information */}
-              <InfoSection
-                title='Medical Information'
-                icon={<Heart size={20} />}
-              >
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <InfoItem
-                    icon={<Heart size={16} />}
-                    label='Blood Group'
-                    value={studentDetails.bloodGroup || 'Not provided'}
-                  />
-                  <InfoItem
-                    icon={<AlertCircle size={16} />}
-                    label='Medical Conditions'
-                    value={studentDetails.medicalConditions || 'None'}
-                  />
-                  <InfoItem
-                    icon={<AlertCircle size={16} />}
-                    label='Allergies'
-                    value={studentDetails.allergies || 'None'}
-                  />
-                  <InfoItem
-                    icon={<FileText size={16} />}
-                    label='Special Needs'
-                    value={studentDetails.specialNeeds || 'None'}
-                  />
-                </div>
-              </InfoSection>
-
-              {/* Additional Information */}
-              {(studentDetails.interests || studentDetails.bio) && (
-                <InfoSection
-                  title='Additional Information'
-                  icon={<FileText size={20} />}
-                >
-                  <div className='space-y-3'>
-                    {studentDetails.interests && (
-                      <InfoItem
-                        icon={<FileText size={16} />}
-                        label='Interests'
-                        value={studentDetails.interests}
-                      />
-                    )}
-                    {studentDetails.bio && (
-                      <InfoItem
-                        icon={<FileText size={16} />}
-                        label='Bio'
-                        value={studentDetails.bio}
-                      />
-                    )}
-                  </div>
-                </InfoSection>
-              )}
-            </div>
+              </div>
+            </>
           )}
         </div>
 

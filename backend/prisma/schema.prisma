@@ -141,12 +141,6 @@ model Student {
   gender            String
   bloodGroup        String?
   imageUrl          String?
-  fatherFirstName   String
-  fatherMiddleName  String?
-  fatherLastName    String
-  motherFirstName   String
-  motherMiddleName  String?
-  motherLastName    String
   fatherPhone       String?
   motherPhone       String?
   fatherEmail       String
@@ -176,6 +170,13 @@ model Student {
   studentId         String?             @unique
   transportMode     String?
   updatedById       String?             @db.Uuid
+  fatherFirstName   String
+  fatherMiddleName  String?
+  fatherLastName    String
+  motherFirstName   String
+  motherMiddleName  String?
+  motherLastName    String
+  ethnicity         String?
   guardians         Guardian[]
   parents           ParentStudentLink[]
   class             Class               @relation(fields: [classId], references: [id])
@@ -191,6 +192,7 @@ model Student {
   @@index([deletedById])
   @@index([academicStatus])
   @@index([feeStatus])
+  @@index([ethnicity])
 }
 
 model StudentProfile {

@@ -220,6 +220,7 @@ export class StudentService {
             : new Date(),
           gender: personal?.gender || 'Not Specified',
           bloodGroup: personal?.bloodGroup,
+          ethnicity: personal?.ethnicity,
           address: personal?.address,
           street: personal?.street,
           city: personal?.city,
@@ -465,6 +466,7 @@ export class StudentService {
       page,
       search,
       classId,
+      ethnicity,
       academicStatus,
       feeStatus,
       sortBy,
@@ -487,6 +489,10 @@ export class StudentService {
 
     if (classId) {
       where.classId = classId;
+    }
+
+    if (ethnicity) {
+      where.ethnicity = ethnicity;
     }
 
     if (academicStatus) {
@@ -776,6 +782,8 @@ export class StudentService {
         studentUpdateData.gender = dto.personal.gender;
       if (dto.personal.bloodGroup !== undefined)
         studentUpdateData.bloodGroup = dto.personal.bloodGroup;
+      if (dto.personal.ethnicity !== undefined)
+        studentUpdateData.ethnicity = dto.personal.ethnicity;
       if (dto.personal.address !== undefined)
         studentUpdateData.address = dto.personal.address;
       if (dto.personal.street !== undefined)
@@ -935,11 +943,12 @@ export class StudentService {
       }
     }
 
-    // Update student address
+    // Update student address and personal info
     if (dto.personal) {
       await this.prisma.student.update({
         where: { id: student.id },
         data: {
+          ethnicity: dto.personal.ethnicity,
           address: dto.personal.address,
           street: dto.personal.street,
           city: dto.personal.city,
