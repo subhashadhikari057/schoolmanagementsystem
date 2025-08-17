@@ -1,9 +1,12 @@
-import { AssignmentStatus } from '../../enums/academic/assignment-status.enum';
-
 export interface AssignmentDto {
   id: string;
   title: string;
-  description: string;
-  status: AssignmentStatus;
-  due_date: Date;
+  description?: string;
+  classId: string;
+  subjectId: string;
+  teacherId: string;
+  dueDate?: Date;
+  additionalMetadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt?: Date;
 }

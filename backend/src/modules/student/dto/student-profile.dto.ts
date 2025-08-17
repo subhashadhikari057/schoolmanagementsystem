@@ -16,5 +16,9 @@ export const UpdateStudentProfileDto = z.object({
   additionalData: z.record(z.any()).optional(),
 });
 
-export type CreateStudentProfileDtoType = z.infer<typeof CreateStudentProfileDto>;
-export type UpdateStudentProfileDtoType = z.infer<typeof UpdateStudentProfileDto>;
+export type CreateStudentProfileDtoType = z.infer<
+  typeof CreateStudentProfileDto
+>;
+export type UpdateStudentProfileDtoType = z.infer<
+  typeof UpdateStudentProfileDto
+>;

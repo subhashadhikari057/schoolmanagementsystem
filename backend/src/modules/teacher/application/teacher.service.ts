@@ -42,35 +42,79 @@ export class TeacherService {
       bankDetails,
     } = dto;
 
-    // Check for existing email
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: user.email },
+    // Check for existing email (exclude soft-deleted users)
+    const existingUser = await this.prisma.user.findFirst({
+      where: {
+        email: user.email,
+        deletedAt: null, // Only check active (non-soft-deleted) users
+      },
     });
     if (existingUser)
       throw new ConflictException('User with this email already exists');
 
-    // Check for existing phone
+    // Clean up any legacy soft-deleted users with the same email (defensive programming)
+    await this.prisma.user.updateMany({
+      where: {
+        email: user.email,
+        deletedAt: { not: null }, // Only soft-deleted users
+      },
+      data: {
+        email: `legacy_deleted_${Date.now()}_${Math.random().toString(36).substring(7)}@deleted.local`,
+      },
+    });
+
+    // Check for existing phone (exclude soft-deleted users)
     if (user.phone) {
-      const existingUserPhone = await this.prisma.user.findUnique({
-        where: { phone: user.phone },
+      const existingUserPhone = await this.prisma.user.findFirst({
+        where: {
+          phone: user.phone,
+          deletedAt: null, // Only check active (non-soft-deleted) users
+        },
       });
       if (existingUserPhone)
         throw new ConflictException(
           'User with this phone number already exists',
         );
+
+      // Clean up any legacy soft-deleted users with the same phone (defensive programming)
+      await this.prisma.user.updateMany({
+        where: {
+          phone: user.phone,
+          deletedAt: { not: null }, // Only soft-deleted users
+        },
+        data: {
+          phone: `legacy_deleted_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        },
+      });
     }
 
     // Check for existing employee ID or generate a new one
     if (professional.employeeId) {
       const existingEmployee = await this.prisma.teacher.findFirst({
-        where: { employeeId: professional.employeeId },
+        where: {
+          employeeId: professional.employeeId,
+          deletedAt: null, // Only check active (non-soft-deleted) teachers
+        },
       });
       if (existingEmployee)
         throw new ConflictException('Employee ID already exists');
+
+      // Clean up any legacy soft-deleted teachers with the same employee ID (defensive programming)
+      await this.prisma.teacher.updateMany({
+        where: {
+          employeeId: professional.employeeId,
+          deletedAt: { not: null }, // Only soft-deleted teachers
+        },
+        data: {
+          employeeId: `legacy_deleted_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+        },
+      });
     } else {
       // Generate a new employee ID if not provided
       const currentYear = new Date().getFullYear();
-      const teacherCount = await this.prisma.teacher.count();
+      const teacherCount = await this.prisma.teacher.count({
+        where: { deletedAt: null }, // Only count active (non-soft-deleted) teachers
+      });
       professional.employeeId = `T-${currentYear}-${(teacherCount + 1).toString().padStart(4, '0')}`;
     }
 
@@ -132,7 +176,14 @@ export class TeacherService {
             // Salary Information
             basicSalary: salary?.basicSalary || 0,
             allowances: salary?.allowances || 0,
-            totalSalary: salary?.totalSalary || 0,
+            totalSalary: (salary?.basicSalary || 0) + (salary?.allowances || 0),
+
+            // Bank Details (direct fields)
+            bankName: bankDetails?.bankName,
+            bankAccountNumber: bankDetails?.bankAccountNumber,
+            bankBranch: bankDetails?.bankBranch,
+            panNumber: bankDetails?.panNumber,
+            citizenshipNumber: bankDetails?.citizenshipNumber,
 
             // Class Teacher Assignment
             isClassTeacher: subjects?.isClassTeacher || false,
@@ -438,11 +489,66 @@ export class TeacherService {
       include: {
         user: true,
         profile: true,
-        subjectAssignments: true,
+        subjectAssignments: {
+          include: {
+            subject: true,
+          },
+        },
+        classAssignments: {
+          where: { deletedAt: null },
+          include: {
+            class: true,
+          },
+        },
       },
     });
     if (!teacher) throw new NotFoundException('Teacher not found');
-    return teacher;
+
+    // Get classes where this teacher is the class teacher
+    const classTeacherClasses = await this.prisma.class.findMany({
+      where: {
+        classTeacherId: teacher.id,
+        deletedAt: null,
+      },
+    });
+
+    // Merge class teacher classes with explicit assignments
+    const assignedClassIds = teacher.classAssignments.map(
+      assignment => assignment.classId,
+    );
+
+    // Add class teacher classes that aren't already explicitly assigned
+    const additionalClassAssignments = classTeacherClasses
+      .filter(cls => !assignedClassIds.includes(cls.id))
+      .map(cls => ({
+        id: `class-teacher-${cls.id}`, // Unique ID for class teacher relationship
+        teacherId: teacher.id,
+        classId: cls.id,
+        createdAt: cls.createdAt,
+        updatedAt: cls.updatedAt,
+        deletedAt: null,
+        createdById: cls.createdById,
+        updatedById: cls.updatedById,
+        deletedById: cls.deletedById,
+        class: cls,
+      }));
+
+    // Merge both types of class assignments
+    const allClassAssignments = [
+      ...teacher.classAssignments,
+      ...additionalClassAssignments,
+    ];
+
+    return {
+      ...teacher,
+      classAssignments: allClassAssignments,
+    };
+  }
+
+  async getTeacherCount(): Promise<number> {
+    return this.prisma.teacher.count({
+      where: { deletedAt: null },
+    });
   }
 
   // Helper method to get teacher profile additionalData
@@ -564,8 +670,29 @@ export class TeacherService {
         teacherUpdateData.basicSalary = dto.salary.basicSalary;
       if (dto.salary.allowances !== undefined)
         teacherUpdateData.allowances = dto.salary.allowances;
-      if (dto.salary.totalSalary !== undefined)
-        teacherUpdateData.totalSalary = dto.salary.totalSalary;
+      // Auto-calculate total salary when basic or allowances are updated
+      if (
+        dto.salary.basicSalary !== undefined ||
+        dto.salary.allowances !== undefined
+      ) {
+        const currentTeacher = await this.prisma.teacher.findUnique({
+          where: { id },
+          select: { basicSalary: true, allowances: true },
+        });
+        const basicSalary =
+          dto.salary.basicSalary !== undefined
+            ? dto.salary.basicSalary
+            : currentTeacher?.basicSalary
+              ? parseFloat(currentTeacher.basicSalary.toString())
+              : 0;
+        const allowances =
+          dto.salary.allowances !== undefined
+            ? dto.salary.allowances
+            : currentTeacher?.allowances
+              ? parseFloat(currentTeacher.allowances.toString())
+              : 0;
+        teacherUpdateData.totalSalary = basicSalary + allowances;
+      }
     }
 
     if (dto.subjects) {
@@ -732,7 +859,10 @@ export class TeacherService {
     ip?: string,
     userAgent?: string,
   ) {
-    const teacher = await this.prisma.teacher.findUnique({ where: { id } });
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { id },
+      include: { user: true },
+    });
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found or already deleted');
 
@@ -741,6 +871,8 @@ export class TeacherService {
       data: {
         deletedAt: new Date(),
         deletedById: deletedBy,
+        // Nullify unique fields to avoid conflicts when creating new teachers
+        employeeId: `deleted_${id}_${Date.now()}`,
       },
     });
 
@@ -750,6 +882,11 @@ export class TeacherService {
         deletedAt: new Date(),
         deletedById: deletedBy,
         isActive: false,
+        // Nullify unique fields to avoid conflicts when creating new users
+        email: `deleted_${teacher.userId}_${Date.now()}@deleted.local`,
+        phone: teacher.user.phone
+          ? `deleted_${teacher.userId}_${Date.now()}`
+          : null,
       },
     });
 
@@ -774,7 +911,13 @@ export class TeacherService {
   async getSubjects(id: string) {
     const teacher = await this.prisma.teacher.findUnique({
       where: { id },
-      include: { subjectAssignments: true },
+      include: {
+        subjectAssignments: {
+          include: {
+            subject: true,
+          },
+        },
+      },
     });
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
@@ -929,9 +1072,31 @@ export class TeacherService {
     if (!teacher || teacher.deletedAt)
       throw new NotFoundException('Teacher not found');
 
-    return teacher.classAssignments.map(assignment => ({
+    // Get classes where this teacher is the class teacher
+    const classTeacherClasses = await this.prisma.class.findMany({
+      where: {
+        classTeacherId: teacherId,
+        deletedAt: null,
+      },
+    });
+
+    // Start with explicitly assigned classes
+    const assignedClasses = teacher.classAssignments.map(assignment => ({
       class: assignment.class,
     }));
+
+    // Add class teacher classes (if not already in assigned classes)
+    const assignedClassIds = assignedClasses.map(ac => ac.class.id);
+
+    classTeacherClasses.forEach(cls => {
+      if (!assignedClassIds.includes(cls.id)) {
+        assignedClasses.push({
+          class: cls,
+        });
+      }
+    });
+
+    return assignedClasses;
   }
 
   async removeClass(

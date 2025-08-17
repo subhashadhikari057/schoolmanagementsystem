@@ -1,66 +1,290 @@
-import React, { useState } from 'react';
-import Tabs from '../../organisms/tabs/GenericTabs';
+import React, { useState, useEffect, useCallback } from 'react';
 import Input from '@/components/atoms/form-controls/Input';
 import Textarea from '@/components/atoms/form-controls/Textarea';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
-import Button from '@/components/atoms/form-controls/Button';
-import Checkbox from '@/components/atoms/form-controls/Checkbox';
+import { assignmentService } from '@/api/services/assignment.service';
+import { classService } from '@/api/services/class.service';
+import { subjectService } from '@/api/services/subject.service';
+import { teacherService } from '@/api/services/teacher.service';
+import { CreateAssignmentRequest } from '@/api/types/assignment';
+import { useAuth } from '@/hooks/useAuth';
+import { Users, AlertCircle } from 'lucide-react';
 
 interface CreateAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-const classOptions = [
-  { label: 'Grade 9 - Section A', students: 32 },
-  { label: 'Grade 9 - Section B', students: 30 },
-  { label: 'Grade 10 - Section A', students: 35 },
-  { label: 'Grade 10 - Section B', students: 33 },
-  { label: 'Grade 11 - Section A', students: 28 },
-  { label: 'Grade 11 - Section B', students: 26 },
-];
+// Dynamic data interfaces
+interface ClassOption {
+  id: string;
+  label: string;
+  students: number;
+}
 
-const submissionFormats = [
-  'PDF Document',
-  'Word Document',
-  'Text Entry',
-  'Image/Photo',
-  'Video',
-  'Website Link',
-  'Compressed File',
-];
+interface SubjectOption {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface TeacherOption {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface TeacherClassResponse {
+  class: {
+    id: string;
+    grade: number;
+    section: string;
+    currentEnrollment?: number;
+  };
+}
+
+interface TeacherSubjectResponse {
+  subject: {
+    id: string;
+    name: string;
+    code: string;
+  };
+}
+
+interface ClassResponse {
+  id: string;
+  grade: number;
+  section: string;
+  currentEnrollment?: number;
+}
+
+interface SubjectResponse {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface TeacherResponse {
+  id: string;
+  fullName: string;
+  email: string;
+}
 
 const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   isOpen,
   onClose,
+  onSuccess,
 }) => {
-  const [activeTab, setActiveTab] = useState(0);
-  const [selectedClasses, setSelectedClasses] = useState<number[]>([]);
-  const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
-  const [notifyStudents, setNotifyStudents] = useState(true);
-  const [notifyParents, setNotifyParents] = useState(true);
-  const [autoPublish, setAutoPublish] = useState(false);
-  const [subject, setSubject] = useState('');
-  const [assignmentType, setAssignmentType] = useState('');
-  const [priority, setPriority] = useState('medium');
+  // UI state
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Add state for form fields
-  const [assignmentTitle, setAssignmentTitle] = useState('');
-  const [assignedDate, setAssignedDate] = useState('2025-08-12');
+  // Get current user and auth context
+  const { user } = useAuth();
+
+  // Dynamic data state
+  const [classes, setClasses] = useState<ClassOption[]>([]);
+  const [subjects, setSubjects] = useState<SubjectOption[]>([]);
+  const [teachers, setTeachers] = useState<TeacherOption[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
+
+  // Normalize role to handle backend inconsistencies (e.g., TEACHER -> teacher)
+  const normalizedRole = user?.role?.toLowerCase().replace(/_/g, '');
+
+  // Check if current user is a teacher
+  const isTeacher = normalizedRole === 'teacher';
+  const isAdminOrSuperAdmin =
+    normalizedRole === 'admin' || normalizedRole === 'superadmin';
+
+  // Form state - only fields that match backend DTO
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedTeacher, setSelectedTeacher] = useState('');
+
+  // Assignment details - matching CreateAssignmentDto
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [dueTime, setDueTime] = useState('23:59');
-  const [maxMarks, setMaxMarks] = useState(100);
-  const [passingMarks, setPassingMarks] = useState(40);
-  const [assignmentDescription, setAssignmentDescription] = useState('');
-  const [detailedInstructions, setDetailedInstructions] = useState('');
+
+  // Load classes, subjects, and teachers based on user role
+  const loadInitialData = useCallback(async () => {
+    setLoadingData(true);
+    setError(null);
+
+    try {
+      if (isTeacher && user?.id) {
+        // For teachers: Load their own assigned classes and subjects directly
+        const [classesResponse, subjectsResponse, teacherResponse] =
+          await Promise.all([
+            teacherService.getMyClasses(),
+            teacherService.getMySubjects(),
+            teacherService.getCurrentTeacher(),
+          ]);
+
+        // Transform teacher's classes data
+        const transformedClasses: ClassOption[] = classesResponse.data.map(
+          (item: TeacherClassResponse) => ({
+            id: item.class.id,
+            label: `Grade ${item.class.grade} - Section ${item.class.section}`,
+            students: item.class.currentEnrollment || 0,
+          }),
+        );
+
+        // Transform teacher's subjects data
+        const transformedSubjects: SubjectOption[] = subjectsResponse.data.map(
+          (assignment: TeacherSubjectResponse) => ({
+            id: assignment.subject.id,
+            name: assignment.subject.name,
+            code: assignment.subject.code,
+          }),
+        );
+
+        setClasses(transformedClasses);
+        setSubjects(transformedSubjects);
+        setTeachers([]); // Teachers don't need to see other teachers
+
+        // Auto-assign teacher to themselves
+        setSelectedTeacher(teacherResponse.data.id);
+      } else if (isAdminOrSuperAdmin) {
+        // For admins: Load all classes, subjects, and teachers
+        const [classesResponse, subjectsResponse, teachersResponse] =
+          await Promise.all([
+            classService.getAllClasses(),
+            subjectService.getAllSubjects(),
+            teacherService.getAllTeachers(),
+          ]);
+
+        // Transform classes data
+        const transformedClasses: ClassOption[] = classesResponse.data.map(
+          (cls: ClassResponse) => ({
+            id: cls.id,
+            label: `Grade ${cls.grade} - Section ${cls.section}`,
+            students: cls.currentEnrollment || 0,
+          }),
+        );
+
+        // Transform subjects data
+        const transformedSubjects: SubjectOption[] = subjectsResponse.data.map(
+          (subject: SubjectResponse) => ({
+            id: subject.id,
+            name: subject.name,
+            code: subject.code,
+          }),
+        );
+
+        // Transform teachers data
+        const transformedTeachers: TeacherOption[] = teachersResponse.data.map(
+          (teacher: TeacherResponse) => ({
+            id: teacher.id,
+            name: teacher.fullName,
+            email: teacher.email,
+          }),
+        );
+
+        setClasses(transformedClasses);
+        setSubjects(transformedSubjects);
+        setTeachers(transformedTeachers);
+      }
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      setError('Failed to load required data. Please try again.');
+    } finally {
+      setLoadingData(false);
+    }
+  }, [isTeacher, isAdminOrSuperAdmin, user]);
+
+  // Load initial data when modal opens or user changes
+  useEffect(() => {
+    if (isOpen && user) {
+      loadInitialData();
+    }
+  }, [isOpen, user, loadInitialData]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
+  // Reset form to initial state
+  const resetForm = () => {
+    setSelectedClasses([]);
+    setSelectedSubject('');
+    setSelectedTeacher('');
+    setTitle('');
+    setDescription('');
+    setDueDate('');
+    setError(null);
+  };
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Validate required fields (only title, classId, subjectId are required in backend)
+      if (!title.trim()) {
+        throw new Error('Assignment title is required');
+      }
+      if (!selectedSubject) {
+        throw new Error('Subject is required');
+      }
+      if (selectedClasses.length === 0) {
+        throw new Error('At least one class must be selected');
+      }
+
+      // Prepare assignment data for each selected class
+      const assignments = selectedClasses.map(classId => {
+        const assignmentData: CreateAssignmentRequest = {
+          title: title.trim(),
+          description: description.trim() || undefined,
+          classId: classId,
+          subjectId: selectedSubject,
+          teacherId: selectedTeacher || undefined,
+          dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+          additionalMetadata: undefined, // Can be used for future extensions
+        };
+        return assignmentData;
+      });
+
+      // Create assignments for all selected classes
+      const results = await Promise.all(
+        assignments.map(assignment =>
+          assignmentService.createAssignment(assignment),
+        ),
+      );
+
+      // Check if all assignments were created successfully
+      const allSuccessful = results.every(result => result.success);
+
+      if (allSuccessful) {
+        onSuccess?.();
+        onClose();
+        resetForm();
+      } else {
+        throw new Error('Some assignments failed to create');
+      }
+    } catch (error: unknown) {
+      console.error('Failed to create assignment:', error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to create assignment. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
-  // Tab content for each tab, using your custom components
-  const tabContents = [
-    // Basic Info
+  // Single form content - matching backend DTO structure
+  const formContent = (
     <div className='space-y-6'>
-      {/* Assignment Details Section */}
+      {/* Basic Assignment Information */}
       <div className='space-y-4'>
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
           <div>
@@ -69,157 +293,85 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             </label>
             <Input
               placeholder='e.g., Chapter 5 Mathematics'
-              className='h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-              value={assignmentTitle}
-              onChange={e => setAssignmentTitle(e.target.value)}
+              className='focus:border-blue-500 focus:ring-blue-500'
+              value={title}
+              onChange={e => setTitle(e.target.value)}
             />
           </div>
           <div>
             <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Assigned Date
+              Due Date
             </label>
             <Input
               type='date'
-              value={assignedDate}
-              onChange={e => setAssignedDate(e.target.value)}
-              className='h-11 border-gray-300 bg-gray-50'
-            />
-          </div>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Due Date *
-            </label>
-            <Input
-              type='date'
-              className='h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+              className='focus:border-blue-500 focus:ring-blue-500'
               value={dueDate}
               onChange={e => setDueDate(e.target.value)}
             />
           </div>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Due Time
-            </label>
-            <div className='relative'>
-              <Input
-                type='time'
-                value={dueTime}
-                onChange={e => setDueTime(e.target.value)}
-                className='h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10'
-              />
-              <div className='absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none'>
-                <svg
-                  className='h-5 w-5 text-gray-400'
-                  fill='none'
-                  stroke='currentColor'
-                  viewBox='0 0 24 24'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
+        </div>
+
+        <div
+          className={`grid gap-4 ${isAdminOrSuperAdmin ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}
+        >
           <div>
             <label className='block text-sm font-medium text-gray-700 mb-2'>
               Subject *
             </label>
             <Dropdown
-              placeholder='Select subject'
+              placeholder={
+                loadingData ? 'Loading subjects...' : 'Select subject'
+              }
               options={[
                 { value: '', label: 'Select subject' },
-                { value: 'mathematics', label: 'Mathematics' },
-                { value: 'physics', label: 'Physics' },
-                { value: 'chemistry', label: 'Chemistry' },
-                { value: 'biology', label: 'Biology' },
-                { value: 'english-literature', label: 'English Literature' },
-                { value: 'world-history', label: 'World History' },
-                { value: 'geography', label: 'Geography' },
-                { value: 'computer-science', label: 'Computer Science' },
-                { value: 'physical-education', label: 'Physical Education' },
-                { value: 'fine-arts', label: 'Fine Arts' },
+                ...subjects.map(subject => ({
+                  value: subject.id,
+                  label: `${subject.name} (${subject.code})`,
+                })),
               ]}
-              className='w-full h-11'
-              selectedValue={subject}
-              onSelect={setSubject}
+              className='w-full'
+              selectedValue={selectedSubject}
+              onSelect={setSelectedSubject}
               type='filter'
             />
           </div>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Assignment Type *
-            </label>
-            <Dropdown
-              placeholder='Select assignment type'
-              options={[
-                { value: '', label: 'Select assignment type' },
-                { value: 'homework', label: 'Homework' },
-                { value: 'project', label: 'Project' },
-                { value: 'essay', label: 'Essay' },
-                { value: 'presentation', label: 'Presentation' },
-                { value: 'lab-report', label: 'Lab Report' },
-                { value: 'quiz', label: 'Quiz' },
-                { value: 'research-assignment', label: 'Research Assignment' },
-                { value: 'practical-work', label: 'Practical Work' },
-              ]}
-              className='w-full h-11'
-              selectedValue={assignmentType}
-              onSelect={setAssignmentType}
-              type='filter'
-            />
-          </div>
+          {isAdminOrSuperAdmin && (
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-2'>
+                Assign to Teacher (Optional)
+              </label>
+              <Dropdown
+                placeholder={
+                  loadingData
+                    ? 'Loading teachers...'
+                    : 'Auto-assign to current teacher'
+                }
+                options={[
+                  { value: '', label: 'Auto-assign to current teacher' },
+                  ...teachers.map(teacher => ({
+                    value: teacher.id,
+                    label: teacher.name,
+                  })),
+                ]}
+                className='w-full'
+                selectedValue={selectedTeacher}
+                onSelect={setSelectedTeacher}
+                type='filter'
+              />
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Marks Section */}
-      <div className='space-y-4'>
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Maximum Marks *
-            </label>
-            <Input
-              type='number'
-              value={maxMarks}
-              onChange={e => setMaxMarks(Number(e.target.value))}
-              className='h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            />
-          </div>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Passing Marks
-            </label>
-            <Input
-              type='number'
-              value={passingMarks}
-              onChange={e => setPassingMarks(Number(e.target.value))}
-              className='h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Priority Section */}
-      <div className='space-y-4'>
         <div>
           <label className='block text-sm font-medium text-gray-700 mb-2'>
-            Priority
+            Description
           </label>
-          <Dropdown
-            placeholder='Medium Priority'
-            options={[
-              { value: 'low', label: 'Low Priority' },
-              { value: 'medium', label: 'Medium Priority' },
-              { value: 'high', label: 'High Priority' },
-            ]}
-            className='w-full h-11'
-            selectedValue={priority}
-            onSelect={setPriority}
-            type='filter'
+          <Textarea
+            className='min-h-[100px] focus:border-blue-500 focus:ring-blue-500'
+            rows={4}
+            placeholder='Provide a clear description of the assignment...'
+            value={description}
+            onChange={e => setDescription(e.target.value)}
           />
         </div>
       </div>
@@ -229,202 +381,57 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
         <label className='block text-sm font-medium text-gray-700 mb-3'>
           Assign to Classes *
         </label>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
-          {classOptions.map((cls, idx) => (
-            <label
-              key={cls.label}
-              className={`flex items-center border rounded-lg px-4 py-3 cursor-pointer transition-all duration-200 gap-3 shadow-sm hover:shadow-md
+        {loadingData ? (
+          <div className='flex items-center justify-center py-8'>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
+            <span className='ml-3 text-gray-600'>Loading classes...</span>
+          </div>
+        ) : classes.length === 0 ? (
+          <div className='text-center py-8 text-gray-500'>
+            <Users className='mx-auto h-12 w-12 text-gray-400 mb-4' />
+            <p>No classes available</p>
+          </div>
+        ) : (
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+            {classes.map(cls => (
+              <label
+                key={cls.id}
+                className={`flex items-center border rounded-lg px-4 py-3 cursor-pointer transition-all duration-200 gap-3 shadow-sm hover:shadow-md
                   ${
-                    selectedClasses.includes(idx)
+                    selectedClasses.includes(cls.id)
                       ? 'border-blue-600 bg-blue-50 shadow-blue-100'
                       : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30'
                   }
                 `}
-              style={{ minHeight: '64px' }}
-            >
-              <input
-                type='checkbox'
-                checked={selectedClasses.includes(idx)}
-                onChange={() =>
-                  setSelectedClasses(
-                    selectedClasses.includes(idx)
-                      ? selectedClasses.filter(i => i !== idx)
-                      : [...selectedClasses, idx],
-                  )
-                }
-                className='w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2'
-              />
-              <div className='flex flex-col justify-center flex-1'>
-                <div className='font-medium text-sm text-gray-900 leading-tight'>
-                  {cls.label}
+                style={{ minHeight: '64px' }}
+              >
+                <input
+                  type='checkbox'
+                  checked={selectedClasses.includes(cls.id)}
+                  onChange={() =>
+                    setSelectedClasses(
+                      selectedClasses.includes(cls.id)
+                        ? selectedClasses.filter(id => id !== cls.id)
+                        : [...selectedClasses, cls.id],
+                    )
+                  }
+                  className='w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2'
+                />
+                <div className='flex flex-col justify-center flex-1'>
+                  <div className='font-medium text-sm text-gray-900 leading-tight'>
+                    {cls.label}
+                  </div>
+                  <div className='text-xs text-gray-500 leading-tight mt-0.5'>
+                    {cls.students} students
+                  </div>
                 </div>
-                <div className='text-xs text-gray-500 leading-tight mt-0.5'>
-                  {cls.students} students
-                </div>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-    </div>,
-    // Assignment
-    <div className='space-y-6'>
-      <div>
-        <label className='block text-sm font-medium text-gray-700 mb-2'>
-          Assignment Description *
-        </label>
-        <Textarea
-          className='h-24 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-          rows={3}
-          placeholder='Provide a clear description of what students need to do...'
-          value={assignmentDescription}
-          onChange={e => setAssignmentDescription(e.target.value)}
-        />
-      </div>
-      <div>
-        <label className='block text-sm font-medium text-gray-700 mb-2'>
-          Detailed Instructions
-        </label>
-        <Textarea
-          className='h-20 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-          rows={3}
-          placeholder='Provide step-by-step instructions, formatting requirements, etc...'
-          value={detailedInstructions}
-          onChange={e => setDetailedInstructions(e.target.value)}
-        />
-      </div>
-      <div>
-        <label className='block text-sm font-medium text-gray-700 mb-2'>
-          Attach Files
-        </label>
-        <div className='border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center text-center hover:border-blue-400 transition-colors'>
-          <div className='text-4xl mb-3'>📎</div>
-          <p className='text-gray-500 mb-4 text-sm'>
-            Upload assignment materials, worksheets, or reference files
-          </p>
-          <Input type='file' className='hidden' id='file-upload' multiple />
-          <label
-            htmlFor='file-upload'
-            className='inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer transition-colors'
-          >
-            Choose Files
-          </label>
-        </div>
-      </div>
-    </div>,
-    // Submission
-    <div className='space-y-6'>
-      <div>
-        <label className='block text-sm font-medium text-gray-700 mb-3'>
-          Accepted Submission Formats
-        </label>
-        <div className='grid grid-cols-2 md:grid-cols-3 gap-3'>
-          {submissionFormats.map((format, idx) => (
-            <label key={format} className='flex items-center gap-2'>
-              <Checkbox
-                checked={selectedFormats.includes(format)}
-                onChange={() =>
-                  setSelectedFormats(
-                    selectedFormats.includes(format)
-                      ? selectedFormats.filter(f => f !== format)
-                      : [...selectedFormats, format],
-                  )
-                }
-                label={format}
-              />
-            </label>
-          ))}
-        </div>
-      </div>
-      <div className='flex flex-wrap gap-4'>
-        <label className='flex items-center gap-2'>
-          <Checkbox label='Allow Late Submission' />
-        </label>
-        <label className='flex items-center gap-2'>
-          <Checkbox label='Use Grading Rubric' />
-        </label>
-        <label className='flex items-center gap-2'>
-          <Checkbox label='Enable Plagiarism Check' />
-        </label>
-        <label className='flex items-center gap-2'>
-          <Checkbox label='Enable Auto-Grading' />
-        </label>
-      </div>
-    </div>,
-    // Settings
-    <div className='space-y-6'>
-      <div className='space-y-3'>
-        <Checkbox
-          checked={notifyStudents}
-          onChange={() => setNotifyStudents(v => !v)}
-          label='Notify Students via Email/SMS'
-        />
-        <Checkbox
-          checked={notifyParents}
-          onChange={() => setNotifyParents(v => !v)}
-          label='Notify Parents via Email/SMS'
-        />
-        <Checkbox
-          checked={autoPublish}
-          onChange={() => setAutoPublish(v => !v)}
-          label='Auto-publish Results After Grading'
-        />
-      </div>
-      <div className='bg-gray-50 rounded-lg p-4 border border-gray-200'>
-        <div className='font-semibold text-gray-900 mb-3'>
-          Assignment Summary
-        </div>
-        <div className='grid grid-cols-2 gap-3 text-sm'>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>Title:</span>
-            <span className='text-gray-500'>
-              {assignmentTitle || 'Not set'}
-            </span>
+              </label>
+            ))}
           </div>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>Subject:</span>
-            <span className='text-gray-500'>{subject || 'Not selected'}</span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>Type:</span>
-            <span className='text-gray-500'>
-              {assignmentType || 'Not selected'}
-            </span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>Priority:</span>
-            <span className='bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded text-xs font-medium'>
-              {priority}
-            </span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>Due Date:</span>
-            <span className='text-gray-500'>{dueDate || 'Not set'}</span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>Max Marks:</span>
-            <span className='text-gray-500'>{maxMarks || 'Not set'}</span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>Classes:</span>
-            <span className='text-gray-500'>
-              {selectedClasses.length} selected
-            </span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>Students:</span>
-            <span className='text-gray-500'>
-              {selectedClasses.reduce(
-                (total, idx) => total + classOptions[idx].students,
-                0,
-              )}{' '}
-              total
-            </span>
-          </div>
-        </div>
+        )}
       </div>
-    </div>,
-  ];
+    </div>
+  );
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4'>
@@ -458,45 +465,42 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className='px-6 pt-4 pb-2'>
-          <div className='flex space-x-1 border-b border-gray-200'>
-            {[
-              { name: 'Basic Info', icon: '📄' },
-              { name: 'Assignment', icon: '📝' },
-              { name: 'Submission', icon: '📤' },
-              { name: 'Settings', icon: '⚙️' },
-            ].map((tab, index) => (
-              <button
-                key={tab.name}
-                onClick={() => setActiveTab(index)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-t-lg transition-all duration-200 ${
-                  activeTab === index
-                    ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span className='text-base'>{tab.icon}</span>
-                {tab.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Content */}
-        <div className='px-6 py-6'>{tabContents[activeTab]}</div>
+        <div className='px-6 py-6'>{formContent}</div>
+
+        {/* Error Display */}
+        {error && (
+          <div className='px-6 py-4 border-t border-gray-200'>
+            <div className='flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg'>
+              <AlertCircle className='h-5 w-5 text-red-600 flex-shrink-0' />
+              <p className='text-sm text-red-700'>{error}</p>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className='px-6 py-4 flex justify-end gap-3 border-t border-gray-200 bg-gray-50 rounded-b-xl'>
-          <Button
+          <button
             onClick={onClose}
-            className='px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium bg-white hover:bg-gray-50 transition-colors shadow-sm'
-            label='Cancel'
-          />
-          <Button
-            className='px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors'
-            label='Create Assignment'
-          />
+            disabled={isLoading}
+            className='px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium bg-white hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50'
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading || loadingData}
+            className='px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2'
+          >
+            {isLoading ? (
+              <>
+                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+                Creating...
+              </>
+            ) : (
+              'Create Assignment'
+            )}
+          </button>
         </div>
       </div>
     </div>

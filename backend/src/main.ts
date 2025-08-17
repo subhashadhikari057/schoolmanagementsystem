@@ -22,6 +22,8 @@ export async function createApp() {
       'Authorization',
       'X-API-Version',
       'X-Trace-ID',
+      'X-CSRF-Token',
+      'x-csrf-token',
     ],
     credentials: true, // Allow cookies and credentials
   });

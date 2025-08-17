@@ -7,64 +7,53 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =========================
-// 🔐 Core User Management
-// =========================
-
 model User {
-  id           String  @id @default(uuid())
-  email        String  @unique
-  phone        String? @unique
-  passwordHash String
-  fullName     String
-  isActive           Boolean   @default(true)
+  id                 String        @id @default(uuid())
+  email              String        @unique
+  phone              String?       @unique
+  passwordHash       String
+  fullName           String
+  isActive           Boolean       @default(true)
   lastLoginAt        DateTime?
   lastPasswordChange DateTime?
-  needPasswordChange Boolean @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
-
-  roles     UserRole[]
-  sessions  UserSession[]
-  auditLogs AuditLog[]
-  idCards   IDCard[]
-
-  teacher Teacher?
-  student Student?
-  parentLinks ParentStudentLink[] @relation("ParentLink")
+  needPasswordChange Boolean       @default(false)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime?
+  deletedAt          DateTime?
+  createdById        String?       @db.Uuid
+  updatedById        String?       @db.Uuid
+  deletedById        String?       @db.Uuid
+  auditLogs          AuditLog[]
+  idCards            IDCard[]
+  parent             Parent?
+  student            Student?
+  teacher            Teacher?
+  roles              UserRole[]
+  sessions           UserSession[]
 
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
+  @@index([fullName])
+  @@index([email])
 }
 
-// =========================
-// 📚 Academic Modules
-// =========================
-
 model Subject {
-  id          String  @id @default(uuid())
-  name        String
-  code        String  @unique
-  description String?
-  maxMarks    Int
-  passMarks   Int
-
-  assignedClasses ClassSubject[]
+  id                 String           @id @default(uuid())
+  name               String
+  code               String           @unique
+  description        String?
+  maxMarks           Int
+  passMarks          Int
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime?
+  deletedAt          DateTime?
+  createdById        String?          @db.Uuid
+  updatedById        String?          @db.Uuid
+  deletedById        String?          @db.Uuid
+  assignments        Assignment[]
+  assignedClasses    ClassSubject[]
   teacherAssignments TeacherSubject[] @relation("SubjectTeacherAssignments")
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
 
   @@index([createdById])
   @@index([updatedById])
@@ -72,27 +61,25 @@ model Subject {
 }
 
 model Class {
-  id          String  @id @default(uuid())
-  grade       Int
-  section     String
-  capacity    Int
-  status      String   @default("active")
-  roomId      String
-  room        Classroom @relation(fields: [roomId], references: [id])
-  classTeacherId String?
-  classTeacher   Teacher? @relation("ClassTeacher", fields: [classTeacherId], references: [id])
-
-  students       Student[]
-  assignedSubjects ClassSubject[]
+  id                 String         @id @default(uuid())
+  grade              Int
+  section            String
+  capacity           Int
+  status             String         @default("active")
+  roomId             String
+  classTeacherId     String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime?
+  deletedAt          DateTime?
+  createdById        String?        @db.Uuid
+  updatedById        String?        @db.Uuid
+  deletedById        String?        @db.Uuid
+  assignments        Assignment[]
+  classTeacher       Teacher?       @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  room               Classroom      @relation(fields: [roomId], references: [id])
+  assignedSubjects   ClassSubject[]
+  students           Student[]
   teacherAssignments TeacherClass[] @relation("ClassTeacherAssignments")
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
 
   @@index([createdById])
   @@index([updatedById])
@@ -100,25 +87,22 @@ model Class {
 }
 
 model Classroom {
-  id          String  @id @default(uuid())
-  roomNo      String  @unique
+  id          String    @id @default(uuid())
+  roomNo      String    @unique
   name        String?
-  capacity    Int     @default(30)
-  floor       Int     @default(1)
+  capacity    Int       @default(30)
+  floor       Int       @default(1)
   building    String?
   note        String?
-  status      String  @default("active")
-  isAvailable Boolean @default(true)
-
-  classes Class[]
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
+  status      String    @default("active")
+  isAvailable Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+  classes     Class[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -128,194 +112,222 @@ model Classroom {
 }
 
 model ClassSubject {
-  id        String  @id @default(uuid())
-  classId   String
-  subjectId String
-  teacherId String? // Optional - can assign teacher later
+  id          String    @id @default(uuid())
+  classId     String
+  subjectId   String
+  teacherId   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+  class       Class     @relation(fields: [classId], references: [id])
+  subject     Subject   @relation(fields: [subjectId], references: [id])
+  teacher     Teacher?  @relation("TeacherClassSubjects", fields: [teacherId], references: [id])
 
-  class   Class   @relation(fields: [classId], references: [id])
-  subject Subject @relation(fields: [subjectId], references: [id])
-  teacher Teacher? @relation("TeacherClassSubjects", fields: [teacherId], references: [id])
+  @@unique([classId, subjectId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
+model Student {
+  id                String              @id @default(uuid())
+  userId            String              @unique
+  classId           String
+  rollNumber        String              @unique
+  admissionDate     DateTime
+  email             String
+  dob               DateTime
+  gender            String
+  bloodGroup        String?
+  ethnicity         String?
+  imageUrl          String?
+  fatherPhone       String?
+  motherPhone       String?
+  fatherEmail       String?
+  motherEmail       String?
+  fatherOccupation  String?
+  motherOccupation  String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime?
+  deletedAt         DateTime?
+  academicStatus    String              @default("active")
+  address           String?
+  allergies         String?
+  city              String?
+  createdById       String?             @db.Uuid
+  dateOfBirth       DateTime?
+  deletedById       String?             @db.Uuid
+  feeStatus         String              @default("pending")
+  interests         String?
+  maritalStatus     String?             @default("Single")
+  medicalConditions String?
+  phone             String?
+  pinCode           String?
+  profilePhotoUrl   String?
+  specialNeeds      String?
+  state             String?
+  street            String?
+  studentId         String?             @unique
+  transportMode     String?
+  updatedById       String?             @db.Uuid
+  fatherFirstName   String?
+  fatherMiddleName  String?
+  fatherLastName    String?
+  motherFirstName   String?
+  motherMiddleName  String?
+  motherLastName    String?
+  guardians         Guardian[]
+  parents           ParentStudentLink[]
+  class             Class               @relation(fields: [classId], references: [id])
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile           StudentProfile?
+  submissions       Submission[]
 
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
+  @@index([userId])
+  @@index([classId])
+  @@index([rollNumber])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([academicStatus])
+  @@index([ethnicity])
+  @@index([feeStatus])
+}
+
+model StudentProfile {
+  id               String    @id @default(uuid())
+  studentId        String    @unique
+  emergencyContact Json      @default("{}")
+  interests        Json      @default("{}")
+  additionalData   Json      @default("{}")
+  profilePhotoUrl  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime?
+  deletedAt        DateTime?
+  student          Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model Guardian {
+  id        String   @id @default(uuid())
+  studentId String
+  fullName  String
+  phone     String
+  email     String
+  relation  String
+  createdAt DateTime @default(now())
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model Parent {
+  id                           String              @id @default(uuid())
+  userId                       String              @unique
+  dateOfBirth                  DateTime?
+  gender                       String?
+  occupation                   String?
+  workPlace                    String?
+  workPhone                    String?
+  emergencyContactName         String?
+  emergencyContactPhone        String?
+  emergencyContactRelationship String?
+  street                       String?
+  city                         String?
+  state                        String?
+  pinCode                      String?
+  country                      String?
+  notes                        String?
+  specialInstructions          String?
+  createdAt                    DateTime            @default(now())
+  updatedAt                    DateTime?
+  deletedAt                    DateTime?
+  createdById                  String?             @db.Uuid
+  updatedById                  String?             @db.Uuid
+  deletedById                  String?             @db.Uuid
+  user                         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile                      ParentProfile?
+  children                     ParentStudentLink[] @relation("ParentChildren")
 
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
-  @@unique([classId, subjectId]) // Prevent duplicate subject assignments to same class
 }
 
-// =========================
-// 🎓 Student & Guardian
-// =========================
-
-model Student {
-  id           String @id @default(uuid())
-  userId       String @unique
-  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  classId      String
-  class        Class  @relation(fields: [classId], references: [id])
-
-  rollNumber   String
-  admissionDate DateTime
-  email        String
-
-  dob          DateTime
-  gender       String
-  bloodGroup   String?
-  imageUrl     String?
-
-  addressId    String?
-  address      Address? @relation(fields: [addressId], references: [id])
-
-  fatherName   String
-  motherName   String
-  fatherPhone  String?
-  motherPhone  String?
-  fatherEmail  String
-  motherEmail  String
-  fatherOccupation String?
-  motherOccupation String?
-
-  guardians Guardian[]
-  parents   ParentStudentLink[]
-
-  profile StudentProfile?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-
-  @@index([userId])
+model ParentProfile {
+  id              String    @id @default(uuid())
+  parentId        String    @unique
+  profilePhotoUrl String?
+  bio             String?
+  socialLinks     Json?     @default("{}")
+  additionalData  Json?     @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime?
+  deletedAt       DateTime?
+  parent          Parent    @relation(fields: [parentId], references: [id], onDelete: Cascade)
 }
-
-model StudentProfile {
-  id               String @id @default(uuid())
-  studentId        String @unique
-  student          Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  emergencyContact Json    @default("{}")
-  interests        Json    @default("{}")
-  additionalData   Json    @default("{}")
-  profilePhotoUrl  String?
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-}
-
-model Guardian {
-  id         String @id @default(uuid())
-  studentId  String
-  fullName   String
-  phone      String
-  email      String
-  relation   String
-
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-}
-
-// =========================
-// 👪 Parent Management
-// =========================
 
 model ParentStudentLink {
-  id String @id @default(uuid())
+  id           String    @id @default(uuid())
+  parentId     String
+  studentId    String
+  relationship String
+  isPrimary    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+  updatedAt    DateTime?
+  parent       Parent    @relation("ParentChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  parentId String?
-  parent   User?   @relation("ParentLink", fields: [parentId], references: [id], onDelete: Cascade)
-
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  relationship String?
-  isPrimary    Boolean  @default(false)
-  contactName   String?
-  contactEmail  String?
-  contactPhone  String?
-
-  createdAt DateTime @default(now())
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
 }
-
-model Address {
-  id       String @id @default(uuid())
-  street   String?
-  city     String?
-  state    String?
-  pinCode  String?
-
-  students Student[]
-}
-
-
-
-// =========================
-// 🧑‍🏫 Teacher Management
-// =========================
 
 model Teacher {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  employeeId       String? @unique
-  joiningDate      DateTime
-  experienceYears  Int?
-  qualification    String?
-  designation      String
-  subjectAssignments TeacherSubject[] @relation("TeacherSubjectAssignments")
-  classAssignments   TeacherClass[] @relation("TeacherClassAssignments")
-  classSubjects      ClassSubject[] @relation("TeacherClassSubjects")
-  classesAsTeacher   Class[] @relation("ClassTeacher")
-
-  dob          DateTime
-  gender       String
-  bloodGroup   String?
-  maritalStatus String?
-  imageUrl     String?
-
-  // Additional fields from service
-  department       String?
-  specialization   String?
-  employmentStatus String? @default("active")
-  employmentDate   DateTime?
-  dateOfBirth      DateTime?
-  address          String?
-
-  basicSalary Decimal @db.Decimal(10,2)
-  allowances  Decimal @db.Decimal(10,2)
-  totalSalary Decimal @db.Decimal(10,2)
-
-  // Bank account details
-  bankName           String?
+  id                 String           @id @default(uuid())
+  userId             String           @unique
+  employeeId         String?          @unique
+  joiningDate        DateTime
+  experienceYears    Int?
+  qualification      String?
+  designation        String
+  dob                DateTime
+  gender             String
+  bloodGroup         String?
+  maritalStatus      String?
+  imageUrl           String?
+  department         String?
+  specialization     String?
+  employmentStatus   String?          @default("active")
+  employmentDate     DateTime?
+  dateOfBirth        DateTime?
+  address            String?
+  basicSalary        Decimal          @db.Decimal(10, 2)
+  allowances         Decimal          @db.Decimal(10, 2)
+  totalSalary        Decimal          @db.Decimal(10, 2)
+  isClassTeacher     Boolean          @default(false)
+  languagesKnown     Json?            @default("[]")
+  certifications     String?
+  previousExperience String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime?
+  deletedAt          DateTime?
+  createdById        String?          @db.Uuid
+  updatedById        String?          @db.Uuid
+  deletedById        String?          @db.Uuid
   bankAccountNumber  String?
   bankBranch         String?
-  panNumber          String?
+  bankName           String?
   citizenshipNumber  String?
-
-  isClassTeacher Boolean @default(false)
-  languagesKnown Json?  @default("[]")
-  certifications String?
-  previousExperience String?
-
-  profile TeacherProfile?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
+  panNumber          String?
+  assignments        Assignment[]
+  classesAsTeacher   Class[]          @relation("ClassTeacher")
+  classSubjects      ClassSubject[]   @relation("TeacherClassSubjects")
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classAssignments   TeacherClass[]   @relation("TeacherClassAssignments")
+  profile            TeacherProfile?
+  subjectAssignments TeacherSubject[] @relation("TeacherSubjectAssignments")
 
   @@index([createdById])
   @@index([updatedById])
@@ -323,36 +335,31 @@ model Teacher {
 }
 
 model TeacherProfile {
-  id              String @id @default(uuid())
-  teacherId       String @unique
-  teacher         Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-
+  id              String    @id @default(uuid())
+  teacherId       String    @unique
   profilePhotoUrl String?
   bio             String?
-  contactInfo     Json?   @default("{}")
-  socialLinks     Json?   @default("{}")
-  additionalData  Json?   @default("{}")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
+  contactInfo     Json?     @default("{}")
+  socialLinks     Json?     @default("{}")
+  additionalData  Json?     @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime?
+  deletedAt       DateTime?
+  teacher         Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 }
 
 model TeacherSubject {
-  id        String @id @default(uuid())
-  teacherId String
-  subjectId String
-
-  teacher Teacher @relation("TeacherSubjectAssignments", fields: [teacherId], references: [id])
-  subject Subject @relation("SubjectTeacherAssignments", fields: [subjectId], references: [id])
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
+  id          String    @id @default(uuid())
+  teacherId   String
+  subjectId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+  subject     Subject   @relation("SubjectTeacherAssignments", fields: [subjectId], references: [id])
+  teacher     Teacher   @relation("TeacherSubjectAssignments", fields: [teacherId], references: [id])
 
   @@index([createdById])
   @@index([updatedById])
@@ -360,74 +367,57 @@ model TeacherSubject {
 }
 
 model TeacherClass {
-  id        String @id @default(uuid())
-  teacherId String
-  classId   String
-
-  teacher Teacher @relation("TeacherClassAssignments", fields: [teacherId], references: [id])
-  class   Class   @relation("ClassTeacherAssignments", fields: [classId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
+  id          String    @id @default(uuid())
+  teacherId   String
+  classId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+  class       Class     @relation("ClassTeacherAssignments", fields: [classId], references: [id])
+  teacher     Teacher   @relation("TeacherClassAssignments", fields: [teacherId], references: [id])
 
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
 }
 
-// =========================
-// 👨‍💼 Admin & Staff
-// =========================
-
 model Staff {
-  id     String @id @default(uuid())
-  // Static record fields (no user login needed)
-  email       String
-  fullName    String
-  firstName   String
-  middleName  String?
-  lastName    String
-  dob         DateTime
-  gender      String
-  bloodGroup  String?
-  phone       String
-  emergencyContact String
-  maritalStatus String?
-
-  // Additional fields from service
-  designation      String?
-  department       String?
-  employmentDate   DateTime?
-  employmentStatus String? @default("active")
-  experienceYears  Int?
-
-  basicSalary Decimal @db.Decimal(10, 2)
-  allowances  Decimal @db.Decimal(10, 2)
-  totalSalary Decimal @db.Decimal(10, 2)
-
-  // Bank account details
-  bankName           String?
-  bankAccountNumber  String?
-  bankBranch         String?
-  panNumber          String?
-  citizenshipNumber  String?
-
-  permissions String[] // optional for granular access only for admins
-
-  profile StaffProfile?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
+  id                String        @id @default(uuid())
+  email             String
+  fullName          String
+  firstName         String
+  middleName        String?
+  lastName          String
+  dob               DateTime
+  gender            String
+  bloodGroup        String?
+  phone             String
+  emergencyContact  String
+  maritalStatus     String?
+  designation       String?
+  department        String?
+  employmentDate    DateTime?
+  basicSalary       Decimal       @db.Decimal(10, 2)
+  allowances        Decimal       @db.Decimal(10, 2)
+  totalSalary       Decimal       @db.Decimal(10, 2)
+  permissions       String[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime?
+  deletedAt         DateTime?
+  createdById       String?       @db.Uuid
+  updatedById       String?       @db.Uuid
+  deletedById       String?       @db.Uuid
+  bankAccountNumber String?
+  bankBranch        String?
+  bankName          String?
+  citizenshipNumber String?
+  panNumber         String?
+  employmentStatus  String?       @default("active")
+  experienceYears   Int?
+  profile           StaffProfile?
 
   @@index([createdById])
   @@index([updatedById])
@@ -435,89 +425,71 @@ model Staff {
 }
 
 model StaffProfile {
-  id              String @id @default(uuid())
-  staffId         String @unique
-  staff           Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
-
+  id              String    @id @default(uuid())
+  staffId         String    @unique
   profilePhotoUrl String?
   bio             String?
-  contactInfo     Json?   @default("{}")
-  additionalData  Json?   @default("{}")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
+  contactInfo     Json?     @default("{}")
+  additionalData  Json?     @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime?
+  deletedAt       DateTime?
+  staff           Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
 }
 
-// =========================
-// 🆔 ID Card Management
-// =========================
-
 model IDCard {
-  id         String @id @default(uuid())
-  type       String // Student, Teacher, Staff
-  templateId String
-  expiryDate DateTime
-  batchName  String?
-
-  template   IDCardTemplate @relation("IDCardTemplates", fields: [templateId], references: [id])
-
+  id          String         @id @default(uuid())
+  type        String
+  templateId  String
+  expiryDate  DateTime
+  batchName   String?
   issuedForId String
-  issuedFor   User @relation(fields: [issuedForId], references: [id])
-
-  createdAt DateTime @default(now())
+  createdAt   DateTime       @default(now())
+  issuedFor   User           @relation(fields: [issuedForId], references: [id])
+  template    IDCardTemplate @relation("IDCardTemplates", fields: [templateId], references: [id])
 }
 
 model IDCardTemplate {
-  id       String @id @default(uuid())
-  name     String
-  layout   Json
-  metadata Json?
-
-  idCards  IDCard[] @relation("IDCardTemplates")
-
+  id        String   @id @default(uuid())
+  name      String
+  layout    Json
+  metadata  Json?
   createdAt DateTime @default(now())
+  idCards   IDCard[] @relation("IDCardTemplates")
 }
 
-// =========================
-// 📦 Support Entities
-// =========================
-
 model UserRole {
-  id     String @id @default(uuid())
-  userId String
-  roleId String
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
+  id         String   @id @default(uuid())
+  userId     String
+  roleId     String
   assignedAt DateTime @default(now())
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
 }
 
 model Role {
-  id           String  @id @default(uuid())
-  name         String  @unique
+  id           String           @id @default(uuid())
+  name         String           @unique
   description  String?
-  isSystemRole Boolean @default(false)
+  isSystemRole Boolean          @default(false)
   permissions  RolePermission[]
   userRoles    UserRole[]
 }
 
 model RolePermission {
-  id           String @id @default(uuid())
+  id           String     @id @default(uuid())
   roleId       String
   permissionId String
-
-  role       Role       @relation(fields: [roleId], references: [id])
-  permission Permission @relation(fields: [permissionId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  role         Role       @relation(fields: [roleId], references: [id])
 }
 
 model Permission {
-  id          String  @id @default(uuid())
-  code        String  @unique
-  description String?
+  id              String           @id @default(uuid())
+  code            String           @unique
+  description     String?
   rolePermissions RolePermission[]
 }
 
@@ -531,53 +503,98 @@ model AuditLog {
   details   Json?
   ipAddress String?
   userAgent String?
-
-  user User? @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
 }
 
 model UserSession {
-  id        String @id @default(uuid())
-  userId    String
-  tokenHash String
-  loginAt   DateTime @default(now())
-  lastActivityAt DateTime?
-  revokedAt   DateTime?
-  ipAddress   String?
-  userAgent   String?
-
-  user User @relation(fields: [userId], references: [id])
+  id                String    @id @default(uuid())
+  userId            String
+  tokenHash         String
+  loginAt           DateTime  @default(now())
+  lastActivityAt    DateTime?
+  revokedAt         DateTime?
+  ipAddress         String?
+  userAgent         String?
+  deviceInfo        String?
+  isCurrentDevice   Boolean   @default(false)
+  previousTokenHash String?
+  revokeReason      String?
+  user              User      @relation(fields: [userId], references: [id])
 }
 
-// =========================
-// 📅 Calendar Management
-// =========================
-
 model CalendarEntry {
-  id          String @id @default(uuid())
-  name        String
+  id          String            @id @default(uuid())
   type        CalendarEntryType
-  
-  // Date information
   startDate   DateTime
   endDate     DateTime
-  
-  // Event-specific fields
   venue       String?
-  
-  // Holiday-specific fields
   holidayType HolidayType?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime?
-  deletedAt DateTime?
-  
-  createdById String? @db.Uuid
-  updatedById String? @db.Uuid
-  deletedById String? @db.Uuid
-  
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime?
+  deletedAt   DateTime?
+  createdById String?           @db.Uuid
+  updatedById String?           @db.Uuid
+  deletedById String?           @db.Uuid
+  name        String
+
   @@index([type])
   @@index([startDate])
   @@index([endDate])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Assignment {
+  id                 String       @id @default(uuid())
+  title              String
+  description        String?
+  classId            String
+  subjectId          String
+  teacherId          String
+  dueDate            DateTime?
+  additionalMetadata Json?        @default("{}")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime?
+  deletedAt          DateTime?
+  createdById        String?      @db.Uuid
+  updatedById        String?      @db.Uuid
+  deletedById        String?      @db.Uuid
+  class              Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject            Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher            Teacher      @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  submissions        Submission[]
+
+  @@index([classId])
+  @@index([subjectId])
+  @@index([teacherId])
+  @@index([dueDate])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model Submission {
+  id           String     @id @default(uuid())
+  assignmentId String
+  studentId    String
+  submittedAt  DateTime?  @default(now())
+  isCompleted  Boolean    @default(false)
+  feedback     String?
+  fileLinks    Json?      @default("[]")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime?
+  deletedAt    DateTime?
+  createdById  String?    @db.Uuid
+  updatedById  String?    @db.Uuid
+  deletedById  String?    @db.Uuid
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
+  @@index([isCompleted])
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])

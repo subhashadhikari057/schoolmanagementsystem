@@ -1,7 +1,7 @@
 import React from 'react';
 import ChartHeader from '@/components/molecules/interactive/ChartHeader';
 import Icon from '@/components/atoms/display/Icon';
-import Label from '@/components/atoms/display/Label';
+
 import { Calendar, MapPin, Clock } from 'lucide-react';
 import Button from '@/components/atoms/form-controls/Button';
 
@@ -17,6 +17,7 @@ interface Event {
 type SubjectItem = {
   id: string;
   label: string;
+  code?: string;
   icon: React.ElementType;
 };
 
@@ -211,8 +212,15 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
                   />
                 </div>
                 <div className='relative z-10 flex items-center justify-between'>
-                  <div className='text-sm font-medium text-gray-900 mb-1'>
-                    {sub.label}
+                  <div className='flex-1'>
+                    <div className='text-sm font-medium text-gray-900'>
+                      {sub.label}
+                    </div>
+                    {sub.code && (
+                      <div className='text-xs text-gray-500 mt-0.5'>
+                        {sub.code}
+                      </div>
+                    )}
                   </div>
                   <Icon
                     className={`w-8 h-8 ${classes.bg} ${classes.text} flex items-center justify-center`}

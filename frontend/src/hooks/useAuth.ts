@@ -90,50 +90,142 @@ export function useAuth() {
   }, []);
 
   // Login function
-  const login = useCallback(async (credentials: LoginRequest) => {
-    try {
-      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+  const login = useCallback(
+    async (
+      credentials: LoginRequest,
+    ): Promise<{
+      requirePasswordChange?: boolean;
+      tempToken?: string;
+      userInfo?: { id: string; fullName: string; email: string };
+    } | void> => {
+      try {
+        setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Backend sets cookies automatically on successful login
-      await authService.login(credentials);
+        // Backend sets cookies automatically on successful login or returns password change info
+        const loginResponse = await authService.login(credentials);
 
-      // Get user data after successful login (this should work because cookies are set)
-      const userResponse = await authService.getCurrentUser();
-      const userData = userResponse.data;
+        // Check if password change is required
+        if (
+          loginResponse.data &&
+          'requirePasswordChange' in loginResponse.data &&
+          loginResponse.data.requirePasswordChange
+        ) {
+          setAuthState(prev => ({ ...prev, isLoading: false }));
+          return {
+            requirePasswordChange: true,
+            tempToken: loginResponse.data.tempToken,
+            userInfo: loginResponse.data.userInfo,
+          };
+        }
 
-      // Transform MeResponse to AuthUser
-      const user: AuthUser = {
-        id: userData.id,
-        email: userData.email,
-        role: userData.role,
-        isActive: userData.isActive,
-        full_name: userData.full_name,
-        phone: userData.phone,
-        permissions: userData.permissions,
-      };
+        // Normal login flow - get user data after successful login
+        const userResponse = await authService.getCurrentUser();
+        const userData = userResponse.data;
 
-      // Store user data locally for faster app initialization
-      setStoredUser(user);
+        // Transform MeResponse to AuthUser
+        const user: AuthUser = {
+          id: userData.id,
+          email: userData.email,
+          role: userData.role,
+          isActive: userData.isActive,
+          full_name: userData.full_name,
+          phone: userData.phone,
+          permissions: userData.permissions,
+        };
 
-      // Update state
-      setAuthState({
-        isAuthenticated: true,
-        user,
-        accessToken: null, // Tokens are in cookies
-        refreshToken: null, // Tokens are in cookies
-        isLoading: false,
-        error: null,
-      });
-    } catch (error) {
-      const apiError = error as ApiError;
-      setAuthState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: apiError.message || 'Login failed',
-      }));
-      throw error;
-    }
-  }, []);
+        // Store user data locally for faster app initialization
+        setStoredUser(user);
+
+        // Update state
+        setAuthState({
+          isAuthenticated: true,
+          user,
+          accessToken: null, // Tokens are in cookies
+          refreshToken: null, // Tokens are in cookies
+          isLoading: false,
+          error: null,
+        });
+
+        return; // Normal login completed
+      } catch (error) {
+        const apiError = error as ApiError;
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: apiError.message || 'Login failed',
+        }));
+        throw error;
+      }
+    },
+    [],
+  );
+
+  // Force change password function for first-time users
+  const forceChangePassword = useCallback(
+    async (
+      data: {
+        temp_token: string;
+        new_password: string;
+        confirm_password: string;
+      },
+      userEmail?: string,
+    ) => {
+      try {
+        setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        await authService.forceChangePassword(data);
+
+        // After successful password change, the backend should set auth cookies automatically
+        // or we can login with the user's email and new password
+        if (userEmail) {
+          const loginCredentials: LoginRequest = {
+            identifier: userEmail,
+            password: data.new_password,
+          };
+
+          // This will be a normal login now since password is changed
+          await login(loginCredentials);
+        } else {
+          // If backend sets cookies automatically, just get user data
+          const userResponse = await authService.getCurrentUser();
+          const userData = userResponse.data;
+
+          // Transform MeResponse to AuthUser
+          const user: AuthUser = {
+            id: userData.id,
+            email: userData.email,
+            role: userData.role,
+            isActive: userData.isActive,
+            full_name: userData.full_name,
+            phone: userData.phone,
+            permissions: userData.permissions,
+          };
+
+          // Store user data locally for faster app initialization
+          setStoredUser(user);
+
+          // Update state
+          setAuthState({
+            isAuthenticated: true,
+            user,
+            accessToken: null, // Tokens are in cookies
+            refreshToken: null, // Tokens are in cookies
+            isLoading: false,
+            error: null,
+          });
+        }
+      } catch (error) {
+        const apiError = error as ApiError;
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: apiError.message || 'Password change failed',
+        }));
+        throw error;
+      }
+    },
+    [login],
+  );
 
   // Logout function
   const logout = useCallback(async () => {
@@ -362,6 +454,7 @@ export function useAuth() {
     // Actions
     login,
     logout,
+    forceChangePassword,
     refreshAccessToken,
     getCurrentUser,
     verifySession,

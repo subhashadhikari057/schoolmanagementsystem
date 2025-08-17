@@ -9,9 +9,11 @@ import {
   Res,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { UnauthorizedException } from '@nestjs/common';
+import { AuthError } from '../../../shared/error-handling/auth-error.util';
 import { AuthService } from '../application/auth.service';
 import {
   LoginDto,
@@ -78,16 +80,45 @@ export class AuthController {
     const userAgent: string = req.headers['user-agent'] || 'unknown';
 
     if (!refreshToken) {
-      return res.status(401).json({ message: 'Missing refresh token' });
+      return res
+        .status(401)
+        .json(AuthError.unauthorized('Missing refresh token'));
     }
 
-    const tokens = await this.authService.refresh(refreshToken, ip, userAgent);
-    const { accessToken, refreshToken: newRefreshToken } = tokens;
+    try {
+      const tokens = await this.authService.refresh(
+        refreshToken,
+        ip,
+        userAgent,
+      );
+      const { accessToken, refreshToken: newRefreshToken } = tokens;
 
-    // ✅ Set new cookies
-    setAuthCookies(res, accessToken, newRefreshToken);
+      // ✅ Set new cookies
+      setAuthCookies(res, accessToken, newRefreshToken);
 
-    return res.status(200).json({ message: 'Token refreshed successfully' });
+      return res.status(200).json({
+        message: 'Token refreshed successfully',
+        success: true,
+      });
+    } catch (error) {
+      // Handle specific error types
+      if (error instanceof UnauthorizedException) {
+        return res.status(401).json(
+          AuthError.tokenExpired({
+            message: 'Your session has expired. Please log in again.',
+          }),
+        );
+      } else if (error instanceof ForbiddenException) {
+        return res.status(403).json(AuthError.tokenReuseDetected());
+      }
+
+      // Generic error fallback
+      return res.status(401).json(
+        AuthError.refreshFailed({
+          message: 'Failed to refresh your session. Please log in again.',
+        }),
+      );
+    }
   }
 
   /**
@@ -102,23 +133,43 @@ export class AuthController {
     const ip: string = req.ip || 'unknown';
     const userAgent: string = req.headers['user-agent'] || 'unknown';
 
+    // If no refresh token, just clear cookies and return success
+    // This allows logout to work even if the token is expired
     if (!refreshToken) {
-      return res.status(400).json({ message: 'Missing refresh token' });
+      // ❌ Clear cookies
+      res.clearCookie('accessToken', COOKIE_OPTIONS.accessToken);
+      res.clearCookie('refreshToken', COOKIE_OPTIONS.refreshToken);
+
+      return res.status(200).json({
+        message: 'Logged out successfully',
+        success: true,
+      });
     }
 
-    const decoded = verifyToken(refreshToken) as any;
-    if (!decoded?.sessionId) {
-      return res.status(400).json({ message: 'Invalid refresh token' });
+    try {
+      const decoded = verifyToken(refreshToken) as any;
+      if (decoded?.sessionId) {
+        // ✅ Revoke session
+        await this.authService.logout(
+          decoded.sessionId as string,
+          ip,
+          userAgent,
+        );
+      }
+    } catch (error) {
+      // Even if session revocation fails, we still want to clear cookies
+      // Just log the error but don't fail the logout
+      console.error('Error revoking session during logout:', error);
+    } finally {
+      // ❌ Always clear cookies, even if session revocation fails
+      res.clearCookie('accessToken', COOKIE_OPTIONS.accessToken);
+      res.clearCookie('refreshToken', COOKIE_OPTIONS.refreshToken);
     }
 
-    // ✅ Revoke session
-    await this.authService.logout(decoded.sessionId as string, ip, userAgent);
-
-    // ❌ Clear cookies
-    res.clearCookie('accessToken', COOKIE_OPTIONS.accessToken);
-    res.clearCookie('refreshToken', COOKIE_OPTIONS.refreshToken);
-
-    return res.status(200).json({ message: 'Logged out successfully' });
+    return res.status(200).json({
+      message: 'Logged out successfully',
+      success: true,
+    });
   }
 
   /**

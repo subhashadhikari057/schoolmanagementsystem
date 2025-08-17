@@ -19,6 +19,7 @@ import {
   RegisterRequest,
 } from '../types/auth';
 import { ApiResponse } from '../types/common';
+import { csrfService } from './csrf.service';
 
 // ============================================================================
 // API Endpoints
@@ -33,6 +34,7 @@ const AUTH_ENDPOINTS = {
   REQUEST_PASSWORD_RESET: 'api/v1/auth/password/request-reset',
   RESET_PASSWORD: 'api/v1/auth/password/reset',
   CHANGE_PASSWORD: 'api/v1/auth/change-password',
+  FORCE_CHANGE_PASSWORD: 'api/v1/auth/change-password-forced',
 } as const;
 
 // ============================================================================
@@ -42,21 +44,56 @@ const AUTH_ENDPOINTS = {
 export class AuthService {
   /**
    * Login with email/phone and password
+   * Returns either normal login response or password change required response
    */
-  async login(
-    credentials: LoginRequest,
-  ): Promise<ApiResponse<{ message: string }>> {
+  async login(credentials: LoginRequest): Promise<
+    ApiResponse<
+      | { message: string }
+      | {
+          message: string;
+          requirePasswordChange: boolean;
+          tempToken: string;
+          userInfo: { id: string; fullName: string; email: string };
+        }
+    >
+  > {
     try {
-      const response = await httpClient.post<{ message: string }>(
-        AUTH_ENDPOINTS.LOGIN,
-        credentials,
-        { requiresAuth: false },
-      );
+      const response = await httpClient.post<
+        | { message: string }
+        | {
+            message: string;
+            requirePasswordChange: boolean;
+            tempToken: string;
+            userInfo: { id: string; fullName: string; email: string };
+          }
+      >(AUTH_ENDPOINTS.LOGIN, credentials, { requiresAuth: false });
 
-      // Backend sets cookies automatically, no need to handle tokens manually
+      // Backend sets cookies automatically for normal login,
+      // or returns temp token for password change
       return response;
     } catch (error) {
       console.error('Login error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Force change password for first-time users
+   */
+  async forceChangePassword(data: {
+    temp_token: string;
+    new_password: string;
+    confirm_password: string;
+  }): Promise<ApiResponse<{ message: string; success: boolean }>> {
+    try {
+      const response = await httpClient.post<{
+        message: string;
+        success: boolean;
+      }>(AUTH_ENDPOINTS.FORCE_CHANGE_PASSWORD, data, { requiresAuth: false });
+
+      return response;
+    } catch (error) {
+      console.error('Force change password error:', error);
       throw error;
     }
   }
@@ -71,6 +108,9 @@ export class AuthService {
         {},
         { requiresAuth: false }, // Auth is handled by cookies
       );
+
+      // Clear CSRF token on successful logout
+      csrfService.clearToken();
 
       return response;
     } catch (error) {

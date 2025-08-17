@@ -8,7 +8,6 @@
 
 import { HttpClient } from '../client/http-client';
 import {
-  CreateTeacherRequest,
   CreateTeacherResponse,
   TeacherListResponse,
   UpdateTeacherByAdminRequest,
@@ -25,12 +24,19 @@ import { ApiResponse } from '../types/common';
 const TEACHER_ENDPOINTS = {
   CREATE: 'api/v1/teachers',
   LIST: 'api/v1/teachers',
+  GET_ME: 'api/v1/teachers/me',
+  GET_MY_SUBJECTS: 'api/v1/teachers/me/subjects',
+  GET_MY_CLASSES: 'api/v1/teachers/me/classes',
   GET_BY_ID: (id: string) => `api/v1/teachers/${id}`,
   UPDATE_BY_ADMIN: (id: string) => `api/v1/teachers/${id}`,
   UPDATE_SELF: 'api/v1/teachers/profile',
   DELETE: (id: string) => `api/v1/teachers/${id}`,
+  GET_SUBJECTS: (id: string) => `api/v1/teachers/${id}/subjects`,
   ASSIGN_SUBJECTS: (id: string) => `api/v1/teachers/${id}/subjects`,
+  GET_CLASSES: (id: string) => `api/v1/teachers/${id}/classes`,
   ASSIGN_CLASSES: (id: string) => `api/v1/teachers/${id}/classes`,
+  NEXT_EMPLOYEE_ID: 'api/v1/teachers/next-employee-id',
+  CALCULATE_SALARY: 'api/v1/teachers/calculate-salary',
 } as const;
 
 // ============================================================================
@@ -79,7 +85,7 @@ export class TeacherService {
       data.state ||
       data.pinCode
     ) {
-      const personalData: any = {};
+      const personalData: Record<string, string> = {};
       if (data.dateOfBirth) personalData.dateOfBirth = data.dateOfBirth;
       if (data.gender) personalData.gender = data.gender;
       if (data.bloodGroup) personalData.bloodGroup = data.bloodGroup;
@@ -98,13 +104,13 @@ export class TeacherService {
     }
 
     // Professional data
-    const professionalData: any = {
+    const professionalData: Record<string, string | number> = {
       joiningDate: data.joiningDate || new Date().toISOString().split('T')[0],
       highestQualification: data.highestQualification || '',
     };
     if (data.employeeId) professionalData.employeeId = data.employeeId;
-    if (data.experience)
-      professionalData.experienceYears = parseInt(data.experience);
+    if (data.experienceYears)
+      professionalData.experienceYears = Number(data.experienceYears);
     if (data.specialization)
       professionalData.specialization = data.specialization;
     if (data.designation) professionalData.designation = data.designation;
@@ -113,7 +119,7 @@ export class TeacherService {
 
     // Subject data (only if provided)
     if (data.subjects || data.isClassTeacher !== undefined) {
-      const subjectData: any = {};
+      const subjectData: Record<string, string[] | boolean> = {};
       if (data.subjects) subjectData.subjects = data.subjects;
       if (data.isClassTeacher !== undefined)
         subjectData.isClassTeacher = data.isClassTeacher;
@@ -122,7 +128,7 @@ export class TeacherService {
 
     // Salary data (only if provided)
     if (data.basicSalary || data.allowances || data.totalSalary) {
-      const salaryData: any = {};
+      const salaryData: Record<string, number> = {};
       if (data.basicSalary)
         salaryData.basicSalary = parseFloat(data.basicSalary);
       if (data.allowances) salaryData.allowances = parseFloat(data.allowances);
@@ -139,11 +145,11 @@ export class TeacherService {
       data.panNumber ||
       data.citizenshipNumber
     ) {
-      const bankData: any = {};
+      const bankData: Record<string, string> = {};
       if (data.bankName) bankData.bankName = data.bankName;
       if (data.bankAccountNumber)
-        bankData.accountNumber = data.bankAccountNumber;
-      if (data.bankBranch) bankData.branch = data.bankBranch;
+        bankData.bankAccountNumber = data.bankAccountNumber;
+      if (data.bankBranch) bankData.bankBranch = data.bankBranch;
       if (data.panNumber) bankData.panNumber = data.panNumber;
       if (data.citizenshipNumber)
         bankData.citizenshipNumber = data.citizenshipNumber;
@@ -152,7 +158,7 @@ export class TeacherService {
 
     // Additional data (only if provided)
     if (data.languagesKnown || data.certifications || data.previousExperience) {
-      const additionalData: any = {};
+      const additionalData: Record<string, string | string[]> = {};
       if (data.languagesKnown)
         additionalData.languagesKnown = data.languagesKnown;
       if (data.certifications)
@@ -183,6 +189,23 @@ export class TeacherService {
       undefined,
       { requiresAuth: true },
     );
+  }
+
+  /**
+   * Get current teacher's profile (for logged-in teacher users)
+   */
+  async getCurrentTeacher(): Promise<
+    ApiResponse<{
+      id: string;
+      userId: string;
+      user: { fullName: string; email: string };
+    }>
+  > {
+    return this.httpClient.get<{
+      id: string;
+      userId: string;
+      user: { fullName: string; email: string };
+    }>(TEACHER_ENDPOINTS.GET_ME, undefined, { requiresAuth: true });
   }
 
   /**
@@ -237,6 +260,92 @@ export class TeacherService {
   // ========================================================================
 
   /**
+   * Get current teacher's own assigned subjects
+   */
+  async getMySubjects(): Promise<
+    ApiResponse<Array<{ subject: { id: string; name: string; code: string } }>>
+  > {
+    return this.httpClient.get<
+      Array<{ subject: { id: string; name: string; code: string } }>
+    >(TEACHER_ENDPOINTS.GET_MY_SUBJECTS, undefined, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Get current teacher's own assigned classes
+   */
+  async getMyClasses(): Promise<
+    ApiResponse<
+      Array<{
+        class: {
+          id: string;
+          grade: number;
+          section: string;
+          currentEnrollment?: number;
+        };
+      }>
+    >
+  > {
+    return this.httpClient.get<
+      Array<{
+        class: {
+          id: string;
+          grade: number;
+          section: string;
+          currentEnrollment?: number;
+        };
+      }>
+    >(TEACHER_ENDPOINTS.GET_MY_CLASSES, undefined, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Get teacher's assigned subjects (admin only)
+   */
+  async getTeacherSubjects(
+    teacherId: string,
+  ): Promise<
+    ApiResponse<Array<{ subject: { id: string; name: string; code: string } }>>
+  > {
+    return this.httpClient.get<
+      Array<{ subject: { id: string; name: string; code: string } }>
+    >(TEACHER_ENDPOINTS.GET_SUBJECTS(teacherId), undefined, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Get teacher's assigned classes (admin only)
+   */
+  async getTeacherClasses(teacherId: string): Promise<
+    ApiResponse<
+      Array<{
+        class: {
+          id: string;
+          grade: number;
+          section: string;
+          currentEnrollment?: number;
+        };
+      }>
+    >
+  > {
+    return this.httpClient.get<
+      Array<{
+        class: {
+          id: string;
+          grade: number;
+          section: string;
+          currentEnrollment?: number;
+        };
+      }>
+    >(TEACHER_ENDPOINTS.GET_CLASSES(teacherId), undefined, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
    * Assign subjects to teacher
    */
   async assignSubjects(
@@ -264,6 +373,46 @@ export class TeacherService {
       TEACHER_ENDPOINTS.ASSIGN_CLASSES(teacherId),
       { classAssignments },
       { requiresAuth: true },
+    );
+  }
+
+  /**
+   * Get next auto-generated employee ID
+   */
+  async getNextEmployeeId(): Promise<
+    ApiResponse<{
+      employeeId: string;
+      sequence: number;
+      year: number;
+    }>
+  > {
+    return this.httpClient.get(TEACHER_ENDPOINTS.NEXT_EMPLOYEE_ID, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Calculate total salary from basic salary and allowances
+   */
+  async calculateSalary(
+    basicSalary: number,
+    allowances: number,
+  ): Promise<
+    ApiResponse<{
+      basicSalary: number;
+      allowances: number;
+      totalSalary: number;
+    }>
+  > {
+    return this.httpClient.post(
+      TEACHER_ENDPOINTS.CALCULATE_SALARY,
+      {
+        basicSalary,
+        allowances,
+      },
+      {
+        requiresAuth: true,
+      },
     );
   }
 }

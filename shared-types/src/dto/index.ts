@@ -32,6 +32,9 @@ export * from './student/student.dto';
 export * from './teacher/teacher.dto';
 export * from './staff/staff.dto';
 
+// Parent Module DTOs
+export * from './parent/parent.dto';
+
 // Academic Module DTOs
 export * from './academic/assignment.dto';
 export * from './academic/submission.dto';

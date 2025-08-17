@@ -1,264 +1,197 @@
 import {
   Controller,
   Post,
+  Get,
+  Patch,
+  Delete,
   Body,
+  Param,
+  Query,
   Req,
   UseGuards,
   HttpStatus,
   HttpCode,
-  Get,
-  Param,
-  Patch,
-  Delete,
-  Query,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
-import { ZodValidationPipe } from 'nestjs-zod';
-
-import { Roles } from '../../../shared/decorators/roles.decorator';
-import { UserRole } from '@sms/shared-types';
-import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
 import { StudentService } from '../application/student.service';
-import { z } from 'zod';
-
-// DTOs
 import {
   CreateStudentDto,
   CreateStudentDtoType,
-  CreateStudentWithNewParentsDto,
-  CreateStudentWithNewParentsDtoType,
-  CreateStudentWithExistingParentsDto,
-  CreateStudentWithExistingParentsDtoType,
-  UpdateStudentDto,
-  UpdateStudentDtoType,
-  SetPrimaryParentDto,
-  SetPrimaryParentDtoType,
+  UpdateStudentByAdminDto,
+  UpdateStudentByAdminDtoType,
+  UpdateStudentSelfDto,
+  UpdateStudentSelfDtoType,
+  GetAllStudentsDto,
+  GetAllStudentsDtoType,
 } from '../dto/student.dto';
+import { ZodValidationPipe } from 'nestjs-zod';
 import {
-  CreateParentLinkDto,
-  CreateParentLinkDtoType,
-} from '../dto/parent-link.dto';
-import {
-  CreateStudentProfileDto,
-  CreateStudentProfileDtoType,
-  UpdateStudentProfileDto,
-} from '../dto/student-profile.dto';
-import {
-  GetAllStudentsQuerySchema,
-  GetAllStudentsQueryDtoType,
-} from '../dto/get-all.dto';
-
-// ✅ Combine both for self-update validation
-const CombinedSelfUpdateDto = UpdateStudentDto.merge(UpdateStudentProfileDto);
-type CombinedSelfUpdateDtoType = z.infer<typeof CombinedSelfUpdateDto>;
+  createMulterConfig,
+  UPLOAD_PATHS,
+} from '../../../shared/utils/file-upload.util';
+import { Roles } from '../../../shared/decorators/roles.decorator';
+import { UserRole } from '@sms/shared-types';
+import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 
 @Controller('api/v1/students')
+@UseGuards(JwtAuthGuard)
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
-  // 🔹 Create student with new parents
-  @Post('create-with-new-parents')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @HttpCode(HttpStatus.CREATED)
-  async createStudentWithNewParents(
-    @Body(new ZodValidationPipe(CreateStudentWithNewParentsDto))
-    body: CreateStudentWithNewParentsDtoType,
-    @CurrentUser() user: any,
-    @Req() req: Request,
-  ) {
-    const result = await this.studentService.createStudentWithNewParents(
-      body,
-      user.id,
-      req.ip,
-      req.headers['user-agent'],
-    );
-
-    return {
-      message: 'Student and parents created successfully',
-      student: result.student,
-      // ...(result.studentTemporaryPassword && {
-      //   studentTemporaryPassword: result.studentTemporaryPassword,
-      // }),
-      // parents: result.parents,
-    };
-  }
-
-  // 🔹 Create student with existing parents
-  @Post('create-with-existing-parents')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @HttpCode(HttpStatus.CREATED)
-  async createStudentWithExistingParents(
-    @Body(new ZodValidationPipe(CreateStudentWithExistingParentsDto))
-    body: CreateStudentWithExistingParentsDtoType,
-    @CurrentUser() user: any,
-    @Req() req: Request,
-  ) {
-    const result = await this.studentService.createStudentWithExistingParents(
-      body,
-      user.id,
-      req.ip,
-      req.headers['user-agent'],
-    );
-
-    return {
-      message: 'Student created and linked to existing parents successfully',
-      student: result.student,
-      // ...(result.studentTemporaryPassword && {
-      //   studentTemporaryPassword: result.studentTemporaryPassword,
-      // }),
-      // ...(result.primaryParent && {
-      //   primaryParent: result.primaryParent,
-      // }),
-    };
-  }
-
-  // 🔹 Create student (legacy endpoint - backward compatibility)
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FileInterceptor('photo', createMulterConfig(UPLOAD_PATHS.STUDENT_PROFILES)),
+  )
   async create(
-    @Body(new ZodValidationPipe(CreateStudentDto)) body: CreateStudentDtoType,
-    @CurrentUser() user: any,
+    @Body() body: any, // We'll parse and validate this manually due to multipart form data
+    @UploadedFile() profilePicture: Express.Multer.File,
+    @CurrentUser() user: { id: string },
     @Req() req: Request,
   ) {
-    const result = await this.studentService.create(
-      body,
-      user.id,
-      req.ip,
-      req.headers['user-agent'],
-    );
+    try {
+      // Helper function to safely parse JSON or return object if already parsed
+      const safeJsonParse = (value: any) => {
+        if (!value) return undefined;
+        if (typeof value === 'object') return value; // Already parsed
+        if (typeof value === 'string') {
+          // Handle the case where the string is literally "undefined"
+          if (value === 'undefined' || value === 'null') return undefined;
+          return JSON.parse(value); // Parse string
+        }
+        return value;
+      };
 
-    return {
-      message: 'Student created successfully',
-      student: result.student,
-      // ...(result.studentTemporaryPassword && {
-      //   studentTemporaryPassword: result.studentTemporaryPassword,
-      // }),
-      // parents: result.parents,
-    };
+      // Parse the nested JSON data from form-data or use directly if JSON
+      const parsedData = {
+        user: body.user ? safeJsonParse(body.user) : {},
+        personal: body.personal ? safeJsonParse(body.personal) : undefined,
+        academic: body.academic ? safeJsonParse(body.academic) : {},
+        parentInfo: body.parentInfo
+          ? safeJsonParse(body.parentInfo)
+          : undefined,
+        parents: body.parents ? safeJsonParse(body.parents) : undefined,
+        existingParents: body.existingParents
+          ? safeJsonParse(body.existingParents)
+          : undefined,
+        guardians: body.guardians ? safeJsonParse(body.guardians) : undefined,
+        additional: body.additional
+          ? safeJsonParse(body.additional)
+          : undefined,
+        profile: body.profile ? safeJsonParse(body.profile) : undefined,
+      };
+
+      // Validate using Zod
+      const validatedData = CreateStudentDto.parse(parsedData);
+
+      const result = await this.studentService.create(
+        validatedData,
+        user.id,
+        profilePicture,
+        req.ip,
+        req.headers['user-agent'],
+      );
+
+      return {
+        message: 'Student created successfully',
+        student: result.student,
+        ...(result.temporaryPassword && {
+          temporaryPassword: result.temporaryPassword,
+        }),
+        ...(result.parentCredentials &&
+          result.parentCredentials.length > 0 && {
+            parentCredentials: result.parentCredentials,
+          }),
+      };
+    } catch (error) {
+      if (error.name === 'ZodError') {
+        throw new BadRequestException({
+          message: 'Validation failed',
+          errors: error.errors,
+        });
+      }
+      throw error;
+    }
   }
 
-  // 🔹 Get all students (paginated)
   @Get()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findAll(
-    @Query(new ZodValidationPipe(GetAllStudentsQuerySchema))
-    query: GetAllStudentsQueryDtoType,
+    @Query(new ZodValidationPipe(GetAllStudentsDto))
+    query: GetAllStudentsDtoType,
   ) {
     return this.studentService.findAll(query);
   }
 
-  // 🔹 Get all parents (paginated) - MOVED UP before parameterized routes
-  @Get('parents')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  async getAllParents(
-    @Query('page') page = '1',
-    @Query('limit') limit = '20',
-    @Query('search') search?: string,
-  ) {
-    return this.studentService.getAllParents(Number(limit), Number(page));
-  }
-
-  // 🔹 Get children (for parent user) - MOVED UP before parameterized routes
-  @Get('me/children')
-  @Roles(UserRole.PARENT)
-  async getChildren(@CurrentUser() user: any) {
-    return this.studentService.findChildrenOfParent(user.id);
-  }
-
-  // 🔹 Student self-update (basic info) - MOVED UP before parameterized routes
-  @Patch('me')
-  @Roles(UserRole.STUDENT)
-  async updateSelf(
-    @Body(new ZodValidationPipe(CombinedSelfUpdateDto))
-    body: CombinedSelfUpdateDtoType,
-    @CurrentUser() user: any,
-    @Req() req: Request,
-  ) {
-    return this.studentService.updateSelf(
-      user.id,
-      body,
-      req.ip,
-      req.headers['user-agent'],
-    );
-  }
-
-  // 🔹 Get single student by ID
   @Get(':id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async findOne(@Param('id') id: string) {
+    return this.studentService.findById(id);
+  }
+
+  @Get('user/:userId')
   @Roles(
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
     UserRole.TEACHER,
-    UserRole.PARENT,
     UserRole.STUDENT,
   )
-  async findById(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.studentService.findById(id, {
-      id: user.id,
-      roleNames: user.roles.map(r => r.role.name),
-    });
+  async findByUserId(
+    @Param('userId') userId: string,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    // Students can only access their own profile
+    if (user.role === 'STUDENT' && user.id !== userId) {
+      throw new BadRequestException('Access denied');
+    }
+    return this.studentService.findByUserId(userId);
   }
 
-  // 🔹 Get profile (alias of findById)
-  @Get(':id/profile')
-  @Roles(
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.TEACHER,
-    UserRole.PARENT,
-    UserRole.STUDENT,
-  )
-  async getProfile(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.studentService.findById(id, {
-      id: user.id,
-      roleNames: user.roles.map(r => r.role.name),
-    });
-  }
-
-  // 🔹 Admin update student
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  async update(
+  async updateByAdmin(
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(UpdateStudentDto))
-    body: UpdateStudentDtoType,
-    @CurrentUser() user: any,
+    @Body(new ZodValidationPipe(UpdateStudentByAdminDto))
+    updateData: UpdateStudentByAdminDtoType,
+    @CurrentUser() user: { id: string },
     @Req() req: Request,
   ) {
     return this.studentService.updateByAdmin(
       id,
-      body,
+      updateData,
       user.id,
       req.ip,
       req.headers['user-agent'],
     );
   }
 
-  // 🔹 Admin adds/updates student profile
-  @Patch(':id/profile')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  async upsertProfile(
-    @Param('id') studentId: string,
-    @Body(new ZodValidationPipe(CreateStudentProfileDto))
-    body: CreateStudentProfileDtoType,
-    @CurrentUser() user: any,
+  @Patch('profile/self')
+  @Roles(UserRole.STUDENT)
+  async updateSelf(
+    @Body(new ZodValidationPipe(UpdateStudentSelfDto))
+    updateData: UpdateStudentSelfDtoType,
+    @CurrentUser() user: { id: string },
     @Req() req: Request,
   ) {
-    return this.studentService.upsertProfile(
-      studentId,
-      body,
+    return this.studentService.updateSelf(
       user.id,
+      updateData,
       req.ip,
       req.headers['user-agent'],
     );
   }
 
-  // 🔹 Soft-delete student
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async remove(
     @Param('id') id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: { id: string },
     @Req() req: Request,
   ) {
     return this.studentService.softDelete(
@@ -269,30 +202,29 @@ export class StudentController {
     );
   }
 
-  // 🔹 Get linked parents
   @Get(':id/parents')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  async getParents(@Param('id') studentId: string) {
-    return this.studentService.getStudentParents(studentId);
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getParents(@Param('id') id: string) {
+    return this.studentService.getParents(id);
   }
 
-  // 🔹 Set primary parent (handles all scenarios: contact→primary, user→primary, switching)
-  @Patch(':id/parents/:linkId/set-primary')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  async setPrimaryParent(
-    @Param('id') studentId: string,
-    @Param('linkId') parentLinkId: string,
-    @Body(new ZodValidationPipe(SetPrimaryParentDto))
-    body: SetPrimaryParentDtoType,
-    @CurrentUser() user: any,
-    @Req() req: Request,
-  ) {
-    return this.studentService.setPrimaryParent(
-      studentId,
-      body.parentId,
-      user.id,
-      req.ip,
-      req.headers['user-agent'],
-    );
+  @Get(':id/guardians')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getGuardians(@Param('id') id: string) {
+    return this.studentService.getGuardians(id);
+  }
+
+  @Get('stats/count')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getStudentCount() {
+    const count = await this.studentService.getStudentCount();
+    return { count };
+  }
+
+  @Get('available-classes')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getAvailableClasses() {
+    const classes = await this.studentService.getAvailableClasses();
+    return { classes };
   }
 }

@@ -50,8 +50,38 @@ export function verifyToken(token: string): JwtPayload | null {
   }
 }
 
+/**
+ * Check if a token is expired
+ * @param token JWT token to check
+ * @param bufferSeconds Buffer time in seconds before actual expiration (default: 0)
+ * @returns True if token is expired or invalid, false otherwise
+ */
+export function isTokenExpired(token: string, bufferSeconds = 0): boolean {
+  try {
+    loadKeysFromEnv();
+
+    // Decode token without verification to check expiration
+    const decoded = jwt.decode(token) as JwtPayload;
+
+    if (!decoded || !decoded.exp) {
+      return true; // Invalid token or no expiration
+    }
+
+    // Get current time in seconds
+    const now = Math.floor(Date.now() / 1000);
+
+    // Check if token is expired with buffer
+    return decoded.exp - bufferSeconds <= now;
+  } catch {
+    return true; // Error means token is invalid
+  }
+}
+
 // ✅ Temp token functions for force password change
-export function signTempToken(payload: { userId: string; purpose: string }, options: SignOptions = {}): string {
+export function signTempToken(
+  payload: { userId: string; purpose: string },
+  options: SignOptions = {},
+): string {
   loadKeysFromEnv();
   return jwt.sign(payload, privateKey, {
     algorithm: 'RS256',
@@ -62,7 +92,9 @@ export function signTempToken(payload: { userId: string; purpose: string }, opti
   });
 }
 
-export function verifyTempToken(token: string): { userId: string; purpose: string } | null {
+export function verifyTempToken(
+  token: string,
+): { userId: string; purpose: string } | null {
   try {
     loadKeysFromEnv();
     const decoded = jwt.verify(token, publicKey, {
@@ -70,7 +102,7 @@ export function verifyTempToken(token: string): { userId: string; purpose: strin
       issuer: 'school-management',
       audience: 'temp-action',
     }) as JwtPayload;
-    
+
     if (decoded.userId && decoded.purpose) {
       return {
         userId: decoded.userId as string,
