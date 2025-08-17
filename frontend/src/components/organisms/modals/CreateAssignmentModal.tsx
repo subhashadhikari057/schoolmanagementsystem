@@ -6,7 +6,10 @@ import { assignmentService } from '@/api/services/assignment.service';
 import { classService } from '@/api/services/class.service';
 import { subjectService } from '@/api/services/subject.service';
 import { teacherService } from '@/api/services/teacher.service';
-import { CreateAssignmentRequest } from '@/api/types/assignment';
+import {
+  CreateAssignmentRequest,
+  AssignmentResponse,
+} from '@/api/types/assignment';
 import { useAuth } from '@/hooks/useAuth';
 import { Users, AlertCircle } from 'lucide-react';
 
@@ -14,6 +17,7 @@ interface CreateAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  editAssignment?: AssignmentResponse | any;
 }
 
 // Dynamic data interfaces
@@ -75,6 +79,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  editAssignment,
 }) => {
   // UI state
   const [isLoading, setIsLoading] = useState(false);
@@ -106,6 +111,49 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
+
+  // Effect to populate form with edit data
+  useEffect(() => {
+    if (editAssignment && isOpen) {
+      setTitle(editAssignment.title);
+      setDescription(editAssignment.description || '');
+
+      // Safely handle date conversion - use originalDueDate if available
+      const dateToConvert =
+        (editAssignment as any).originalDueDate !== undefined
+          ? (editAssignment as any).originalDueDate
+          : editAssignment.dueDate;
+
+      const safeDueDate = dateToConvert
+        ? (() => {
+            // Handle the case where dueDate might be a display string like "No due date"
+            if (
+              typeof dateToConvert === 'string' &&
+              (dateToConvert === 'No due date' ||
+                dateToConvert.includes('No due date'))
+            ) {
+              return '';
+            }
+
+            const date = new Date(dateToConvert);
+            return isNaN(date.getTime())
+              ? ''
+              : date.toISOString().split('T')[0];
+          })()
+        : '';
+
+      setDueDate(safeDueDate);
+      // Use the stored IDs from ProcessedAssignment when available
+      const classId =
+        (editAssignment as any).classId || editAssignment.class?.id || '';
+      const subjectId = (editAssignment as any).subjectId || '';
+      const teacherId = (editAssignment as any).teacherId || '';
+
+      setSelectedClasses([classId]);
+      setSelectedSubject(subjectId);
+      setSelectedTeacher(teacherId);
+    }
+  }, [editAssignment, isOpen]);
 
   // Load classes, subjects, and teachers based on user role
   const loadInitialData = useCallback(async () => {
@@ -236,43 +284,70 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
         throw new Error('At least one class must be selected');
       }
 
-      // Prepare assignment data for each selected class
-      const assignments = selectedClasses.map(classId => {
+      if (editAssignment) {
+        // Update existing assignment
         const assignmentData: CreateAssignmentRequest = {
           title: title.trim(),
           description: description.trim() || undefined,
-          classId: classId,
+          classId: selectedClasses[0], // For edit, only one class
           subjectId: selectedSubject,
           teacherId: selectedTeacher || undefined,
           dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
-          additionalMetadata: undefined, // Can be used for future extensions
+          additionalMetadata: undefined,
         };
-        return assignmentData;
-      });
 
-      // Create assignments for all selected classes
-      const results = await Promise.all(
-        assignments.map(assignment =>
-          assignmentService.createAssignment(assignment),
-        ),
-      );
+        const result = await assignmentService.updateAssignment(
+          editAssignment.id,
+          assignmentData,
+        );
 
-      // Check if all assignments were created successfully
-      const allSuccessful = results.every(result => result.success);
-
-      if (allSuccessful) {
-        onSuccess?.();
-        onClose();
-        resetForm();
+        if (result.success) {
+          onSuccess?.();
+          onClose();
+          resetForm();
+        } else {
+          throw new Error('Failed to update assignment');
+        }
       } else {
-        throw new Error('Some assignments failed to create');
+        // Create new assignments for all selected classes
+        const assignments = selectedClasses.map(classId => {
+          const assignmentData: CreateAssignmentRequest = {
+            title: title.trim(),
+            description: description.trim() || undefined,
+            classId: classId,
+            subjectId: selectedSubject,
+            teacherId: selectedTeacher || undefined,
+            dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+            additionalMetadata: undefined, // Can be used for future extensions
+          };
+          return assignmentData;
+        });
+
+        // Create assignments for all selected classes
+        const results = await Promise.all(
+          assignments.map(assignment =>
+            assignmentService.createAssignment(assignment),
+          ),
+        );
+
+        // Check if all assignments were created successfully
+        const allSuccessful = results.every(result => result.success);
+
+        if (allSuccessful) {
+          onSuccess?.();
+          onClose();
+          resetForm();
+        } else {
+          throw new Error('Some assignments failed to create');
+        }
       }
     } catch (error: unknown) {
-      console.error('Failed to create assignment:', error);
+      const action = editAssignment ? 'update' : 'create';
+      console.error(`Failed to ${action} assignment:`, error);
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Failed to create assignment. Please try again.';
+          : `Failed to ${action} assignment. Please try again.`;
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -454,7 +529,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
                 />
               </svg>
             </div>
-            Create New Assignment
+            {editAssignment ? 'Edit Assignment' : 'Create New Assignment'}
           </h2>
           <button
             className='text-gray-400 hover:text-gray-600 text-2xl font-light transition-colors'
@@ -495,8 +570,10 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             {isLoading ? (
               <>
                 <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-                Creating...
+                {editAssignment ? 'Updating...' : 'Creating...'}
               </>
+            ) : editAssignment ? (
+              'Update Assignment'
             ) : (
               'Create Assignment'
             )}
