@@ -285,7 +285,7 @@ model ParentStudentLink {
   parent       Parent    @relation("ParentChildren", fields: [parentId], references: [id], onDelete: Cascade)
   student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  @@unique([parentId, studentId])
+  @@unique([parentId, studentId], name: "parentId_studentId")
   @@index([parentId])
   @@index([studentId])
 }

@@ -17,7 +17,7 @@ export default function Navbar({ onMenuClick, onSearchClick }: NavbarProps) {
     pathname.startsWith('/dashboard/admin/students') ||
     pathname.startsWith('/dashboard/admin/parents') ||
     pathname.startsWith('/dashboard/admin/staff') ||
-    pathname.startsWith('/dashboard/admin/academics');
+    pathname.startsWith('/dashboard/system/myprofile');
   return (
     <header className='flex justify-between items-center px-3 md:px-6  bg-white shadow-sm z-10'>
       {/* Mobile Left Section - Hamburger */}

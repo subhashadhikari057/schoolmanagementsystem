@@ -20,7 +20,7 @@ const getDevUser = () => ({
 
 export const UserProfileHeader = () => {
   const params = useParams();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const nameslug = params?.nameslug;
   const isDev = isDevMockEnabled() && nameslug === 'devuser';
   const profileUser = isDev ? getDevUser() : user;
@@ -55,6 +55,10 @@ export const UserProfileHeader = () => {
       // Here you can add logic to upload the image to backend/storage
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -168,6 +172,7 @@ export const UserProfileHeader = () => {
         </div>
         <ReusableButton
           label='Logout'
+          onClick={handleLogout}
           className='border px-3 py-1 rounded text-gray-700 bg-white hover:bg-gray-100'
         />
       </div>
