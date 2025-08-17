@@ -208,19 +208,9 @@ export const sidebarItems = {
           path: '/dashboard/teacher/communication/notices',
         },
         {
-          label: 'Student Complaints',
-          icon: 'MessageSquareWarning',
-          path: '/dashboard/teacher/communication/complaints',
-        },
-      ],
-    },
-    {
-      title: 'PERSONAL',
-      items: [
-        {
-          label: 'Leave Requests',
+          label: 'Complaints and Requests',
           icon: 'Mailbox',
-          path: '/dashboard/teacher/personal/leave',
+          path: '/dashboard/teacher/communication/complaints&leave',
         },
       ],
     },
