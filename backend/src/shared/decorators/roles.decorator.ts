@@ -117,9 +117,12 @@ export class RolesGuard implements CanActivate {
 
     // User must be authenticated first
     if (!user) {
-      throw new UnauthorizedException(
-        'User must be authenticated to check roles',
-      );
+      throw new UnauthorizedException({
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Session expired. Please login again.',
+        code: 'AUTHENTICATION_REQUIRED',
+      });
     }
 
     // Get role requirements from decorators
@@ -166,6 +169,18 @@ export class RolesGuard implements CanActivate {
           },
         );
 
+        // Check if this might be a token/session issue rather than role issue
+        // If user role is undefined or null, it's likely an authentication problem
+        if (!userRole || userRole === null || userRole === undefined) {
+          throw new UnauthorizedException({
+            statusCode: 401,
+            error: 'Unauthorized',
+            message: 'Session expired. Please login again.',
+            code: 'INVALID_SESSION',
+          });
+        }
+
+        // For valid roles but insufficient permissions, return 403
         throw new ForbiddenException(
           `Access denied. Required roles: ${requiredRoles.join(', ')}`,
         );
@@ -187,6 +202,17 @@ export class RolesGuard implements CanActivate {
           },
         );
 
+        // Check if this might be a token/session issue rather than role issue
+        if (!userRole || userRole === null || userRole === undefined) {
+          throw new UnauthorizedException({
+            statusCode: 401,
+            error: 'Unauthorized',
+            message: 'Session expired. Please login again.',
+            code: 'INVALID_SESSION',
+          });
+        }
+
+        // For valid roles but insufficient permissions, return 403
         throw new ForbiddenException(
           `Access denied. Minimum role required: ${minRole}`,
         );

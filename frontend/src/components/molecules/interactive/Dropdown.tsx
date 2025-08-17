@@ -81,10 +81,23 @@ export default function Dropdown({
   placeholder = 'Select option',
   icon,
 }: DropdownProps) {
-  const { user, isLoading, logout } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // SECURITY: Preserve last known user info during logout to prevent "Guest User" flash
+  const lastKnownUser = useRef<AuthUser | null>(null);
+
+  // Update last known user only when we have valid user data
+  useEffect(() => {
+    if (user) {
+      lastKnownUser.current = user;
+    }
+  }, [user]);
+
+  // Use last known user info during logout/loading states
+  const displayUser = user || lastKnownUser.current;
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -98,8 +111,8 @@ export default function Dropdown({
         label: 'View Profile',
         icon: <UserIcon size={16} />,
         onClick: () => {
-          if (user) {
-            router.push(`/dashboard/system/myprofile/${user.id}`);
+          if (displayUser) {
+            router.push(`/dashboard/system/myprofile/${displayUser.id}`);
           }
         },
       },
@@ -123,7 +136,7 @@ export default function Dropdown({
       onClick: toggleAnalytics,
     });
     return opts;
-  }, [router, user, showAnalytics, toggleAnalytics, logout]);
+  }, [router, displayUser, showAnalytics, toggleAnalytics, logout]);
 
   const currentOptions = useMemo(
     () => (type === 'profile' ? profileOptions : options),
@@ -189,16 +202,18 @@ export default function Dropdown({
                 }`}
               >
                 <Avatar
-                  name={user?.full_name || user?.email || 'Guest User'}
+                  name={
+                    displayUser?.full_name || displayUser?.email || 'Guest User'
+                  }
                   className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
                   showInitials={true}
                 />
                 <div className='text-left flex-1 min-w-0 hidden sm:block'>
                   <p className='text-sm font-semibold text-foreground truncate'>
-                    {isLoading ? 'Loading...' : getUserDisplayName(user)}
+                    {getUserDisplayName(displayUser)}
                   </p>
                   <p className='text-xs text-secondary truncate capitalize'>
-                    {isLoading ? 'Loading...' : getUserRole(user?.role || '')}
+                    {getUserRole(displayUser?.role || '')}
                   </p>
                 </div>
                 {open ? (

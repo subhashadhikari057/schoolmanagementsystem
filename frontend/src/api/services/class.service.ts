@@ -39,6 +39,7 @@ export interface ClassResponse {
   grade: number;
   section: string;
   capacity: number;
+  currentEnrollment: number;
   shift: 'morning' | 'day';
   roomId: string;
   classTeacherId: string;

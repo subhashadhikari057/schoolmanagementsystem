@@ -31,7 +31,7 @@ async function main() {
 
   // 2. Create Super Admin User
   const passwordHash = await argon2.hash('password123');
-  const superAdminUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'superadmin@gmail.com' },
     update: {
       passwordHash,
@@ -52,7 +52,7 @@ async function main() {
     },
   });
 
-  // 3. Create Room and Class
+  // 3. Create Room
   const room = await prisma.classroom.upsert({
     where: { roomNo: '101A' },
     update: {},
@@ -61,43 +61,24 @@ async function main() {
     },
   });
 
-  let class10 = await prisma.class.findFirst({
-    where: { grade: 10, section: 'A' },
+  // 4. Create Subject
+  let math = await prisma.subject.findFirst({
+    where: {
+      code: 'MATH',
+      deletedAt: null,
+    },
   });
 
-  if (!class10) {
-    // First, get the first available teacher to assign as class teacher
-    const firstTeacher = await prisma.teacher.findFirst({
-      where: { deletedAt: null },
-    });
-
-    if (!firstTeacher) {
-      throw new Error('No teachers found to assign as class teacher');
-    }
-
-    class10 = await prisma.class.create({
+  if (!math) {
+    math = await prisma.subject.create({
       data: {
-        grade: 10,
-        section: 'A',
-        capacity: 30,
-        shift: 'MORNING',
-        roomId: room.id,
-        classTeacherId: firstTeacher.id,
+        name: 'Mathematics',
+        code: 'MATH',
+        maxMarks: 100,
+        passMarks: 40,
       },
     });
   }
-
-  // 4. Create Subject
-  const math = await prisma.subject.upsert({
-    where: { code: 'MATH' },
-    update: {},
-    create: {
-      name: 'Mathematics',
-      code: 'MATH',
-      maxMarks: 100,
-      passMarks: 40,
-    },
-  });
 
   // 5. Create Teacher User and Record
   const teacherUser = await prisma.user.upsert({
@@ -195,7 +176,25 @@ async function main() {
     },
   });
 
-  // 6. Assign Subject to Teacher and Class
+  // 6. Create Class (now that teacher exists)
+  let class10 = await prisma.class.findFirst({
+    where: { grade: 10, section: 'A' },
+  });
+
+  if (!class10) {
+    class10 = await prisma.class.create({
+      data: {
+        grade: 10,
+        section: 'A',
+        capacity: 30,
+        // shift: 'MORNING' as const, // TODO: Re-enable once Prisma client recognizes ClassShift enum
+        roomId: room.id,
+        classTeacherId: teacher.id,
+      },
+    });
+  }
+
+  // 7. Assign Subject to Teacher and Class
   await prisma.classSubject.upsert({
     where: {
       classId_subjectId: {
@@ -213,7 +212,7 @@ async function main() {
     },
   });
 
-  // 7. Create Student User and Record
+  // 8. Create Student User and Record
   const studentUser = await prisma.user.upsert({
     where: { email: 'student@school.edu' },
     update: {
@@ -319,7 +318,7 @@ async function main() {
     },
   });
 
-  // 8. Create Parent Users and Links
+  // 9. Create Parent Users and Links
   // Father
   const fatherUser = await prisma.user.upsert({
     where: { email: 'father@example.com' },
@@ -474,7 +473,7 @@ async function main() {
     },
   });
 
-  // 9. Create ID Card for Student
+  // 10. Create ID Card for Student
   const idTemplate = await prisma.iDCardTemplate.create({
     data: {
       name: 'Default Student Template',

@@ -41,7 +41,7 @@ model User {
 model Subject {
   id                 String           @id @default(uuid())
   name               String
-  code               String           @unique
+  code               String
   description        String?
   maxMarks           Int
   passMarks          Int
@@ -58,6 +58,7 @@ model Subject {
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
+  @@unique([code, deletedAt], name: "unique_subject_code_when_active")
 }
 
 model Class {
@@ -66,6 +67,7 @@ model Class {
   grade              Int
   section            String
   capacity           Int
+  currentEnrollment  Int            @default(0)
   shift              ClassShift     @default(MORNING)
   status             String         @default("active")
   roomId             String
