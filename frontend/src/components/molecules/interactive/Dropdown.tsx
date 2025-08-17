@@ -181,10 +181,10 @@ export default function Dropdown({
           className={`relative inline-block text-left w-full ${className || ''}`}
         >
           {({ open }: { open: boolean }) => (
-            <div>
+            <div className='w-full'>
               {/* Profile Button */}
               <Menu.Button
-                className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full bg-white border border-gray-200 rounded-lg transition-all ${
+                className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full min-w-[200px] bg-white border border-gray-200 rounded-lg transition-all ${
                   open ? 'rounded-b-none shadow-sm' : 'shadow-sm'
                 }`}
               >
@@ -223,7 +223,7 @@ export default function Dropdown({
                 leaveFrom='transform opacity-100 translate-y-0'
                 leaveTo='transform opacity-0 -translate-y-1'
               >
-                <Menu.Items className='absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-b-lg shadow-lg z-50'>
+                <Menu.Items className='absolute top-full left-0 mt-1 w-full min-w-[200px] bg-white border border-gray-200 rounded-b-lg shadow-lg z-50'>
                   <div className='p-2 space-y-1'>
                     {currentOptions.map(option => (
                       <Menu.Item key={option.value}>
@@ -245,7 +245,9 @@ export default function Dropdown({
                                 {option.icon}
                               </span>
                             )}
-                            <span>{option.label}</span>
+                            <span className='flex-1 text-left'>
+                              {option.label}
+                            </span>
                           </button>
                         )}
                       </Menu.Item>

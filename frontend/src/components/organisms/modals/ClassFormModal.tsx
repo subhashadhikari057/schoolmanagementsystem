@@ -3,13 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, School, Search, User, Building, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { classService } from '@/api/services/class.service';
 import {
-  roomService,
-  RoomResponse,
-  CreateRoomRequest,
-} from '@/api/services/room.service';
-import { teacherService } from '@/api/services/teacher.service';
+  classService,
+  AvailableRoom,
+  AvailableTeacher,
+} from '@/api/services/class.service';
+import { roomService, CreateRoomRequest } from '@/api/services/room.service';
 
 interface ClassFormModalProps {
   isOpen: boolean;
@@ -23,8 +22,8 @@ interface FormData {
   section: string;
   capacity: number;
   shift: 'morning' | 'day';
-  classTeacherId?: string;
-  roomId?: string;
+  classTeacherId: string;
+  roomId: string;
 }
 
 interface NewRoomData {
@@ -32,21 +31,6 @@ interface NewRoomData {
   name: string;
   floor: number;
   building: string;
-}
-
-interface Teacher {
-  id: string;
-  fullName: string;
-  employeeId?: string;
-  email: string;
-}
-
-interface Room extends RoomResponse {
-  classes?: Array<{
-    id: string;
-    grade: number;
-    section: string;
-  }>;
 }
 
 const SECTIONS = ['A', 'B', 'C', 'D', 'E'];
@@ -64,12 +48,16 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
     section: 'A',
     capacity: 30,
     shift: 'morning',
+    classTeacherId: '',
+    roomId: '',
   });
 
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [filteredTeachers, setFilteredTeachers] = useState<Teacher[]>([]);
-  const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
+  const [teachers, setTeachers] = useState<AvailableTeacher[]>([]);
+  const [rooms, setRooms] = useState<AvailableRoom[]>([]);
+  const [filteredTeachers, setFilteredTeachers] = useState<AvailableTeacher[]>(
+    [],
+  );
+  const [filteredRooms, setFilteredRooms] = useState<AvailableRoom[]>([]);
   const [teacherSearchTerm, setTeacherSearchTerm] = useState('');
   const [roomSearchTerm, setRoomSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -84,13 +72,14 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
   });
   const [isTeacherDropdownOpen, setIsTeacherDropdownOpen] = useState(false);
 
-  // Load teachers and rooms when modal opens
+  // Load teachers and rooms when modal opens or shift changes
   useEffect(() => {
     if (isOpen) {
       loadTeachers();
       loadRooms();
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, formData.shift]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -141,41 +130,11 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
     setFilteredTeachers(filtered);
   }, [teacherSearchTerm, teachers]);
 
-  // Filter rooms based on search term and shift
+  // Filter rooms based on search term (rooms are already filtered by shift from API)
   useEffect(() => {
-    // First, get all rooms
     let availableRooms = [...rooms];
 
-    // Then filter based on shift - we need to check if a room is already assigned to a class with the same shift
-    // Since we don't have shift information directly in the database, we'll store it in localStorage for this session
-    const shiftData = localStorage.getItem('roomShiftData');
-    const roomShifts: Record<string, Array<string>> = shiftData
-      ? JSON.parse(shiftData)
-      : {};
-
-    // Filter rooms based on shift (morning/day)
-    availableRooms = availableRooms.filter(room => {
-      // If the room has no classes assigned, it's available for any shift
-      if (!room.classes || room.classes.length === 0) return true;
-
-      // Check if this room is already fully booked (has both morning and day shifts)
-      if (
-        roomShifts[room.id] &&
-        roomShifts[room.id].includes('morning') &&
-        roomShifts[room.id].includes('day')
-      ) {
-        return false; // Room is fully booked with both shifts
-      }
-
-      // Check if this room already has a class with the current shift
-      if (roomShifts[room.id] && roomShifts[room.id].includes(formData.shift)) {
-        return false; // Room is already booked for this shift
-      }
-
-      return true;
-    });
-
-    // Then apply search term filter if provided
+    // Apply search term filter if provided
     if (roomSearchTerm) {
       availableRooms = availableRooms.filter(
         room =>
@@ -188,45 +147,31 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
     }
 
     setFilteredRooms(availableRooms);
-  }, [roomSearchTerm, rooms, formData.shift]);
+  }, [roomSearchTerm, rooms]);
 
   const loadTeachers = async () => {
     try {
-      const response = await teacherService.getAllTeachers();
+      const response = await classService.getAvailableTeachers();
       if (response.success && response.data) {
-        setTeachers(
-          response.data.map(teacher => ({
-            id: teacher.id,
-            fullName: teacher.fullName,
-            employeeId: teacher.employeeId,
-            email: teacher.email,
-          })),
-        );
-        setFilteredTeachers(
-          response.data.map(teacher => ({
-            id: teacher.id,
-            fullName: teacher.fullName,
-            employeeId: teacher.employeeId,
-            email: teacher.email,
-          })),
-        );
+        setTeachers(response.data);
+        setFilteredTeachers(response.data);
       }
     } catch (error) {
-      console.error('Failed to load teachers:', error);
-      toast.error('Failed to load teachers');
+      console.error('Failed to load available teachers:', error);
+      toast.error('Failed to load available teachers');
     }
   };
 
   const loadRooms = async () => {
     try {
-      const response = await roomService.getAllRooms();
+      const response = await classService.getAvailableRooms(formData.shift);
       if (response.success && response.data) {
-        setRooms(response.data.rooms);
-        setFilteredRooms(response.data.rooms);
+        setRooms(response.data);
+        setFilteredRooms(response.data);
       }
     } catch (error) {
-      console.error('Failed to load rooms:', error);
-      toast.error('Failed to load rooms');
+      console.error('Failed to load available rooms:', error);
+      toast.error('Failed to load available rooms');
     }
   };
 
@@ -237,6 +182,8 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
       section: 'A',
       capacity: 30,
       shift: 'morning',
+      classTeacherId: '',
+      roomId: '',
     });
     setCurrentStep(1);
     setTeacherSearchTerm('');
@@ -260,7 +207,7 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
     if (error) setError(null);
   };
 
-  const handleTeacherSelect = (teacher: Teacher) => {
+  const handleTeacherSelect = (teacher: AvailableTeacher) => {
     setFormData(prev => ({
       ...prev,
       classTeacherId: teacher.id,
@@ -269,7 +216,7 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
     setIsTeacherDropdownOpen(false);
   };
 
-  const handleRoomSelect = (room: Room) => {
+  const handleRoomSelect = (room: AvailableRoom) => {
     setFormData(prev => ({
       ...prev,
       roomId: room.id,
@@ -341,7 +288,10 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
         });
 
         // Add the new room to our list and select it
-        const newRoom = response.data;
+        const newRoom: AvailableRoom = {
+          ...response.data,
+          assignedClasses: [],
+        };
         setRooms(prev => [...prev, newRoom]);
         setFilteredRooms(prev => [...prev, newRoom]);
 
@@ -399,6 +349,7 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
     if (!formData.capacity || formData.capacity < 1)
       return 'Please enter a valid capacity';
     if (!formData.shift) return 'Please select a shift';
+    if (!formData.classTeacherId) return 'Please select a class teacher';
 
     return null;
   };
@@ -443,31 +394,6 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
     setError(null);
 
     try {
-      // Check if a class with the same grade and section already exists (regardless of shift)
-      try {
-        const existingClasses = await classService.getAllClasses();
-        if (existingClasses.success && existingClasses.data) {
-          const classExists = existingClasses.data.some(
-            cls =>
-              cls.grade === formData.grade &&
-              cls.section === formData.section &&
-              !cls.deletedAt,
-          );
-
-          if (classExists) {
-            throw new Error(
-              `Class with Grade ${formData.grade} Section ${formData.section} already exists. A class with the same grade and section cannot be created in any shift.`,
-            );
-          }
-        }
-      } catch (checkErr) {
-        if ((checkErr as Error).message.includes('already exists')) {
-          throw checkErr;
-        }
-        // If there's an error checking for existing classes, continue with creation
-        console.warn('Error checking for existing classes:', checkErr);
-      }
-
       // Prepare data for API
       const classData = {
         name:
@@ -476,52 +402,17 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
         grade: formData.grade,
         section: formData.section,
         capacity: formData.capacity,
-        roomId: formData.roomId!,
-        classTeacherId: formData.classTeacherId,
         shift: formData.shift,
+        roomId: formData.roomId,
+        classTeacherId: formData.classTeacherId,
       };
 
       const response = await classService.createClass(classData);
 
       if (response.success) {
         toast.success('Class created successfully', {
-          description: `Grade ${formData.grade} Section ${formData.section} has been created.`,
+          description: `Grade ${formData.grade} Section ${formData.section} in ${formData.shift} shift has been created.`,
         });
-
-        // Store room-shift association in localStorage
-        if (formData.roomId) {
-          const shiftData = localStorage.getItem('roomShiftData');
-          const roomShifts: Record<string, Array<string>> = shiftData
-            ? JSON.parse(shiftData)
-            : {};
-
-          // Initialize array for this room if it doesn't exist
-          if (!roomShifts[formData.roomId]) {
-            roomShifts[formData.roomId] = [];
-          }
-
-          // Add the shift to this room's shifts if not already present
-          if (!roomShifts[formData.roomId].includes(formData.shift)) {
-            roomShifts[formData.roomId].push(formData.shift);
-          }
-
-          // Save back to localStorage
-          localStorage.setItem('roomShiftData', JSON.stringify(roomShifts));
-        }
-
-        // If a teacher was assigned as class teacher, update their record
-        if (formData.classTeacherId) {
-          try {
-            await teacherService.updateTeacherByAdmin(formData.classTeacherId, {
-              subjects: {
-                isClassTeacher: true,
-              },
-            });
-          } catch (error) {
-            console.error('Failed to update teacher as class teacher:', error);
-            // Don't show error to user as the class was created successfully
-          }
-        }
 
         onSuccess();
         onClose();
@@ -531,7 +422,7 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
       }
     } catch (err) {
       const error = err as Error;
-      console.error('Error creating class:', error);
+      // Error details are handled by toast notifications below
 
       // Handle specific error messages
       let errorMessage = 'Failed to create class';
@@ -540,20 +431,31 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
       if (error.message) {
         // Check for common error patterns
         if (error.message.includes('already exists')) {
-          errorMessage = 'Class already exists';
-          errorDescription = error.message;
+          errorMessage = 'Class Already Exists';
+          // Create a user-friendly description
+          if (error.message.includes('morning shift')) {
+            errorDescription = `A class for Grade ${formData.grade} Section ${formData.section} already exists in the morning shift. Please choose a different grade, section, or try the day shift.`;
+          } else if (error.message.includes('day shift')) {
+            errorDescription = `A class for Grade ${formData.grade} Section ${formData.section} already exists in the day shift. Please choose a different grade, section, or try the morning shift.`;
+          } else {
+            errorDescription = `A class for Grade ${formData.grade} Section ${formData.section} already exists. Please choose a different grade or section.`;
+          }
         } else if (
           error.message.includes('room') ||
           error.message.includes('Room')
         ) {
-          errorMessage = 'Room allocation error';
-          errorDescription = error.message;
+          errorMessage = 'Room Assignment Issue';
+          errorDescription = error.message.includes('not available')
+            ? 'The selected room is not available for this shift. Please choose a different room or create a new one.'
+            : error.message;
         } else if (
           error.message.includes('teacher') ||
           error.message.includes('Teacher')
         ) {
-          errorMessage = 'Teacher assignment error';
-          errorDescription = error.message;
+          errorMessage = 'Teacher Assignment Issue';
+          errorDescription = error.message.includes('already assigned')
+            ? 'The selected teacher is already assigned as a class teacher to another class. Please choose a different teacher.'
+            : error.message;
         } else if (error.message === '{}' || error.message === '') {
           // Handle empty error object or message
           errorMessage = 'Server error';
@@ -753,7 +655,7 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
 
                 <div>
                   <label className='text-sm font-medium leading-none mb-2 block'>
-                    Class Teacher (Optional)
+                    Class Teacher <span className='text-red-500'>*</span>
                   </label>
                   <div className='relative'>
                     <div className='flex'>
@@ -807,7 +709,8 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
                     )}
                   </div>
                   <p className='text-xs text-gray-500 mt-1'>
-                    Selected teacher will be assigned as the class teacher
+                    Class teacher is required and will be assigned to this
+                    specific class and section
                   </p>
                 </div>
               </div>

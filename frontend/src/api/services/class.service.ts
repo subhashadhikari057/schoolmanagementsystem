@@ -18,9 +18,9 @@ export interface CreateClassRequest {
   grade: number; // 1-12
   section: string; // e.g. "A", "B", "C"
   capacity: number;
+  shift: 'morning' | 'day'; // Required class shift
   roomId: string;
-  classTeacherId?: string; // Optional class teacher
-  shift?: 'morning' | 'day'; // Class shift
+  classTeacherId: string; // Required class teacher
 }
 
 export interface UpdateClassRequest {
@@ -28,6 +28,7 @@ export interface UpdateClassRequest {
   grade?: number;
   section?: string;
   capacity?: number;
+  shift?: 'morning' | 'day';
   roomId?: string;
   classTeacherId?: string;
 }
@@ -38,9 +39,9 @@ export interface ClassResponse {
   grade: number;
   section: string;
   capacity: number;
+  shift: 'morning' | 'day';
   roomId: string;
-  classTeacherId?: string;
-  shift?: 'morning' | 'day';
+  classTeacherId: string;
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string;
@@ -92,7 +93,13 @@ export class ClassService {
   async createClass(
     data: CreateClassRequest,
   ): Promise<ApiResponse<ClassResponse>> {
-    return this.httpClient.post<ClassResponse>('api/v1/classes', data, {
+    // Convert shift to uppercase for backend
+    const requestData = {
+      ...data,
+      shift: data.shift.toUpperCase() as 'MORNING' | 'DAY',
+    };
+
+    return this.httpClient.post<ClassResponse>('api/v1/classes', requestData, {
       requiresAuth: true,
     });
   }
@@ -137,6 +144,57 @@ export class ClassService {
       requiresAuth: true,
     });
   }
+
+  /**
+   * Get available rooms for a specific shift
+   */
+  async getAvailableRooms(
+    shift: 'morning' | 'day',
+  ): Promise<ApiResponse<AvailableRoom[]>> {
+    const shiftParam = shift.toUpperCase(); // Convert to MORNING/DAY for backend
+    return this.httpClient.get<AvailableRoom[]>(
+      `api/v1/classes/rooms/available?shift=${shiftParam}`,
+      undefined,
+      { requiresAuth: true },
+    );
+  }
+
+  /**
+   * Get available teachers (not already assigned as class teachers)
+   */
+  async getAvailableTeachers(): Promise<ApiResponse<AvailableTeacher[]>> {
+    return this.httpClient.get<AvailableTeacher[]>(
+      'api/v1/classes/teachers/available',
+      undefined,
+      { requiresAuth: true },
+    );
+  }
+}
+
+// ============================================================================
+// Additional Types for Available Resources
+// ============================================================================
+
+export interface AvailableRoom {
+  id: string;
+  roomNo: string;
+  name?: string;
+  floor: number;
+  building?: string;
+  capacity: number;
+  assignedClasses: Array<{
+    id: string;
+    grade: number;
+    section: string;
+    shift: 'MORNING' | 'DAY';
+  }>;
+}
+
+export interface AvailableTeacher {
+  id: string;
+  fullName: string;
+  email: string;
+  employeeId?: string;
 }
 
 // ============================================================================

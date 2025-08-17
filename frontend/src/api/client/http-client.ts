@@ -192,18 +192,36 @@ export class HttpClient {
 
         // Handle HTTP errors
         if (!response.ok) {
-          console.error('HTTP Error Response:', {
-            status: response.status,
-            statusText: response.statusText,
-            url: fullUrl,
-            data: responseData,
-          });
+          // Only log detailed errors in development, but skip 409 conflicts (handled gracefully)
+          if (
+            process.env.NODE_ENV === 'development' &&
+            response.status !== 409
+          ) {
+            console.error('HTTP Error Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              url: fullUrl,
+              data: responseData,
+            });
+          }
 
           // Extract validation errors if available
           let validationErrors = {};
           let errorMessage =
             responseData?.message ||
             `HTTP ${response.status}: ${response.statusText}`;
+
+          // Handle 409 Conflict errors with user-friendly messages
+          if (response.status === 409) {
+            if (responseData?.message?.includes('already exists')) {
+              errorMessage = responseData.message;
+            } else if (responseData?.message?.includes('conflict')) {
+              errorMessage = responseData.message;
+            } else {
+              errorMessage =
+                'A conflict occurred. The requested resource may already exist.';
+            }
+          }
 
           // Handle NestJS validation errors format
           if (responseData?.message && Array.isArray(responseData.message)) {
@@ -288,12 +306,17 @@ export class HttpClient {
       } catch (error) {
         lastError = error as Error;
 
-        // Log detailed error information
-        console.error('API Request Error:', {
-          url: fullUrl,
-          method,
-          error: error instanceof Error ? error.message : error,
-        });
+        // Log detailed error information only in development, but skip 409 conflicts
+        if (process.env.NODE_ENV === 'development') {
+          const apiError = error as ApiError;
+          if (!apiError?.statusCode || apiError.statusCode !== 409) {
+            console.error('API Request Error:', {
+              url: fullUrl,
+              method,
+              error: error instanceof Error ? error.message : error,
+            });
+          }
+        }
 
         // Clear timeout on error
         if (timeoutId) clearTimeout(timeoutId);

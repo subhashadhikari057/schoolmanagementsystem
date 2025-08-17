@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+// Enum for class shifts
+export const ClassShiftEnum = z.enum(['MORNING', 'DAY']);
+export type ClassShift = z.infer<typeof ClassShiftEnum>;
+
 // ---------------------------
 // CreateClass DTO
 // ---------------------------
@@ -8,8 +12,9 @@ export const CreateClassDto = z.object({
   grade: z.number().min(1).max(12, 'Grade must be between 1 and 12'),
   section: z.string().min(1, 'Section is required'), // e.g. "A", "B", "C"
   capacity: z.number().min(1, 'Capacity must be at least 1'),
+  shift: ClassShiftEnum.default('MORNING'), // Required shift field
   roomId: z.string().uuid('Invalid room ID'),
-  classTeacherId: z.string().uuid('Invalid teacher ID').optional(), // Optional class teacher
+  classTeacherId: z.string().uuid('Invalid teacher ID'), // Required class teacher
 });
 
 export type CreateClassDtoType = z.infer<typeof CreateClassDto>;
@@ -22,6 +27,7 @@ export const UpdateClassDto = z.object({
   grade: z.number().min(1).max(12).optional(),
   section: z.string().min(1).optional(),
   capacity: z.number().min(1).optional(),
+  shift: ClassShiftEnum.optional(),
   roomId: z.string().uuid().optional(),
   classTeacherId: z.string().uuid('Invalid teacher ID').optional(), // Can update class teacher
 });

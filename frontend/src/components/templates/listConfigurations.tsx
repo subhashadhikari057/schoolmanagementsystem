@@ -1265,6 +1265,7 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
           item: Subject,
           isSelected?: boolean,
           onSelect?: (id: string | number) => void,
+          onItemAction?: (action: string, item: Subject) => void,
           onSubjectAction?: (action: string, subject: Subject) => void,
         ) => (
           <ActionsCell
@@ -1272,6 +1273,8 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
             onAction={(action: string) => {
               if (onSubjectAction) {
                 onSubjectAction(action, item);
+              } else if (onItemAction) {
+                onItemAction(action, item);
               } else {
                 console.log('Action:', action, 'for subject:', item.id);
               }

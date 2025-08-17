@@ -15,6 +15,7 @@ export interface TableColumn<T = BaseItem> {
     isSelected?: boolean,
     onSelect?: (id: string | number) => void,
     onItemAction?: (action: string, item: T) => void,
+    onSubjectAction?: (action: string, item: T) => void,
   ) => ReactNode;
   className?: string;
   mobileLabel?: string;
@@ -29,6 +30,7 @@ export interface GenericTableProps<T extends BaseItem> {
   itemsPerPage?: number;
   emptyMessage?: string;
   onItemAction?: (action: string, item: T) => void;
+  onSubjectAction?: (action: string, item: T) => void; // For subjects-specific actions
 
   onPageChange?: (page: number) => void;
   enableSelection?: boolean;
@@ -45,6 +47,7 @@ const GenericTable = <T extends BaseItem>({
   itemsPerPage = 10,
   emptyMessage = 'No data available',
   onItemAction,
+  onSubjectAction,
 
   onPageChange,
   enableSelection = false,
@@ -112,7 +115,14 @@ const GenericTable = <T extends BaseItem>({
     // Use custom render function if provided
     if (column.render) {
       const isSelected = selectedItems.includes(item.id);
-      return column.render(item, isSelected, handleItemSelect, onItemAction);
+      // Pass both action handlers - the column render function will use the appropriate one
+      return column.render(
+        item,
+        isSelected,
+        handleItemSelect,
+        onItemAction,
+        onSubjectAction,
+      );
     }
     // Fall back to default rendering
     return renderCellValue(column.key, item[column.key]);

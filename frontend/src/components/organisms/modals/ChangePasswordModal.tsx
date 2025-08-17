@@ -11,6 +11,62 @@ import {
 } from '@/lib/validations/auth';
 import { useAuth } from '@/hooks/useAuth';
 
+// Password validation function
+const validatePassword = (password: string) => {
+  const hasMinLength = password.length >= 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
+
+  return {
+    hasMinLength,
+    hasUpperCase,
+    hasLowerCase,
+    hasNumber,
+    hasSpecialChar,
+    isValid:
+      hasMinLength &&
+      hasUpperCase &&
+      hasLowerCase &&
+      hasNumber &&
+      hasSpecialChar,
+  };
+};
+
+// Validation item renderer
+const renderValidationItem = (isValid: boolean, text: string) => (
+  <li className='flex items-center gap-2 text-sm'>
+    <span
+      className={`inline-flex items-center justify-center w-4 h-4 rounded-full ${
+        isValid ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+      }`}
+    >
+      {isValid ? (
+        <svg width='12' height='12' fill='none' viewBox='0 0 12 12'>
+          <path
+            d='M2 6L5 9L10 3'
+            stroke='currentColor'
+            strokeWidth='2'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+          />
+        </svg>
+      ) : (
+        <svg width='12' height='12' fill='none' viewBox='0 0 12 12'>
+          <path
+            d='M3 3L9 9M9 3L3 9'
+            stroke='currentColor'
+            strokeWidth='2'
+            strokeLinecap='round'
+          />
+        </svg>
+      )}
+    </span>
+    {text}
+  </li>
+);
+
 // Local Button component
 const Btn: React.FC<
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -118,15 +174,26 @@ export default function ChangePasswordModal({
 }: ChangePasswordModalProps) {
   const { changePassword } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [passwordValidation, setPasswordValidation] = useState(
+    validatePassword(''),
+  );
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    watch,
   } = useForm<ChangePasswordFormData>({
     resolver: zodResolver(changePasswordSchema),
   });
+
+  const newPassword = watch('new_password');
+
+  // Update password validation when newPassword changes
+  useEffect(() => {
+    setPasswordValidation(validatePassword(newPassword || ''));
+  }, [newPassword]);
 
   const onSubmit: SubmitHandler<ChangePasswordFormData> = async data => {
     setError(null);
@@ -134,6 +201,7 @@ export default function ChangePasswordModal({
       await changePassword(data);
       toast.success('Password changed successfully!');
       reset();
+      setPasswordValidation(validatePassword(''));
       onClose();
     } catch (err: unknown) {
       const errorObj = err as {
@@ -249,6 +317,49 @@ export default function ChangePasswordModal({
               icon={Key}
             />
 
+            {/* Live Password Validation */}
+            <div
+              className={`mt-4 p-4 rounded-md border ${
+                passwordValidation.isValid
+                  ? 'bg-green-50 border-green-200'
+                  : 'bg-blue-50 border-blue-200'
+              }`}
+            >
+              <p
+                className={`text-sm font-medium mb-3 ${
+                  passwordValidation.isValid
+                    ? 'text-green-800'
+                    : 'text-blue-800'
+                }`}
+              >
+                {passwordValidation.isValid
+                  ? '✅ Password meets all requirements'
+                  : 'Password Requirements:'}
+              </p>
+              <ul className='list-none space-y-2 text-sm'>
+                {renderValidationItem(
+                  passwordValidation.hasMinLength,
+                  'At least 8 characters long',
+                )}
+                {renderValidationItem(
+                  passwordValidation.hasUpperCase,
+                  'Contains uppercase letters',
+                )}
+                {renderValidationItem(
+                  passwordValidation.hasLowerCase,
+                  'Contains lowercase letters',
+                )}
+                {renderValidationItem(
+                  passwordValidation.hasNumber,
+                  'Includes at least one number',
+                )}
+                {renderValidationItem(
+                  passwordValidation.hasSpecialChar,
+                  'Includes one special character',
+                )}
+              </ul>
+            </div>
+
             {error && (
               <div className='bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg p-3 text-center'>
                 {error}
@@ -265,7 +376,16 @@ export default function ChangePasswordModal({
               >
                 Cancel
               </Btn>
-              <Btn type='submit' loading={isSubmitting}>
+              <Btn
+                type='submit'
+                loading={isSubmitting}
+                disabled={!passwordValidation.isValid}
+                className={
+                  !passwordValidation.isValid
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
+                }
+              >
                 Update Password
               </Btn>
             </div>
