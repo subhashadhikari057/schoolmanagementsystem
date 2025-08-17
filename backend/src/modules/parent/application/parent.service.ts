@@ -518,12 +518,10 @@ export class ParentService {
     }
 
     // Check if link already exists
-    const existingLink = await this.prisma.parentStudentLink.findUnique({
+    const existingLink = await this.prisma.parentStudentLink.findFirst({
       where: {
-        parentId_studentId: {
-          parentId,
-          studentId: data.studentId,
-        },
+        parentId,
+        studentId: data.studentId,
       },
     });
 
@@ -588,12 +586,10 @@ export class ParentService {
     ip: string,
     userAgent: string,
   ) {
-    const link = await this.prisma.parentStudentLink.findUnique({
+    const link = await this.prisma.parentStudentLink.findFirst({
       where: {
-        parentId_studentId: {
-          parentId,
-          studentId: data.studentId,
-        },
+        parentId,
+        studentId: data.studentId,
       },
     });
 
@@ -604,10 +600,7 @@ export class ParentService {
     try {
       await this.prisma.parentStudentLink.delete({
         where: {
-          parentId_studentId: {
-            parentId,
-            studentId: data.studentId,
-          },
+          id: link.id,
         },
       });
 
@@ -657,12 +650,10 @@ export class ParentService {
   ) {
     const { parentId, studentId } = data;
 
-    const link = await this.prisma.parentStudentLink.findUnique({
+    const link = await this.prisma.parentStudentLink.findFirst({
       where: {
-        parentId_studentId: {
-          parentId,
-          studentId,
-        },
+        parentId,
+        studentId,
       },
     });
 
@@ -681,10 +672,7 @@ export class ParentService {
         // Set this parent as primary
         await tx.parentStudentLink.update({
           where: {
-            parentId_studentId: {
-              parentId,
-              studentId,
-            },
+            id: link.id,
           },
           data: { isPrimary: true },
         });

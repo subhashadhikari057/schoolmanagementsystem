@@ -219,21 +219,23 @@ async function main() {
   });
 
   // Create Parent-Student link
-  await prisma.parentStudentLink.upsert({
+  const existingLink = await prisma.parentStudentLink.findFirst({
     where: {
-      parentId_studentId: {
-        parentId: parent.id,
-        studentId: student.id,
-      },
-    },
-    update: {},
-    create: {
       parentId: parent.id,
       studentId: student.id,
-      isPrimary: true,
-      relationship: 'father',
     },
   });
+
+  if (!existingLink) {
+    await prisma.parentStudentLink.create({
+      data: {
+        parentId: parent.id,
+        studentId: student.id,
+        isPrimary: true,
+        relationship: 'father',
+      },
+    });
+  }
 
   // 9. Create ID Card for Student
   const idTemplate = await prisma.iDCardTemplate.create({

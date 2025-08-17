@@ -302,12 +302,17 @@ model ParentStudentLink {
 
   relationship String
   isPrimary    Boolean @default(false)
+  
+  // Contact information fields
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime?
   deletedAt DateTime?
 
-  @@unique([parentId, studentId])
+  @@unique([parentId, studentId], name: "parentId_studentId")
   @@index([parentId])
   @@index([studentId])
 }
