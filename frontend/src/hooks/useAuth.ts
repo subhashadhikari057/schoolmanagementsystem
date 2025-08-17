@@ -148,16 +148,30 @@ export function useAuth() {
 
         return; // Normal login completed
       } catch (error) {
-        const apiError = error as ApiError;
-        setAuthState(prev => ({
-          ...prev,
+        // CRITICAL: Clear stored auth data on login failure to prevent redirect loops
+        try {
+          clearStoredAuth();
+        } catch (clearError) {
+          console.warn(
+            'Failed to clear stored auth on login failure:',
+            clearError,
+          );
+        }
+
+        // Reset authentication state completely
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+          accessToken: null,
+          refreshToken: null,
           isLoading: false,
-          error: apiError.message || 'Login failed',
-        }));
+          error: null,
+        });
+
         throw error;
       }
     },
-    [],
+    [clearStoredAuth],
   );
 
   // Force change password function for first-time users
@@ -232,6 +246,10 @@ export function useAuth() {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
 
+      // Set HTTP client to logout state to prevent new requests
+      const { httpClient } = await import('@/api/client/http-client');
+      httpClient.setLoggingOut(true);
+
       // Call logout API (backend will clear cookies)
       try {
         await authService.logout();
@@ -249,6 +267,10 @@ export function useAuth() {
         isLoading: false,
         error: null,
       });
+
+      // Reset HTTP client state
+      httpClient.setLoggingOut(false);
+
       router.push('/auth/login');
     } catch (error) {
       console.error('Logout error:', error);
@@ -262,6 +284,11 @@ export function useAuth() {
         isLoading: false,
         error: null,
       });
+
+      // Reset HTTP client state
+      const { httpClient } = await import('@/api/client/http-client');
+      httpClient.setLoggingOut(false);
+
       router.push('/auth/login');
     }
   }, [clearStoredAuth, router]);
@@ -273,8 +300,14 @@ export function useAuth() {
         // Check if we have stored user data from previous session
         const storedUser = getStoredUser();
 
-        if (storedUser) {
-          // User was previously authenticated, try to verify session
+        if (
+          storedUser &&
+          storedUser.id &&
+          storedUser.email &&
+          storedUser.role
+        ) {
+          // Validate stored user data before trusting it
+          // Only set authenticated if we have complete user data
           setAuthState({
             isAuthenticated: true,
             user: storedUser,
@@ -284,7 +317,11 @@ export function useAuth() {
             error: null,
           });
         } else {
-          // No stored user data, user is not authenticated
+          // No stored user data or invalid data, user is not authenticated
+          // Clear any partial/corrupted stored data
+          if (storedUser) {
+            clearStoredAuth();
+          }
           setAuthState({
             isAuthenticated: false,
             user: null,
@@ -296,6 +333,12 @@ export function useAuth() {
         }
       } catch (error) {
         console.log('Auth initialization error:', error);
+        // Clear any corrupted stored data
+        try {
+          clearStoredAuth();
+        } catch (clearError) {
+          console.warn('Failed to clear corrupted auth data:', clearError);
+        }
         setAuthState({
           isAuthenticated: false,
           user: null,
@@ -308,8 +351,17 @@ export function useAuth() {
     };
 
     // Listen for session expiry events from HTTP client
-    const handleSessionExpired = () => {
+    const handleSessionExpired = async () => {
       console.log('🔄 Session expired event received, logging out user');
+
+      // Set HTTP client to logout state to prevent new requests
+      try {
+        const { httpClient } = await import('@/api/client/http-client');
+        httpClient.setLoggingOut(true);
+      } catch (error) {
+        console.warn('Failed to set logout state:', error);
+      }
+
       // Call logout directly to avoid dependency issues
       clearStoredAuth();
       setAuthState({

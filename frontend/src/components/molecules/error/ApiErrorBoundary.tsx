@@ -27,6 +27,7 @@ export default function ApiErrorBoundary({
 }: ApiErrorBoundaryProps) {
   const router = useRouter();
   const [error, setError] = useState<ApiError | null>(null);
+  const [lastToastTime, setLastToastTime] = useState<number>(0);
 
   useEffect(() => {
     // Event handler for API errors
@@ -38,9 +39,6 @@ export default function ApiErrorBoundary({
         onError(apiError);
       }
 
-      // Set error state
-      setError(apiError);
-
       // Handle token expiry errors
       if (isTokenExpiryError(apiError)) {
         // Store current path for redirect after login
@@ -51,12 +49,19 @@ export default function ApiErrorBoundary({
           }
         }
 
-        // Show error toast
-        toast.error('Your session has expired. Please log in again.');
+        // Prevent duplicate toast messages within 5 seconds
+        const now = Date.now();
+        if (now - lastToastTime > 5000) {
+          toast.error('Your session has expired. Please log in again.');
+          setLastToastTime(now);
+        }
 
-        // Redirect to login page
-        router.push('/auth/login');
+        // Don't set error state for token expiry - let the session handler manage it
+        return;
       }
+
+      // Set error state for other errors
+      setError(apiError);
     };
 
     // Add event listener
@@ -73,7 +78,7 @@ export default function ApiErrorBoundary({
         );
       }
     };
-  }, [router, onError]);
+  }, [router, onError, lastToastTime]);
 
   // Show fallback if there is an error
   if (error) {

@@ -46,6 +46,12 @@ export const isTokenExpiryError = (error: unknown): boolean => {
 
   // Check for ApiError type with status code
   const apiError = error as ApiError;
+
+  // CRITICAL: Exclude auth failures (login/register errors) from token expiry handling
+  if (apiError.code === 'AUTH_FAILURE') {
+    return false;
+  }
+
   if (apiError.statusCode === AUTH_STATUS_CODES.UNAUTHORIZED) {
     return true;
   }
@@ -147,6 +153,9 @@ export const verifySession = async (): Promise<boolean> => {
 // Session Expiry Handling
 // ============================================================================
 
+// Track if session expiry is already being handled
+let sessionExpiryInProgress = false;
+
 /**
  * Handle session expiry by redirecting to login page
  * @param message Optional custom message to display on login page
@@ -154,6 +163,15 @@ export const verifySession = async (): Promise<boolean> => {
 export const handleSessionExpiry = (message?: string): void => {
   // Only run in browser environment
   if (typeof window === 'undefined') return;
+
+  // Prevent duplicate session expiry handling
+  if (sessionExpiryInProgress) return;
+  sessionExpiryInProgress = true;
+
+  // Reset flag after a short delay to allow for proper cleanup
+  setTimeout(() => {
+    sessionExpiryInProgress = false;
+  }, 1000);
 
   // Clear auth state by triggering the session expired event
   window.dispatchEvent(new CustomEvent('auth:session-expired'));

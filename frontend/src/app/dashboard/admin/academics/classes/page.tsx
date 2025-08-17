@@ -215,7 +215,7 @@ const ClassesPage = () => {
                 employeeId: cls.classTeacher.employeeId,
               }
             : undefined,
-          studentCount: cls.students?.length || 0,
+          studentCount: cls.currentEnrollment || cls.students?.length || 0,
           status: cls.deletedAt ? 'Inactive' : 'Active',
         }));
 

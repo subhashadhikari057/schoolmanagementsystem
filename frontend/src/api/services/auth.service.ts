@@ -72,7 +72,14 @@ export class AuthService {
       // or returns temp token for password change
       return response;
     } catch (error) {
-      console.error('Login error:', error);
+      // Only log unexpected login errors in development
+      if (process.env.NODE_ENV === 'development') {
+        const apiError = error as any;
+        if (apiError?.statusCode !== 401) {
+          // Don't log invalid credentials
+          console.error('Login error:', error);
+        }
+      }
       throw error;
     }
   }

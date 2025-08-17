@@ -23,7 +23,7 @@ export class ClassService {
     ip?: string,
     userAgent?: string,
   ) {
-    // Check if class with same grade, section, and shift already exists
+    // Check if class with same grade, section, and shift already exists (excluding soft deleted)
     const exists = await this.prisma.class.findFirst({
       where: {
         grade: dto.grade,
@@ -130,6 +130,13 @@ export class ClassService {
         room: {
           select: { roomNo: true, name: true, floor: true, building: true },
         },
+        students: {
+          where: { deletedAt: null },
+          select: { id: true },
+        },
+        _count: {
+          select: { students: { where: { deletedAt: null } } },
+        },
       },
       orderBy: { grade: 'asc' },
     });
@@ -186,22 +193,26 @@ export class ClassService {
       throw new NotFoundException('Class not found');
     }
 
-    // Check for duplicate name if name is being updated
+    // Check for duplicate class if grade, section, or shift is being updated
     if (
       (dto.grade && dto.grade !== classRecord.grade) ||
-      (dto.section && dto.section !== classRecord.section)
+      (dto.section && dto.section !== classRecord.section) ||
+      (dto.shift && dto.shift !== classRecord.shift)
     ) {
       const exists = await this.prisma.class.findFirst({
         where: {
           grade: dto.grade || classRecord.grade,
           section: dto.section || classRecord.section,
+          shift: dto.shift || classRecord.shift,
           deletedAt: null,
           id: { not: id }, // Exclude current class from check
         },
       });
 
       if (exists) {
-        throw new ConflictException('Class with this name already exists');
+        throw new ConflictException(
+          `Class with Grade ${dto.grade || classRecord.grade} Section ${dto.section || classRecord.section} in ${(dto.shift || classRecord.shift).toLowerCase()} shift already exists`,
+        );
       }
     }
 

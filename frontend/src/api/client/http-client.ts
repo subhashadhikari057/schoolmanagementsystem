@@ -49,6 +49,8 @@ export class HttpClient {
   private config: HttpClientConfig;
   private accessToken: string | null = null;
   private isRefreshing: boolean = false;
+  private isLoggingOut: boolean = false;
+  private refreshPromise: Promise<boolean> | null = null;
   private failedQueue: Array<{
     resolve: (value: any) => void;
     reject: (error: any) => void;
@@ -59,6 +61,7 @@ export class HttpClient {
       requestConfig?: RequestConfig;
     };
   }> = [];
+  private activeRequests: Set<AbortController> = new Set();
 
   constructor(config: Partial<HttpClientConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -67,6 +70,22 @@ export class HttpClient {
   // Set access token for authenticated requests
   setAccessToken(token: string | null) {
     this.accessToken = token;
+  }
+
+  // Cancel all active requests (used during logout)
+  cancelAllRequests() {
+    this.activeRequests.forEach(controller => {
+      controller.abort();
+    });
+    this.activeRequests.clear();
+  }
+
+  // Set logout state to prevent new requests
+  setLoggingOut(isLoggingOut: boolean) {
+    this.isLoggingOut = isLoggingOut;
+    if (isLoggingOut) {
+      this.cancelAllRequests();
+    }
   }
 
   // Get access token
@@ -104,6 +123,15 @@ export class HttpClient {
     data?: any,
     config: RequestConfig = {},
   ): Promise<ApiResponse<T>> {
+    // Prevent new requests during logout
+    if (this.isLoggingOut && !url.includes('/auth/')) {
+      throw {
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Session expired. Please login again.',
+        code: 'LOGOUT_IN_PROGRESS',
+      };
+    }
     const traceId = this.generateTraceId();
 
     // Build request headers
@@ -120,10 +148,13 @@ export class HttpClient {
 
     // Add CSRF token for mutation requests (except auth endpoints)
     const isMutation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+    // CRITICAL: Determine if this is an auth endpoint (for both CSRF and security classification)
     const isAuthEndpoint =
-      url.includes('/auth/login') ||
-      url.includes('/auth/refresh') ||
-      url.includes('/auth/logout') ||
+      url.includes('/auth/') ||
+      url.includes('/api/v1/auth/') ||
+      url.endsWith('/login') ||
+      url.endsWith('/register') ||
+      url.endsWith('/refresh') ||
       url.includes('/csrf/token');
 
     if (isMutation && !isAuthEndpoint && !config.skipCsrf) {
@@ -168,11 +199,14 @@ export class HttpClient {
     // Retry logic
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       let timeoutId: NodeJS.Timeout | undefined;
+      let controller: AbortController | undefined;
       try {
         // Set up timeout for this attempt
-        const controller = new AbortController();
+        controller = new AbortController();
+        this.activeRequests.add(controller);
+
         timeoutId = setTimeout(() => {
-          controller.abort();
+          controller?.abort();
         }, config.timeout || this.config.timeout);
 
         // Update request options with new controller
@@ -192,10 +226,11 @@ export class HttpClient {
 
         // Handle HTTP errors
         if (!response.ok) {
-          // Only log detailed errors in development, but skip 409 conflicts (handled gracefully)
+          // Only log detailed errors in development, but skip expected errors
           if (
             process.env.NODE_ENV === 'development' &&
-            response.status !== 409
+            response.status !== 409 && // Skip conflicts (handled gracefully)
+            !(isAuthEndpoint && response.status === 401) // Skip auth failures (expected)
           ) {
             console.error('HTTP Error Response:', {
               status: response.status,
@@ -262,7 +297,10 @@ export class HttpClient {
           };
 
           // Handle 401 Unauthorized - session expired
-          if (response.status === 401 && !url.includes('/auth/')) {
+          // CRITICAL: Only treat as session expiry if NOT on auth endpoints
+
+          if (response.status === 401 && !isAuthEndpoint) {
+            // This is a session expiry, not a login failure
             // Dispatch API error event for token expiry handlers
             dispatchApiErrorEvent(apiError);
             return this.handleUnauthorized(method, url, data, config);
@@ -287,13 +325,25 @@ export class HttpClient {
             }
           }
 
-          // Dispatch API error event for other errors
-          dispatchApiErrorEvent(apiError);
+          // Dispatch API error event for other errors (including auth failures)
+          // But mark auth endpoint failures differently to prevent session expiry handling
+          if (isAuthEndpoint && response.status === 401) {
+            // This is a login/auth failure, not a session expiry
+            // Don't trigger session expiry handlers
+            dispatchApiErrorEvent({
+              ...apiError,
+              code: 'AUTH_FAILURE', // Mark as auth failure, not session expiry
+            });
+          } else {
+            // Normal API error
+            dispatchApiErrorEvent(apiError);
+          }
           throw apiError;
         }
 
         // Clear timeout on success
         if (timeoutId) clearTimeout(timeoutId);
+        this.activeRequests.delete(controller);
 
         // Return successful response
         return {
@@ -306,10 +356,14 @@ export class HttpClient {
       } catch (error) {
         lastError = error as Error;
 
-        // Log detailed error information only in development, but skip 409 conflicts
+        // Log detailed error information only in development, but skip expected errors
         if (process.env.NODE_ENV === 'development') {
           const apiError = error as ApiError;
-          if (!apiError?.statusCode || apiError.statusCode !== 409) {
+          const isExpectedError =
+            apiError?.statusCode === 409 || // Conflicts
+            (isAuthEndpoint && apiError?.statusCode === 401); // Auth failures
+
+          if (!isExpectedError) {
             console.error('API Request Error:', {
               url: fullUrl,
               method,
@@ -320,6 +374,7 @@ export class HttpClient {
 
         // Clear timeout on error
         if (timeoutId) clearTimeout(timeoutId);
+        if (controller) this.activeRequests.delete(controller);
 
         // Don't retry for certain errors
         if (
@@ -357,21 +412,71 @@ export class HttpClient {
     data?: any,
     config: RequestConfig = {},
   ): Promise<ApiResponse<T>> {
-    // If already refreshing, add request to queue
-    if (this.isRefreshing) {
-      return new Promise((resolve, reject) => {
-        this.failedQueue.push({
-          resolve,
-          reject,
-          config: { method, url, data, requestConfig: config },
-        });
-      });
+    // Prevent refresh during logout
+    if (this.isLoggingOut) {
+      throw {
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Session expired. Please login again.',
+        code: 'LOGOUT_IN_PROGRESS',
+      };
     }
 
+    // If already refreshing, wait for the existing refresh promise
+    if (this.refreshPromise) {
+      try {
+        const refreshSuccessful = await this.refreshPromise;
+        if (refreshSuccessful) {
+          // Retry the original request
+          return this.makeRequest<T>(method, url, data, config);
+        } else {
+          throw {
+            statusCode: 401,
+            error: 'Unauthorized',
+            message: 'Session expired. Please login again.',
+            code: 'SESSION_EXPIRED',
+          };
+        }
+      } catch {
+        throw {
+          statusCode: 401,
+          error: 'Unauthorized',
+          message: 'Session expired. Please login again.',
+          code: 'SESSION_EXPIRED',
+        };
+      }
+    }
+
+    // Start refresh process
     this.isRefreshing = true;
+    this.refreshPromise = this.attemptTokenRefresh();
 
     try {
-      // Try to refresh the session by calling the refresh endpoint
+      const refreshSuccessful = await this.refreshPromise;
+
+      if (refreshSuccessful) {
+        // Retry the original request
+        return this.makeRequest<T>(method, url, data, config);
+      } else {
+        throw new Error('Session refresh failed');
+      }
+    } catch {
+      this.handleRefreshFailure();
+      throw {
+        statusCode: 401,
+        error: 'Unauthorized',
+        message: 'Session expired. Please login again.',
+        code: 'SESSION_EXPIRED',
+      };
+    } finally {
+      this.isRefreshing = false;
+      this.refreshPromise = null;
+    }
+  }
+
+  // Separate method for token refresh attempt
+  private async attemptTokenRefresh(): Promise<boolean> {
+    try {
       const refreshResponse = await fetch(
         `${this.config.baseURL}/api/v1/auth/refresh`,
         {
@@ -383,58 +488,26 @@ export class HttpClient {
         },
       );
 
-      if (refreshResponse.ok) {
-        // Session refreshed successfully
-
-        // Process failed queue
-        this.failedQueue.forEach(({ resolve, config: queuedConfig }) => {
-          resolve(
-            this.makeRequest(
-              queuedConfig.method,
-              queuedConfig.url,
-              queuedConfig.data,
-              queuedConfig.requestConfig,
-            ),
-          );
-        });
-
-        this.failedQueue = [];
-        this.isRefreshing = false;
-
-        // Retry the original request
-        return this.makeRequest<T>(method, url, data, config);
-      } else {
-        throw new Error('Session refresh failed');
-      }
+      return refreshResponse.ok;
     } catch (error) {
-      console.warn('Session refresh failed, redirecting to login');
+      console.warn('Token refresh request failed:', error);
+      return false;
+    }
+  }
 
-      // Process failed queue with rejections
-      this.failedQueue.forEach(({ reject }) => {
-        reject(new Error('Session expired. Please login again.'));
-      });
+  // Handle refresh failure - trigger logout once
+  private handleRefreshFailure() {
+    if (this.isLoggingOut) return; // Already handling logout
 
-      this.failedQueue = [];
-      this.isRefreshing = false;
+    this.isLoggingOut = true;
+    this.cancelAllRequests();
 
-      // Trigger logout via custom event so useAuth can handle it
-      if (typeof window !== 'undefined') {
+    // Trigger logout via custom event so useAuth can handle it
+    if (typeof window !== 'undefined') {
+      // Use setTimeout to ensure this runs after current call stack
+      setTimeout(() => {
         window.dispatchEvent(new CustomEvent('auth:session-expired'));
-      }
-
-      // Dispatch API error for token expiry handler
-      dispatchApiErrorEvent({
-        statusCode: 401,
-        error: 'Unauthorized',
-        message: 'Session expired. Please login again.',
-        code: 'SESSION_EXPIRED',
-      });
-
-      throw {
-        statusCode: 401,
-        error: 'Unauthorized',
-        message: 'Session expired. Please login again.',
-      };
+      }, 0);
     }
   }
 

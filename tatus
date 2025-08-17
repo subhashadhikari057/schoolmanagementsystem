@@ -1,0 +1,234 @@
+[1mdiff --git a/frontend/src/app/auth/login/page.tsx b/frontend/src/app/auth/login/page.tsx[m
+[1mindex f232906..85e956c 100644[m
+[1m--- a/frontend/src/app/auth/login/page.tsx[m
+[1m+++ b/frontend/src/app/auth/login/page.tsx[m
+[36m@@ -11,8 +11,7 @@[m [mimport { toast } from 'sonner';[m
+ [m
+ export default function LoginPage() {[m
+   const router = useRouter();[m
+[31m-  const { login, isLoading, error, user, isAuthenticated } = useAuth();[m
+[31m-  const [redirectMessage, setRedirectMessage] = useState<string | null>(null);[m
+[32m+[m[32m  const { login, isLoading, user, isAuthenticated } = useAuth();[m
+   const [redirectPath, setRedirectPath] = useState<string | null>(null);[m
+ [m
+   // Check for session expiry message on mount - client-side only[m
+[36m@@ -23,12 +22,14 @@[m [mexport default function LoginPage() {[m
+       const path = sessionStorage.getItem('auth_redirect_path');[m
+ [m
+       if (message) {[m
+[31m-        setRedirectMessage(message);[m
+         sessionStorage.removeItem('auth_redirect_message');[m
+ [m
+         // Show toast message for session expiry with delay[m
+         setTimeout(() => {[m
+[31m-          toast.error(message);[m
+[32m+[m[32m          toast.error(message, {[m
+[32m+[m[32m            duration: 4000,[m
+[32m+[m[32m            position: 'top-center',[m
+[32m+[m[32m          });[m
+         }, 100);[m
+       }[m
+ [m
+[36m@@ -45,39 +46,54 @@[m [mexport default function LoginPage() {[m
+ [m
+   // Redirect based on user role after successful login[m
+   useEffect(() => {[m
+[31m-    if (isAuthenticated && user) {[m
+[31m-      // If we have a saved redirect path from session expiry, use that[m
+[31m-      if (redirectPath) {[m
+[31m-        router.push(redirectPath);[m
+[31m-        sessionStorage.removeItem('auth_redirect_path');[m
+[32m+[m[32m    // CRITICAL: Only redirect if we have a truly authenticated user[m
+[32m+[m[32m    // and we're not in the middle of a login process[m
+[32m+[m[32m    if (isAuthenticated && user && !isLoading) {[m
+[32m+[m[32m      // Additional safety check: verify we have valid user data[m
+[32m+[m[32m      if (!user.id || !user.email || !user.role) {[m
+[32m+[m[32m        console.warn('Invalid user data detected, not redirecting:', user);[m
+         return;[m
+       }[m
+ [m
+[31m-      // Otherwise, redirect based on role[m
+[31m-      const getDashboardRoute = (role: string) => {[m
+[31m-        switch (role?.toUpperCase()) {[m
+[31m-          case 'SUPER_ADMIN':[m
+[31m-          case 'ADMIN':[m
+[31m-            return '/dashboard/admin';[m
+[31m-          case 'TEACHER':[m
+[31m-            return '/dashboard/teacher';[m
+[31m-          case 'STUDENT':[m
+[31m-            return '/dashboard/student';[m
+[31m-          case 'PARENT':[m
+[31m-            return '/dashboard/parent';[m
+[31m-          case 'ACCOUNTANT':[m
+[31m-            return '/dashboard/accountant';[m
+[31m-          case 'STAFF':[m
+[31m-            return '/dashboard/staff';[m
+[31m-          default:[m
+[31m-            return '/dashboard'; // fallback[m
+[32m+[m[32m      // Add a small delay to ensure login process is complete[m
+[32m+[m[32m      // This prevents redirect during login error handling[m
+[32m+[m[32m      const redirectTimer = setTimeout(() => {[m
+[32m+[m[32m        // If we have a saved redirect path from session expiry, use that[m
+[32m+[m[32m        if (redirectPath) {[m
+[32m+[m[32m          router.push(redirectPath);[m
+[32m+[m[32m          sessionStorage.removeItem('auth_redirect_path');[m
+[32m+[m[32m          return;[m
+         }[m
+[31m-      };[m
+ [m
+[31m-      const dashboardRoute = getDashboardRoute(user.role);[m
+[31m-      router.push(dashboardRoute);[m
+[32m+[m[32m        // Otherwise, redirect based on role[m
+[32m+[m[32m        const getDashboardRoute = (role: string) => {[m
+[32m+[m[32m          switch (role?.toUpperCase()) {[m
+[32m+[m[32m            case 'SUPER_ADMIN':[m
+[32m+[m[32m            case 'ADMIN':[m
+[32m+[m[32m              return '/dashboard/admin';[m
+[32m+[m[32m            case 'TEACHER':[m
+[32m+[m[32m              return '/dashboard/teacher';[m
+[32m+[m[32m            case 'STUDENT':[m
+[32m+[m[32m              return '/dashboard/student';[m
+[32m+[m[32m            case 'PARENT':[m
+[32m+[m[32m              return '/dashboard/parent';[m
+[32m+[m[32m            case 'ACCOUNTANT':[m
+[32m+[m[32m              return '/dashboard/accountant';[m
+[32m+[m[32m            case 'STAFF':[m
+[32m+[m[32m              return '/dashboard/staff';[m
+[32m+[m[32m            default:[m
+[32m+[m[32m              return '/dashboard'; // fallback[m
+[32m+[m[32m          }[m
+[32m+[m[32m        };[m
+[32m+[m
+[32m+[m[32m        const dashboardRoute = getDashboardRoute(user.role);[m
+[32m+[m[32m        router.push(dashboardRoute);[m
+[32m+[m[32m      }, 100); // Small delay to ensure stability[m
+[32m+[m
+[32m+[m[32m      // Cleanup timer on unmount[m
+[32m+[m[32m      return () => clearTimeout(redirectTimer);[m
+     }[m
+[31m-  }, [isAuthenticated, user, router, redirectPath]);[m
+[32m+[m[32m  }, [isAuthenticated, user, router, redirectPath, isLoading]);[m
+ [m
+   const handleLogin = async (data: Record<string, unknown>) => {[m
+     try {[m
+[36m@@ -105,15 +121,88 @@[m [mexport default function LoginPage() {[m
+           JSON.stringify(loginResult.userInfo),[m
+         );[m
+ [m
+[32m+[m[32m        // Show success message for password change requirement[m
+[32m+[m[32m        toast.success('Please set a new password to continue.', {[m
+[32m+[m[32m          duration: 3000,[m
+[32m+[m[32m        });[m
+[32m+[m
+         // Redirect to password change page WITHOUT exposing sensitive data in URL[m
+         router.push('/auth/change-password');[m
+         return;[m
+       }[m
+ [m
+       // Normal login - the redirect will happen in useEffect below[m
+[32m+[m[32m      // Show brief success message[m
+[32m+[m[32m      toast.success('Login successful! Redirecting...', {[m
+[32m+[m[32m        duration: 2000,[m
+[32m+[m[32m      });[m
+     } catch (error) {[m
+[31m-      console.error('Login failed:', error);[m
+[31m-      // Error is handled by useAuth hook and displayed in the form[m
+[32m+[m[32m      // Prevent any form reset or page refresh by handling the error gracefully[m
+[32m+[m[32m      // Only log unexpected login errors in development[m
+[32m+[m[32m      if (process.env.NODE_ENV === 'development') {[m
+[32m+[m[32m        const apiError = error as any;[m
+[32m+[m[32m        if (apiError?.statusCode !== 401) { // Don't log invalid credentials[m
+[32m+[m[32m          console.error('Login failed:', error);[m
+[32m+[m[32m        }[m
+[32m+[m[32m      }[m
+[32m+[m[41m      [m
+[32m+[m[32m      // CRITICAL: Clear any stale authentication data to prevent redirect loops[m
+[32m+[m[32m      // This ensures that failed login doesn't leave the user in a false authenticated state[m
+[32m+[m[32m      try {[m
+[32m+[m[32m        // Clear stored user data from all possible storage locations[m
+[32m+[m[32m        localStorage.removeItem('auth_user');[m
+[32m+[m[32m        sessionStorage.removeItem('auth_user');[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Clear any auth-related session data that might cause redirects[m
+[32m+[m[32m        sessionStorage.removeItem('temp_auth_data');[m
+[32m+[m[32m        sessionStorage.removeItem('auth_redirect_path');[m
+[32m+[m[41m        [m
+[32m+[m[32m        // Clear potentially stale authentication cookies[m
+[32m+[m[32m        // This is safe to do on login failure as we want a clean slate[m
+[32m+[m[32m        document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';[m
+[32m+[m[32m        document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';[m
+[32m+[m[41m        [m
+[32m+[m[32m      } catch (clearError) {[m
+[32m+[m[32m        console.warn('Failed to clear auth data:', clearError);[m
+[32m+[m[32m      }[m
+[32m+[m[41m      [m
+[32m+[m[32m      // Show user-friendly error message as toast notification[m
+[32m+[m[32m      const apiError = error as {[m[41m [m
+[32m+[m[32m        message?: string;[m[41m [m
+[32m+[m[32m        statusCode?: number;[m
+[32m+[m[32m        code?: string;[m
+[32m+[m[32m      };[m
+[32m+[m[32m      let errorMessage = 'Login failed. Please try again.';[m
+[32m+[m[41m      [m
+[32m+[m[32m      // Provide specific error messages based on status codes[m
+[32m+[m[32m      if (apiError.statusCode === 401) {[m
+[32m+[m[32m        errorMessage = 'Invalid email or password. Please check your credentials and try again.';[m
+[32m+[m[32m      } else if (apiError.statusCode === 429) {[m
+[32m+[m[32m        errorMessage = 'Too many login attempts. Please wait a moment before trying again.';[m
+[32m+[m[32m      } else if (apiError.statusCode === 403) {[m
+[32m+[m[32m        errorMessage = 'Your account has been disabled. Please contact support for assistance.';[m
+[32m+[m[32m      } else if (apiError.statusCode === 422) {[m
+[32m+[m[32m        errorMessage = 'Please check that all fields are filled out correctly.';[m
+[32m+[m[32m      } else if (apiError.code === 'NETWORK_ERROR') {[m
+[32m+[m[32m        errorMessage = 'Network error. Please check your connection and try again.';[m
+[32m+[m[32m      } else if (apiError.message && !apiError.message.includes('fetch')) {[m
+[32m+[m[32m        // Use API message if it's user-friendly (not technical fetch errors)[m
+[32m+[m[32m        errorMessage = apiError.message;[m
+[32m+[m[32m      }[m
+[32m+[m[41m      [m
+[32m+[m[32m      // Show toast notification with professional error message[m
+[32m+[m[32m      toast.error(errorMessage, {[m
+[32m+[m[32m        duration: 5000, // Show for 5 seconds[m
+[32m+[m[32m        position: 'top-center',[m
+[32m+[m[32m        style: {[m
+[32m+[m[32m          backgroundColor: '#fef2f2',[m
+[32m+[m[32m          borderColor: '#fecaca',[m
+[32m+[m[32m          color: '#dc2626',[m
+[32m+[m[32m        },[m
+[32m+[m[32m      });[m
+[32m+[m[41m      [m
+[32m+[m[32m      // Don't re-throw the error to prevent any unwanted side effects[m
+[32m+[m[32m      // The form will remain as-is with user's input preserved[m
+     }[m
+   };[m
+ [m
+[36m@@ -134,27 +223,15 @@[m [mexport default function LoginPage() {[m
+     >[m
+       <div className='flex items-center justify-center px-4 py-8 sm:px-6 md:px-8 lg:px-10 lg:py-16 w-full min-h-screen lg:min-h-0'>[m
+         <div className='w-full max-w-md'>[m
+[31m-          {redirectMessage && ([m
+[31m-            <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-md'>[m
+[31m-              <p className='text-sm text-red-600'>{redirectMessage}</p>[m
+[31m-            </div>[m
+[31m-          )}[m
+[31m-[m
+           <LoginForm[m
+[31m-            description='login to access SMS Portal 👋'[m
+[32m+[m[32m            description='login to access SMS Portal '[m
+             title='SMS'[m
+[31m-            subtitle='Welcome,'[m
+[32m+[m[32m            subtitle='Welcome👋,'[m
+             emailLabel='Email'[m
+             passwordLabel='Password'[m
+             buttonLabel={isLoading ? 'Signing in...' : 'Login'}[m
+             onSubmit={handleLogin}[m
+           />[m
+[31m-[m
+[31m-          {error && ([m
+[31m-            <div className='mt-4 p-3 bg-red-50 border border-red-200 rounded-md'>[m
+[31m-              <p className='text-sm text-red-600'>{error}</p>[m
+[31m-            </div>[m
+[31m-          )}[m
+         </div>[m
+       </div>[m
+       <div className='hidden lg:block'>[m

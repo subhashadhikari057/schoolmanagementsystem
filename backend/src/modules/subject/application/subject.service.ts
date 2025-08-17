@@ -23,8 +23,12 @@ export class SubjectService {
     ip?: string,
     userAgent?: string,
   ) {
-    const existing = await this.prisma.subject.findUnique({
-      where: { code: dto.code },
+    // Check for existing active subject with same code (exclude soft-deleted)
+    const existing = await this.prisma.subject.findFirst({
+      where: {
+        code: dto.code,
+        deletedAt: null,
+      },
     });
 
     if (existing) throw new ConflictException('Subject code already exists');
@@ -168,6 +172,21 @@ export class SubjectService {
 
     if (!subject || subject.deletedAt) {
       throw new NotFoundException('Subject not found');
+    }
+
+    // Check for duplicate code if code is being updated
+    if (dto.code && dto.code !== subject.code) {
+      const existingWithCode = await this.prisma.subject.findFirst({
+        where: {
+          code: dto.code,
+          deletedAt: null,
+          id: { not: id }, // Exclude current subject
+        },
+      });
+
+      if (existingWithCode) {
+        throw new ConflictException('Subject code already exists');
+      }
     }
 
     // Separate DTO fields from relation data
