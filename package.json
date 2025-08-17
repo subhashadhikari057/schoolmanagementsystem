@@ -34,6 +34,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@types/csurf": "^1.11.5",
     "concurrently": "^8.2.2",
     "husky": "^9.1.7"
   },
@@ -42,6 +43,7 @@
     "npm": ">=9.0.0"
   },
   "dependencies": {
+    "csurf": "^1.11.0",
     "dotenv-safe": "^9.1.0"
   }
 }

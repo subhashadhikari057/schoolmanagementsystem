@@ -17,7 +17,6 @@ export default function LoginPage() {
 
   // Check for session expiry message on mount - client-side only
   useEffect(() => {
-    // Delay to prevent hydration mismatch
     const checkRedirectMessage = () => {
       const message = sessionStorage.getItem('auth_redirect_message');
       const path = sessionStorage.getItem('auth_redirect_path');
@@ -53,28 +52,33 @@ export default function LoginPage() {
         return;
       }
 
-      // Otherwise, redirect based on role
-      const getDashboardRoute = (role: string) => {
-        switch (role?.toUpperCase()) {
-          case 'SUPER_ADMIN':
-          case 'ADMIN':
-            return '/dashboard/admin';
-          case 'TEACHER':
-            return '/dashboard/teacher';
-          case 'STUDENT':
-            return '/dashboard/student';
-          case 'PARENT':
-            return '/dashboard/parent';
-          case 'ACCOUNTANT':
-            return '/dashboard/accountant';
-          case 'STAFF':
-            return '/dashboard/staff';
-          default:
-            return '/dashboard'; // fallback
-        }
-      };
+      // Otherwise, redirect based on role (robust to case and underscores)
+      const normalizedRole = user.role
+        ?.toString()
+        .replace(/_/g, '')
+        .toUpperCase();
+      let dashboardRoute = '/dashboard';
 
-      const dashboardRoute = getDashboardRoute(user.role);
+      switch (normalizedRole) {
+        case 'SUPERADMIN':
+          dashboardRoute = '/dashboard/admin';
+          break;
+        case 'ADMIN':
+          dashboardRoute = '/dashboard/admin';
+          break;
+        case 'TEACHER':
+          dashboardRoute = '/dashboard/teacher';
+          break;
+        case 'STUDENT':
+          dashboardRoute = '/dashboard/student';
+          break;
+        case 'PARENT':
+          dashboardRoute = '/dashboard/parent';
+          break;
+        default:
+          dashboardRoute = '/dashboard';
+      }
+
       router.push(dashboardRoute);
     }
   }, [isAuthenticated, user, router, redirectPath]);
@@ -111,8 +115,8 @@ export default function LoginPage() {
       }
 
       // Normal login - the redirect will happen in useEffect below
-    } catch (error) {
-      console.error('Login failed:', error);
+    } catch (err) {
+      console.error('Login failed:', err);
       // Error is handled by useAuth hook and displayed in the form
     }
   };
@@ -122,10 +126,10 @@ export default function LoginPage() {
       className='grid grid-cols-1 lg:grid-cols-2 min-h-screen h-screen w-full overflow-hidden'
       style={{
         background: `
-    radial-gradient(circle at 0% 0%, rgba(0, 97, 255, 0.4) 0%, rgba(0, 97, 255, 0.10) 30%, transparent 35%),
-    radial-gradient(circle at 100% 100%, rgba(96, 239, 255, 0.3) 0%, rgba(96, 239, 255, 0.20) 30%, transparent 35%),
-    #F7F7F7
-  `,
+          radial-gradient(circle at 0% 0%, rgba(0, 97, 255, 0.4) 0%, rgba(0, 97, 255, 0.10) 30%, transparent 35%),
+          radial-gradient(circle at 100% 100%, rgba(96, 239, 255, 0.3) 0%, rgba(96, 239, 255, 0.20) 30%, transparent 35%),
+          #F7F7F7
+        `,
         backgroundSize: 'cover',
         backgroundAttachment: 'fixed',
         backgroundRepeat: 'no-repeat',
