@@ -62,12 +62,14 @@ model Subject {
 
 model Class {
   id                 String         @id @default(uuid())
+  name               String?
   grade              Int
   section            String
   capacity           Int
+  shift              ClassShift     @default(MORNING)
   status             String         @default("active")
   roomId             String
-  classTeacherId     String?
+  classTeacherId     String
   createdAt          DateTime       @default(now())
   updatedAt          DateTime?
   deletedAt          DateTime?
@@ -81,9 +83,13 @@ model Class {
   students           Student[]
   teacherAssignments TeacherClass[] @relation("ClassTeacherAssignments")
 
+  @@unique([grade, section, shift], name: "unique_class_grade_section_shift")
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
+  @@index([grade])
+  @@index([section])
+  @@index([shift])
 }
 
 model Classroom {
@@ -608,4 +614,9 @@ enum CalendarEntryType {
 enum HolidayType {
   NATIONAL
   SCHOOL
+}
+
+enum ClassShift {
+  MORNING
+  DAY
 }

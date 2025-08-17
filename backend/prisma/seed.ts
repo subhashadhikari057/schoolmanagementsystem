@@ -66,12 +66,23 @@ async function main() {
   });
 
   if (!class10) {
+    // First, get the first available teacher to assign as class teacher
+    const firstTeacher = await prisma.teacher.findFirst({
+      where: { deletedAt: null },
+    });
+
+    if (!firstTeacher) {
+      throw new Error('No teachers found to assign as class teacher');
+    }
+
     class10 = await prisma.class.create({
       data: {
         grade: 10,
         section: 'A',
         capacity: 30,
+        shift: 'MORNING',
         roomId: room.id,
+        classTeacherId: firstTeacher.id,
       },
     });
   }
