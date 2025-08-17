@@ -222,6 +222,89 @@ export class ParentService {
   }
 
   /**
+   * Search parents for linking to students (simplified response)
+   */
+  async searchForLinking(searchTerm: string, limit: number = 20) {
+    try {
+      const parents = await this.prisma.parent.findMany({
+        where: {
+          deletedAt: null,
+          user: {
+            deletedAt: null,
+            OR: [
+              { fullName: { contains: searchTerm, mode: 'insensitive' } },
+              { email: { contains: searchTerm, mode: 'insensitive' } },
+              { phone: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+          },
+        },
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true,
+            },
+          },
+          occupation: true,
+          children: {
+            select: {
+              student: {
+                select: {
+                  id: true,
+                  user: {
+                    select: {
+                      fullName: true,
+                    },
+                  },
+                  class: {
+                    select: {
+                      grade: true,
+                      section: true,
+                    },
+                  },
+                },
+              },
+              relationship: true,
+            },
+          },
+        },
+        take: limit,
+        orderBy: [
+          {
+            user: {
+              fullName: 'asc',
+            },
+          },
+        ],
+      });
+
+      return {
+        success: true,
+        data: parents.map(parent => ({
+          id: parent.id,
+          fullName: parent.user.fullName,
+          email: parent.user.email,
+          phone: parent.user.phone,
+          occupation: parent.occupation,
+          existingChildren: parent.children.map(child => ({
+            id: child.student.id,
+            name: child.student.user.fullName,
+            class: `Grade ${child.student.class.grade} ${child.student.class.section}`,
+            relationship: child.relationship,
+          })),
+        })),
+        message: 'Parents retrieved successfully',
+      };
+    } catch (error) {
+      console.error('Error searching parents for linking:', error);
+      throw new BadRequestException('Failed to search parents');
+    }
+  }
+
+  /**
    * Get all parents with pagination and filtering
    */
   async findAll(query: GetAllParentsDtoType) {

@@ -1,231 +1,347 @@
 import { z } from 'zod';
 
-// ✅ Reusable JSON schema
-const JsonRecordSchema = z.record(z.any()).optional();
-
-// ✅ Profile schema for create (inline inside CreateStudentDto)
-const StudentProfileInput = z
-  .object({
-    emergencyContact: JsonRecordSchema,
-    interests: JsonRecordSchema,
-    additionalData: JsonRecordSchema,
-    profilePhotoUrl: z.string().url().optional(),
-  })
-  .optional();
-
-// ✅ CreateStudentDto for completely new student with new parents
-export const CreateStudentWithNewParentsDto = z.object({
-  user: z.object({
-    fullName: z.string().min(1, 'Full name is required'),
-    email: z.string().email('Invalid email'),
-    phone: z.string().optional(),
-    password: z.string().optional(), // Generate if missing
-  }),
-  classId: z.string().uuid(),
-  rollNumber: z.string().min(1),
-  admissionDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
-  email: z.string().email('Student email is required'),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
-  gender: z.enum(['male', 'female', 'other']),
-  bloodGroup: z.string().optional(),
-  imageUrl: z.string().url().optional(),
-
-  // Parent information
-  fatherName: z.string().min(1, 'Father name is required'),
-  motherName: z.string().min(1, 'Mother name is required'),
-  fatherPhone: z.string().optional(),
-  motherPhone: z.string().optional(),
-  fatherEmail: z.string().email('Father email is required'),
-  motherEmail: z.string().email('Mother email is required'),
-  fatherOccupation: z.string().optional(),
-  motherOccupation: z.string().optional(),
-
-  // Address
-  address: z
-    .object({
-      street: z.string().optional(),
-      city: z.string().optional(),
-      state: z.string().optional(),
-      pinCode: z.string().optional(),
-    })
-    .optional(),
-
-  // Guardians
-  guardians: z
-    .array(
-      z.object({
-        fullName: z.string().min(1, 'Guardian name is required'),
-        phone: z.string().min(1, 'Guardian phone is required'),
-        email: z.string().email('Guardian email is required'),
-        relation: z.string().min(1, 'Guardian relation is required'),
-      }),
-    )
-    .optional(),
-
-  // Profile
-  profile: StudentProfileInput,
-
-  // ✅ New parents (primary gets user account, others are contacts)
-  parents: z
-    .array(
-      z.object({
-        fullName: z.string().min(1, 'Parent full name is required'),
-        email: z.string().email('Invalid parent email'),
-        phone: z.string().optional(),
-        password: z.string().optional(), // Only for primary parent
-        relationship: z.string().min(1, 'Relationship is required'),
-        isPrimary: z.boolean(),
-        createUserAccount: z.boolean().optional().default(false), // Only primary should have this true
-      }),
-    )
-    .min(1, 'At least one parent is required')
-    .refine(parents => parents.filter(p => p.isPrimary).length === 1, {
-      message: 'Exactly one parent must be marked as primary',
-    }),
-});
-
-export type CreateStudentWithNewParentsDtoType = z.infer<
-  typeof CreateStudentWithNewParentsDto
->;
-
-// ✅ CreateStudentDto for student with existing parents
-export const CreateStudentWithExistingParentsDto = z.object({
-  user: z.object({
-    fullName: z.string().min(1, 'Full name is required'),
-    email: z.string().email('Invalid email'),
-    phone: z.string().optional(),
-    password: z.string().optional(), // Generate if missing
-  }),
-  classId: z.string().uuid(),
-  rollNumber: z.string().min(1),
-  admissionDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
-  email: z.string().email('Student email is required'),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
-  gender: z.enum(['male', 'female', 'other']),
-  bloodGroup: z.string().optional(),
-  imageUrl: z.string().url().optional(),
-
-  // Parent information
-  fatherName: z.string().min(1, 'Father name is required'),
-  motherName: z.string().min(1, 'Mother name is required'),
-  fatherPhone: z.string().optional(),
-  motherPhone: z.string().optional(),
-  fatherEmail: z.string().email('Father email is required'),
-  motherEmail: z.string().email('Mother email is required'),
-  fatherOccupation: z.string().optional(),
-  motherOccupation: z.string().optional(),
-
-  // Address
-  address: z
-    .object({
-      street: z.string().optional(),
-      city: z.string().optional(),
-      state: z.string().optional(),
-      pinCode: z.string().optional(),
-    })
-    .optional(),
-
-  // Guardians
-  guardians: z
-    .array(
-      z.object({
-        fullName: z.string().min(1, 'Guardian name is required'),
-        phone: z.string().min(1, 'Guardian phone is required'),
-        email: z.string().email('Guardian email is required'),
-        relation: z.string().min(1, 'Guardian relation is required'),
-      }),
-    )
-    .optional(),
-
-  // Profile
-  profile: StudentProfileInput,
-
-  // ✅ Existing parents (primary must exist, others can be new contacts)
-  parents: z
-    .array(
-      z.object({
-        email: z.string().email('Parent email is required'),
-        relationship: z.string().min(1, 'Relationship is required'),
-        isPrimary: z.boolean(),
-        fullName: z.string().optional(), // Optional for non-primary parents (new contacts)
-      }),
-    )
-    .min(1, 'At least one parent is required'),
-});
-
-export type CreateStudentWithExistingParentsDtoType = z.infer<
-  typeof CreateStudentWithExistingParentsDto
->;
-
-// ✅ Alias for sibling creation (same as existing parents)
-export const CreateSiblingStudentDto = CreateStudentWithExistingParentsDto;
-export type CreateSiblingStudentDtoType =
-  CreateStudentWithExistingParentsDtoType;
-
-// ✅ Update DTO
-export const UpdateStudentDto = z.object({
-  fullName: z.string().optional(),
+// ---------------------------
+// Subschema for user creation
+// ---------------------------
+export const CreateStudentUserSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email('Invalid email format'),
   phone: z.string().optional(),
-  email: z.string().email().optional(),
-  classId: z.string().uuid().optional(),
-  rollNumber: z.string().optional(),
-  admissionDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-  dob: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+  password: z.string().optional(), // Auto-generated if not provided
+});
+
+// ---------------------------
+// Subschema for personal information
+// ---------------------------
+export const CreateStudentPersonalSchema = z.object({
+  dateOfBirth: z.string().optional(),
   gender: z.enum(['male', 'female', 'other']).optional(),
-  bloodGroup: z.string().optional(),
-  imageUrl: z.string().url().optional(),
+  bloodGroup: z
+    .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+    .optional(),
+  ethnicity: z.string().optional(),
+  address: z.string().optional(),
+  street: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pinCode: z.string().optional(),
+});
 
-  // Parent information
-  fatherName: z.string().optional(),
-  motherName: z.string().optional(),
+// ---------------------------
+// Subschema for academic information
+// ---------------------------
+export const CreateStudentAcademicSchema = z.object({
+  classId: z.string().min(1, 'Class is required'),
+  rollNumber: z.string().optional(), // Will be auto-generated based on class capacity
+  admissionDate: z.string().min(1, 'Admission date is required'),
+  studentId: z.string().optional(), // Alternative student ID
+  academicStatus: z
+    .enum(['active', 'suspended', 'graduated', 'transferred'])
+    .optional()
+    .default('active'),
+  transportMode: z.string().optional(), // Made optional as requested
+});
+
+// ---------------------------
+// Subschema for parent information
+// ---------------------------
+export const CreateStudentParentSchema = z.object({
+  // Father Information
+  fatherFirstName: z.string().min(1, 'Father first name is required'),
+  fatherMiddleName: z.string().optional(),
+  fatherLastName: z.string().min(1, 'Father last name is required'),
+  fatherEmail: z.string().email('Invalid father email format'),
   fatherPhone: z.string().optional(),
-  motherPhone: z.string().optional(),
-  fatherEmail: z.string().email().optional(),
-  motherEmail: z.string().email().optional(),
   fatherOccupation: z.string().optional(),
-  motherOccupation: z.string().optional(),
 
-  // Address
-  address: z
+  // Mother Information
+  motherFirstName: z.string().min(1, 'Mother first name is required'),
+  motherMiddleName: z.string().optional(),
+  motherLastName: z.string().min(1, 'Mother last name is required'),
+  motherEmail: z.string().email('Invalid mother email format'),
+  motherPhone: z.string().optional(),
+  motherOccupation: z.string().optional(),
+});
+
+// ---------------------------
+// Subschema for parent user accounts to create
+// ---------------------------
+export const CreateStudentParentAccountSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email('Invalid email format'),
+  phone: z.string().optional(),
+  relationship: z.enum([
+    'father',
+    'mother',
+    'guardian',
+    'stepfather',
+    'stepmother',
+    'grandfather',
+    'grandmother',
+    'uncle',
+    'aunt',
+    'other',
+  ]),
+  isPrimary: z.boolean().default(false),
+  createUserAccount: z.boolean().default(true), // Whether to create login account
+  occupation: z.string().optional(),
+});
+
+// ---------------------------
+// Subschema for linking existing parent
+// ---------------------------
+export const LinkExistingParentSchema = z.object({
+  parentId: z.string().min(1, 'Parent ID is required'),
+  relationship: z.enum([
+    'father',
+    'mother',
+    'guardian',
+    'stepfather',
+    'stepmother',
+    'grandfather',
+    'grandmother',
+    'uncle',
+    'aunt',
+    'other',
+  ]),
+  isPrimary: z.boolean().default(false),
+});
+
+// ---------------------------
+// Subschema for guardian information
+// ---------------------------
+export const CreateStudentGuardianSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, 'Last name is required'),
+  phone: z.string().min(1, 'Guardian phone is required'),
+  email: z.string().email('Invalid guardian email format'),
+  relation: z.string().min(1, 'Guardian relation is required'),
+});
+
+// ---------------------------
+// Subschema for medical and additional information
+// ---------------------------
+export const CreateStudentAdditionalSchema = z.object({
+  medicalConditions: z.string().optional(),
+  allergies: z.string().optional(),
+  interests: z.string().optional(),
+  specialNeeds: z.string().optional(),
+  bio: z.string().optional(),
+  emergencyContact: z
     .object({
-      street: z.string().optional(),
-      city: z.string().optional(),
-      state: z.string().optional(),
-      pinCode: z.string().optional(),
+      name: z.string(),
+      phone: z.string(),
+      relationship: z.string(),
     })
     .optional(),
 });
 
-export type UpdateStudentDtoType = z.infer<typeof UpdateStudentDto>;
+// ---------------------------
+// Subschema for profile information
+// ---------------------------
+export const CreateStudentProfileSchema = z.object({
+  emergencyContact: z
+    .object({
+      name: z.string(),
+      phone: z.string(),
+      relationship: z.string(),
+    })
+    .optional(),
+  interests: z
+    .object({
+      interests: z.string(),
+    })
+    .optional(),
+  additionalData: z
+    .object({
+      medicalConditions: z.string().optional(),
+      allergies: z.string().optional(),
+      specialNeeds: z.string().optional(),
+    })
+    .optional(),
+});
 
-// ✅ Response DTO for raw student object (without relations)
-export const StudentResponseDto = z.object({
-  id: z.string().uuid(),
-  userId: z.string().uuid(),
-  fullName: z.string(),
-  email: z.string().email(),
+// ---------------------------
+// CreateStudent DTO (Complete)
+// ---------------------------
+export const CreateStudentDto = z.object({
+  user: CreateStudentUserSchema,
+  personal: CreateStudentPersonalSchema.optional(),
+  academic: CreateStudentAcademicSchema,
+  parentInfo: CreateStudentParentSchema.optional(), // Optional when using existing parents
+  parents: z.array(CreateStudentParentAccountSchema).optional(),
+  existingParents: z.array(LinkExistingParentSchema).optional(), // For linking existing parents
+  guardians: z.array(CreateStudentGuardianSchema).optional(),
+  additional: CreateStudentAdditionalSchema.optional(),
+  profile: CreateStudentProfileSchema.optional(),
+});
+
+export type CreateStudentDtoType = z.infer<typeof CreateStudentDto>;
+
+// ---------------------------
+// Update Student DTOs
+// ---------------------------
+export const UpdateStudentByAdminUserSchema = z.object({
+  firstName: z.string().min(1).optional(),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1).optional(),
+  email: z.string().email().optional(),
   phone: z.string().optional(),
-  classId: z.string(),
-  rollNumber: z.string(),
-  admissionDate: z.string(),
-  dob: z.string(),
-  gender: z.enum(['male', 'female', 'other']),
-  bloodGroup: z.string().optional(),
-  imageUrl: z.string().url().optional(),
+});
 
-  // Parent information
-  fatherName: z.string(),
-  motherName: z.string(),
+export const UpdateStudentByAdminPersonalSchema = z.object({
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  bloodGroup: z
+    .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+    .optional(),
+  ethnicity: z.string().optional(),
+  maritalStatus: z
+    .enum(['single', 'married', 'divorced', 'widowed'])
+    .optional(),
+  address: z.string().optional(),
+  street: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pinCode: z.string().optional(),
+});
+
+export const UpdateStudentByAdminAcademicSchema = z.object({
+  classId: z.string().optional(),
+  rollNumber: z.string().optional(),
+  admissionDate: z.string().optional(),
+  studentId: z.string().optional(),
+  academicStatus: z
+    .enum(['active', 'suspended', 'graduated', 'transferred'])
+    .optional(),
+  feeStatus: z.enum(['paid', 'pending', 'overdue', 'partial']).optional(),
+  transportMode: z.string().optional(),
+});
+
+export const UpdateStudentByAdminParentSchema = z.object({
+  fatherFirstName: z.string().optional(),
+  fatherMiddleName: z.string().optional(),
+  fatherLastName: z.string().optional(),
+  fatherEmail: z.string().email().optional(),
+  fatherPhone: z.string().optional(),
+  fatherOccupation: z.string().optional(),
+  motherFirstName: z.string().optional(),
+  motherMiddleName: z.string().optional(),
+  motherLastName: z.string().optional(),
+  motherEmail: z.string().email().optional(),
+  motherPhone: z.string().optional(),
+  motherOccupation: z.string().optional(),
+});
+
+export const UpdateStudentByAdminDto = z.object({
+  user: UpdateStudentByAdminUserSchema.optional(),
+  personal: UpdateStudentByAdminPersonalSchema.optional(),
+  academic: UpdateStudentByAdminAcademicSchema.optional(),
+  parentInfo: UpdateStudentByAdminParentSchema.optional(),
+  additional: CreateStudentAdditionalSchema.optional(),
+});
+
+export type UpdateStudentByAdminDtoType = z.infer<
+  typeof UpdateStudentByAdminDto
+>;
+
+// ---------------------------
+// Self Update DTO (Limited fields)
+// ---------------------------
+export const UpdateStudentSelfUserSchema = z.object({
+  firstName: z.string().min(1).optional(),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1).optional(),
+  phone: z.string().optional(),
+});
+
+export const UpdateStudentSelfPersonalSchema = z.object({
+  ethnicity: z.string().optional(),
+  address: z.string().optional(),
+  street: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pinCode: z.string().optional(),
+});
+
+export const UpdateStudentSelfDto = z.object({
+  user: UpdateStudentSelfUserSchema.optional(),
+  personal: UpdateStudentSelfPersonalSchema.optional(),
+  additional: z
+    .object({
+      interests: z.string().optional(),
+      bio: z.string().optional(),
+    })
+    .optional(),
+});
+
+export type UpdateStudentSelfDtoType = z.infer<typeof UpdateStudentSelfDto>;
+
+// ---------------------------
+// Query DTOs
+// ---------------------------
+export const GetAllStudentsDto = z.object({
+  limit: z.coerce.number().min(1).max(100).optional().default(10),
+  page: z.coerce.number().min(1).optional().default(1),
+  search: z.string().optional(),
+  classId: z.string().optional(),
+  ethnicity: z.string().optional(),
+  academicStatus: z
+    .enum(['active', 'suspended', 'graduated', 'transferred'])
+    .optional(),
+  feeStatus: z.enum(['paid', 'pending', 'overdue', 'partial']).optional(),
+  sortBy: z
+    .enum(['name', 'rollNumber', 'admissionDate', 'createdAt'])
+    .optional()
+    .default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+});
+
+export type GetAllStudentsDtoType = z.infer<typeof GetAllStudentsDto>;
+
+// ---------------------------
+// Response DTOs
+// ---------------------------
+export const StudentResponseDto = z.object({
+  id: z.string(),
+  fullName: z.string(),
+  email: z.string(),
+  phone: z.string().optional(),
+  rollNumber: z.string(),
+  studentId: z.string().optional(),
+  classId: z.string(),
+  className: z.string().optional(),
+
+  // Personal Information
+  dateOfBirth: z.string().optional(),
+  gender: z.string().optional(),
+  bloodGroup: z.string().optional(),
+  ethnicity: z.string().optional(),
+  maritalStatus: z.string().optional(),
+  address: z.string().optional(),
+  street: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pinCode: z.string().optional(),
+
+  // Academic Information
+  admissionDate: z.string(),
+  academicStatus: z.string(),
+  feeStatus: z.string(),
+  transportMode: z.string().optional(),
+
+  // Parent Information
+  fatherFirstName: z.string(),
+  fatherMiddleName: z.string().optional(),
+  fatherLastName: z.string(),
+  motherFirstName: z.string(),
+  motherMiddleName: z.string().optional(),
+  motherLastName: z.string(),
   fatherPhone: z.string().optional(),
   motherPhone: z.string().optional(),
   fatherEmail: z.string(),
@@ -233,43 +349,96 @@ export const StudentResponseDto = z.object({
   fatherOccupation: z.string().optional(),
   motherOccupation: z.string().optional(),
 
+  // Medical Information
+  medicalConditions: z.string().optional(),
+  allergies: z.string().optional(),
+
+  // Additional Information
+  interests: z.string().optional(),
+  specialNeeds: z.string().optional(),
+
+  // Profile Information
+  profilePhotoUrl: z.string().optional(),
+  bio: z.string().optional(),
+
+  // System fields
+  isActive: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
-  deletedAt: z.string().nullable().optional(),
+
+  // Relations
+  parents: z
+    .array(
+      z.object({
+        id: z.string(),
+        fullName: z.string(),
+        email: z.string(),
+        relationship: z.string(),
+        isPrimary: z.boolean(),
+      }),
+    )
+    .optional(),
+
+  guardians: z
+    .array(
+      z.object({
+        id: z.string(),
+        fullName: z.string(),
+        phone: z.string(),
+        email: z.string(),
+        relation: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export type StudentResponseDtoType = z.infer<typeof StudentResponseDto>;
 
-// ✅ Set Primary Parent DTO
-export const SetPrimaryParentDto = z.object({
-  parentId: z.string().uuid('Invalid parent ID'),
+export const StudentListResponseDto = z.object({
+  id: z.string(),
+  fullName: z.string(),
+  email: z.string(),
+  phone: z.string().optional(),
+  rollNumber: z.string(),
+  studentId: z.string().optional(),
+  className: z.string(),
+  admissionDate: z.string(),
+  academicStatus: z.string(),
+  feeStatus: z.string(),
+  profilePhotoUrl: z.string().optional(),
+  isActive: z.boolean(),
+  createdAt: z.string(),
 });
 
-export type SetPrimaryParentDtoType = z.infer<typeof SetPrimaryParentDto>;
+export type StudentListResponseDtoType = z.infer<typeof StudentListResponseDto>;
 
-// ✅ Student Profile DTO
-export const UpsertStudentProfileDto = z.object({
-  emergencyContact: JsonRecordSchema,
-  interests: JsonRecordSchema,
-  additionalData: JsonRecordSchema,
-  profilePhotoUrl: z.string().url().optional(),
+// ---------------------------
+// Create Student Response
+// ---------------------------
+export const CreateStudentResponseDto = z.object({
+  student: z.object({
+    id: z.string(),
+    fullName: z.string(),
+    email: z.string(),
+    phone: z.string().optional(),
+    rollNumber: z.string(),
+    studentId: z.string().optional(),
+    profilePhotoUrl: z.string().optional(),
+  }),
+  temporaryPassword: z.string().optional(),
+  parentCredentials: z
+    .array(
+      z.object({
+        id: z.string(),
+        fullName: z.string(),
+        email: z.string(),
+        relationship: z.string(),
+        temporaryPassword: z.string(),
+      }),
+    )
+    .optional(),
 });
 
-export type UpsertStudentProfileDtoType = z.infer<
-  typeof UpsertStudentProfileDto
+export type CreateStudentResponseDtoType = z.infer<
+  typeof CreateStudentResponseDto
 >;
-
-// ✅ Student Query DTO
-export const StudentQueryDto = z.object({
-  limit: z.number().min(1).max(100).default(10),
-  page: z.number().min(1).default(1),
-  search: z.string().optional(),
-  classId: z.string().uuid().optional(),
-  sectionId: z.string().uuid().optional(),
-});
-
-export type StudentQueryDtoType = z.infer<typeof StudentQueryDto>;
-
-// ✅ Generic CreateStudentDto (defaults to new parents)
-export const CreateStudentDto = CreateStudentWithNewParentsDto;
-export type CreateStudentDtoType = CreateStudentWithNewParentsDtoType;

@@ -114,6 +114,26 @@ export class ParentController {
     return this.parentService.findAll(query);
   }
 
+  @Get('search-for-linking')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async searchParentsForLinking(
+    @Query('search') searchTerm: string,
+    @Query('limit') limit?: string,
+  ) {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      throw new BadRequestException(
+        'Search term must be at least 2 characters',
+      );
+    }
+
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    if (limitNum > 50) {
+      throw new BadRequestException('Limit cannot exceed 50');
+    }
+
+    return this.parentService.searchForLinking(searchTerm.trim(), limitNum);
+  }
+
   @Get('available-students')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async getAvailableStudents() {

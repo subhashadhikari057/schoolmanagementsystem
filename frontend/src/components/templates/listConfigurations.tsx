@@ -163,12 +163,12 @@ import PersonalInfoCell from '@/components/molecules/display/PersonalInfoCell';
 
 // Define all data interfaces
 export interface Student extends BaseItem {
-  id: number;
+  id: string;
   name: string;
   rollNo: string;
-  class: string;
+  class: string | object;
   parent: string;
-  status: 'Active' | 'Suspended' | 'Warning';
+  status: 'Active' | 'Suspended' | 'Warning' | 'Graduated' | 'Transferred';
   avatar?: string;
   studentId?: string;
   email?: string;
@@ -735,25 +735,17 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         key: 'actions',
         header: 'Actions',
         mobileLabel: 'Actions',
-        render: (item: Student) => (
+        render: (
+          item: Student,
+          isSelected?: boolean,
+          onSelect?: (id: string | number) => void,
+          onItemAction?: (action: string, item: Student) => void,
+        ) => (
           <ActionsCell
+            entityType='student'
+            status={item.status}
             onAction={(action: string) => {
-              switch (action) {
-                case 'view':
-                  console.log('View student:', item.id);
-                  break;
-                case 'edit':
-                  console.log('Edit student:', item.id);
-                  break;
-                case 'schedule':
-                  console.log('Schedule meeting for student:', item.id);
-                  break;
-                case 'link':
-                  console.log('Share student link:', item.id);
-                  break;
-                default:
-                  console.log('Action:', action, 'for student:', item.id);
-              }
+              onItemAction?.(action, item);
             }}
           />
         ),
@@ -886,25 +878,17 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         key: 'actions',
         header: 'Actions',
         mobileLabel: 'Actions',
-        render: (item: Teacher) => (
+        render: (
+          item: Teacher,
+          isSelected?: boolean,
+          onSelect?: (id: string | number) => void,
+          onItemAction?: (action: string, item: Teacher) => void,
+        ) => (
           <ActionsCell
+            entityType='teacher'
+            status={item.status}
             onAction={(action: string) => {
-              switch (action) {
-                case 'view':
-                  console.log('View teacher:', item.id);
-                  break;
-                case 'edit':
-                  console.log('Edit teacher:', item.id);
-                  break;
-                case 'schedule':
-                  console.log('Schedule meeting with teacher:', item.id);
-                  break;
-                case 'link':
-                  console.log('Share teacher link:', item.id);
-                  break;
-                default:
-                  console.log('Action:', action, 'for teacher:', item.id);
-              }
+              onItemAction?.(action, item);
             }}
           />
         ),

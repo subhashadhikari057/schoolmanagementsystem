@@ -30,10 +30,14 @@ async function main() {
   }
 
   // 2. Create Super Admin User
-  const passwordHash = await argon2.hash('superadmin123');
-  const superAdmin = await prisma.user.upsert({
+  const passwordHash = await argon2.hash('password123');
+  await prisma.user.upsert({
     where: { email: 'superadmin@gmail.com' },
-    update: {},
+    update: {
+      passwordHash,
+      fullName: 'Super Admin',
+      isActive: true,
+    },
     create: {
       email: 'superadmin@gmail.com',
       fullName: 'Super Admin',
@@ -87,11 +91,15 @@ async function main() {
   // 5. Create Teacher User and Record
   const teacherUser = await prisma.user.upsert({
     where: { email: 'teacher@gmail.com' },
-    update: {},
+    update: {
+      passwordHash: await argon2.hash('password123'),
+      fullName: 'John Michael Smith',
+      isActive: true,
+    },
     create: {
       email: 'teacher@gmail.com',
-      fullName: 'Teacher User',
-      passwordHash: await argon2.hash('teacher123'),
+      fullName: 'John Michael Smith',
+      passwordHash: await argon2.hash('password123'),
       roles: {
         create: {
           role: {
@@ -107,16 +115,72 @@ async function main() {
     update: {},
     create: {
       userId: teacherUser.id,
-      joiningDate: new Date(),
-      designation: 'Mathematics Teacher',
-      qualification: 'MSc Mathematics',
-      experienceYears: 5,
-      basicSalary: 60000,
-      allowances: 5000,
-      totalSalary: 65000,
-      dob: new Date('1990-05-10'),
-      gender: 'Female',
-      maritalStatus: 'Single',
+      employeeId: 'T-2024-0001',
+      joiningDate: new Date('2020-06-01'),
+      designation: 'Senior Mathematics Teacher',
+      qualification: 'Master of Mathematics (M.Sc Mathematics)',
+      experienceYears: 8,
+
+      // Personal Information
+      dob: new Date('1985-03-15'),
+      dateOfBirth: new Date('1985-03-15'),
+      gender: 'Male',
+      bloodGroup: 'O+',
+      maritalStatus: 'Married',
+      address: 'Baneshwor-12, Kathmandu, Nepal',
+
+      // Professional Information
+      department: 'Mathematics Department',
+      specialization: 'Advanced Mathematics & Statistics',
+      employmentStatus: 'active',
+      employmentDate: new Date('2020-06-01'),
+      languagesKnown: ['English', 'Nepali', 'Hindi'],
+      certifications:
+        'B.Ed Mathematics, M.Ed Educational Leadership, Advanced Mathematics Certification',
+      previousExperience:
+        "3 years at Kathmandu Model College, 2 years at St. Xavier's School",
+      // Financial Information
+      basicSalary: 45000,
+      allowances: 8000,
+      totalSalary: 53000,
+
+      // Bank Details (these fields exist in the Teacher model)
+      bankName: 'Nepal Bank Limited',
+      bankAccountNumber: '01234567890123',
+      bankBranch: 'Baneshwor Branch',
+      panNumber: '123456789',
+      citizenshipNumber: '12-01-75-12345',
+      // Additional Information
+      isClassTeacher: true,
+      imageUrl: '/uploads/teachers/profiles/john-smith.jpg',
+
+      // Create teacher profile
+      profile: {
+        create: {
+          bio: 'Experienced mathematics teacher with 8+ years of teaching experience. Specialized in advanced mathematics and statistics.',
+          contactInfo: {
+            phone: '9841234567',
+            email: 'teacher@gmail.com',
+            emergencyContact: '9841234568',
+            address: 'Baneshwor-12, Kathmandu, Nepal',
+          },
+          additionalData: {
+            specialization: 'Advanced Mathematics & Statistics',
+            certifications: 'B.Ed Mathematics, M.Ed Educational Leadership',
+            achievements: 'Best Teacher Award 2022, Mathematics Olympiad Coach',
+            languagesKnown:
+              'English (Fluent), Nepali (Native), Hindi (Conversational)',
+            teachingPhilosophy:
+              'Making mathematics accessible and enjoyable for all students',
+            interests: {
+              hobbies:
+                'Reading mathematics journals, Chess, Teaching workshops',
+              sports: 'Cricket, Football',
+              subjects: 'Advanced Mathematics, Statistics, Physics',
+            },
+          },
+        },
+      },
     },
   });
 
@@ -140,12 +204,21 @@ async function main() {
 
   // 7. Create Student User and Record
   const studentUser = await prisma.user.upsert({
-    where: { email: 'student@gmail.com' },
-    update: {},
+    where: { email: 'student@school.edu' },
+    update: {
+      passwordHash: await argon2.hash('password123'),
+      fullName: 'Arjun Kumar Sharma',
+      phone: '9841333333',
+      isActive: true,
+      needPasswordChange: false,
+    },
     create: {
-      email: 'student@gmail.com',
-      fullName: 'John Doe',
-      passwordHash: await argon2.hash('student123'),
+      email: 'student@school.edu',
+      fullName: 'Arjun Kumar Sharma',
+      phone: '9841333333',
+      passwordHash: await argon2.hash('password123'),
+      isActive: true,
+      needPasswordChange: false, // Set to true to test password change feature
       roles: {
         create: {
           role: {
@@ -156,43 +229,103 @@ async function main() {
     },
   });
 
-  // Create address first
-  const address = await prisma.address.create({
-    data: {
-      street: 'Naya Bazar',
-      city: 'Kathmandu',
-      state: 'Bagmati',
-      pinCode: '44600',
-    },
-  });
-
   const student = await prisma.student.upsert({
     where: { userId: studentUser.id },
     update: {},
     create: {
       userId: studentUser.id,
       classId: class10.id,
-      rollNumber: '001',
+      rollNumber: '2024001',
+      admissionDate: new Date('2024-04-01'),
+      studentId: 'S-2024-0001',
+
+      // Personal Information
       dob: new Date('2008-04-15'),
-      gender: 'Male',
-      admissionDate: new Date('2023-04-01'),
+      dateOfBirth: new Date('2008-04-15'),
+      gender: 'male',
+      bloodGroup: 'O+',
+      maritalStatus: 'single',
+
+      // Contact Information
       email: studentUser.email,
-      fatherName: 'Ram Bahadur',
-      motherName: 'Sita Devi',
-      fatherEmail: 'ram@example.com',
-      motherEmail: 'sita@example.com',
-      addressId: address.id,
+      phone: studentUser.phone,
+
+      // Address Information (direct fields, no Address model)
+      address: 'Naya Bazar-15, Kathmandu, Nepal',
+      street: 'Naya Bazar-15',
+      city: 'Kathmandu',
+      state: 'Bagmati',
+      pinCode: '44600',
+
+      // Parent Information
+      fatherFirstName: 'Ram',
+      fatherMiddleName: 'Bahadur',
+      fatherLastName: 'Sharma',
+      motherFirstName: 'Sita',
+      motherMiddleName: 'Devi',
+      motherLastName: 'Sharma',
+      fatherPhone: '9841111111',
+      motherPhone: '9841222222',
+      fatherEmail: 'father@example.com',
+      motherEmail: 'mother@example.com',
+      fatherOccupation: 'Business Owner',
+      motherOccupation: 'Teacher',
+
+      // Academic Status
+      academicStatus: 'active',
+      feeStatus: 'paid',
+      transportMode: 'school_bus',
+
+      // Medical Information
+      medicalConditions: 'None',
+      allergies: 'None',
+
+      // Additional Information
+      interests: 'Mathematics, Football, Reading',
+      specialNeeds: 'None',
+
+      // Create student profile
+      profile: {
+        create: {
+          emergencyContact: {
+            name: 'Uncle Krishna',
+            phone: '9841444444',
+            relationship: 'uncle',
+          },
+          interests: {
+            hobbies: 'Football, Mathematics, Science',
+            sports: 'Football, Cricket',
+            subjects: 'Mathematics, Science',
+          },
+          additionalData: {
+            medicalConditions: 'None',
+            allergies: 'None',
+            specialNeeds: 'None',
+            bio: 'Bright student with interest in mathematics and sports',
+          },
+        },
+      },
     },
   });
 
-  // 8. Create Parent User and Link
-  const parentUser = await prisma.user.upsert({
-    where: { email: 'parent@gmail.com' },
-    update: {},
+  // 8. Create Parent Users and Links
+  // Father
+  const fatherUser = await prisma.user.upsert({
+    where: { email: 'father@example.com' },
+    update: {
+      passwordHash: await argon2.hash('password123'),
+      fullName: 'Ram Bahadur Sharma',
+      phone: '9841111111',
+      isActive: true,
+      needPasswordChange: false,
+    },
     create: {
-      email: 'parent@gmail.com',
-      fullName: 'Parent User',
-      passwordHash: await argon2.hash('parent123'),
+      email: 'father@example.com',
+      fullName: 'Ram Bahadur Sharma',
+      phone: '9841111111',
+      passwordHash: await argon2.hash('password123'),
+      isActive: true,
+      needPasswordChange: false, // Set to true to test password change feature
       roles: {
         create: {
           role: {
@@ -203,39 +336,132 @@ async function main() {
     },
   });
 
-  // Create Parent profile
-  const parent = await prisma.parent.upsert({
-    where: { userId: parentUser.id },
+  const father = await prisma.parent.upsert({
+    where: { userId: fatherUser.id },
     update: {},
     create: {
-      userId: parentUser.id,
+      userId: fatherUser.id,
+      dateOfBirth: new Date('1975-08-20'),
+      gender: 'male',
       occupation: 'Business Owner',
-      street: 'Naya Bazar',
+      workPlace: 'Local Trading Company',
+      workPhone: '014567890',
+      street: 'Naya Bazar-15',
       city: 'Kathmandu',
       state: 'Bagmati',
       pinCode: '44600',
       country: 'Nepal',
-    },
-  });
-
-  // Create Parent-Student link
-  const existingLink = await prisma.parentStudentLink.findFirst({
-    where: {
-      parentId: parent.id,
-      studentId: student.id,
-    },
-  });
-
-  if (!existingLink) {
-    await prisma.parentStudentLink.create({
-      data: {
-        parentId: parent.id,
-        studentId: student.id,
-        isPrimary: true,
-        relationship: 'father',
+      notes: 'Primary contact for student',
+      profile: {
+        create: {
+          bio: 'Local businessman and active parent',
+          additionalData: {
+            relationship: 'father',
+            isPrimary: true,
+          },
+        },
       },
-    });
-  }
+    },
+  });
+
+  // Mother
+  const motherUser = await prisma.user.upsert({
+    where: { email: 'mother@example.com' },
+    update: {
+      passwordHash: await argon2.hash('password123'),
+      fullName: 'Sita Devi Sharma',
+      phone: '9841222222',
+      isActive: true,
+      needPasswordChange: false,
+    },
+    create: {
+      email: 'mother@example.com',
+      fullName: 'Sita Devi Sharma',
+      phone: '9841222222',
+      passwordHash: await argon2.hash('password123'),
+      isActive: true,
+      needPasswordChange: false, // Set to true to test password change feature
+      roles: {
+        create: {
+          role: {
+            connect: { name: 'PARENT' },
+          },
+        },
+      },
+    },
+  });
+
+  const mother = await prisma.parent.upsert({
+    where: { userId: motherUser.id },
+    update: {},
+    create: {
+      userId: motherUser.id,
+      dateOfBirth: new Date('1978-12-10'),
+      gender: 'female',
+      occupation: 'Teacher',
+      workPlace: 'Local Primary School',
+      workPhone: '014567891',
+      street: 'Naya Bazar-15',
+      city: 'Kathmandu',
+      state: 'Bagmati',
+      pinCode: '44600',
+      country: 'Nepal',
+      notes: 'Secondary contact for student',
+      profile: {
+        create: {
+          bio: 'Primary school teacher and caring mother',
+          additionalData: {
+            relationship: 'mother',
+            isPrimary: false,
+          },
+        },
+      },
+    },
+  });
+
+  // Create Parent-Student links
+  await prisma.parentStudentLink.upsert({
+    where: {
+      parentId_studentId: {
+        parentId: father.id,
+        studentId: student.id,
+      },
+    },
+    update: {},
+    create: {
+      parentId: father.id,
+      studentId: student.id,
+      relationship: 'father',
+      isPrimary: true,
+    },
+  });
+
+  await prisma.parentStudentLink.upsert({
+    where: {
+      parentId_studentId: {
+        parentId: mother.id,
+        studentId: student.id,
+      },
+    },
+    update: {},
+    create: {
+      parentId: mother.id,
+      studentId: student.id,
+      relationship: 'mother',
+      isPrimary: false,
+    },
+  });
+
+  // Create Guardian (non-user account)
+  await prisma.guardian.create({
+    data: {
+      studentId: student.id,
+      fullName: 'Krishna Sharma',
+      phone: '9841444444',
+      email: 'krishna@example.com',
+      relation: 'uncle',
+    },
+  });
 
   // 9. Create ID Card for Student
   const idTemplate = await prisma.iDCardTemplate.create({
@@ -254,14 +480,57 @@ async function main() {
     },
   });
 
-  console.log('✅ Extended seed data created successfully.');
+  console.log('✅ Comprehensive seed data created successfully!');
+  console.log('');
+  console.log('🔐 TEST CREDENTIALS:');
+  console.log('');
+  console.log('👨‍💼 SUPER ADMIN:');
+  console.log('  Email: superadmin@gmail.com');
+  console.log('  Password: password123');
+  console.log('');
+  console.log('🧑‍🏫 TEACHER:');
+  console.log('  Email: teacher@gmail.com');
+  console.log('  Password: password123');
+  console.log('  - John Smith (T-2024-0001)');
+  console.log('  - Senior Mathematics Teacher with all fields populated');
+  console.log('  - Bank details, certifications, experience included');
+  console.log('');
+  console.log('🎓 STUDENT:');
+  console.log('  Email: student@school.edu');
+  console.log('  Password: password123');
+  console.log('  - Arjun Sharma (S-2024-0001)');
+  console.log('  - Complete profile with medical, academic info');
+  console.log('  - Note: Ready for direct login (needPasswordChange: false)');
+  console.log('');
+  console.log('👨‍👩‍👧‍👦 PARENTS:');
+  console.log('  Father: father@example.com / password123');
+  console.log('    - Ram Bahadur Sharma, Business Owner');
+  console.log('  Mother: mother@example.com / password123');
+  console.log('    - Sita Devi Sharma, Teacher');
+  console.log('  - Note: Ready for direct login (needPasswordChange: false)');
+  console.log('');
+  console.log('📚 COMPREHENSIVE DATA CREATED:');
+  console.log('  - 1 Teacher with ALL schema fields populated');
+  console.log('  - 1 Student with complete profile');
+  console.log('  - 2 Parents with user accounts');
+  console.log('  - 1 Guardian (non-user account)');
+  console.log('  - Complete parent-student relationships');
+  console.log('  - ID Cards and class assignments');
+  console.log('');
+  console.log('🔧 TESTING NOTES:');
+  console.log('  - All users can login directly with password123');
+  console.log(
+    '  - To test password change feature: set needPasswordChange: true in seed',
+  );
+  console.log('  - Password change flow will be enforced on first login');
+  console.log('');
 }
 
-main()
+void main()
   .catch(e => {
     console.error('❌ Error during seed:', e);
     process.exit(1);
   })
   .finally(() => {
-    prisma.$disconnect();
+    void prisma.$disconnect();
   });
