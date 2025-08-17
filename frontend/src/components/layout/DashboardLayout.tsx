@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import Sidebar from '../organisms/navigation/Sidebar';
 import Navbar from '../organisms/navigation/Navbar';
 import LabeledInputField from '../molecules/forms/LabeledInputField';
-import { usePathname, useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { usePathname } from 'next/navigation';
 import { useTokenExpiryHandler } from '@/hooks/useTokenExpiryHandler';
 import SessionGuard from '../molecules/auth/SessionGuard';
 import ApiErrorBoundary from '../molecules/error/ApiErrorBoundary';
@@ -22,7 +21,8 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
     pathname.startsWith('/dashboard/admin/teachers') ||
     pathname.startsWith('/dashboard/admin/students') ||
     pathname.startsWith('/dashboard/admin/parents') ||
-    pathname.startsWith('/dashboard/admin/staff');
+    pathname.startsWith('/dashboard/admin/staff') ||
+    pathname.startsWith('/dashboard/system/myprofile');
 
   // Track if we're on mobile
   useEffect(() => {

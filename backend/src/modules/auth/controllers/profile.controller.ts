@@ -2,8 +2,7 @@
  * =============================================================================
  * Profile Controller
  * =============================================================================
- * Example controller demonstrating usage of authentication middleware,
- * role-based access control, and user decorators.
+ * Comprehensive profile management for all user types
  * =============================================================================
  */
 
@@ -11,46 +10,38 @@ import {
   Controller,
   Get,
   Put,
+  Post,
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
-// import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import { UserId } from '../../../shared/decorators/user.decorator';
 import {
-  User,
-  UserId,
-  UserEmail,
-} from '../../../shared/decorators/user.decorator';
-import {
-  Roles,
-  MinRole,
-  RoleAccess,
-} from '../../../shared/decorators/roles.decorator';
-import { Public } from '../../../shared/guards/jwt-auth.guard';
-import { AuthenticatedUser } from '../../../shared/guards/jwt-auth.guard';
-import { UserRole } from '@sms/shared-types';
+  ProfileService,
+  UpdateProfileDto,
+} from '../application/profile.service';
 
-// @ApiTags('Profile')
-// @ApiBearerAuth()
 @Controller('api/v1/profile')
+@UseGuards(JwtAuthGuard)
 export class ProfileController {
+  constructor(private readonly profileService: ProfileService) {}
+
   /**
    * Get current user profile
    * Available to all authenticated users
    */
   @Get()
-  // @ApiOperation({ summary: 'Get current user profile' })
-  // @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })
   @HttpCode(HttpStatus.OK)
-  getProfile(@User() user: AuthenticatedUser) {
+  async getProfile(@UserId() userId: string) {
+    const profile = await this.profileService.getUserProfile(userId);
     return {
       success: true,
-      data: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-      },
+      data: profile,
+      message: 'Profile retrieved successfully',
+      timestamp: new Date().toISOString(),
+      traceId: `profile-${userId}-${Date.now()}`,
     };
   }
 
@@ -59,153 +50,62 @@ export class ProfileController {
    * Available to all authenticated users (users can update their own profile)
    */
   @Put()
-  // @ApiOperation({ summary: 'Update current user profile' })
-  // @ApiResponse({ status: 200, description: 'Profile updated successfully' })
   @HttpCode(HttpStatus.OK)
-  updateProfile(
+  async updateProfile(
     @UserId() userId: string,
-    @Body() updateData: { fullName?: string; phone?: string },
+    @Body() updateData: UpdateProfileDto,
   ) {
-    // Implementation would update user profile
+    const updatedProfile = await this.profileService.updateUserProfile(
+      userId,
+      updateData,
+    );
     return {
       success: true,
       message: 'Profile updated successfully',
-      data: {
-        userId,
-        ...updateData,
-      },
+      data: updatedProfile,
+      timestamp: new Date().toISOString(),
+      traceId: `profile-update-${userId}-${Date.now()}`,
     };
   }
 
   /**
-   * Get user permissions
+   * Change password
    * Available to all authenticated users
    */
-  @Get('permissions')
-  // @ApiOperation({ summary: 'Get current user permissions' })
-  // @ApiResponse({ status: 200, description: 'User permissions retrieved' })
-  getUserPermissions(@User() user: AuthenticatedUser) {
-    // This would typically fetch from database
-    const rolePermissions = {
-      [UserRole.SUPER_ADMIN]: ['*'], // All permissions
-      [UserRole.ADMIN]: [
-        'user:read',
-        'user:write',
-        'academic:read',
-        'academic:write',
-      ],
-      [UserRole.ACCOUNTANT]: ['finance:read', 'finance:write', 'user:read'],
-      [UserRole.TEACHER]: ['academic:read', 'academic:write', 'student:read'],
-      [UserRole.PARENT]: ['student:read', 'communication:read'],
-      [UserRole.STUDENT]: ['profile:read', 'academic:read'],
-    };
-
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @UserId() userId: string,
+    @Body() data: { currentPassword: string; newPassword: string },
+  ) {
+    await this.profileService.changePassword(
+      userId,
+      data.currentPassword,
+      data.newPassword,
+    );
     return {
       success: true,
-      data: {
-        role: user.role,
-        permissions: rolePermissions[user.role] || [],
-      },
+      message: 'Password changed successfully',
+      data: null,
+      timestamp: new Date().toISOString(),
+      traceId: `password-change-${userId}-${Date.now()}`,
     };
   }
 
   /**
-   * Admin-only endpoint example
-   * Only accessible by Admin and Super Admin
+   * Get account activity
+   * Available to all authenticated users
    */
-  @Get('admin/stats')
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  // @ApiOperation({ summary: 'Get admin statistics' })
-  // @ApiResponse({ status: 200, description: 'Admin stats retrieved' })
-  getAdminStats(@User() user: AuthenticatedUser) {
+  @Get('activity')
+  @HttpCode(HttpStatus.OK)
+  async getAccountActivity(@UserId() userId: string) {
+    const activity = await this.profileService.getAccountActivity(userId);
     return {
       success: true,
-      data: {
-        message: 'Admin statistics',
-        requestedBy: user.email,
-        role: user.role,
-        // Would include actual statistics
-      },
-    };
-  }
-
-  /**
-   * Teacher-level endpoint example
-   * Accessible by Teacher, Admin, and Super Admin
-   */
-  @Get('academic/summary')
-  @MinRole(UserRole.TEACHER)
-  // @ApiOperation({ summary: 'Get academic summary' })
-  // @ApiResponse({ status: 200, description: 'Academic summary retrieved' })
-  getAcademicSummary(@User() user: AuthenticatedUser) {
-    return {
-      success: true,
-      data: {
-        message: 'Academic summary data',
-        accessLevel: user.role,
-        // Would include actual academic data
-      },
-    };
-  }
-
-  /**
-   * Financial data endpoint
-   * Accessible by Super Admin, Admin, and Accountant only
-   */
-  @Get('financial/overview')
-  @RoleAccess.Financial()
-  // @ApiOperation({ summary: 'Get financial overview' })
-  // @ApiResponse({ status: 200, description: 'Financial overview retrieved' })
-  getFinancialOverview(@UserEmail() email: string) {
-    return {
-      success: true,
-      data: {
-        message: 'Financial overview data',
-        accessedBy: email,
-        // Would include actual financial data
-      },
-    };
-  }
-
-  /**
-   * Super Admin only endpoint
-   * Demonstrates highest level access control
-   */
-  @Get('system/health')
-  @RoleAccess.SuperAdminOnly()
-  // @ApiOperation({ summary: 'Get system health status' })
-  // @ApiResponse({ status: 200, description: 'System health retrieved' })
-  getSystemHealth() {
-    return {
-      success: true,
-      data: {
-        message: 'System health check',
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        // Would include actual system metrics
-      },
-    };
-  }
-
-  /**
-   * Public endpoint example
-   * Accessible without authentication
-   */
-  @Public()
-  @Get('public/info')
-  // @ApiOperation({ summary: 'Get public profile information' })
-  // @ApiResponse({ status: 200, description: 'Public info retrieved' })
-  getPublicInfo() {
-    return {
-      success: true,
-      data: {
-        message: 'Public profile information',
-        availableFeatures: [
-          'User registration',
-          'Password reset',
-          'Contact information',
-        ],
-      },
+      data: activity,
+      message: 'Account activity retrieved successfully',
+      timestamp: new Date().toISOString(),
+      traceId: `activity-${userId}-${Date.now()}`,
     };
   }
 }

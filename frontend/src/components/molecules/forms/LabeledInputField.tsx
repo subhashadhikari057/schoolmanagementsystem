@@ -15,6 +15,7 @@ interface Props {
   className?: string;
   error?: string; // Add error prop for validation messages
   maxLength?: number; // Add maxLength prop
+  readOnly?: boolean; // Add readOnly prop
 }
 
 const LabeledInputField = forwardRef<HTMLInputElement, Props>(
@@ -29,6 +30,7 @@ const LabeledInputField = forwardRef<HTMLInputElement, Props>(
       icon,
       className = '',
       error,
+      readOnly,
       ...props
     },
     ref,
@@ -40,7 +42,7 @@ const LabeledInputField = forwardRef<HTMLInputElement, Props>(
       <div className='relative w-full group'>
         {label && (
           <Label
-            className={`absolute border-4 border-t border-l border-r border-b-0 ${error ? 'border-red-500 group-focus-within:border-red-500' : 'border-gray-300 group-focus-within:border-primary'} -top-2 h-2.25 left-3 rounded-t-sm bg-white px-1 text-sm text-gray-600 font-medium z-10 transition-colors duration-200`}
+            className={`absolute border-4 border-t border-l border-r border-b-0 ${error ? 'border-red-500 group-focus-within:border-red-500' : 'border-gray-300 group-focus-within:border-primary'} h-2.25 left-3 rounded-t-sm bg-white px-1 text-sm -top-2 z-5 text-gray-600 font-medium transition-colors duration-200`}
           >
             {label}
           </Label>
@@ -53,6 +55,7 @@ const LabeledInputField = forwardRef<HTMLInputElement, Props>(
             value={value}
             onChange={onChange}
             placeholder={placeholder}
+            readOnly={readOnly}
             className={`pr-10 pl-6 py-4 text-base ${error ? 'border-red-500 focus:border-red-500' : ''} ${className} ${type === 'date' || type === 'time' ? '[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-inner-spin-button]:hidden' : ''}`}
             {...props}
           />

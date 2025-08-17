@@ -31,7 +31,7 @@ async function main() {
 
   // 2. Create Super Admin User
   const passwordHash = await argon2.hash('password123');
-  await prisma.user.upsert({
+  const superAdminUser = await prisma.user.upsert({
     where: { email: 'superadmin@gmail.com' },
     update: {
       passwordHash,
