@@ -6,6 +6,7 @@ import {
   Patch,
   Delete,
   Param,
+  Query,
   Req,
   UseGuards,
   HttpStatus,
@@ -89,5 +90,20 @@ export class ClassController {
       req.ip,
       req.headers['user-agent'],
     );
+  }
+
+  @Get('rooms/available')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async getAvailableRooms(@Query('shift') shift: 'MORNING' | 'DAY') {
+    if (!shift || !['MORNING', 'DAY'].includes(shift)) {
+      shift = 'MORNING'; // Default to MORNING if not specified or invalid
+    }
+    return this.classService.getAvailableRoomsForShift(shift);
+  }
+
+  @Get('teachers/available')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async getAvailableTeachers() {
+    return this.classService.getAvailableTeachers();
   }
 }

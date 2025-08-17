@@ -57,7 +57,6 @@ interface TeacherFormData {
 
   // Subject Assignment
   subjects?: string[];
-  isClassTeacher?: boolean;
 
   // Salary Information
   basicSalary?: number;
@@ -104,7 +103,6 @@ const initialFormData: TeacherFormData = {
   designation: '',
   department: '',
   subjects: [],
-  isClassTeacher: false,
   basicSalary: 0,
   allowances: 0,
   totalSalary: 0,
@@ -416,18 +414,6 @@ export default function AddTeacherFormModal({
     [errors],
   );
 
-  // Handle checkbox changes
-  const handleCheckboxChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { name, checked } = e.target;
-      setFormData(prev => ({
-        ...prev,
-        [name]: checked,
-      }));
-    },
-    [],
-  );
-
   // Handle file upload
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -590,7 +576,6 @@ export default function AddTeacherFormModal({
           Array.isArray(formData.subjects) && formData.subjects.length > 0
             ? formData.subjects.filter(subject => subject && subject.trim())
             : [],
-        isClassTeacher: formData.isClassTeacher || false,
 
         // Salary fields (flat)
         basicSalary: formData.basicSalary || undefined,
@@ -1044,23 +1029,6 @@ export default function AddTeacherFormModal({
             {/* Subject Assignment */}
             <FormSection title='Subject Assignment' icon={BookOpen}>
               <div className='space-y-4'>
-                <div className='flex items-center space-x-2'>
-                  <input
-                    type='checkbox'
-                    id='isClassTeacher'
-                    name='isClassTeacher'
-                    checked={formData.isClassTeacher || false}
-                    onChange={handleCheckboxChange}
-                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                  />
-                  <label
-                    htmlFor='isClassTeacher'
-                    className='text-sm font-medium'
-                  >
-                    Is Class Teacher
-                  </label>
-                </div>
-
                 {availableSubjects.length > 0 && (
                   <div>
                     <label className='text-sm font-medium leading-none mb-2 block'>
