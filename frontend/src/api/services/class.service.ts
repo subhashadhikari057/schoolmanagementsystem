@@ -39,6 +39,7 @@ export interface ClassResponse {
   grade: number;
   section: string;
   capacity: number;
+  currentEnrollment: number;
   shift: 'morning' | 'day';
   roomId: string;
   classTeacherId: string;
@@ -66,9 +67,36 @@ export interface ClassResponse {
   students?: Array<{
     id: string;
     rollNumber: string;
+    address?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    pinCode?: string;
     user: {
       fullName: string;
+      email?: string;
+      phone?: string;
     };
+    parents?: Array<{
+      id: string;
+      parent: {
+        id: string;
+        user: {
+          fullName: string;
+          email: string;
+          phone?: string;
+        };
+      };
+      relationship: string;
+      isPrimary: boolean;
+    }>;
+    guardians?: Array<{
+      id: string;
+      fullName: string;
+      phone: string;
+      email: string;
+      relation: string;
+    }>;
   }>;
 }
 
@@ -119,6 +147,17 @@ export class ClassService {
   async getClassById(id: string): Promise<ApiResponse<ClassResponse>> {
     return this.httpClient.get<ClassResponse>(
       `api/v1/classes/${id}`,
+      undefined,
+      { requiresAuth: true },
+    );
+  }
+
+  /**
+   * Get comprehensive class details with students, parents, and guardians
+   */
+  async getClassWithStudents(id: string): Promise<ApiResponse<ClassResponse>> {
+    return this.httpClient.get<ClassResponse>(
+      `api/v1/classes/${id}/students`,
       undefined,
       { requiresAuth: true },
     );

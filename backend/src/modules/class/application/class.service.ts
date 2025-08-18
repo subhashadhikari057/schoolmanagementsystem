@@ -23,7 +23,7 @@ export class ClassService {
     ip?: string,
     userAgent?: string,
   ) {
-    // Check if class with same grade, section, and shift already exists
+    // Check if class with same grade, section, and shift already exists (excluding soft deleted)
     const exists = await this.prisma.class.findFirst({
       where: {
         grade: dto.grade,
@@ -117,6 +117,35 @@ export class ClassService {
    * Get all active classes
    */
   async findAll() {
+    // Get all active classes
+    const classes = await this.prisma.class.findMany({
+      where: { deletedAt: null },
+      include: {
+        classTeacher: {
+          include: {
+            user: {
+              select: { fullName: true, email: true },
+            },
+          },
+        },
+        room: {
+          select: { roomNo: true, name: true, floor: true, building: true },
+        },
+        students: {
+          where: { deletedAt: null },
+          select: { id: true },
+        },
+        _count: {
+          select: { students: { where: { deletedAt: null } } },
+        },
+      },
+      orderBy: { grade: 'asc' },
+    });
+
+    // Sync enrollment counts for all classes
+    await Promise.all(classes.map(cls => this.syncEnrollmentCount(cls.id)));
+
+    // Fetch the updated classes
     return this.prisma.class.findMany({
       where: { deletedAt: null },
       include: {
@@ -130,15 +159,25 @@ export class ClassService {
         room: {
           select: { roomNo: true, name: true, floor: true, building: true },
         },
+        students: {
+          where: { deletedAt: null },
+          select: { id: true },
+        },
+        _count: {
+          select: { students: { where: { deletedAt: null } } },
+        },
       },
       orderBy: { grade: 'asc' },
     });
   }
 
   /**
-   * Get a class by ID
+   * Get comprehensive class details with students, parents, and guardians
    */
-  async findById(id: string) {
+  async getClassDetailsWithStudents(id: string) {
+    // First sync the enrollment count
+    await this.syncEnrollmentCount(id);
+
     const classRecord = await this.prisma.class.findUnique({
       where: { id },
       include: {
@@ -157,7 +196,86 @@ export class ClassService {
           select: {
             id: true,
             rollNumber: true,
-            user: { select: { fullName: true } },
+            address: true,
+            street: true,
+            city: true,
+            state: true,
+            pinCode: true,
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+                phone: true,
+              },
+            },
+            parents: {
+              where: { deletedAt: null },
+              include: {
+                parent: {
+                  include: {
+                    user: {
+                      select: {
+                        fullName: true,
+                        email: true,
+                        phone: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            guardians: {
+              select: {
+                id: true,
+                fullName: true,
+                phone: true,
+                email: true,
+                relation: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            students: { where: { deletedAt: null } },
+          },
+        },
+      },
+    });
+
+    if (!classRecord || classRecord.deletedAt) {
+      throw new NotFoundException('Class not found');
+    }
+
+    return classRecord;
+  }
+
+  /**
+   * Get a class by ID
+   */
+  async findById(id: string) {
+    // First sync the enrollment count
+    await this.syncEnrollmentCount(id);
+
+    const classRecord = await this.prisma.class.findUnique({
+      where: { id },
+      include: {
+        classTeacher: {
+          include: {
+            user: {
+              select: { fullName: true, email: true },
+            },
+          },
+        },
+        room: {
+          select: { roomNo: true, name: true, floor: true, building: true },
+        },
+        students: {
+          where: { deletedAt: null },
+          select: {
+            id: true,
+            rollNumber: true,
+            user: { select: { fullName: true, email: true, phone: true } },
           },
         },
       },
@@ -186,22 +304,55 @@ export class ClassService {
       throw new NotFoundException('Class not found');
     }
 
-    // Check for duplicate name if name is being updated
+    // Check for duplicate class if grade, section, or shift is being updated
     if (
       (dto.grade && dto.grade !== classRecord.grade) ||
-      (dto.section && dto.section !== classRecord.section)
+      (dto.section && dto.section !== classRecord.section) ||
+      (dto.shift && dto.shift !== classRecord.shift)
     ) {
       const exists = await this.prisma.class.findFirst({
         where: {
           grade: dto.grade || classRecord.grade,
           section: dto.section || classRecord.section,
+          shift: dto.shift || classRecord.shift,
           deletedAt: null,
           id: { not: id }, // Exclude current class from check
         },
       });
 
       if (exists) {
-        throw new ConflictException('Class with this name already exists');
+        throw new ConflictException(
+          `Class with Grade ${dto.grade || classRecord.grade} Section ${dto.section || classRecord.section} in ${(dto.shift || classRecord.shift).toLowerCase()} shift already exists`,
+        );
+      }
+    }
+
+    // Check if teacher is being updated and if new teacher is already assigned
+    if (
+      dto.classTeacherId &&
+      dto.classTeacherId !== classRecord.classTeacherId
+    ) {
+      const teacherConflict = await this.prisma.class.findFirst({
+        where: {
+          classTeacherId: dto.classTeacherId,
+          deletedAt: null,
+          id: { not: id }, // Exclude current class from check
+        },
+        include: {
+          classTeacher: {
+            include: {
+              user: {
+                select: { fullName: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (teacherConflict) {
+        throw new ConflictException(
+          `${teacherConflict.classTeacher?.user?.fullName || 'This teacher'} is already assigned as class teacher to Grade ${teacherConflict.grade} Section ${teacherConflict.section}`,
+        );
       }
     }
 
@@ -347,5 +498,28 @@ export class ClassService {
       email: teacher.user?.email || '',
       employeeId: teacher.employeeId,
     }));
+  }
+
+  /**
+   * Sync enrollment count with actual number of active students
+   */
+  async syncEnrollmentCount(id: string) {
+    // Get the actual count of active students
+    const studentCount = await this.prisma.student.count({
+      where: {
+        classId: id,
+        deletedAt: null,
+      },
+    });
+
+    // Update the class with the correct count
+    await this.prisma.class.update({
+      where: { id },
+      data: {
+        currentEnrollment: studentCount,
+      },
+    });
+
+    return studentCount;
   }
 }

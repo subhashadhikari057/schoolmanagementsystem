@@ -27,6 +27,8 @@ const TEACHER_ENDPOINTS = {
   GET_ME: 'api/v1/teachers/me',
   GET_MY_SUBJECTS: 'api/v1/teachers/me/subjects',
   GET_MY_CLASSES: 'api/v1/teachers/me/classes',
+  GET_MY_SUBJECTS_FOR_CLASS: (classId: string) =>
+    `api/v1/teachers/me/classes/${classId}/subjects`,
   GET_BY_ID: (id: string) => `api/v1/teachers/${id}`,
   UPDATE_BY_ADMIN: (id: string) => `api/v1/teachers/${id}`,
   UPDATE_SELF: 'api/v1/teachers/profile',
@@ -297,6 +299,21 @@ export class TeacherService {
         };
       }>
     >(TEACHER_ENDPOINTS.GET_MY_CLASSES, undefined, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Get current teacher's subjects for a specific class
+   */
+  async getMySubjectsForClass(
+    classId: string,
+  ): Promise<
+    ApiResponse<Array<{ subject: { id: string; name: string; code: string } }>>
+  > {
+    return this.httpClient.get<
+      Array<{ subject: { id: string; name: string; code: string } }>
+    >(TEACHER_ENDPOINTS.GET_MY_SUBJECTS_FOR_CLASS(classId), undefined, {
       requiresAuth: true,
     });
   }

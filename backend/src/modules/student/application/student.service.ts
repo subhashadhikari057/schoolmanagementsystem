@@ -535,6 +535,16 @@ export class StudentService {
         });
       }
 
+      // Update class enrollment count
+      await tx.class.update({
+        where: { id: academic.classId },
+        data: {
+          currentEnrollment: {
+            increment: 1,
+          },
+        },
+      });
+
       // Fetch the created student with profile relation
       const createdStudentWithProfile = await tx.student.findUnique({
         where: { id: newStudent.id },
@@ -844,6 +854,45 @@ export class StudentService {
     });
   }
 
+  async getStudentStats() {
+    const [
+      totalStudents,
+      activeStudents,
+      suspendedStudents,
+      warningStudents,
+      graduatedStudents,
+      transferredStudents,
+    ] = await Promise.all([
+      this.prisma.student.count({
+        where: { deletedAt: null },
+      }),
+      this.prisma.student.count({
+        where: { deletedAt: null, academicStatus: 'active' },
+      }),
+      this.prisma.student.count({
+        where: { deletedAt: null, academicStatus: 'suspended' },
+      }),
+      this.prisma.student.count({
+        where: { deletedAt: null, academicStatus: 'warning' },
+      }),
+      this.prisma.student.count({
+        where: { deletedAt: null, academicStatus: 'graduated' },
+      }),
+      this.prisma.student.count({
+        where: { deletedAt: null, academicStatus: 'transferred' },
+      }),
+    ]);
+
+    return {
+      total: totalStudents,
+      active: activeStudents,
+      suspended: suspendedStudents,
+      warning: warningStudents,
+      graduated: graduatedStudents,
+      transferred: transferredStudents,
+    };
+  }
+
   async updateByAdmin(
     id: string,
     dto: UpdateStudentByAdminDtoType,
@@ -1129,34 +1178,49 @@ export class StudentService {
     if (!student || student.deletedAt)
       throw new NotFoundException('Student not found or already deleted');
 
-    await this.prisma.student.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        deletedById: deletedBy,
-        // Nullify unique fields to avoid conflicts when creating new students
-        rollNumber: `deleted_${id}_${Date.now()}`,
-        studentId: student.studentId ? `deleted_${id}_${Date.now()}` : null,
-      },
-    });
+    await this.prisma.$transaction(async tx => {
+      // Update student record
+      await tx.student.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          deletedById: deletedBy,
+          // Nullify unique fields to avoid conflicts when creating new students
+          rollNumber: `deleted_${id}_${Date.now()}`,
+          studentId: student.studentId ? `deleted_${id}_${Date.now()}` : null,
+        },
+      });
 
-    await this.prisma.user.update({
-      where: { id: student.userId },
-      data: {
-        deletedAt: new Date(),
-        deletedById: deletedBy,
-        isActive: false,
-        // Nullify unique fields to avoid conflicts when creating new users
-        email: `deleted_${student.userId}_${Date.now()}@deleted.local`,
-        phone: student.user.phone
-          ? `deleted_${student.userId}_${Date.now()}`
-          : null,
-      },
-    });
+      // Update user record
+      await tx.user.update({
+        where: { id: student.userId },
+        data: {
+          deletedAt: new Date(),
+          deletedById: deletedBy,
+          isActive: false,
+          // Nullify unique fields to avoid conflicts when creating new users
+          email: `deleted_${student.userId}_${Date.now()}@deleted.local`,
+          phone: student.user.phone
+            ? `deleted_${student.userId}_${Date.now()}`
+            : null,
+        },
+      });
 
-    await this.prisma.userSession.updateMany({
-      where: { userId: student.userId, revokedAt: null },
-      data: { revokedAt: new Date() },
+      // Update class enrollment count
+      await tx.class.update({
+        where: { id: student.classId },
+        data: {
+          currentEnrollment: {
+            decrement: 1,
+          },
+        },
+      });
+
+      // Revoke user sessions
+      await tx.userSession.updateMany({
+        where: { userId: student.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
     });
 
     await this.audit.record({

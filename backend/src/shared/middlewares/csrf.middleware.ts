@@ -46,7 +46,8 @@ export class CsrfMiddleware implements NestMiddleware {
     if (
       req.path.startsWith('/api/v1/auth/login') ||
       req.path.startsWith('/api/v1/auth/refresh') ||
-      req.path.startsWith('/api/v1/auth/logout')
+      req.path.startsWith('/api/v1/auth/logout') ||
+      req.path.startsWith('/api/v1/auth/change-password-forced')
     ) {
       return next();
     }

@@ -4,18 +4,31 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import Button from '@/components/atoms/form-controls/Button';
-import { Users, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
+import {
+  Users,
+  Calendar,
+  RefreshCw,
+  AlertCircle,
+  Edit2,
+  Eye,
+  Trash2,
+} from 'lucide-react';
 import { assignmentService } from '@/api/services/assignment.service';
 import { teacherService } from '@/api/services/teacher.service';
 import { useAuth } from '@/hooks/useAuth';
 import { AssignmentResponse } from '@/api/types/assignment';
+import CreateAssignmentModal from '../modals/CreateAssignmentModal';
+import ViewAssignmentModal from '../modals/ViewAssignmentModal';
+import DeleteConfirmationModal from '../modals/DeleteConfirmationModal';
+import { toast } from 'sonner';
 
 interface ProcessedAssignment {
   id: string;
   title: string;
   class: string;
   subject: string;
-  dueDate: string;
+  dueDate: string; // Display string
+  originalDueDate: string | null; // Original date for editing
   totalStudents: number;
   submissions: number;
   graded: number;
@@ -38,12 +51,23 @@ export default function AllAssignmentsTab({
     'all' | 'incomplete' | 'completed'
   >('all');
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
+  const [classFilter, setClassFilter] = useState<string>('all');
 
   // API data state
   const [assignments, setAssignments] = useState<ProcessedAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subjects, setSubjects] = useState<string[]>([]);
+  const [classes, setClasses] = useState<string[]>([]);
+
+  // Modal states
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] =
+    useState<ProcessedAssignment | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
 
   const loadAssignments = useCallback(async () => {
     if (!user?.id) {
@@ -95,6 +119,7 @@ export default function AllAssignmentsTab({
             dueDate: assignment.dueDate
               ? new Date(assignment.dueDate).toLocaleDateString()
               : 'No due date',
+            originalDueDate: assignment.dueDate || null, // Store original date for editing
             totalStudents,
             submissions: submissionCount,
             graded: gradedCount,
@@ -107,11 +132,15 @@ export default function AllAssignmentsTab({
 
       setAssignments(processedAssignments);
 
-      // Extract unique subjects for filter
+      // Extract unique subjects and classes for filters
       const uniqueSubjects = [
         ...new Set(processedAssignments.map(a => a.subject)),
       ];
+      const uniqueClasses = [
+        ...new Set(processedAssignments.map(a => a.class)),
+      ];
       setSubjects(uniqueSubjects);
+      setClasses(uniqueClasses);
     } catch (error) {
       console.error('Failed to load assignments:', error);
       setError('Failed to load assignments. Please try again.');
@@ -123,11 +152,57 @@ export default function AllAssignmentsTab({
   // Load assignments data
   useEffect(() => {
     loadAssignments();
-  }, [loadAssignments, refreshTrigger]);
+  }, [loadAssignments, refreshTrigger, internalRefreshTrigger]);
+
+  // Modal handlers
+  const handleViewClick = (assignment: ProcessedAssignment) => {
+    setSelectedAssignment(assignment);
+    setIsViewModalOpen(true);
+  };
+
+  const handleEditClick = (assignment: ProcessedAssignment) => {
+    setSelectedAssignment(assignment);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteClick = (assignment: ProcessedAssignment) => {
+    setSelectedAssignment(assignment);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    setIsEditModalOpen(false);
+    setSelectedAssignment(null);
+    setInternalRefreshTrigger(prev => prev + 1);
+    toast.success('Assignment updated successfully');
+  };
+
+  const handleDelete = async () => {
+    if (!selectedAssignment) return;
+
+    try {
+      setIsDeleting(true);
+      await assignmentService.deleteAssignment(selectedAssignment.id);
+
+      setSelectedAssignment(null);
+      setIsDeleteModalOpen(false);
+      setInternalRefreshTrigger(prev => prev + 1);
+
+      toast.success('Assignment deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete assignment:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to delete assignment',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const filteredAssignments = useMemo(() => {
     return assignments.filter(assignment => {
       const matchesQuery =
+        query === '' ||
         assignment.title.toLowerCase().includes(query.toLowerCase()) ||
         assignment.class.toLowerCase().includes(query.toLowerCase()) ||
         assignment.subject.toLowerCase().includes(query.toLowerCase());
@@ -140,9 +215,12 @@ export default function AllAssignmentsTab({
       const matchesSubject =
         subjectFilter === 'all' || assignment.subject === subjectFilter;
 
-      return matchesQuery && matchesStatus && matchesSubject;
+      const matchesClass =
+        classFilter === 'all' || assignment.class === classFilter;
+
+      return matchesQuery && matchesStatus && matchesSubject && matchesClass;
     });
-  }, [assignments, query, statusFilter, subjectFilter]);
+  }, [assignments, query, statusFilter, subjectFilter, classFilter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -177,7 +255,7 @@ export default function AllAssignmentsTab({
         <div className='flex-1'>
           <LabeledInputField
             label=''
-            placeholder='Search assignments...'
+            placeholder='Search by title, class, or subject...'
             value={query}
             onChange={e => setQuery(e.target.value)}
             className='bg-white border border-gray-200 rounded-lg px-4 py-2'
@@ -210,6 +288,20 @@ export default function AllAssignmentsTab({
             ]}
             selectedValue={subjectFilter}
             onSelect={value => setSubjectFilter(value)}
+            className='max-w-xs'
+          />
+          <Dropdown
+            type='filter'
+            title='Filter Class'
+            options={[
+              { value: 'all', label: 'All Classes' },
+              ...classes.map(cls => ({
+                value: cls,
+                label: cls,
+              })),
+            ]}
+            selectedValue={classFilter}
+            onSelect={value => setClassFilter(value)}
             className='max-w-xs'
           />
         </div>
@@ -293,15 +385,28 @@ export default function AllAssignmentsTab({
                   </div>
                 </div>
 
-                <div className='flex gap-3'>
-                  <Button
-                    label='Edit'
-                    className='bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200'
-                  />
-                  <Button
-                    label='View Details'
-                    className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700'
-                  />
+                <div className='flex gap-2'>
+                  <button
+                    onClick={() => handleViewClick(assignment)}
+                    className='p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors'
+                    title='View Details'
+                  >
+                    <Eye className='w-4 h-4' />
+                  </button>
+                  <button
+                    onClick={() => handleEditClick(assignment)}
+                    className='p-2 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 rounded-lg transition-colors'
+                    title='Edit Assignment'
+                  >
+                    <Edit2 className='w-4 h-4' />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(assignment)}
+                    className='p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors'
+                    title='Delete Assignment'
+                  >
+                    <Trash2 className='w-4 h-4' />
+                  </button>
                 </div>
               </div>
 
@@ -367,6 +472,44 @@ export default function AllAssignmentsTab({
           ))
         )}
       </div>
+
+      {/* Modals */}
+      {selectedAssignment && (
+        <>
+          <ViewAssignmentModal
+            isOpen={isViewModalOpen}
+            onClose={() => {
+              setIsViewModalOpen(false);
+              setSelectedAssignment(null);
+            }}
+            assignment={selectedAssignment.originalData}
+          />
+
+          <CreateAssignmentModal
+            isOpen={isEditModalOpen}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setSelectedAssignment(null);
+            }}
+            onSuccess={handleEditSuccess}
+            editAssignment={selectedAssignment}
+          />
+
+          <DeleteConfirmationModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => {
+              setIsDeleteModalOpen(false);
+              if (!isDeleting) {
+                setSelectedAssignment(null);
+              }
+            }}
+            onConfirm={handleDelete}
+            title='Delete Assignment'
+            message={`Are you sure you want to delete "${selectedAssignment.title}"? This action cannot be undone.`}
+            isLoading={isDeleting}
+          />
+        </>
+      )}
     </div>
   );
 }

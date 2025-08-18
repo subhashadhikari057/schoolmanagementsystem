@@ -13,6 +13,7 @@ export const STUDENT_ENDPOINTS = {
   GET_PARENTS: (id: string) => `/api/v1/students/${id}/parents`,
   GET_GUARDIANS: (id: string) => `/api/v1/students/${id}/guardians`,
   GET_COUNT: '/api/v1/students/stats/count',
+  GET_STATS: '/api/v1/students/stats',
 } as const;
 
 // Types based on the backend DTOs
@@ -322,6 +323,15 @@ export interface StudentCountResponse {
   count: number;
 }
 
+export interface StudentStatsResponse {
+  total: number;
+  active: number;
+  suspended: number;
+  warning: number;
+  graduated: number;
+  transferred: number;
+}
+
 export interface ParentInfo {
   id: string;
   fullName: string;
@@ -488,6 +498,15 @@ export class StudentService {
     );
   }
 
+  // Get student statistics
+  async getStudentStats(): Promise<ApiResponse<StudentStatsResponse>> {
+    return this.httpClient.get<StudentStatsResponse>(
+      STUDENT_ENDPOINTS.GET_STATS,
+      undefined,
+      { requiresAuth: true },
+    );
+  }
+
   // Helper method to calculate next student ID (used in frontend)
   async getNextStudentId(): Promise<{
     success: boolean;
@@ -507,7 +526,7 @@ export class StudentService {
         };
       }
       throw new Error('Failed to get student count');
-    } catch (error) {
+    } catch {
       return {
         success: false,
         data: { studentId: '' },
