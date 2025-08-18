@@ -15,7 +15,10 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Student } from '@/components/templates/listConfigurations';
-import { studentService } from '@/api/services/student.service';
+import {
+  studentService,
+  StudentResponse,
+} from '@/api/services/student.service';
 import { classService } from '@/api/services/class.service';
 import { toast } from 'sonner';
 import EthnicitySelect from '@/components/molecules/form/EthnicitySelect';
@@ -263,6 +266,46 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Detailed student data and guardians
+  const [studentDetails, setStudentDetails] = useState<StudentResponse | null>(
+    null,
+  );
+  const [existingGuardians, setExistingGuardians] = useState<
+    Array<{
+      id: string;
+      fullName: string;
+      phone: string;
+      email: string;
+      relation: string;
+      hasUserAccount?: boolean;
+    }>
+  >([]);
+
+  // Guardian form state for adding new guardians
+  const [isAddingGuardian, setIsAddingGuardian] = useState(false);
+  const [newGuardian, setNewGuardian] = useState({
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    relation: '',
+    occupation: '',
+    createUserAccount: false,
+  });
+
+  // Guardian editing state
+  const [editingGuardianId, setEditingGuardianId] = useState<string | null>(
+    null,
+  );
+  const [editingGuardian, setEditingGuardian] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    relation: '',
+    occupation: '',
+  });
+
   // Load available classes
   useEffect(() => {
     const loadClasses = async () => {
@@ -286,6 +329,29 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
       loadClasses();
     }
   }, [isOpen]);
+
+  // Load detailed student data including guardians
+  useEffect(() => {
+    const loadStudentDetails = async () => {
+      if (!student?.id) return;
+
+      try {
+        const response = await studentService.getStudentById(
+          String(student.id),
+        );
+        if (response.success && response.data) {
+          setStudentDetails(response.data);
+          setExistingGuardians(response.data.guardians || []);
+        }
+      } catch (error) {
+        console.error('Failed to load student details:', error);
+      }
+    };
+
+    if (isOpen && student) {
+      loadStudentDetails();
+    }
+  }, [isOpen, student]);
 
   // Load student data when modal opens
   useEffect(() => {
@@ -379,6 +445,211 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleNewGuardianChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value, type } = e.target;
+    setNewGuardian(prev => ({
+      ...prev,
+      [name]:
+        type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+    }));
+  };
+
+  const handleAddGuardian = async () => {
+    try {
+      if (!student?.id) {
+        toast.error('Student ID not found');
+        return;
+      }
+
+      // Validate required fields
+      if (
+        !newGuardian.firstName ||
+        !newGuardian.lastName ||
+        !newGuardian.phone ||
+        !newGuardian.email ||
+        !newGuardian.relation
+      ) {
+        toast.error('Please fill in all required guardian fields');
+        return;
+      }
+
+      setIsLoading(true);
+
+      // Prepare guardian data for API call
+      const guardianData = {
+        guardians: [
+          {
+            firstName: newGuardian.firstName,
+            middleName: newGuardian.middleName || undefined,
+            lastName: newGuardian.lastName,
+            phone: newGuardian.phone,
+            email: newGuardian.email,
+            relation: newGuardian.relation,
+            occupation: newGuardian.occupation || undefined,
+            createUserAccount: newGuardian.createUserAccount,
+          },
+        ],
+      };
+
+      console.log('Adding guardian to student:', guardianData);
+
+      // Call API to add guardian
+      const response = await studentService.addGuardianToStudent(
+        String(student.id),
+        guardianData,
+      );
+
+      if (response.success) {
+        toast.success('Guardian added successfully!');
+
+        // Display credentials if account was created
+        if (
+          newGuardian.createUserAccount &&
+          response.data?.guardianCredentials
+        ) {
+          const credentials = response.data.guardianCredentials[0];
+          console.log('🛡️ GUARDIAN ACCOUNT CREATED:');
+          console.log(`Guardian Email: ${credentials.email}`);
+          console.log(`Guardian Password: ${credentials.temporaryPassword}`);
+          console.log(`Guardian Name: ${credentials.fullName}`);
+          console.log(`Guardian ID: ${credentials.id}`);
+
+          toast.success(
+            `Guardian account created! Email: ${credentials.email}`,
+          );
+        }
+
+        // Reset form and reload data
+        setNewGuardian({
+          firstName: '',
+          middleName: '',
+          lastName: '',
+          phone: '',
+          email: '',
+          relation: '',
+          occupation: '',
+          createUserAccount: false,
+        });
+        setIsAddingGuardian(false);
+
+        // Reload student details
+        const updatedResponse = await studentService.getStudentById(
+          String(student.id),
+        );
+        if (updatedResponse.success && updatedResponse.data) {
+          setStudentDetails(updatedResponse.data);
+          setExistingGuardians(updatedResponse.data.guardians || []);
+        }
+
+        onSuccess(); // Refresh parent component
+      } else {
+        toast.error(response.message || 'Failed to add guardian');
+      }
+    } catch (error) {
+      console.error('Error adding guardian:', error);
+      toast.error('Failed to add guardian');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditGuardian = (guardian: any) => {
+    setEditingGuardianId(guardian.id);
+    setEditingGuardian({
+      fullName: guardian.fullName,
+      phone: guardian.phone,
+      email: guardian.email,
+      relation: guardian.relation,
+      occupation: guardian.occupation || '',
+    });
+  };
+
+  const handleEditingGuardianChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const { name, value } = e.target;
+    setEditingGuardian(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleUpdateGuardian = async () => {
+    try {
+      if (!student?.id || !editingGuardianId) {
+        toast.error('Student or Guardian ID not found');
+        return;
+      }
+
+      // Validate required fields
+      if (
+        !editingGuardian.fullName ||
+        !editingGuardian.phone ||
+        !editingGuardian.email ||
+        !editingGuardian.relation
+      ) {
+        toast.error('Please fill in all required guardian fields');
+        return;
+      }
+
+      setIsLoading(true);
+
+      console.log('Updating guardian:', editingGuardian);
+
+      // Call API to update guardian
+      const response = await studentService.updateGuardian(
+        String(student.id),
+        editingGuardianId,
+        editingGuardian,
+      );
+
+      if (response.success) {
+        toast.success('Guardian updated successfully!');
+
+        // Reset editing state
+        setEditingGuardianId(null);
+        setEditingGuardian({
+          fullName: '',
+          phone: '',
+          email: '',
+          relation: '',
+          occupation: '',
+        });
+
+        // Reload student details
+        const updatedResponse = await studentService.getStudentById(
+          String(student.id),
+        );
+        if (updatedResponse.success && updatedResponse.data) {
+          setStudentDetails(updatedResponse.data);
+          setExistingGuardians(updatedResponse.data.guardians || []);
+        }
+
+        onSuccess(); // Refresh parent component
+      } else {
+        toast.error(response.message || 'Failed to update guardian');
+      }
+    } catch (error) {
+      console.error('Error updating guardian:', error);
+      toast.error('Failed to update guardian');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelEditGuardian = () => {
+    setEditingGuardianId(null);
+    setEditingGuardian({
+      fullName: '',
+      phone: '',
+      email: '',
+      relation: '',
+      occupation: '',
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -955,6 +1226,307 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
                   placeholder='Enter additional notes about the student'
                   rows={4}
                 />
+              </div>
+            </div>
+
+            {/* Guardian Information */}
+            <div>
+              <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+                <Users className='mr-2 h-5 w-5 text-green-600' />
+                Guardian Information
+              </h3>
+
+              {existingGuardians && existingGuardians.length > 0 ? (
+                <div className='space-y-4'>
+                  <div className='bg-green-50 border border-green-200 rounded-lg p-3 mb-4'>
+                    <p className='text-sm text-green-800'>
+                      <strong>Existing Guardians:</strong> This student has{' '}
+                      {existingGuardians.length} guardian(s) on record.
+                    </p>
+                  </div>
+
+                  {existingGuardians.map((guardian, index) => (
+                    <div
+                      key={guardian.id || index}
+                      className='bg-white border-l-4 border-green-400 p-4 rounded-r-lg shadow-sm'
+                    >
+                      <div className='flex justify-between items-start mb-2'>
+                        <h5 className='font-medium text-gray-900 flex items-center'>
+                          <span className='bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs mr-2'>
+                            Guardian {index + 1}
+                          </span>
+                          <span className='text-gray-600'>
+                            ({guardian.relation})
+                          </span>
+                          {guardian.hasUserAccount && (
+                            <span className='bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs ml-2'>
+                              Has Login Account
+                            </span>
+                          )}
+                        </h5>
+                        {editingGuardianId !== guardian.id && (
+                          <button
+                            type='button'
+                            onClick={() => handleEditGuardian(guardian)}
+                            className='text-blue-600 hover:text-blue-800 text-sm font-medium'
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
+
+                      {editingGuardianId === guardian.id ? (
+                        // Edit Form
+                        <div className='space-y-4'>
+                          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                            <LabeledInput
+                              label='Full Name'
+                              name='fullName'
+                              value={editingGuardian.fullName}
+                              onChange={handleEditingGuardianChange}
+                              required
+                              placeholder='Enter full name'
+                            />
+                            <LabeledInput
+                              label='Phone'
+                              name='phone'
+                              value={editingGuardian.phone}
+                              onChange={handleEditingGuardianChange}
+                              required
+                              placeholder='Enter phone number'
+                              icon={<Phone className='h-4 w-4' />}
+                            />
+                          </div>
+                          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                            <LabeledInput
+                              label='Email'
+                              name='email'
+                              type='email'
+                              value={editingGuardian.email}
+                              onChange={handleEditingGuardianChange}
+                              required
+                              placeholder='Enter email address'
+                              icon={<Mail className='h-4 w-4' />}
+                            />
+                            <LabeledInput
+                              label='Relation'
+                              name='relation'
+                              value={editingGuardian.relation}
+                              onChange={handleEditingGuardianChange}
+                              required
+                              placeholder='e.g., Uncle, Aunt, Grandfather'
+                            />
+                          </div>
+                          {guardian.hasUserAccount && (
+                            <LabeledInput
+                              label='Occupation'
+                              name='occupation'
+                              value={editingGuardian.occupation}
+                              onChange={handleEditingGuardianChange}
+                              placeholder='Enter occupation'
+                            />
+                          )}
+                          <div className='flex justify-end space-x-3'>
+                            <button
+                              type='button'
+                              onClick={handleCancelEditGuardian}
+                              className='px-3 py-1 border border-gray-300 text-sm rounded-md text-gray-700 bg-white hover:bg-gray-50'
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type='button'
+                              onClick={handleUpdateGuardian}
+                              disabled={isLoading}
+                              className='inline-flex items-center px-3 py-1 border border-transparent text-sm rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50'
+                            >
+                              {isLoading ? (
+                                <>
+                                  <Loader2 className='mr-1 h-3 w-3 animate-spin' />
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <Save className='mr-1 h-3 w-3' />
+                                  Save
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        // Display View
+                        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm'>
+                          <div>
+                            <span className='text-gray-600'>Name:</span>
+                            <p className='font-medium'>{guardian.fullName}</p>
+                          </div>
+                          <div>
+                            <span className='text-gray-600'>Email:</span>
+                            <p className='font-medium'>{guardian.email}</p>
+                          </div>
+                          <div>
+                            <span className='text-gray-600'>Phone:</span>
+                            <p className='font-medium'>{guardian.phone}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className='bg-gray-50 border border-gray-200 rounded-lg p-4'>
+                  <p className='text-sm text-gray-600 mb-2'>
+                    <strong>No Guardians:</strong> This student doesn't have any
+                    guardians on record.
+                  </p>
+                </div>
+              )}
+
+              {/* Add New Guardian Section */}
+              <div className='mt-6'>
+                {!isAddingGuardian ? (
+                  <button
+                    type='button'
+                    onClick={() => setIsAddingGuardian(true)}
+                    className='inline-flex items-center px-4 py-2 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
+                  >
+                    <Users className='mr-2 h-4 w-4' />
+                    Add New Guardian
+                  </button>
+                ) : (
+                  <div className='bg-green-50 border border-green-200 rounded-lg p-4'>
+                    <h4 className='text-sm font-semibold text-gray-900 mb-4 flex items-center'>
+                      <Users className='mr-2 h-4 w-4 text-green-600' />
+                      Add New Guardian
+                    </h4>
+
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                      <LabeledInput
+                        label='First Name'
+                        name='firstName'
+                        value={newGuardian.firstName}
+                        onChange={handleNewGuardianChange}
+                        required
+                        placeholder='Enter first name'
+                      />
+                      <LabeledInput
+                        label='Middle Name'
+                        name='middleName'
+                        value={newGuardian.middleName}
+                        onChange={handleNewGuardianChange}
+                        placeholder='Enter middle name'
+                      />
+                      <LabeledInput
+                        label='Last Name'
+                        name='lastName'
+                        value={newGuardian.lastName}
+                        onChange={handleNewGuardianChange}
+                        required
+                        placeholder='Enter last name'
+                      />
+                    </div>
+
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+                      <LabeledInput
+                        label='Email'
+                        name='email'
+                        type='email'
+                        value={newGuardian.email}
+                        onChange={handleNewGuardianChange}
+                        required
+                        placeholder='Enter email address'
+                        icon={<Mail className='h-4 w-4' />}
+                      />
+                      <LabeledInput
+                        label='Phone'
+                        name='phone'
+                        value={newGuardian.phone}
+                        onChange={handleNewGuardianChange}
+                        required
+                        placeholder='Enter phone number'
+                        icon={<Phone className='h-4 w-4' />}
+                      />
+                    </div>
+
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+                      <LabeledInput
+                        label='Relation'
+                        name='relation'
+                        value={newGuardian.relation}
+                        onChange={handleNewGuardianChange}
+                        required
+                        placeholder='e.g., Uncle, Aunt, Grandfather'
+                      />
+                      <LabeledInput
+                        label='Occupation'
+                        name='occupation'
+                        value={newGuardian.occupation}
+                        onChange={handleNewGuardianChange}
+                        placeholder='Enter occupation'
+                      />
+                    </div>
+
+                    <div className='mb-4'>
+                      <label className='flex items-center text-sm'>
+                        <input
+                          type='checkbox'
+                          name='createUserAccount'
+                          checked={newGuardian.createUserAccount}
+                          onChange={handleNewGuardianChange}
+                          className='mr-2 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded'
+                        />
+                        <span className='font-medium'>
+                          Create Guardian User Account
+                        </span>
+                      </label>
+                      <p className='text-xs text-gray-500 mt-1 ml-6'>
+                        Check this box to create a login account for the
+                        guardian with generated credentials.
+                      </p>
+                    </div>
+
+                    <div className='flex justify-end space-x-3'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setIsAddingGuardian(false);
+                          setNewGuardian({
+                            firstName: '',
+                            middleName: '',
+                            lastName: '',
+                            phone: '',
+                            email: '',
+                            relation: '',
+                            occupation: '',
+                            createUserAccount: false,
+                          });
+                        }}
+                        className='px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type='button'
+                        onClick={handleAddGuardian}
+                        disabled={isLoading}
+                        className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50'
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                            Adding...
+                          </>
+                        ) : (
+                          <>
+                            <Save className='mr-2 h-4 w-4' />
+                            Add Guardian
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
