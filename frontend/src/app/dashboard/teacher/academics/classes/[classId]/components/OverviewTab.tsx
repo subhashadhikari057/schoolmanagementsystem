@@ -17,7 +17,16 @@ interface ClassDetails {
   grade: number;
   section: string;
   capacity: number;
-  currentEnrollment?: number;
+  currentEnrollment: number;
+  shift: 'morning' | 'day';
+  roomId: string;
+  classTeacherId: string;
+  createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string;
+  createdById?: string;
+  updatedById?: string;
+  deletedById?: string;
   room?: {
     roomNo: string;
     name?: string;
@@ -40,6 +49,26 @@ interface ClassDetails {
       email?: string;
       phone?: string;
     };
+    parents?: Array<{
+      id: string;
+      parent: {
+        id: string;
+        user: {
+          fullName: string;
+          email: string;
+          phone?: string;
+        };
+      };
+      relationship: string;
+      isPrimary: boolean;
+    }>;
+    guardians?: Array<{
+      id: string;
+      fullName: string;
+      phone: string;
+      email: string;
+      relation: string;
+    }>;
   }>;
 }
 
@@ -52,36 +81,15 @@ export default function OverviewTab({ classDetails }: OverviewTabProps) {
   const [assignments, setAssignments] = useState<AssignmentResponse[]>([]);
   const [assignmentsLoading, setAssignmentsLoading] = useState(true);
   const [teacherId, setTeacherId] = useState<string | null>(null);
-  const [backendClassData, setBackendClassData] =
-    useState<ClassResponse | null>(null);
-  const [classDataLoading, setClassDataLoading] = useState(true);
 
-  // Stats data from backend
+  // Stats data from classDetails props
   const stats = {
-    totalStudents: backendClassData?.students?.length || 0,
-    capacity: backendClassData?.capacity || 0,
+    totalStudents: classDetails.students?.length || 0,
+    capacity: classDetails.capacity || 0,
     ongoingAssignments: assignments.length,
     attendanceToday: 25,
     attendancePercentage: 89,
   };
-
-  // Load real class data from backend
-  const loadClassData = useCallback(async () => {
-    if (!classDetails.id) {
-      setClassDataLoading(false);
-      return;
-    }
-
-    try {
-      setClassDataLoading(true);
-      const response = await classService.getClassById(classDetails.id);
-      setBackendClassData(response.data);
-    } catch (error) {
-      console.error('Failed to load class data:', error);
-    } finally {
-      setClassDataLoading(false);
-    }
-  }, [classDetails.id]);
 
   // Get current teacher's ID
   const loadTeacherData = useCallback(async () => {
@@ -118,9 +126,8 @@ export default function OverviewTab({ classDetails }: OverviewTabProps) {
   }, [teacherId, classDetails.id]);
 
   useEffect(() => {
-    loadClassData();
     loadTeacherData();
-  }, [loadClassData, loadTeacherData]);
+  }, [loadTeacherData]);
 
   useEffect(() => {
     if (teacherId) {
@@ -133,47 +140,34 @@ export default function OverviewTab({ classDetails }: OverviewTabProps) {
       {/* Class Statistics */}
       <div className='mb-8'>
         <SectionTitle
-          text={`Class ${backendClassData?.grade || classDetails.grade}-${backendClassData?.section || classDetails.section} Statistics`}
+          text={`Class ${classDetails.grade}-${classDetails.section} Statistics`}
           level={3}
           className='text-lg font-semibold text-gray-900 mb-6'
         />
 
-        {classDataLoading ? (
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-            {[...Array(2)].map((_, index) => (
-              <div
-                key={index}
-                className='bg-gray-200 animate-pulse rounded-lg p-4 h-20'
-              ></div>
-            ))}
-          </div>
-        ) : (
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-            {/* Total Students */}
-            <div className='bg-gray-50 rounded-lg p-4'>
-              <Label className='text-gray-600 text-sm'>Total Students:</Label>
-              <div className='text-2xl font-bold text-gray-900'>
-                {stats.totalStudents}
-              </div>
-              <div className='text-xs text-gray-500 mt-1'>
-                {stats.totalStudents}/{stats.capacity} enrolled
-              </div>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+          {/* Total Students */}
+          <div className='bg-gray-50 rounded-lg p-4'>
+            <Label className='text-gray-600 text-sm'>Total Students:</Label>
+            <div className='text-2xl font-bold text-gray-900'>
+              {stats.totalStudents}
             </div>
+            <div className='text-xs text-gray-500 mt-1'>
+              {stats.totalStudents}/{stats.capacity} enrolled
+            </div>
+          </div>
 
-            {/* Ongoing Assignments */}
-            <div className='bg-gray-50 rounded-lg p-4'>
-              <Label className='text-gray-600 text-sm'>
-                Ongoing Assignments
-              </Label>
-              <div className='text-2xl font-bold text-gray-900'>
-                {stats.ongoingAssignments}
-              </div>
-              <div className='text-xs text-gray-500 mt-1'>
-                {assignmentsLoading ? 'Loading...' : 'Active assignments'}
-              </div>
+          {/* Ongoing Assignments */}
+          <div className='bg-gray-50 rounded-lg p-4'>
+            <Label className='text-gray-600 text-sm'>Ongoing Assignments</Label>
+            <div className='text-2xl font-bold text-gray-900'>
+              {stats.ongoingAssignments}
+            </div>
+            <div className='text-xs text-gray-500 mt-1'>
+              {assignmentsLoading ? 'Loading...' : 'Active assignments'}
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Assignments to Grade */}

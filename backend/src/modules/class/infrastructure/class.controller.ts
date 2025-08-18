@@ -59,6 +59,12 @@ export class ClassController {
     return this.classService.findById(id); // returns class + sections[]
   }
 
+  @Get(':id/students')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getClassWithStudents(@Param('id') id: string) {
+    return this.classService.getClassDetailsWithStudents(id);
+  }
+
   @Patch(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async update(
@@ -105,5 +111,16 @@ export class ClassController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async getAvailableTeachers() {
     return this.classService.getAvailableTeachers();
+  }
+
+  @Post(':id/sync-enrollment')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async syncEnrollmentCount(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ) {
+    const count = await this.classService.syncEnrollmentCount(id);
+    return { message: 'Enrollment count synced successfully', count };
   }
 }

@@ -207,6 +207,16 @@ export class TeacherController {
     return this.teacherService.getSubjects(teacher.id);
   }
 
+  @Get('me/classes/:classId/subjects')
+  @Roles(UserRole.TEACHER)
+  async getMySubjectsForClass(
+    @Param('classId') classId: string,
+    @CurrentUser() user: any,
+  ) {
+    const teacher = await this.teacherService.findByUserId(user.id);
+    return this.teacherService.getSubjectsForClass(teacher.id, classId);
+  }
+
   @Get('me/classes')
   @Roles(UserRole.TEACHER)
   async getMyClasses(@CurrentUser() user: any) {

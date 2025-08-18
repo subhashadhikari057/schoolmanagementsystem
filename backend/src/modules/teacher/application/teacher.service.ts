@@ -924,6 +924,28 @@ export class TeacherService {
     return teacher.subjectAssignments;
   }
 
+  async getSubjectsForClass(teacherId: string, classId: string) {
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { id: teacherId },
+    });
+    if (!teacher || teacher.deletedAt)
+      throw new NotFoundException('Teacher not found');
+
+    // Get subjects that the teacher is assigned to teach for this specific class
+    const classSubjects = await this.prisma.classSubject.findMany({
+      where: {
+        classId: classId,
+        teacherId: teacherId,
+        deletedAt: null,
+      },
+      include: {
+        subject: true,
+      },
+    });
+
+    return classSubjects;
+  }
+
   async assignSubjects(
     teacherId: string,
     subjectIds: string[],

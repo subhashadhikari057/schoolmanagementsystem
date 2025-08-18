@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { teacherService } from '@/api/services/teacher.service';
+import { classService } from '@/api/services/class.service';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Button from '@/components/atoms/form-controls/Button';
@@ -19,7 +20,16 @@ interface ClassDetails {
   grade: number;
   section: string;
   capacity: number;
-  currentEnrollment?: number;
+  currentEnrollment: number;
+  shift: 'morning' | 'day';
+  roomId: string;
+  classTeacherId: string;
+  createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string;
+  createdById?: string;
+  updatedById?: string;
+  deletedById?: string;
   room?: {
     roomNo: string;
     name?: string;
@@ -37,11 +47,36 @@ interface ClassDetails {
   students?: Array<{
     id: string;
     rollNumber: string;
+    address?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    pinCode?: string;
     user: {
       fullName: string;
       email?: string;
       phone?: string;
     };
+    parents?: Array<{
+      id: string;
+      parent: {
+        id: string;
+        user: {
+          fullName: string;
+          email: string;
+          phone?: string;
+        };
+      };
+      relationship: string;
+      isPrimary: boolean;
+    }>;
+    guardians?: Array<{
+      id: string;
+      fullName: string;
+      phone: string;
+      email: string;
+      relation: string;
+    }>;
   }>;
 }
 
@@ -65,9 +100,9 @@ export default function ClassDetailPage() {
       setLoading(true);
       setError(null);
 
-      // Get teacher's classes and find the specific class
-      const response = await teacherService.getMyClasses();
-      const foundClass = response.data.find(
+      // First verify the teacher has access to this class
+      const teacherClassesResponse = await teacherService.getMyClasses();
+      const hasAccess = teacherClassesResponse.data.some(
         (tc: {
           class: {
             id: string;
@@ -78,12 +113,14 @@ export default function ClassDetailPage() {
         }) => tc.class.id === classId,
       );
 
-      if (!foundClass) {
+      if (!hasAccess) {
         setError('Class not found or you do not have access to this class');
         return;
       }
 
-      setClassDetails(foundClass.class);
+      // Get full class details including students, parents, and guardians
+      const classResponse = await classService.getClassWithStudents(classId);
+      setClassDetails(classResponse.data);
     } catch (error) {
       console.error('Failed to load class details:', error);
       setError('Failed to load class details');

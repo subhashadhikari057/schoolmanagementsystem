@@ -18,6 +18,10 @@ interface CreateAssignmentModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   editAssignment?: AssignmentResponse | any;
+  preSelectedClass?: {
+    id: string;
+    name: string;
+  };
 }
 
 // Dynamic data interfaces
@@ -80,6 +84,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   onClose,
   onSuccess,
   editAssignment,
+  preSelectedClass,
 }) => {
   // UI state
   const [isLoading, setIsLoading] = useState(false);
@@ -112,48 +117,53 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
 
-  // Effect to populate form with edit data
+  // Effect to populate form with edit data or pre-selected class
   useEffect(() => {
-    if (editAssignment && isOpen) {
-      setTitle(editAssignment.title);
-      setDescription(editAssignment.description || '');
+    if (isOpen) {
+      if (editAssignment) {
+        setTitle(editAssignment.title);
+        setDescription(editAssignment.description || '');
 
-      // Safely handle date conversion - use originalDueDate if available
-      const dateToConvert =
-        (editAssignment as any).originalDueDate !== undefined
-          ? (editAssignment as any).originalDueDate
-          : editAssignment.dueDate;
+        // Safely handle date conversion - use originalDueDate if available
+        const dateToConvert =
+          (editAssignment as any).originalDueDate !== undefined
+            ? (editAssignment as any).originalDueDate
+            : editAssignment.dueDate;
 
-      const safeDueDate = dateToConvert
-        ? (() => {
-            // Handle the case where dueDate might be a display string like "No due date"
-            if (
-              typeof dateToConvert === 'string' &&
-              (dateToConvert === 'No due date' ||
-                dateToConvert.includes('No due date'))
-            ) {
-              return '';
-            }
+        const safeDueDate = dateToConvert
+          ? (() => {
+              // Handle the case where dueDate might be a display string like "No due date"
+              if (
+                typeof dateToConvert === 'string' &&
+                (dateToConvert === 'No due date' ||
+                  dateToConvert.includes('No due date'))
+              ) {
+                return '';
+              }
 
-            const date = new Date(dateToConvert);
-            return isNaN(date.getTime())
-              ? ''
-              : date.toISOString().split('T')[0];
-          })()
-        : '';
+              const date = new Date(dateToConvert);
+              return isNaN(date.getTime())
+                ? ''
+                : date.toISOString().split('T')[0];
+            })()
+          : '';
 
-      setDueDate(safeDueDate);
-      // Use the stored IDs from ProcessedAssignment when available
-      const classId =
-        (editAssignment as any).classId || editAssignment.class?.id || '';
-      const subjectId = (editAssignment as any).subjectId || '';
-      const teacherId = (editAssignment as any).teacherId || '';
+        setDueDate(safeDueDate);
+        // Use the stored IDs from ProcessedAssignment when available
+        const classId =
+          (editAssignment as any).classId || editAssignment.class?.id || '';
+        const subjectId = (editAssignment as any).subjectId || '';
+        const teacherId = (editAssignment as any).teacherId || '';
 
-      setSelectedClasses([classId]);
-      setSelectedSubject(subjectId);
-      setSelectedTeacher(teacherId);
+        setSelectedClasses([classId]);
+        setSelectedSubject(subjectId);
+        setSelectedTeacher(teacherId);
+      } else if (preSelectedClass) {
+        // If we have a pre-selected class, set it
+        setSelectedClasses([preSelectedClass.id]);
+      }
     }
-  }, [editAssignment, isOpen]);
+  }, [editAssignment, isOpen, preSelectedClass]);
 
   // Load classes, subjects, and teachers based on user role
   const loadInitialData = useCallback(async () => {
@@ -194,6 +204,11 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
 
         // Auto-assign teacher to themselves
         setSelectedTeacher(teacherResponse.data.id);
+
+        // If a class is pre-selected, set it
+        if (preSelectedClass) {
+          setSelectedClasses([preSelectedClass.id]);
+        }
       } else if (isAdminOrSuperAdmin) {
         // For admins: Load all classes, subjects, and teachers
         const [classesResponse, subjectsResponse, teachersResponse] =
@@ -240,7 +255,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     } finally {
       setLoadingData(false);
     }
-  }, [isTeacher, isAdminOrSuperAdmin, user]);
+  }, [isTeacher, isAdminOrSuperAdmin, user, preSelectedClass]);
 
   // Load initial data when modal opens or user changes
   useEffect(() => {
@@ -452,59 +467,72 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
       </div>
 
       {/* Assign to Classes Section */}
-      <div className='space-y-4'>
-        <label className='block text-sm font-medium text-gray-700 mb-3'>
-          Assign to Classes *
-        </label>
-        {loadingData ? (
-          <div className='flex items-center justify-center py-8'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
-            <span className='ml-3 text-gray-600'>Loading classes...</span>
+      {preSelectedClass ? (
+        <div className='space-y-4'>
+          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+            <div className='text-sm font-medium text-blue-900 mb-1'>
+              Creating assignment for:
+            </div>
+            <div className='text-lg font-semibold text-blue-800'>
+              {preSelectedClass.name}
+            </div>
           </div>
-        ) : classes.length === 0 ? (
-          <div className='text-center py-8 text-gray-500'>
-            <Users className='mx-auto h-12 w-12 text-gray-400 mb-4' />
-            <p>No classes available</p>
-          </div>
-        ) : (
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
-            {classes.map(cls => (
-              <label
-                key={cls.id}
-                className={`flex items-center border rounded-lg px-4 py-3 cursor-pointer transition-all duration-200 gap-3 shadow-sm hover:shadow-md
-                  ${
-                    selectedClasses.includes(cls.id)
-                      ? 'border-blue-600 bg-blue-50 shadow-blue-100'
-                      : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30'
-                  }
-                `}
-                style={{ minHeight: '64px' }}
-              >
-                <input
-                  type='checkbox'
-                  checked={selectedClasses.includes(cls.id)}
-                  onChange={() =>
-                    setSelectedClasses(
+        </div>
+      ) : (
+        <div className='space-y-4'>
+          <label className='block text-sm font-medium text-gray-700 mb-3'>
+            Assign to Classes *
+          </label>
+          {loadingData ? (
+            <div className='flex items-center justify-center py-8'>
+              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
+              <span className='ml-3 text-gray-600'>Loading classes...</span>
+            </div>
+          ) : classes.length === 0 ? (
+            <div className='text-center py-8 text-gray-500'>
+              <Users className='mx-auto h-12 w-12 text-gray-400 mb-4' />
+              <p>No classes available</p>
+            </div>
+          ) : (
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+              {classes.map(cls => (
+                <label
+                  key={cls.id}
+                  className={`flex items-center border rounded-lg px-4 py-3 cursor-pointer transition-all duration-200 gap-3 shadow-sm hover:shadow-md
+                    ${
                       selectedClasses.includes(cls.id)
-                        ? selectedClasses.filter(id => id !== cls.id)
-                        : [...selectedClasses, cls.id],
-                    )
-                  }
-                  className='w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2'
-                />
-                <div className='flex flex-col justify-center flex-1'>
-                  <div className='font-medium text-sm text-gray-900 leading-tight'>
-                    {cls.label}
+                        ? 'border-blue-600 bg-blue-50 shadow-blue-100'
+                        : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30'
+                    }
+                  `}
+                  style={{ minHeight: '64px' }}
+                >
+                  <input
+                    type='checkbox'
+                    checked={selectedClasses.includes(cls.id)}
+                    onChange={() =>
+                      setSelectedClasses(
+                        selectedClasses.includes(cls.id)
+                          ? selectedClasses.filter(id => id !== cls.id)
+                          : [...selectedClasses, cls.id],
+                      )
+                    }
+                    className='w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2'
+                  />
+                  <div className='flex flex-col justify-center flex-1'>
+                    <div className='font-medium text-sm text-gray-900 leading-tight'>
+                      {cls.label}
+                    </div>
+                    <div className='text-xs text-gray-500 leading-tight mt-0.5'>
+                      {cls.students} students
+                    </div>
                   </div>
-                  <div className='text-xs text-gray-500 leading-tight mt-0.5'>
-                    {cls.students} students
-                  </div>
-                </div>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 

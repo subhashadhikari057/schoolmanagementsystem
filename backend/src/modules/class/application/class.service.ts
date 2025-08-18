@@ -117,6 +117,35 @@ export class ClassService {
    * Get all active classes
    */
   async findAll() {
+    // Get all active classes
+    const classes = await this.prisma.class.findMany({
+      where: { deletedAt: null },
+      include: {
+        classTeacher: {
+          include: {
+            user: {
+              select: { fullName: true, email: true },
+            },
+          },
+        },
+        room: {
+          select: { roomNo: true, name: true, floor: true, building: true },
+        },
+        students: {
+          where: { deletedAt: null },
+          select: { id: true },
+        },
+        _count: {
+          select: { students: { where: { deletedAt: null } } },
+        },
+      },
+      orderBy: { grade: 'asc' },
+    });
+
+    // Sync enrollment counts for all classes
+    await Promise.all(classes.map(cls => this.syncEnrollmentCount(cls.id)));
+
+    // Fetch the updated classes
     return this.prisma.class.findMany({
       where: { deletedAt: null },
       include: {
@@ -143,9 +172,12 @@ export class ClassService {
   }
 
   /**
-   * Get a class by ID
+   * Get comprehensive class details with students, parents, and guardians
    */
-  async findById(id: string) {
+  async getClassDetailsWithStudents(id: string) {
+    // First sync the enrollment count
+    await this.syncEnrollmentCount(id);
+
     const classRecord = await this.prisma.class.findUnique({
       where: { id },
       include: {
@@ -164,7 +196,86 @@ export class ClassService {
           select: {
             id: true,
             rollNumber: true,
-            user: { select: { fullName: true } },
+            address: true,
+            street: true,
+            city: true,
+            state: true,
+            pinCode: true,
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+                phone: true,
+              },
+            },
+            parents: {
+              where: { deletedAt: null },
+              include: {
+                parent: {
+                  include: {
+                    user: {
+                      select: {
+                        fullName: true,
+                        email: true,
+                        phone: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            guardians: {
+              select: {
+                id: true,
+                fullName: true,
+                phone: true,
+                email: true,
+                relation: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            students: { where: { deletedAt: null } },
+          },
+        },
+      },
+    });
+
+    if (!classRecord || classRecord.deletedAt) {
+      throw new NotFoundException('Class not found');
+    }
+
+    return classRecord;
+  }
+
+  /**
+   * Get a class by ID
+   */
+  async findById(id: string) {
+    // First sync the enrollment count
+    await this.syncEnrollmentCount(id);
+
+    const classRecord = await this.prisma.class.findUnique({
+      where: { id },
+      include: {
+        classTeacher: {
+          include: {
+            user: {
+              select: { fullName: true, email: true },
+            },
+          },
+        },
+        room: {
+          select: { roomNo: true, name: true, floor: true, building: true },
+        },
+        students: {
+          where: { deletedAt: null },
+          select: {
+            id: true,
+            rollNumber: true,
+            user: { select: { fullName: true, email: true, phone: true } },
           },
         },
       },
@@ -358,5 +469,28 @@ export class ClassService {
       email: teacher.user?.email || '',
       employeeId: teacher.employeeId,
     }));
+  }
+
+  /**
+   * Sync enrollment count with actual number of active students
+   */
+  async syncEnrollmentCount(id: string) {
+    // Get the actual count of active students
+    const studentCount = await this.prisma.student.count({
+      where: {
+        classId: id,
+        deletedAt: null,
+      },
+    });
+
+    // Update the class with the correct count
+    await this.prisma.class.update({
+      where: { id },
+      data: {
+        currentEnrollment: studentCount,
+      },
+    });
+
+    return studentCount;
   }
 }
