@@ -121,6 +121,8 @@ export const CreateStudentGuardianSchema = z.object({
   phone: z.string().min(1, 'Guardian phone is required'),
   email: z.string().email('Invalid guardian email format'),
   relation: z.string().min(1, 'Guardian relation is required'),
+  occupation: z.string().optional(),
+  createUserAccount: z.boolean().default(false),
 });
 
 // ---------------------------
@@ -176,7 +178,7 @@ export const CreateStudentDto = z.object({
   parentInfo: CreateStudentParentSchema.optional(), // Optional when using existing parents
   parents: z.array(CreateStudentParentAccountSchema).optional(),
   existingParents: z.array(LinkExistingParentSchema).optional(), // For linking existing parents
-  guardians: z.array(CreateStudentGuardianSchema).optional(),
+  guardians: z.array(CreateStudentGuardianSchema).optional(), // All guardians (with createUserAccount flag)
   additional: CreateStudentAdditionalSchema.optional(),
   profile: CreateStudentProfileSchema.optional(),
 });

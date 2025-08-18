@@ -34,6 +34,8 @@ interface GuardianInfo {
   phone: string;
   email: string;
   relation: string;
+  createUserAccount: boolean;
+  occupation?: string;
 }
 
 interface ParentAccountInfo {
@@ -523,6 +525,8 @@ export default function AddStudentFormModal({
           phone: '',
           email: '',
           relation: '',
+          createUserAccount: false,
+          occupation: '',
         },
       ],
     }));
@@ -536,7 +540,7 @@ export default function AddStudentFormModal({
   }, []);
 
   const handleGuardianChange = useCallback(
-    (index: number, field: string, value: string) => {
+    (index: number, field: string, value: string | boolean) => {
       setFormData(prev => ({
         ...prev,
         guardians: prev.guardians.map((guardian, i) =>
@@ -870,7 +874,7 @@ export default function AddStudentFormModal({
             ? formData.existingParents
             : [],
 
-        // Guardians (non-user accounts)
+        // Guardians (ALL guardians - both with and without user accounts)
         guardians: formData.guardians
           .filter(
             guardian =>
@@ -886,6 +890,8 @@ export default function AddStudentFormModal({
             phone: guardian.phone,
             email: guardian.email,
             relation: guardian.relation,
+            occupation: guardian.occupation || undefined,
+            createUserAccount: guardian.createUserAccount, // Include the checkbox state
           })),
 
         // Additional information
@@ -913,6 +919,20 @@ export default function AddStudentFormModal({
       };
 
       console.log('Student data being sent:', studentData);
+      console.log('🛡️ Form guardians count:', formData.guardians.length);
+      console.log('🛡️ Form guardians details:', formData.guardians);
+      console.log('📋 Guardians being sent:', studentData.guardians);
+      console.log('📋 Guardians count:', studentData.guardians?.length || 0);
+      if (studentData.guardians && studentData.guardians.length > 0) {
+        console.log(
+          '🛡️ Guardians with user accounts:',
+          studentData.guardians.filter(g => g.createUserAccount).length,
+        );
+        console.log(
+          '📝 Guardians without user accounts:',
+          studentData.guardians.filter(g => !g.createUserAccount).length,
+        );
+      }
 
       const response = await studentService.createStudent(
         studentData,
@@ -946,9 +966,35 @@ export default function AddStudentFormModal({
             response.data?.parentCredentials &&
             Array.isArray(response.data.parentCredentials)
           ) {
-            console.log('👨‍👩‍👧‍👦 PARENT ACCOUNTS CREATED:');
-            response.data.parentCredentials.forEach(
-              (parent: any, index: number) => {
+            // Separate regular parents from guardians
+            const regularParents = response.data.parentCredentials.filter(
+              (parent: any) =>
+                ![
+                  'guardian',
+                  'uncle',
+                  'aunt',
+                  'grandfather',
+                  'grandmother',
+                  'stepfather',
+                  'stepmother',
+                ].includes(parent.relationship?.toLowerCase()),
+            );
+            const guardianParents = response.data.parentCredentials.filter(
+              (parent: any) =>
+                [
+                  'guardian',
+                  'uncle',
+                  'aunt',
+                  'grandfather',
+                  'grandmother',
+                  'stepfather',
+                  'stepmother',
+                ].includes(parent.relationship?.toLowerCase()),
+            );
+
+            if (regularParents.length > 0) {
+              console.log('👨‍👩‍👧‍👦 PARENT ACCOUNTS CREATED:');
+              regularParents.forEach((parent: any, index: number) => {
                 console.table({
                   [`Parent ${index + 1} Email`]: parent.email,
                   [`Parent ${index + 1} Password`]: parent.temporaryPassword,
@@ -956,8 +1002,22 @@ export default function AddStudentFormModal({
                   [`Parent ${index + 1} ID`]: parent.id,
                   [`Parent ${index + 1} Relationship`]: parent.relationship,
                 });
-              },
-            );
+              });
+            }
+
+            if (guardianParents.length > 0) {
+              console.log('🛡️ GUARDIAN ACCOUNTS CREATED:');
+              guardianParents.forEach((guardian: any, index: number) => {
+                console.table({
+                  [`Guardian ${index + 1} Email`]: guardian.email,
+                  [`Guardian ${index + 1} Password`]:
+                    guardian.temporaryPassword,
+                  [`Guardian ${index + 1} Name`]: guardian.fullName,
+                  [`Guardian ${index + 1} ID`]: guardian.id,
+                  [`Guardian ${index + 1} Relationship`]: guardian.relationship,
+                });
+              });
+            }
           }
 
           console.log('💡 Use these credentials to test login functionality');
@@ -1925,7 +1985,23 @@ export default function AddStudentFormModal({
             </FormSection>
 
             {/* Additional Guardians */}
-            <FormSection title='Additional Guardians' icon={Shield}>
+            <FormSection
+              title='🛡️ Additional Guardians (Optional)'
+              icon={Shield}
+            >
+              <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4'>
+                <p className='text-sm text-blue-800'>
+                  <strong>Add guardians</strong> like grandparents, uncles,
+                  aunts, or other family members who should have access to
+                  student information. Check "Create Guardian User Account" to
+                  give them login access to the parent portal.
+                </p>
+                {formData.guardians.length > 0 && (
+                  <p className='text-xs text-green-700 mt-2 font-medium'>
+                    ✅ {formData.guardians.length} guardian(s) added
+                  </p>
+                )}
+              </div>
               <div className='space-y-4'>
                 {formData.guardians.map((guardian, index) => (
                   <div key={index} className='border rounded-lg p-4 bg-white'>
@@ -1954,6 +2030,20 @@ export default function AddStudentFormModal({
                           )
                         }
                         placeholder='Enter first name'
+                        required
+                      />
+                      <LabeledInput
+                        label='Middle Name'
+                        name={`guardian-${index}-middleName`}
+                        value={guardian.middleName || ''}
+                        onChange={e =>
+                          handleGuardianChange(
+                            index,
+                            'middleName',
+                            e.target.value,
+                          )
+                        }
+                        placeholder='Enter middle name (optional)'
                       />
                       <LabeledInput
                         label='Last Name'
@@ -1967,19 +2057,7 @@ export default function AddStudentFormModal({
                           )
                         }
                         placeholder='Enter last name'
-                      />
-                      <LabeledInput
-                        label='Relation'
-                        name={`guardian-${index}-relation`}
-                        value={guardian.relation}
-                        onChange={e =>
-                          handleGuardianChange(
-                            index,
-                            'relation',
-                            e.target.value,
-                          )
-                        }
-                        placeholder='Enter relation'
+                        required
                       />
                     </div>
                     <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
@@ -1992,6 +2070,7 @@ export default function AddStudentFormModal({
                         }
                         placeholder='Enter phone number'
                         error={errors[`guardian-${index}-phone`]}
+                        required
                       />
                       <LabeledInput
                         label='Email'
@@ -2003,18 +2082,87 @@ export default function AddStudentFormModal({
                         }
                         placeholder='Enter email address'
                         error={errors[`guardian-${index}-email`]}
+                        required
                       />
+                    </div>
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
+                      <LabeledInput
+                        label='Relation'
+                        name={`guardian-${index}-relation`}
+                        value={guardian.relation}
+                        onChange={e =>
+                          handleGuardianChange(
+                            index,
+                            'relation',
+                            e.target.value,
+                          )
+                        }
+                        placeholder='Enter relation (e.g., Uncle, Aunt, Grandfather)'
+                        required
+                      />
+                      <LabeledInput
+                        label='Occupation'
+                        name={`guardian-${index}-occupation`}
+                        value={guardian.occupation || ''}
+                        onChange={e =>
+                          handleGuardianChange(
+                            index,
+                            'occupation',
+                            e.target.value,
+                          )
+                        }
+                        placeholder='Enter occupation (optional)'
+                      />
+                    </div>
+
+                    {/* User Account Creation Checkbox */}
+                    <div className='mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
+                      <div className='flex items-start space-x-3'>
+                        <input
+                          type='checkbox'
+                          id={`guardian-${index}-createAccount`}
+                          checked={guardian.createUserAccount}
+                          onChange={e =>
+                            handleGuardianChange(
+                              index,
+                              'createUserAccount',
+                              e.target.checked,
+                            )
+                          }
+                          className='mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                        />
+                        <div className='flex-1'>
+                          <label
+                            htmlFor={`guardian-${index}-createAccount`}
+                            className='text-sm font-medium text-blue-800 cursor-pointer'
+                          >
+                            Create Guardian User Account
+                          </label>
+                          <p className='text-xs text-blue-600 mt-1'>
+                            Check this to create a login account for this
+                            guardian, allowing them to access the parent portal
+                            and view student information.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
 
                 <button
                   type='button'
-                  onClick={addGuardian}
+                  onClick={() => {
+                    console.log('🛡️ Add Guardian button clicked');
+                    console.log(
+                      '🛡️ Current guardians before add:',
+                      formData.guardians,
+                    );
+                    addGuardian();
+                  }}
                   className='w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-gray-600 hover:border-orange-500 hover:text-orange-600 transition-colors duration-200 flex items-center justify-center'
                 >
                   <Plus size={20} className='mr-2' />
-                  Add Guardian
+                  Add Guardian ({formData.guardians.length})
                 </button>
               </div>
             </FormSection>

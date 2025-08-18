@@ -66,7 +66,7 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
               : `Grade ${(student.class as any)?.grade || 'Unknown'} ${(student.class as any)?.section || ''}`,
           admissionDate: '',
           academicStatus: student.status.toLowerCase(),
-          feeStatus: 'pending',
+          // feeStatus: 'pending',
           isActive: student.status === 'Active',
           createdAt: new Date().toISOString(),
         } as StudentResponse);
@@ -534,6 +534,96 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Guardian Information */}
+              {console.log(
+                '🛡️ Student guardians in view modal:',
+                studentDetails.guardians,
+              )}
+              {studentDetails.guardians &&
+                studentDetails.guardians.length > 0 && (
+                  <div className='bg-green-50 rounded-lg p-4 mt-6'>
+                    <h4 className='text-sm font-semibold text-gray-900 mb-4 flex items-center'>
+                      <Users className='h-4 w-4 mr-2 text-green-600' />
+                      Guardian Information
+                    </h4>
+                    <div className='grid grid-cols-1 gap-6'>
+                      {studentDetails.guardians.map((guardian, index) => (
+                        <div
+                          key={guardian.id || index}
+                          className='border-l-4 border-green-400 pl-4 bg-white rounded-r-lg p-3'
+                        >
+                          <h5 className='font-medium text-gray-900 mb-3 flex items-center'>
+                            <span className='bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs mr-2'>
+                              Guardian {index + 1}
+                            </span>
+                            <span className='text-gray-600 text-sm'>
+                              ({guardian.relation})
+                            </span>
+                            {guardian.hasUserAccount && (
+                              <span className='bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs ml-2'>
+                                Has Login Account
+                              </span>
+                            )}
+                          </h5>
+                          <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
+                            <div>
+                              <span className='text-xs text-gray-500 block'>
+                                Name
+                              </span>
+                              <span className='text-sm font-medium text-gray-900'>
+                                {guardian.fullName || 'N/A'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className='text-xs text-gray-500 block'>
+                                Email
+                              </span>
+                              <span className='text-sm font-medium text-gray-900'>
+                                {guardian.email || 'N/A'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className='text-xs text-gray-500 block'>
+                                Phone
+                              </span>
+                              <span className='text-sm font-medium text-gray-900'>
+                                {guardian.phone || 'N/A'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className='text-xs text-gray-500 block'>
+                                Relation
+                              </span>
+                              <span className='text-sm font-medium text-gray-900'>
+                                {guardian.relation || 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* No Guardians Message */}
+              {(!studentDetails.guardians ||
+                studentDetails.guardians.length === 0) && (
+                <div className='bg-gray-50 rounded-lg p-4 mt-6'>
+                  <h4 className='text-sm font-semibold text-gray-900 mb-2 flex items-center'>
+                    <Users className='h-4 w-4 mr-2 text-gray-600' />
+                    Guardian Information
+                  </h4>
+                  <p className='text-sm text-gray-600 mb-2'>
+                    <strong>No Guardians:</strong> This student doesn't have any
+                    guardians on record.
+                  </p>
+                  <p className='text-xs text-gray-500'>
+                    💡 You can add guardians using the <strong>Edit</strong>{' '}
+                    button to modify student details.
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>

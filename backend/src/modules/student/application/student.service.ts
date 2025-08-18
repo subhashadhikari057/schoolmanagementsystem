@@ -3,6 +3,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { hashPassword } from '../../../shared/auth/hash.util';
@@ -18,9 +20,11 @@ import {
 
 @Injectable()
 export class StudentService {
+  private readonly logger = new Logger(StudentService.name);
+
   constructor(
     private readonly prisma: PrismaService,
-    private readonly audit: AuditService,
+    private readonly auditService: AuditService,
   ) {}
 
   async create(
@@ -30,6 +34,12 @@ export class StudentService {
     ip?: string,
     userAgent?: string,
   ) {
+    console.log('🚀 === STUDENT CREATION STARTED ===');
+    console.log('🛡️ Backend received - guardians:', dto.guardians?.length || 0);
+    console.log('🔍 Full DTO keys:', Object.keys(dto));
+    if (dto.guardians && dto.guardians.length > 0) {
+      console.log('🛡️ Guardian data:', JSON.stringify(dto.guardians, null, 2));
+    }
     const {
       user,
       personal,
@@ -392,6 +402,132 @@ export class StudentService {
         }
       }
 
+      // Create guardian records and user accounts if specified
+      if (guardians && guardians.length > 0) {
+        for (const guardianData of guardians) {
+          console.log(
+            '🛡️ Processing guardian:',
+            guardianData.firstName,
+            guardianData.lastName,
+            'createUserAccount:',
+            guardianData.createUserAccount,
+          );
+
+          // Build full name from first, middle, last
+          const guardianFullName = guardianData.middleName
+            ? `${guardianData.firstName} ${guardianData.middleName} ${guardianData.lastName}`
+            : `${guardianData.firstName} ${guardianData.lastName}`;
+
+          if (guardianData.createUserAccount) {
+            // Guardian with user account - create as parent
+            // Check if guardian user already exists
+            const existingGuardianUser = await tx.user.findFirst({
+              where: {
+                email: guardianData.email,
+                deletedAt: null,
+              },
+            });
+
+            let guardianUser;
+            let guardianPassword = '';
+
+            if (existingGuardianUser) {
+              // Find existing parent profile
+              const existingGuardian = await tx.parent.findFirst({
+                where: {
+                  userId: existingGuardianUser.id,
+                  deletedAt: null,
+                },
+              });
+
+              if (existingGuardian) {
+                // Link existing guardian to student
+                await tx.parentStudentLink.create({
+                  data: {
+                    parentId: existingGuardian.id,
+                    studentId: newStudent.id,
+                    relationship: guardianData.relation,
+                    isPrimary: false,
+                  },
+                });
+                continue;
+              }
+              guardianUser = existingGuardianUser;
+            } else {
+              // Create new guardian user
+              guardianPassword = generateRandomPassword();
+              const guardianPasswordHash = await hashPassword(guardianPassword);
+
+              guardianUser = await tx.user.create({
+                data: {
+                  email: guardianData.email,
+                  phone: guardianData.phone,
+                  fullName: guardianFullName,
+                  passwordHash: guardianPasswordHash,
+                  createdById: createdBy,
+                  roles: {
+                    create: { role: { connect: { name: 'PARENT' } } },
+                  },
+                  needPasswordChange: true,
+                },
+              });
+
+              parentCredentials.push({
+                id: guardianUser.id,
+                fullName: guardianFullName,
+                email: guardianData.email,
+                relationship: guardianData.relation,
+                temporaryPassword: guardianPassword,
+              });
+            }
+
+            // Create guardian profile (as parent)
+            const newGuardian = await tx.parent.create({
+              data: {
+                userId: guardianUser.id,
+                occupation: guardianData.occupation,
+                // Copy address from student for consistency
+                street: personal?.street,
+                city: personal?.city,
+                state: personal?.state,
+                pinCode: personal?.pinCode,
+                createdById: createdBy,
+                profile: {
+                  create: {
+                    additionalData: {
+                      relationship: guardianData.relation,
+                      isPrimary: false,
+                      isGuardian: true, // Mark as guardian
+                    },
+                  },
+                },
+              },
+            });
+
+            // Link guardian to student
+            await tx.parentStudentLink.create({
+              data: {
+                parentId: newGuardian.id,
+                studentId: newStudent.id,
+                relationship: guardianData.relation,
+                isPrimary: false,
+              },
+            });
+          } else {
+            // Guardian without user account - create basic guardian record
+            await tx.guardian.create({
+              data: {
+                studentId: newStudent.id,
+                fullName: guardianFullName,
+                phone: guardianData.phone,
+                email: guardianData.email,
+                relation: guardianData.relation,
+              },
+            });
+          }
+        }
+      }
+
       // Link existing parents if specified
 
       if (existingParents && existingParents.length > 0) {
@@ -561,7 +697,7 @@ export class StudentService {
       };
     });
 
-    await this.audit.record({
+    await this.auditService.record({
       userId: createdBy,
       action: 'CREATE_STUDENT',
       module: 'student',
@@ -745,6 +881,7 @@ export class StudentService {
                     phone: true,
                   },
                 },
+                profile: true, // Include profile to access additionalData
               },
             },
           },
@@ -797,14 +934,33 @@ export class StudentService {
         isPrimary: link.isPrimary,
       })),
 
-      // Guardian information
-      guardians: student.guardians.map(guardian => ({
-        id: guardian.id,
-        fullName: guardian.fullName,
-        phone: guardian.phone,
-        email: guardian.email,
-        relation: guardian.relation,
-      })),
+      // Guardian information (includes both non-user guardians and guardian-parents)
+      guardians: [
+        // Non-user account guardians (from Guardian table)
+        ...student.guardians.map(guardian => ({
+          id: guardian.id,
+          fullName: guardian.fullName,
+          phone: guardian.phone,
+          email: guardian.email,
+          relation: guardian.relation,
+          hasUserAccount: false,
+        })),
+        // Guardian-parents (parents with isGuardian flag - these have user accounts)
+        ...student.parents
+          .filter(link => {
+            const additionalData =
+              (link.parent.profile as any)?.additionalData || {};
+            return additionalData.isGuardian === true;
+          })
+          .map(link => ({
+            id: link.parent.id,
+            fullName: link.parent.user.fullName,
+            phone: link.parent.user.phone || '',
+            email: link.parent.user.email,
+            relation: link.relationship,
+            hasUserAccount: true,
+          })),
+      ],
 
       // Additional data from profile
       bio: additionalData.bio,
@@ -1060,7 +1216,7 @@ export class StudentService {
       });
     }
 
-    await this.audit.record({
+    await this.auditService.record({
       userId: updatedBy,
       action: 'UPDATE_STUDENT',
       module: 'student',
@@ -1152,7 +1308,7 @@ export class StudentService {
       });
     }
 
-    await this.audit.record({
+    await this.auditService.record({
       userId,
       action: 'UPDATE_SELF_STUDENT',
       module: 'student',
@@ -1223,7 +1379,7 @@ export class StudentService {
       });
     });
 
-    await this.audit.record({
+    await this.auditService.record({
       userId: deletedBy,
       action: 'DELETE_STUDENT',
       module: 'student',
@@ -1281,6 +1437,295 @@ export class StudentService {
       throw new NotFoundException('Student not found');
 
     return student.guardians;
+  }
+
+  async addGuardiansToStudent(
+    studentId: string,
+    guardians: any[],
+    createdBy: string,
+    ip?: string,
+    userAgent?: string,
+  ) {
+    try {
+      // Check if student exists
+      const student = await this.prisma.student.findFirst({
+        where: { id: studentId, deletedAt: null },
+      });
+
+      if (!student) {
+        throw new NotFoundException('Student not found');
+      }
+
+      const guardianCredentials: any[] = [];
+
+      await this.prisma.$transaction(async tx => {
+        for (const guardianData of guardians) {
+          console.log(
+            '🛡️ Processing guardian for existing student:',
+            guardianData.firstName,
+            guardianData.lastName,
+            'createUserAccount:',
+            guardianData.createUserAccount,
+          );
+
+          // Build full name from first, middle, last
+          const guardianFullName = guardianData.middleName
+            ? `${guardianData.firstName} ${guardianData.middleName} ${guardianData.lastName}`
+            : `${guardianData.firstName} ${guardianData.lastName}`;
+
+          if (guardianData.createUserAccount) {
+            // Guardian with user account - create as parent
+            // Check if guardian user already exists
+            const existingGuardianUser = await tx.user.findFirst({
+              where: {
+                email: guardianData.email,
+                deletedAt: null,
+              },
+            });
+
+            let guardianUser;
+            let guardianPassword = '';
+
+            if (existingGuardianUser) {
+              // Find existing parent profile
+              const existingGuardian = await tx.parent.findFirst({
+                where: {
+                  userId: existingGuardianUser.id,
+                  deletedAt: null,
+                },
+              });
+
+              if (existingGuardian) {
+                // Link existing guardian to student
+                await tx.parentStudentLink.create({
+                  data: {
+                    parentId: existingGuardian.id,
+                    studentId: student.id,
+                    relationship: guardianData.relation,
+                    isPrimary: false,
+                  },
+                });
+                continue;
+              }
+              guardianUser = existingGuardianUser;
+            } else {
+              // Create new guardian user
+              guardianPassword = generateRandomPassword();
+              const guardianPasswordHash = await hashPassword(guardianPassword);
+
+              guardianUser = await tx.user.create({
+                data: {
+                  email: guardianData.email,
+                  phone: guardianData.phone,
+                  fullName: guardianFullName,
+                  passwordHash: guardianPasswordHash,
+                  createdById: createdBy,
+                  roles: {
+                    create: { role: { connect: { name: 'PARENT' } } },
+                  },
+                  needPasswordChange: true,
+                },
+              });
+
+              guardianCredentials.push({
+                id: guardianUser.id,
+                fullName: guardianFullName,
+                email: guardianData.email,
+                relationship: guardianData.relation,
+                temporaryPassword: guardianPassword,
+              });
+            }
+
+            // Create guardian profile (as parent)
+            const newGuardian = await tx.parent.create({
+              data: {
+                userId: guardianUser.id,
+                occupation: guardianData.occupation,
+                // Get student address for consistency
+                street: student.street,
+                city: student.city,
+                state: student.state,
+                pinCode: student.pinCode,
+                createdById: createdBy,
+                profile: {
+                  create: {
+                    additionalData: {
+                      relationship: guardianData.relation,
+                      isPrimary: false,
+                      isGuardian: true, // Mark as guardian
+                    },
+                  },
+                },
+              },
+            });
+
+            // Link guardian to student
+            await tx.parentStudentLink.create({
+              data: {
+                parentId: newGuardian.id,
+                studentId: student.id,
+                relationship: guardianData.relation,
+                isPrimary: false,
+              },
+            });
+          } else {
+            // Guardian without user account - create basic guardian record
+            await tx.guardian.create({
+              data: {
+                studentId: student.id,
+                fullName: guardianFullName,
+                phone: guardianData.phone,
+                email: guardianData.email,
+                relation: guardianData.relation,
+              },
+            });
+          }
+        }
+      });
+
+      // Log the action
+      await this.auditService.record({
+        userId: createdBy,
+        action: 'ADD_GUARDIANS',
+        module: 'student',
+        status: 'SUCCESS',
+        details: {
+          studentId: studentId,
+          guardiansAdded: guardians.length,
+        },
+        ipAddress: ip,
+        userAgent,
+      });
+
+      return {
+        success: true,
+        data: {
+          message: 'Guardians added successfully',
+          guardianCredentials:
+            guardianCredentials.length > 0 ? guardianCredentials : undefined,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Failed to add guardians to student', error);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to add guardians');
+    }
+  }
+
+  async updateGuardian(
+    studentId: string,
+    guardianId: string,
+    guardianData: any,
+    updatedBy: string,
+    ip?: string,
+    userAgent?: string,
+  ) {
+    try {
+      // Check if student exists
+      const student = await this.prisma.student.findFirst({
+        where: { id: studentId, deletedAt: null },
+      });
+
+      if (!student) {
+        throw new NotFoundException('Student not found');
+      }
+
+      await this.prisma.$transaction(async tx => {
+        // Check if it's a guardian from Guardian table (no user account)
+        const basicGuardian = await tx.guardian.findFirst({
+          where: { id: guardianId, studentId },
+        });
+
+        if (basicGuardian) {
+          // Update basic guardian (no user account)
+          await tx.guardian.update({
+            where: { id: guardianId },
+            data: {
+              fullName: guardianData.fullName,
+              phone: guardianData.phone,
+              email: guardianData.email,
+              relation: guardianData.relation,
+            },
+          });
+        } else {
+          // Check if it's a guardian-parent (has user account)
+          const guardianParent = await tx.parent.findFirst({
+            where: {
+              id: guardianId,
+              profile: {
+                additionalData: {
+                  path: ['isGuardian'],
+                  equals: true,
+                },
+              },
+            },
+            include: { user: true },
+          });
+
+          if (guardianParent) {
+            // Update guardian-parent user info
+            await tx.user.update({
+              where: { id: guardianParent.userId },
+              data: {
+                fullName: guardianData.fullName,
+                phone: guardianData.phone,
+                email: guardianData.email,
+              },
+            });
+
+            // Update parent occupation
+            await tx.parent.update({
+              where: { id: guardianId },
+              data: {
+                occupation: guardianData.occupation,
+              },
+            });
+
+            // Update parent-student link relationship
+            await tx.parentStudentLink.updateMany({
+              where: {
+                parentId: guardianId,
+                studentId: studentId,
+              },
+              data: {
+                relationship: guardianData.relation,
+              },
+            });
+          } else {
+            throw new NotFoundException('Guardian not found');
+          }
+        }
+      });
+
+      // Log the action
+      await this.auditService.record({
+        userId: updatedBy,
+        action: 'UPDATE_GUARDIAN',
+        module: 'student',
+        status: 'SUCCESS',
+        details: {
+          studentId: studentId,
+          guardianId: guardianId,
+        },
+        ipAddress: ip,
+        userAgent,
+      });
+
+      return {
+        success: true,
+        data: {
+          message: 'Guardian updated successfully',
+        },
+      };
+    } catch (error) {
+      this.logger.error('Failed to update guardian', error);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to update guardian');
+    }
   }
 
   async getAvailableClasses() {
