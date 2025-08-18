@@ -26,6 +26,7 @@ interface ProcessedAssignment {
 
 interface AllAssignmentsTabProps {
   refreshTrigger?: number;
+  statusFilter: string;
 }
 
 export default function AllAssignmentsTab({

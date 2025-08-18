@@ -1,4 +1,6 @@
-interface TeacherSubject {
+'use client';
+
+interface StudentSubject {
   subject: {
     id: string;
     name: string;
@@ -8,14 +10,11 @@ interface TeacherSubject {
     passMarks?: number;
   };
 }
-
 // Simple mock for today's classes: subject and teacher only
 interface SubjectTeacher {
   subject: string;
   teacher: string;
 }
-
-('use client');
 
 import React, { useState } from 'react';
 import Panel from '@/components/organisms/dashboard/UpcomingEventsPanel';
@@ -34,7 +33,7 @@ import Label from '@/components/atoms/display/Label';
 import Link from 'next/link';
 
 // Mock data for demonstration
-const subjects: TeacherSubject[] = [
+export const subjects: StudentSubject[] = [
   {
     subject: {
       id: '1',
@@ -150,6 +149,14 @@ const assignedSubjects = subjects.map(subjectItem => ({
       : BookOpen,
 }));
 export default function page() {
+  // Mock student info, replace with real user context if available
+  const student = {
+    name: 'Arjun Kumar Sharma',
+    class: '10',
+    section: 'A',
+    rollNumber: '2024001',
+  };
+
   return (
     <div className='min-h-screen bg-background'>
       <div className='px-3 sm:px-4 lg:px-6 pt-2 sm:pt-3 lg:pt-4'>
@@ -158,6 +165,15 @@ export default function page() {
           level={1}
           className='text-lg sm:text-xl lg:text-2xl font-bold text-gray-900'
         />
+        <div className='mb-2'>
+          <h1 className='text-xl sm:text-2xl font-bold text-gray-900'>
+            Hello, {student.name} 👋
+          </h1>
+          <p className='text-gray-700 text-base'>
+            Class {student.class}
+            {student.section} • Roll No: {student.rollNumber}
+          </p>
+        </div>
         <Label className='text-xs cursor-pointer sm:text-sm lg:text-base text-gray-600 mt-1'>
           Welcome back, view your classes, assignments, and school info.
         </Label>

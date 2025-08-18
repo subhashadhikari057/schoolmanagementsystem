@@ -216,7 +216,7 @@ export const sidebarItems = {
       items: [
         { label: 'Dashboard', icon: 'Home', path: '/dashboard/student' },
         {
-          label: 'My Classes',
+          label: 'My Subjects',
           icon: 'Layers',
           path: '/dashboard/student/classes',
         },
@@ -240,6 +240,11 @@ export const sidebarItems = {
           icon: 'Megaphone',
           path: '/dashboard/student/notices',
         },
+        {
+          label: 'Complaints and leaves',
+          icon: 'Mailbox',
+          path: '/dashboard/student/complaints&leave',
+        },
       ],
     },
   ],
@@ -259,6 +264,11 @@ export const sidebarItems = {
           path: '/dashboard/parent/attendance',
         },
         {
+          label: 'Assignments',
+          icon: 'CheckSquare',
+          path: '/dashboard/parent/assignments',
+        },
+        {
           label: 'Exams',
           icon: 'ClipboardList',
           path: '/dashboard/parent/exams',
@@ -268,24 +278,20 @@ export const sidebarItems = {
           icon: 'Megaphone',
           path: '/dashboard/parent/notices',
         },
-      ],
-    },
-  ],
-  staff: [
-    {
-      title: 'STAFF DASHBOARD',
-      items: [
-        { label: 'Dashboard', icon: 'Home', path: '/dashboard/staff' },
-        { label: 'Tasks', icon: 'CheckSquare', path: '/dashboard/staff/tasks' },
         {
-          label: 'Attendance',
-          icon: 'CalendarCheck',
-          path: '/dashboard/staff/attendance',
+          label: 'Complaints and Leaves',
+          icon: 'Megaphone',
+          path: '/dashboard/parent/complaints&leaves',
         },
         {
-          label: 'Notices',
+          label: 'Fees',
           icon: 'Megaphone',
-          path: '/dashboard/staff/notices',
+          path: '/dashboard/parent/fees',
+        },
+        {
+          label: 'TimeTable',
+          icon: 'Megaphone',
+          path: '/dashboard/parent/timetable',
         },
       ],
     },
