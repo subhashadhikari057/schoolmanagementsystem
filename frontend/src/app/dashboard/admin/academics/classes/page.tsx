@@ -18,6 +18,8 @@ import { toast } from 'sonner';
 import { classService } from '@/api/services/class.service';
 import { isDevMockEnabled } from '@/utils';
 import ClassFormModal from '@/components/organisms/modals/ClassFormModal';
+import ClassEditModal from '@/components/organisms/modals/ClassEditModal';
+import ClassDeleteModal from '@/components/organisms/modals/ClassDeleteModal';
 import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
 import ClassSearchFilter from '@/components/molecules/filters/ClassSearchFilter';
 import ClassViewModal from '@/components/organisms/modals/ClassViewModal';
@@ -120,6 +122,7 @@ const ClassesPage = () => {
 
   // State for modals
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
@@ -303,6 +306,13 @@ const ClassesPage = () => {
       return;
     }
 
+    // Edit action
+    if (action === 'edit') {
+      setSelectedClass(cls);
+      setIsEditModalOpen(true);
+      return;
+    }
+
     // Delete action
     if (action === 'delete') {
       setSelectedClass(cls);
@@ -478,6 +488,26 @@ const ClassesPage = () => {
                 strokeLinejoin='round'
                 strokeWidth={2}
                 d='M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'
+              />
+            </svg>
+          </button>
+          <button
+            onClick={() => handleClassAction('edit', row)}
+            className='p-1 text-green-600 hover:bg-green-50 rounded'
+            title='Edit Class'
+          >
+            <svg
+              xmlns='http://www.w3.org/2000/svg'
+              className='h-5 w-5'
+              fill='none'
+              viewBox='0 0 24 24'
+              stroke='currentColor'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'
               />
             </svg>
           </button>
@@ -704,6 +734,17 @@ const ClassesPage = () => {
         }}
       />
 
+      {/* Edit Modal */}
+      <ClassEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSuccess={() => {
+          loadClasses();
+          setIsEditModalOpen(false);
+        }}
+        classData={selectedClass}
+      />
+
       {/* View Modal */}
       {selectedClass && (
         <ClassViewModal
@@ -713,19 +754,12 @@ const ClassesPage = () => {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
+      {/* Enhanced Delete Modal */}
+      <ClassDeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteClass}
-        title='Delete Class'
-        message='Are you sure you want to delete this class?'
-        itemName={
-          selectedClass
-            ? selectedClass.name ||
-              `Grade ${selectedClass.grade} Section ${selectedClass.section}`
-            : ''
-        }
+        classData={selectedClass}
         isLoading={isDeleting}
       />
     </div>

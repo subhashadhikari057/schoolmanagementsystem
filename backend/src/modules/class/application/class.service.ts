@@ -216,6 +216,35 @@ export class ClassService {
       }
     }
 
+    // Check if teacher is being updated and if new teacher is already assigned
+    if (
+      dto.classTeacherId &&
+      dto.classTeacherId !== classRecord.classTeacherId
+    ) {
+      const teacherConflict = await this.prisma.class.findFirst({
+        where: {
+          classTeacherId: dto.classTeacherId,
+          deletedAt: null,
+          id: { not: id }, // Exclude current class from check
+        },
+        include: {
+          classTeacher: {
+            include: {
+              user: {
+                select: { fullName: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (teacherConflict) {
+        throw new ConflictException(
+          `${teacherConflict.classTeacher?.user?.fullName || 'This teacher'} is already assigned as class teacher to Grade ${teacherConflict.grade} Section ${teacherConflict.section}`,
+        );
+      }
+    }
+
     const updated = await this.prisma.class.update({
       where: { id },
       data: {

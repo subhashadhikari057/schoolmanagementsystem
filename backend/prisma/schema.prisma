@@ -85,7 +85,7 @@ model Class {
   students           Student[]
   teacherAssignments TeacherClass[] @relation("ClassTeacherAssignments")
 
-  @@unique([grade, section, shift], name: "unique_class_grade_section_shift")
+
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
