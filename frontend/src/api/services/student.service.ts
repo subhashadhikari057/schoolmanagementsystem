@@ -556,6 +556,24 @@ export class StudentService {
     }
   }
 
+  // Cleanup duplicate guardians
+  async cleanupDuplicateGuardians(
+    studentId: string,
+  ): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response = await this.httpClient.post(
+        `/api/v1/students/${studentId}/guardians/cleanup-duplicates`,
+        {},
+        { requiresAuth: true },
+      );
+
+      return response;
+    } catch (error) {
+      console.error('Cleanup duplicate guardians error:', error);
+      throw error;
+    }
+  }
+
   // Get student count
   async getStudentCount(): Promise<ApiResponse<StudentCountResponse>> {
     return this.httpClient.get<StudentCountResponse>(

@@ -290,4 +290,10 @@ export class StudentController {
       req.headers['user-agent'],
     );
   }
+
+  @Post(':id/guardians/cleanup-duplicates')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async cleanupDuplicateGuardians(@Param('id') studentId: string) {
+    return this.studentService.cleanupDuplicateGuardians(studentId);
+  }
 }

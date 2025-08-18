@@ -649,28 +649,6 @@ export class StudentService {
         }
       }
 
-      // Create guardian records (non-user accounts)
-      if (guardians && guardians.length > 0) {
-        const guardianData = guardians.map(guardian => {
-          const guardianFullName = guardian.middleName
-            ? `${guardian.firstName} ${guardian.middleName} ${guardian.lastName}`
-            : `${guardian.firstName} ${guardian.lastName}`;
-
-          return {
-            studentId: newStudent.id,
-            fullName: guardianFullName,
-            phone: guardian.phone,
-            email: guardian.email,
-            relation: guardian.relation,
-          };
-        });
-
-        await tx.guardian.createMany({
-          data: guardianData,
-          skipDuplicates: true,
-        });
-      }
-
       // Update class enrollment count
       await tx.class.update({
         where: { id: academic.classId },
@@ -1725,6 +1703,68 @@ export class StudentService {
         throw error;
       }
       throw new InternalServerErrorException('Failed to update guardian');
+    }
+  }
+
+  async cleanupDuplicateGuardians(studentId: string) {
+    try {
+      await this.prisma.$transaction(async tx => {
+        // Get all guardians from Guardian table for this student
+        const basicGuardians = await tx.guardian.findMany({
+          where: { studentId },
+        });
+
+        // Get all guardian-parents for this student
+        const guardianParents = await tx.parentStudentLink.findMany({
+          where: {
+            studentId,
+            parent: {
+              profile: {
+                additionalData: {
+                  path: ['isGuardian'],
+                  equals: true,
+                },
+              },
+            },
+          },
+          include: {
+            parent: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        });
+
+        // Remove basic guardian records that have matching guardian-parent records
+        for (const basicGuardian of basicGuardians) {
+          const matchingGuardianParent = guardianParents.find(
+            gp => gp.parent.user.email === basicGuardian.email,
+          );
+
+          if (matchingGuardianParent) {
+            console.log(
+              '🧹 Removing duplicate guardian record for:',
+              basicGuardian.email,
+            );
+            await tx.guardian.delete({
+              where: { id: basicGuardian.id },
+            });
+          }
+        }
+      });
+
+      return {
+        success: true,
+        data: {
+          message: 'Duplicate guardians cleaned up successfully',
+        },
+      };
+    } catch (error) {
+      this.logger.error('Failed to cleanup duplicate guardians', error);
+      throw new InternalServerErrorException(
+        'Failed to cleanup duplicate guardians',
+      );
     }
   }
 
