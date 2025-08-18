@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, FileText } from 'lucide-react';
 import Button from '@/components/atoms/form-controls/Button';
+import CreateAssignmentModal from '@/components/organisms/modals/CreateAssignmentModal';
 
 import { assignmentService } from '@/api/services/assignment.service';
 import { teacherService } from '@/api/services/teacher.service';
@@ -30,6 +31,7 @@ export default function AssignmentsTab({ classDetails }: AssignmentsTabProps) {
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [backendClassData, setBackendClassData] =
     useState<ClassResponse | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Load real class data from backend
   const loadClassData = useCallback(async () => {
@@ -91,6 +93,13 @@ export default function AssignmentsTab({ classDetails }: AssignmentsTabProps) {
   }, [teacherId, loadAssignments]);
 
   const totalStudents = backendClassData?.students?.length || 0;
+
+  const handleCreateSuccess = () => {
+    loadAssignments();
+  };
+
+  const className = `Grade ${classDetails.grade} - Section ${classDetails.section}`;
+
   return (
     <div className='bg-white rounded-lg p-6'>
       {/* Header with Add Assignment Button */}
@@ -99,8 +108,12 @@ export default function AssignmentsTab({ classDetails }: AssignmentsTabProps) {
           <FileText className='w-5 h-5' />
           <span className='font-medium'>Add a new Assignment</span>
         </div>
-        <Button className='bg-white text-blue-600 hover:bg-gray-100 px-3 py-1 rounded flex items-center gap-2'>
+        <Button
+          onClick={() => setShowCreateModal(true)}
+          className='bg-white text-blue-600 hover:bg-gray-100 px-3 py-1 rounded flex items-center gap-2'
+        >
           <Plus className='w-4 h-4' />
+          Create Assignment
         </Button>
       </div>
 
@@ -168,12 +181,26 @@ export default function AssignmentsTab({ classDetails }: AssignmentsTabProps) {
           <div className='text-gray-600 mb-6'>
             Create your first assignment for this class
           </div>
-          <Button className='bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded flex items-center gap-2 mx-auto'>
+          <Button
+            onClick={() => setShowCreateModal(true)}
+            className='bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded flex items-center gap-2 mx-auto'
+          >
             <Plus className='w-4 h-4' />
             Create Assignment
           </Button>
         </div>
       )}
+
+      {/* Create Assignment Modal */}
+      <CreateAssignmentModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateSuccess}
+        preSelectedClass={{
+          id: classDetails.id,
+          name: className,
+        }}
+      />
     </div>
   );
 }
