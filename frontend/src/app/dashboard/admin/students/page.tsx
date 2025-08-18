@@ -55,13 +55,23 @@ const StudentsPage = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // State for statistics
+  const [studentStats, setStudentStats] = useState({
+    total: 0,
+    active: 0,
+    suspended: 0,
+    warning: 0,
+    graduated: 0,
+    transferred: 0,
+  });
+
   // Student-specific stats data
-  const studentStats = [
+  const studentStatsDisplay = [
     {
       icon: Users,
       bgColor: 'bg-blue-50',
       iconColor: 'text-blue-600',
-      value: totalItems.toString(),
+      value: studentStats.total.toString(),
       label: 'Total Students',
       change: '3.1%',
       isPositive: true,
@@ -70,7 +80,7 @@ const StudentsPage = () => {
       icon: UserCheck,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-600',
-      value: '152',
+      value: studentStats.active.toString(),
       label: 'Active Students',
       change: '1.8%',
       isPositive: true,
@@ -79,7 +89,7 @@ const StudentsPage = () => {
       icon: AlertCircle,
       bgColor: 'bg-yellow-50',
       iconColor: 'text-yellow-600',
-      value: '3',
+      value: studentStats.warning.toString(),
       label: 'Students on Warning',
       change: '5.2%',
       isPositive: false,
@@ -88,12 +98,24 @@ const StudentsPage = () => {
       icon: GraduationCap,
       bgColor: 'bg-red-50',
       iconColor: 'text-red-600',
-      value: '1',
+      value: studentStats.suspended.toString(),
       label: 'Suspended Students',
       change: '2.1%',
       isPositive: false,
     },
   ];
+
+  // Load student statistics
+  const loadStudentStats = useCallback(async () => {
+    try {
+      const response = await studentService.getStudentStats();
+      if (response.success && response.data) {
+        setStudentStats(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading student statistics:', error);
+    }
+  }, []);
 
   // Load classes and sections for filter options
   useEffect(() => {
@@ -147,7 +169,8 @@ const StudentsPage = () => {
     };
 
     loadClassesAndSections();
-  }, []);
+    loadStudentStats();
+  }, [loadStudentStats]);
 
   // Extract filter values to avoid dependency array issues
   const classFilter = filters.class || '';
@@ -371,17 +394,8 @@ const StudentsPage = () => {
       );
 
       if (response.success) {
-        // Remove student from local state
-        const updatedStudents = students.filter(
-          s => s.id !== selectedStudent.id,
-        );
-        const updatedFilteredStudents = filteredStudents.filter(
-          s => s.id !== selectedStudent.id,
-        );
-
-        setStudents(updatedStudents);
-        setFilteredStudents(updatedFilteredStudents);
-        setTotalItems(prev => prev - 1);
+        // Reload students data and statistics to get accurate counts from backend
+        await Promise.all([loadStudents(), loadStudentStats()]);
 
         toast.success(`Student ${selectedStudent.name} deleted successfully`);
         setDeleteModalOpen(false);
@@ -414,7 +428,7 @@ const StudentsPage = () => {
       {/* Stats Grid */}
       <div className='px-1 sm:px-2 lg:px-4 mt-3 sm:mt-4 lg:mt-6'>
         <div className='max-w-7xl mx-auto'>
-          <Statsgrid stats={studentStats} />
+          <Statsgrid stats={studentStatsDisplay} />
         </div>
       </div>
 
@@ -485,8 +499,8 @@ const StudentsPage = () => {
         onClose={() => setEditModalOpen(false)}
         onSuccess={() => {
           setEditModalOpen(false);
-          // Reload students data to reflect changes
-          loadStudents();
+          // Reload students data and statistics to reflect changes
+          Promise.all([loadStudents(), loadStudentStats()]);
         }}
         student={selectedStudent}
       />
@@ -497,8 +511,7 @@ const StudentsPage = () => {
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDeleteStudent}
         title='Delete Student'
-        message='Are you sure you want to delete this student?'
-        itemName={selectedStudent?.name || ''}
+        message={`Are you sure you want to delete ${selectedStudent?.name || 'this student'}?`}
         isLoading={isDeleting}
       />
     </div>

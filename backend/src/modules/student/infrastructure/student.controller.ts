@@ -129,10 +129,24 @@ export class StudentController {
     return this.studentService.findAll(query);
   }
 
-  @Get(':id')
+  @Get('stats/count')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
-  async findOne(@Param('id') id: string) {
-    return this.studentService.findById(id);
+  async getStudentCount() {
+    const count = await this.studentService.getStudentCount();
+    return { count };
+  }
+
+  @Get('stats')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getStudentStats() {
+    return this.studentService.getStudentStats();
+  }
+
+  @Get('available-classes')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getAvailableClasses() {
+    const classes = await this.studentService.getAvailableClasses();
+    return { classes };
   }
 
   @Get('user/:userId')
@@ -151,6 +165,12 @@ export class StudentController {
       throw new BadRequestException('Access denied');
     }
     return this.studentService.findByUserId(userId);
+  }
+
+  @Get(':id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async findOne(@Param('id') id: string) {
+    return this.studentService.findById(id);
   }
 
   @Patch(':id')
@@ -212,19 +232,5 @@ export class StudentController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async getGuardians(@Param('id') id: string) {
     return this.studentService.getGuardians(id);
-  }
-
-  @Get('stats/count')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
-  async getStudentCount() {
-    const count = await this.studentService.getStudentCount();
-    return { count };
-  }
-
-  @Get('available-classes')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
-  async getAvailableClasses() {
-    const classes = await this.studentService.getAvailableClasses();
-    return { classes };
   }
 }

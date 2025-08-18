@@ -854,6 +854,45 @@ export class StudentService {
     });
   }
 
+  async getStudentStats() {
+    const [
+      totalStudents,
+      activeStudents,
+      suspendedStudents,
+      warningStudents,
+      graduatedStudents,
+      transferredStudents,
+    ] = await Promise.all([
+      this.prisma.student.count({
+        where: { deletedAt: null },
+      }),
+      this.prisma.student.count({
+        where: { deletedAt: null, academicStatus: 'active' },
+      }),
+      this.prisma.student.count({
+        where: { deletedAt: null, academicStatus: 'suspended' },
+      }),
+      this.prisma.student.count({
+        where: { deletedAt: null, academicStatus: 'warning' },
+      }),
+      this.prisma.student.count({
+        where: { deletedAt: null, academicStatus: 'graduated' },
+      }),
+      this.prisma.student.count({
+        where: { deletedAt: null, academicStatus: 'transferred' },
+      }),
+    ]);
+
+    return {
+      total: totalStudents,
+      active: activeStudents,
+      suspended: suspendedStudents,
+      warning: warningStudents,
+      graduated: graduatedStudents,
+      transferred: transferredStudents,
+    };
+  }
+
   async updateByAdmin(
     id: string,
     dto: UpdateStudentByAdminDtoType,
