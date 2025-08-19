@@ -25,6 +25,14 @@ const CustomBSCalendar = ({
   onDateSelect: (dateString: string) => void;
   onDateDoubleClick: (dateString: string) => void;
 }) => {
+  // Helper function to truncate titles with ellipsis only if needed
+  const truncateTitle = (title: string, maxLength: number = 10) => {
+    if (title.length > maxLength) {
+      return title.slice(0, maxLength) + '...';
+    }
+    return title;
+  };
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -279,13 +287,12 @@ const CustomBSCalendar = ({
             >
               <span
                 className={`text-sm font-semibold ${
-                  index === 6 ? 'text-white' : 'text-gray-700'
+                  index === 6
+                    ? 'text-slate-200 font-bold drop-shadow-lg'
+                    : 'text-gray-700'
                 }`}
               >
                 {day}
-                {index === 6 && (
-                  <span className='block text-xs text-red-100 mt-1'>बिदा</span>
-                )}
               </span>
             </div>
           ))}
@@ -358,17 +365,11 @@ const CustomBSCalendar = ({
                 className={`
                   h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden
                   ${
-                    isTodayDate
-                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-300'
-                      : isSelected
-                        ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-300'
-                        : isSaturday || hasHoliday
-                          ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
-                          : hasExam
-                            ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-purple-300 hover:from-purple-600 hover:to-purple-700'
-                            : hasOnlyEvent
-                              ? 'bg-gradient-to-br from-yellow-200 to-yellow-300 text-gray-900 border border-yellow-300'
-                              : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
+                    isSelected
+                      ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-300'
+                      : isSaturday
+                        ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
+                        : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
                   }
                 `}
               >
@@ -377,54 +378,52 @@ const CustomBSCalendar = ({
                   <div className='flex-shrink-0 text-center py-1'>
                     <div className='flex flex-col items-center'>
                       <span
-                        className={`text-sm font-bold ${isTodayDate || isSelected || isSaturday || hasHoliday || hasExam ? 'text-white' : hasOnlyEvent ? 'text-gray-900' : 'text-gray-900'}`}
+                        className={`text-sm font-bold ${
+                          isTodayDate
+                            ? 'bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto'
+                            : isSelected || isSaturday
+                              ? 'text-white'
+                              : 'text-gray-900'
+                        }`}
                       >
                         {bsDay}
                       </span>
-                      {isTodayDate && (
-                        <span className='text-xs text-blue-100 leading-none'>
-                          आज
-                        </span>
-                      )}
-                      {isSaturday &&
-                        !isTodayDate &&
-                        !hasOnlyEvent &&
-                        !hasHoliday && (
-                          <span className='text-xs text-red-100 leading-none'>
-                            बिदा
-                          </span>
-                        )}
-                      {hasHoliday && !isSaturday && (
-                        <span className='text-xs text-red-100 leading-none'>
-                          {holidayName.slice(0, 12)}
-                        </span>
-                      )}
-                      {!hasHoliday && !hasExam && hasOnlyEvent && (
-                        <span
-                          className={`text-xs ${isSelected ? 'text-white' : 'text-gray-800'} leading-none`}
-                        >
-                          {String((dayEvents[0] as any)?.title || '').slice(
-                            0,
-                            10,
-                          )}
-                        </span>
-                      )}
-                      {hasExam && (
-                        <span
-                          className={`text-xs ${isSelected ? 'text-white' : 'text-white'} leading-none`}
-                        >
-                          {String(
-                            (
-                              dayEvents.find(
-                                (e: any) => e.type?.toLowerCase() === 'exam',
-                              ) as any
-                            )?.title || 'Exam',
-                          ).slice(0, 10)}
-                        </span>
-                      )}
                     </div>
                   </div>
-                  {/* No separate event chips; info shown as small text above */}
+
+                  {/* Event Badges */}
+                  {hasEvents && (
+                    <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
+                      {dayEvents.slice(0, 2).map((event, eventIndex) => {
+                        const eventType =
+                          (event as any).type?.toLowerCase() || 'event';
+                        let badgeColor = 'bg-gray-500 text-white';
+
+                        if (eventType === 'holiday') {
+                          badgeColor = 'bg-red-500 text-white';
+                        } else if (eventType === 'exam') {
+                          badgeColor = 'bg-purple-500 text-white';
+                        } else if (eventType === 'event') {
+                          badgeColor = 'bg-yellow-600 text-white';
+                        }
+
+                        return (
+                          <div
+                            key={`${event.id}-${eventIndex}`}
+                            className={`text-[10px] px-1 py-0.5 rounded-full font-medium ${badgeColor}`}
+                            title={`${(event as any).title || 'Event'}`}
+                          >
+                            {truncateTitle((event as any).title || 'Event')}
+                          </div>
+                        );
+                      })}
+                      {dayEvents.length > 2 && (
+                        <div className='text-xs text-gray-500 px-1'>
+                          +{dayEvents.length - 2}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </button>
             );
@@ -447,6 +446,14 @@ const CustomADCalendar = ({
   onDateSelect: (dateString: string) => void;
   onDateDoubleClick: (dateString: string) => void;
 }) => {
+  // Helper function to truncate titles with ellipsis only if needed
+  const truncateTitle = (title: string, maxLength: number = 10) => {
+    if (title.length > maxLength) {
+      return title.slice(0, maxLength) + '...';
+    }
+    return title;
+  };
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -476,7 +483,15 @@ const CustomADCalendar = ({
   ];
 
   // English weekday names
-  const englishWeekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const englishWeekdays = [
+    'Sun',
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Saturday',
+  ];
 
   // Generate AD calendar days for current month
   const generateCalendarDays = () => {
@@ -630,15 +645,12 @@ const CustomADCalendar = ({
             >
               <span
                 className={`text-sm font-semibold ${
-                  index === 6 ? 'text-white' : 'text-gray-700'
+                  index === 6
+                    ? 'text-slate-200 font-bold drop-shadow-lg'
+                    : 'text-gray-700'
                 }`}
               >
                 {day}
-                {index === 6 && (
-                  <span className='block text-xs text-red-100 mt-1'>
-                    Holiday
-                  </span>
-                )}
               </span>
             </div>
           ))}
@@ -673,15 +685,11 @@ const CustomADCalendar = ({
                 className={`
                   h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden
                   ${
-                    isTodayDate
-                      ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-emerald-300'
-                      : isSelected
-                        ? 'bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-teal-300'
-                        : isSaturday
-                          ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
-                          : hasEvents
-                            ? 'bg-gradient-to-br from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-gray-800 border border-amber-300'
-                            : 'bg-white hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50 text-gray-700 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300'
+                    isSelected
+                      ? 'bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-teal-300'
+                      : isSaturday
+                        ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
+                        : 'bg-white hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50 text-gray-700 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300'
                   }
                 `}
               >
@@ -690,48 +698,50 @@ const CustomADCalendar = ({
                   <div className='flex-shrink-0 text-center py-1'>
                     <div className='flex flex-col items-center'>
                       <span
-                        className={`text-sm font-bold ${isTodayDate || isSelected || isSaturday ? 'text-white' : hasEvents ? 'text-gray-800' : 'text-gray-900'}`}
+                        className={`text-sm font-bold ${
+                          isTodayDate
+                            ? 'bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto'
+                            : isSelected || isSaturday
+                              ? 'text-white'
+                              : 'text-gray-900'
+                        }`}
                       >
                         {day}
                       </span>
-                      {isTodayDate && (
-                        <span className='text-xs text-emerald-100 leading-none'>
-                          Today
-                        </span>
-                      )}
-                      {isSaturday && !isTodayDate && (
-                        <span className='text-xs text-red-100 leading-none'>
-                          Holiday
-                        </span>
-                      )}
                     </div>
                   </div>
 
-                  {/* Events Section */}
+                  {/* Event Badges */}
                   {hasEvents && (
-                    <div className='flex-1 px-1 pb-1 overflow-hidden'>
-                      <div className='space-y-1'>
-                        {dayEvents.slice(0, 2).map((event, eventIndex) => (
+                    <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
+                      {dayEvents.slice(0, 2).map((event, eventIndex) => {
+                        const eventType =
+                          (event as any).type?.toLowerCase() || 'event';
+                        let badgeColor = 'bg-gray-500 text-white';
+
+                        if (eventType === 'holiday') {
+                          badgeColor = 'bg-red-500 text-white';
+                        } else if (eventType === 'exam') {
+                          badgeColor = 'bg-purple-500 text-white';
+                        } else if (eventType === 'event') {
+                          badgeColor = 'bg-yellow-600 text-white';
+                        }
+
+                        return (
                           <div
                             key={`${event.id}-${eventIndex}`}
-                            className={`text-xs px-2 py-1 rounded-md text-center font-medium shadow-sm ${
-                              event.status === 'Active'
-                                ? 'bg-green-500 text-white'
-                                : 'bg-orange-400 text-white'
-                            }`}
+                            className={`text-[10px] px-1 py-0.5 rounded-full font-medium ${badgeColor}`}
                             title={`${event.title} - ${event.time} - ${event.location || 'No location'}`}
                           >
-                            {event.title.length > 10
-                              ? `${event.title.substring(0, 10)}...`
-                              : event.title}
+                            {truncateTitle(event.title)}
                           </div>
-                        ))}
-                        {dayEvents.length > 2 && (
-                          <div className='text-xs text-gray-600 px-1 font-medium text-center'>
-                            +{dayEvents.length - 2} more
-                          </div>
-                        )}
-                      </div>
+                        );
+                      })}
+                      {dayEvents.length > 2 && (
+                        <div className='text-xs text-gray-500 px-1'>
+                          +{dayEvents.length - 2}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
