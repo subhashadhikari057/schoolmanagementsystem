@@ -7,6 +7,7 @@
  */
 
 export * from './assignment.service';
+export * from './attendance.service';
 export * from './auth.service';
 export * from './calendar.service';
 export * from './class.service';

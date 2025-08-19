@@ -9,6 +9,7 @@ export enum AuditModule {
   STUDENT = 'STUDENT',
   TEACHER = 'TEACHER',
   PARENT = 'PARENT',
+  STAFF = 'STAFF',
   
   // Academic Modules
   ACADEMIC = 'ACADEMIC',
@@ -58,4 +59,7 @@ export enum AuditModule {
   REPORT = 'REPORT',
   DASHBOARD = 'DASHBOARD',
   API = 'API',
+  
+  // Error Handler
+  ERROR_HANDLER = 'ERROR_HANDLER',
 }

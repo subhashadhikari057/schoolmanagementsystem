@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FiClipboard, FiEye } from 'react-icons/fi';
-import MarkAttendanceModal from './modals/MarkAttendanceModal';
+
 const FiClipboardIcon = FiClipboard as any;
 
 const stats = [
@@ -37,8 +37,6 @@ const stats = [
 const AssignmentDashboard: React.FC<{ onCreate: () => void }> = ({
   onCreate,
 }) => {
-  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
-
   return (
     <>
       <div className='p-6'>
@@ -73,20 +71,12 @@ const AssignmentDashboard: React.FC<{ onCreate: () => void }> = ({
             >
               + Create Assignment
             </button>
-            <button
-              className='px-5 py-2 rounded border font-medium flex items-center gap-2 hover:bg-gray-50 transition-colors'
-              onClick={() => setIsAttendanceModalOpen(true)}
-            >
+            <button className='px-5 py-2 rounded border font-medium flex items-center gap-2 hover:bg-gray-50 transition-colors'>
               <FiEye /> View All Assignments
             </button>
           </div>
         </div>
       </div>
-
-      <MarkAttendanceModal
-        isOpen={isAttendanceModalOpen}
-        onClose={() => setIsAttendanceModalOpen(false)}
-      />
     </>
   );
 };

@@ -30,4 +30,7 @@ export enum AuditStatus {
   TIMEOUT = 'TIMEOUT',
   RETRY = 'RETRY',
   SKIPPED = 'SKIPPED',
+  
+  // Info status
+  INFO = 'INFO',
 }

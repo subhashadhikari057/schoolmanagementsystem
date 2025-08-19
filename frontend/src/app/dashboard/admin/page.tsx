@@ -10,7 +10,7 @@ import QuickActions from '@/components/organisms/dashboard/QuickAction';
 import ExpensesBreakdownChart from '@/components/organisms/dashboard/ExpensesBreakdownChart';
 import ExamPerformanceChart from '@/components/organisms/dashboard/ExamPerformanceChart';
 import FeeCollectionChart from '@/components/organisms/dashboard/FeeCollectionChart';
-import AttendanceOverview from '@/components/organisms/dashboard/AttendanceOverview';
+
 import SystemHealthOverview from '@/components/organisms/dashboard/SystemHealthOverview';
 import { adminQuickActions } from '@/constants/mockData';
 
@@ -96,7 +96,6 @@ export default function AdminDashboard() {
 
               {/* Mobile: Single column layout */}
               <div className='block lg:hidden space-y-4'>
-                <AttendanceOverview />
                 <FeeCollectionChart />
                 {showAllCharts && (
                   <>
@@ -118,7 +117,6 @@ export default function AdminDashboard() {
 
               {/* Desktop: 2x2 Grid */}
               <div className='hidden lg:grid lg:grid-cols-2 lg:gap-6'>
-                <AttendanceOverview />
                 <FeeCollectionChart />
                 <ExamPerformanceChart />
                 <ExpensesBreakdownChart />

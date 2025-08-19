@@ -62,28 +62,29 @@ model Subject {
 }
 
 model Class {
-  id                 String         @id @default(uuid())
+  id                 String            @id @default(uuid())
   name               String?
   grade              Int
   section            String
   capacity           Int
-  currentEnrollment  Int            @default(0)
-  shift              ClassShift     @default(MORNING)
-  status             String         @default("active")
+  currentEnrollment  Int               @default(0)
+  shift              ClassShift        @default(MORNING)
+  status             String            @default("active")
   roomId             String
   classTeacherId     String
-  createdAt          DateTime       @default(now())
+  createdAt          DateTime          @default(now())
   updatedAt          DateTime?
   deletedAt          DateTime?
-  createdById        String?        @db.Uuid
-  updatedById        String?        @db.Uuid
-  deletedById        String?        @db.Uuid
+  createdById        String?           @db.Uuid
+  updatedById        String?           @db.Uuid
+  deletedById        String?           @db.Uuid
   assignments        Assignment[]
-  classTeacher       Teacher?       @relation("ClassTeacher", fields: [classTeacherId], references: [id])
-  room               Classroom      @relation(fields: [roomId], references: [id])
+  classTeacher       Teacher?          @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  room               Classroom         @relation(fields: [roomId], references: [id])
   assignedSubjects   ClassSubject[]
   students           Student[]
-  teacherAssignments TeacherClass[] @relation("ClassTeacherAssignments")
+  teacherAssignments TeacherClass[]    @relation("ClassTeacherAssignments")
+  attendanceRecords  AttendanceRecord[]
 
 
   @@index([createdById])
@@ -193,6 +194,7 @@ model Student {
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   profile           StudentProfile?
   submissions       Submission[]
+  attendanceRecords AttendanceRecord[]
 
   @@index([userId])
   @@index([classId])
@@ -621,4 +623,40 @@ enum HolidayType {
 enum ClassShift {
   MORNING
   DAY
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+  UNKNOWN
+}
+
+model AttendanceRecord {
+  id             String           @id @default(uuid())
+  studentId      String
+  classId        String
+  date           DateTime
+  status         AttendanceStatus
+  remarks        String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime?
+  deletedAt      DateTime?
+  createdById    String?          @db.Uuid
+  updatedById    String?          @db.Uuid
+  deletedById    String?          @db.Uuid
+  
+  student        Student          @relation(fields: [studentId], references: [id])
+  class          Class            @relation(fields: [classId], references: [id])
+
+  // One attendance record per student per day (only non-deleted records)
+  @@unique([studentId, classId, date], name: "unique_attendance_per_student_class_date")
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([classId])
+  @@index([date])
+  @@index([status])
+  @@index([studentId])
 }

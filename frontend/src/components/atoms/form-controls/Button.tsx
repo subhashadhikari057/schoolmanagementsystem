@@ -8,6 +8,7 @@ interface Props {
   label?: string;
   as?: 'button' | 'div';
   children?: React.ReactNode;
+  disabled?: boolean;
 }
 
 export default function ReusableButton({
@@ -16,6 +17,7 @@ export default function ReusableButton({
   className,
   as = 'button',
   children,
+  disabled = false,
 }: Props) {
   if (as === 'div') {
     return (
@@ -36,7 +38,7 @@ export default function ReusableButton({
   }
 
   return (
-    <Button onClick={onClick} className={`${className}`}>
+    <Button onClick={onClick} className={`${className}`} disabled={disabled}>
       {children ? children : label}
     </Button>
   );

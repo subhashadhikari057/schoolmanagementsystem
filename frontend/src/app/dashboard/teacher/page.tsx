@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Panel from '@/components/organisms/dashboard/UpcomingEventsPanel';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import Button from '@/components/atoms/form-controls/Button';
-import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
+
 import { teacherService } from '@/api/services/teacher.service';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -44,7 +44,7 @@ interface TeacherClass {
 export default function TeacherDashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const [showAttendance, setShowAttendance] = useState(false);
+
   const [subjects, setSubjects] = useState<TeacherSubject[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [classes, setClasses] = useState<TeacherClass[]>([]);
@@ -192,29 +192,6 @@ export default function TeacherDashboard() {
             />
           )}
 
-          {/* Attendance CTA */}
-          <div className='rounded-xl border border-blue-200 bg-blue-50/60'>
-            <div className='px-4 py-2 space-y-1 flex flex-col items-start justify-start'>
-              <Label className='!text-[11px] text-gray-600'>
-                Hey its the first class!
-              </Label>
-              <Label className='!text-[12px] sm:!text-sm !text-foreground'>
-                Lets track Your students Attendance
-              </Label>
-            </div>
-            <div className='px-3 pb-3'>
-              <div className='bg-blue-600/90 text-white rounded-md py-2 text-center shadow-sm hover:bg-blue-400'>
-                <div className='flex items-center justify-center px-3'>
-                  <Button
-                    className=' text-white  rounded-md text-xs cursor-pointer font-semibold'
-                    label='Track Now'
-                    onClick={() => setShowAttendance(true)}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Your Classes */}
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
@@ -323,11 +300,6 @@ export default function TeacherDashboard() {
           </div>
         </div>
       </div>
-
-      <MarkAttendanceModal
-        isOpen={showAttendance}
-        onClose={() => setShowAttendance(false)}
-      />
     </div>
   );
 }

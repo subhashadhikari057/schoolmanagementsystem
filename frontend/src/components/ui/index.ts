@@ -10,3 +10,5 @@ export * from './button';
 export * from './input';
 export * from './card';
 export * from './loading-spinner';
+export * from './badge';
+export * from './textarea';

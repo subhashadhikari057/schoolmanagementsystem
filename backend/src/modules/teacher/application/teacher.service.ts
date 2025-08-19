@@ -1121,6 +1121,53 @@ export class TeacherService {
     return assignedClasses;
   }
 
+  async getClassTeacherClass(teacherId: string) {
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { id: teacherId },
+    });
+
+    if (!teacher || teacher.deletedAt)
+      throw new NotFoundException('Teacher not found');
+
+    // Get the class where this teacher is the class teacher
+    const classTeacherClass = await this.prisma.class.findFirst({
+      where: {
+        classTeacherId: teacherId,
+        deletedAt: null,
+      },
+      include: {
+        students: {
+          where: { deletedAt: null },
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!classTeacherClass) {
+      throw new NotFoundException(
+        'You are not assigned as a class teacher to any class',
+      );
+    }
+
+    return {
+      id: classTeacherClass.id,
+      name:
+        classTeacherClass.name ||
+        `Grade ${classTeacherClass.grade} Section ${classTeacherClass.section}`,
+      grade: classTeacherClass.grade,
+      section: classTeacherClass.section,
+      currentEnrollment: classTeacherClass.currentEnrollment || 0,
+      students: classTeacherClass.students.map(student => ({
+        id: student.id,
+        full_name: student.user.fullName,
+        email: student.user.email,
+        roll_number: student.rollNumber,
+      })),
+    };
+  }
+
   async removeClass(
     teacherId: string,
     classId: string,

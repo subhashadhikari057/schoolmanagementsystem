@@ -112,10 +112,10 @@ export default function StudentsTab({ classDetails }: StudentsTabProps) {
 
   return (
     <div className='bg-white rounded-lg p-6'>
-      {/* Header with Students Attendance indicator */}
+      {/* Header with Students indicator */}
       <div className='bg-blue-600 text-white rounded-lg p-4 flex items-center gap-3 mb-6'>
         <Users className='w-5 h-5' />
-        <span className='font-medium'>Students Attendance</span>
+        <span className='font-medium'>Students</span>
       </div>
 
       {/* Students Section */}

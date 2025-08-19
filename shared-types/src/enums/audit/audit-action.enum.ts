@@ -43,4 +43,7 @@ export enum AuditAction {
   FILE_UPLOAD = 'FILE_UPLOAD',
   FILE_DOWNLOAD = 'FILE_DOWNLOAD',
   FILE_DELETE = 'FILE_DELETE',
+  
+  // Attendance Action
+  MARK_ATTENDANCE = 'MARK_ATTENDANCE',
 }

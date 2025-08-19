@@ -85,7 +85,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private handleException(
     exception: unknown,
     traceId: string,
-    context: DetailedErrorResponseDto['context'],
+    context: any,
   ): DetailedErrorResponseDto {
     // Handle Zod validation errors
     if (exception instanceof ZodError) {
@@ -117,7 +117,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private handleZodError(
     error: ZodError,
     traceId: string,
-    context: DetailedErrorResponseDto['context'],
+    context: any,
   ): DetailedErrorResponseDto {
     const validationErrors: ValidationErrorDetail[] = error.errors.map(err => ({
       field: err.path.join('.'),
@@ -126,14 +126,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       code: this.mapZodErrorToCode(err.code),
     }));
 
-    return {
-      ...createValidationErrorResponse({
-        message: 'Request validation failed',
-        validationErrors,
-        traceId,
-      }),
-      context,
-    };
+    const result = createValidationErrorResponse({
+      message: 'Validation failed',
+      validationErrors,
+      traceId,
+    });
+
+    return result;
   }
 
   /**
@@ -142,20 +141,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private handleThrottlerError(
     error: ThrottlerException,
     traceId: string,
-    context: DetailedErrorResponseDto['context'],
+    context: any,
   ): DetailedErrorResponseDto {
-    const resetTime = new Date(Date.now() + 60000).toISOString(); // 1 minute from now
+    const message = `Rate limit exceeded. Try again in 60 seconds.`;
+    const result = createRateLimitErrorResponse({
+      limit: 100, // Default values
+      remaining: 0,
+      resetTime: new Date(Date.now() + 60000).toISOString(),
+      retryAfter: 60,
+      traceId,
+    });
 
-    return {
-      ...createRateLimitErrorResponse({
-        limit: 100, // Default limit - should be configurable
-        remaining: 0,
-        resetTime,
-        retryAfter: 60,
-        traceId,
-      }),
-      context,
-    };
+    return result;
   }
 
   /**
@@ -164,35 +161,33 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private handleHttpException(
     exception: HttpException,
     traceId: string,
-    context: DetailedErrorResponseDto['context'],
+    context: any,
   ): DetailedErrorResponseDto {
     const status = exception.getStatus();
     const response = exception.getResponse();
 
     let message = exception.message;
-    let code: string | undefined;
-    let details: DetailedErrorResponseDto['details'];
+    let code: keyof typeof ErrorCodes = this.mapStatusToErrorCode(status);
+    let details: any;
 
     // Extract additional information from exception response
     if (typeof response === 'object' && response !== null) {
       const responseObj = response as Record<string, unknown>;
       message = (responseObj.message as string) || message;
-      code = responseObj.code as string;
-      details = responseObj.details as DetailedErrorResponseDto['details'];
+      if (responseObj.code) {
+        code = responseObj.code as keyof typeof ErrorCodes;
+      }
+      details = responseObj.details;
     }
 
-    return {
-      ...createErrorResponse({
-        statusCode: status,
-        error: this.getHttpStatusText(status),
-        message,
-        code: code as any,
-        traceId,
-        severity: this.getErrorSeverity(status),
-        details,
-      }),
-      context,
-    };
+    return createErrorResponse({
+      statusCode: status,
+      error: this.getHttpStatusText(status),
+      message,
+      code,
+      details,
+      traceId,
+    });
   }
 
   /**
@@ -201,45 +196,41 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private handlePrismaError(
     error: any,
     traceId: string,
-    context: DetailedErrorResponseDto['context'],
+    context: any,
   ): DetailedErrorResponseDto {
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Database operation failed';
-    let code: string = ErrorCodes.DATABASE_CONNECTION_FAILED;
+    let code: keyof typeof ErrorCodes = 'INTERNAL_SERVER_ERROR';
 
     // Handle specific Prisma error codes
     const errorCode = error.code as string;
     if (errorCode === 'P2002') {
       statusCode = HttpStatus.CONFLICT;
       message = 'A record with this information already exists';
-      code = ErrorCodes.DUPLICATE_VALUE;
+      code = 'DUPLICATE_VALUE' as keyof typeof ErrorCodes;
     } else if (errorCode === 'P2025') {
       statusCode = HttpStatus.NOT_FOUND;
       message = 'The requested record was not found';
-      code = ErrorCodes.STUDENT_NOT_FOUND; // Generic - should be more specific based on context
+      code = 'STUDENT_NOT_FOUND' as keyof typeof ErrorCodes;
     } else if (errorCode === 'P2003') {
       statusCode = HttpStatus.BAD_REQUEST;
       message = 'Foreign key constraint violation';
-      code = ErrorCodes.DATABASE_CONSTRAINT_VIOLATION;
+      code = 'VALIDATION_ERROR' as keyof typeof ErrorCodes;
     }
 
-    return {
-      ...createErrorResponse({
-        statusCode,
-        error: this.getHttpStatusText(statusCode),
-        message,
-        code: code as any,
-        traceId,
-        severity: 'high',
-        details: {
-          database: {
-            operation: undefined,
-            constraint: error.meta?.constraint as string,
-          },
-        },
-      }),
-      context,
+    const dbDetails = {
+      operation: undefined,
+      constraint: error.meta?.constraint as string,
     };
+
+    return createErrorResponse({
+      statusCode,
+      error: this.getHttpStatusText(statusCode),
+      message,
+      code,
+      details: { database: dbDetails },
+      traceId,
+    });
   }
 
   /**
@@ -248,26 +239,25 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private handleUnknownError(
     error: unknown,
     traceId: string,
-    context: DetailedErrorResponseDto['context'],
+    context: any,
   ): DetailedErrorResponseDto {
     const message =
       error instanceof Error ? error.message : 'An unexpected error occurred';
 
-    return {
-      ...createErrorResponse({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        error: 'Internal Server Error',
-        message,
-        code: ErrorCodes.INTERNAL_SERVER_ERROR,
-        traceId,
-        severity: 'critical',
-      }),
-      context,
-      // Include stack trace only in development
-      ...(process.env.NODE_ENV === 'development' && {
-        stack: error instanceof Error ? error.stack : undefined,
-      }),
-    };
+    const result = createErrorResponse({
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      error: 'Internal Server Error',
+      message,
+      code: 'INTERNAL_SERVER_ERROR' as keyof typeof ErrorCodes,
+      traceId,
+    });
+
+    // Add stack trace only in development
+    if (process.env.NODE_ENV === 'development') {
+      (result as any).stack = error instanceof Error ? error.stack : undefined;
+    }
+
+    return result;
   }
 
   /**
@@ -275,19 +265,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    */
   private createFallbackErrorResponse(
     traceId: string,
-    context: DetailedErrorResponseDto['context'],
+    context: any,
   ): DetailedErrorResponseDto {
     return {
       success: false,
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       error: 'Internal Server Error',
       message: 'An unexpected error occurred while processing the request',
-      code: ErrorCodes.INTERNAL_SERVER_ERROR,
+      code: 'INTERNAL_SERVER_ERROR',
       traceId,
       timestamp: new Date().toISOString(),
       severity: 'critical',
-      context,
-    };
+    } as DetailedErrorResponseDto;
   }
 
   /**
@@ -311,15 +300,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (errorResponse.statusCode >= 500) {
       this.logger.error(
-        `${errorResponse.error}: ${errorResponse.message}`,
+        `${errorResponse.message}`,
         exception instanceof Error ? exception.stack : String(exception),
         logContext,
       );
     } else if (errorResponse.statusCode >= 400) {
-      this.logger.warn(
-        `${errorResponse.error}: ${errorResponse.message}`,
-        logContext,
-      );
+      this.logger.warn(`${errorResponse.message}`, logContext);
     }
   }
 
@@ -336,7 +322,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errorResponse.statusCode === 401 ||
       errorResponse.statusCode === 403 ||
       errorResponse.statusCode >= 500 ||
-      errorResponse.code === ErrorCodes.RATE_LIMIT_EXCEEDED
+      errorResponse.code === 'RATE_LIMIT_EXCEEDED'
     ) {
       await this.auditService.record({
         userId: (request as any).user?.id as string,
@@ -386,15 +372,29 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private mapZodErrorToCode(zodCode: string): string {
     const mapping: Record<string, string> = {
-      invalid_type: ErrorCodes.INVALID_FORMAT,
-      too_small: ErrorCodes.VALUE_TOO_SHORT,
-      too_big: ErrorCodes.VALUE_TOO_LONG,
-      invalid_string: ErrorCodes.INVALID_FORMAT,
-      invalid_email: ErrorCodes.INVALID_EMAIL,
-      invalid_uuid: ErrorCodes.INVALID_UUID,
-      invalid_date: ErrorCodes.INVALID_DATE,
+      invalid_type: 'VALIDATION_ERROR',
+      too_small: 'VALIDATION_ERROR',
+      too_big: 'VALIDATION_ERROR',
+      invalid_string: 'VALIDATION_ERROR',
+      invalid_email: 'VALIDATION_ERROR',
+      invalid_uuid: 'VALIDATION_ERROR',
+      invalid_date: 'VALIDATION_ERROR',
     };
-    return mapping[zodCode] || ErrorCodes.INVALID_FORMAT;
+    return mapping[zodCode] || 'VALIDATION_ERROR';
+  }
+
+  private mapStatusToErrorCode(status: number): keyof typeof ErrorCodes {
+    const statusCodes: Record<number, keyof typeof ErrorCodes> = {
+      400: 'VALIDATION_ERROR' as keyof typeof ErrorCodes,
+      401: 'TOKEN_INVALID' as keyof typeof ErrorCodes,
+      403: 'INSUFFICIENT_PERMISSIONS' as keyof typeof ErrorCodes,
+      404: 'STUDENT_NOT_FOUND' as keyof typeof ErrorCodes,
+      409: 'DUPLICATE_VALUE' as keyof typeof ErrorCodes,
+      422: 'VALIDATION_ERROR',
+      429: 'RATE_LIMIT_EXCEEDED',
+      500: 'INTERNAL_SERVER_ERROR',
+    };
+    return statusCodes[status] || 'INTERNAL_SERVER_ERROR';
   }
 
   private getHttpStatusText(status: number): string {

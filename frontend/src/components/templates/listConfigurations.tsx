@@ -157,7 +157,7 @@ import ParentInfoCell from '@/components/molecules/display/ParentInfoCell';
 import SubjectsClassesCell from '@/components/molecules/display/SubjectsClassesCell';
 import ExperienceSalaryCell from '@/components/molecules/display/ExperienceSalaryCell';
 import ClassSectionCell from '@/components/molecules/display/ClassSectionCell';
-import AttendanceCell from '@/components/molecules/display/AttendanceCell';
+
 import QualificationCell from '@/components/molecules/display/QualificationCell';
 import PersonalInfoCell from '@/components/molecules/display/PersonalInfoCell';
 
@@ -176,11 +176,6 @@ export interface Student extends BaseItem {
   address?: string;
   grade?: string;
   section?: string;
-
-  attendance?: {
-    present: number;
-    total: number;
-  };
 }
 
 export interface Teacher extends BaseItem {
@@ -715,14 +710,7 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
           />
         ),
       },
-      {
-        key: 'attendance',
-        header: 'Attendance',
-        mobileLabel: 'Attendance',
-        render: (item: Student) => (
-          <AttendanceCell attendance={item.attendance} />
-        ),
-      },
+
       {
         key: 'status',
         header: 'Status',

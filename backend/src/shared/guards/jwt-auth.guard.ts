@@ -40,6 +40,8 @@ export interface AuthenticatedUser {
   role: UserRole;
   sessionId: string;
   isActive: boolean;
+  teacherId?: string; // For teacher users
+  studentId?: string; // For student users
 }
 
 /**
@@ -185,6 +187,8 @@ export class JwtAuthGuard implements CanActivate {
                   role: true,
                 },
               },
+              teacher: true, // Include teacher data if user is a teacher
+              student: true, // Include student data if user is a student
             },
           },
         },
@@ -205,13 +209,25 @@ export class JwtAuthGuard implements CanActivate {
         return null;
       }
 
-      return {
+      const authenticatedUser: AuthenticatedUser = {
         id: user.id,
         email: user.email,
         role: primaryRole,
         sessionId: session.id,
         isActive: user.isActive,
       };
+
+      // Add teacher ID if user is a teacher
+      if (primaryRole === UserRole.TEACHER && user.teacher) {
+        authenticatedUser.teacherId = user.teacher.id;
+      }
+
+      // Add student ID if user is a student
+      if (primaryRole === UserRole.STUDENT && user.student) {
+        authenticatedUser.studentId = user.student.id;
+      }
+
+      return authenticatedUser;
     } catch (error) {
       this.logger.error('Session validation failed', error);
       return null;

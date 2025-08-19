@@ -86,9 +86,7 @@ export class ErrorHandlingService {
       traceId,
       severity: 'high',
       timestamp: new Date().toISOString(),
-      details: {
-        business: businessDetail,
-      },
+      details: { business: businessDetail },
     };
 
     throw new HttpException(errorResponse, statusCode);
@@ -109,9 +107,7 @@ export class ErrorHandlingService {
       traceId,
       severity: 'medium',
       timestamp: new Date().toISOString(),
-      details: {
-        validation: validationErrors,
-      },
+      details: { validation: validationErrors },
     };
 
     throw new HttpException(errorResponse, HttpStatus.BAD_REQUEST);
@@ -139,13 +135,11 @@ export class ErrorHandlingService {
       statusCode,
       error: this.getErrorNameFromStatus(statusCode),
       message,
-      code: reason, // Use reason as the error code
+      code: reason as keyof typeof ErrorCodes, // Use reason as the error code
       traceId,
       severity: 'high',
       timestamp: new Date().toISOString(),
-      details: {
-        auth: authDetail,
-      },
+      details: { auth: authDetail },
     };
 
     throw new HttpException(errorResponse, statusCode);
@@ -162,7 +156,7 @@ export class ErrorHandlingService {
     this.throwBusinessError({
       statusCode: HttpStatus.NOT_FOUND,
       message,
-      code: 'STUDENT_NOT_FOUND', // This should be dynamic based on resource
+      code: 'STUDENT_NOT_FOUND' as keyof typeof ErrorCodes, // Use specific error code
       rule: 'RESOURCE_EXISTENCE_CHECK',
       context: id ? { [`${resource.toLowerCase()}Id`]: id } : {},
       suggestion: `Verify the ${resource.toLowerCase()} ID and try again`,
@@ -192,7 +186,7 @@ export class ErrorHandlingService {
     this.throwBusinessError({
       statusCode: HttpStatus.CONFLICT,
       message,
-      code: 'DUPLICATE_ROLL_NUMBER', // This should be dynamic
+      code: 'DUPLICATE_VALUE' as keyof typeof ErrorCodes, // Use specific error code
       rule: 'UNIQUENESS_CONSTRAINT',
       context: { field },
       suggestion: `Use a different ${field} value`,
@@ -207,7 +201,7 @@ export class ErrorHandlingService {
     return rawErrors.map((error: any) => ({
       field: (error.field as string) || 'unknown',
       message: (error.message as string) || 'Validation failed',
-      code: ErrorCodes.INVALID_FORMAT,
+      code: 'VALIDATION_ERROR' as keyof typeof ErrorCodes,
       value: error.value as unknown,
     }));
   }

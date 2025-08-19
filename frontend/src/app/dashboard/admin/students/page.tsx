@@ -215,7 +215,7 @@ const StudentsPage = () => {
                   ? 'Suspended'
                   : 'Active') as 'Active' | 'Suspended' | 'Warning',
               email: student.email || '',
-              attendance: { present: 0, total: 0 }, // Placeholder until attendance is implemented
+
               grade: student.className || 'No Grade', // Use actual class data
               section: 'A', // Default section - will be updated when backend provides section data
             }),
@@ -258,7 +258,7 @@ const StudentsPage = () => {
           parent: '1',
           status: 'Active',
           email: 'emily.johnson@student.edu',
-          attendance: { present: 145, total: 160 },
+
           grade: 'Grade 10',
           section: 'Section A',
         },

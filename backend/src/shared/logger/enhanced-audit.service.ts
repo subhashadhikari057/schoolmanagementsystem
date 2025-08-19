@@ -194,10 +194,10 @@ export class EnhancedAuditService {
       resourceId,
       resourceType,
       traceId,
-      page,
-      limit,
-      sortBy,
-      sortOrder,
+      page = 1,
+      limit = 20,
+      sortBy = 'timestamp',
+      sortOrder = 'desc',
     } = query;
 
     const where: any = {};
@@ -230,9 +230,9 @@ export class EnhancedAuditService {
           },
         },
         orderBy: {
-          [sortBy || 'timestamp']: sortOrder,
+          [sortBy]: sortOrder,
         },
-        skip: ((page || 1) - 1) * (limit || 20),
+        skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.auditLog.count({ where }),
@@ -241,9 +241,9 @@ export class EnhancedAuditService {
     return {
       logs: logs as unknown as AuditLogResponseDto[],
       total,
-      page: page || 1,
-      limit: limit || 20,
-      totalPages: Math.ceil(total / (limit || 20)),
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 

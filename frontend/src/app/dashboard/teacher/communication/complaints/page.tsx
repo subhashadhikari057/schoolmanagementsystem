@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Panel from '@/components/organisms/dashboard/UpcomingEventsPanel';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import Button from '@/components/atoms/form-controls/Button';
-import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
+
 import {
   FlaskConical,
   Calculator,

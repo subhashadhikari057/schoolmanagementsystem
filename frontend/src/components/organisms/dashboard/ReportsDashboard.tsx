@@ -112,7 +112,6 @@ const stats = [
 ];
 
 const quickReports = [
-  'Student Attendance Report',
   'Fee Collection Summary',
   'Teacher Performance Report',
   'Exam Results Analysis',
@@ -121,15 +120,6 @@ const quickReports = [
 ];
 
 const recentReports = [
-  {
-    title: 'Monthly Attendance Summary',
-    status: 'Ready',
-    type: 'Academic',
-    desc: 'Comprehensive attendance analysis for July 2025',
-    team: 'System',
-    date: 'July 26, 2025',
-    size: '2.4 MB',
-  },
   {
     title: 'Financial Statement Q2',
     status: 'Ready',

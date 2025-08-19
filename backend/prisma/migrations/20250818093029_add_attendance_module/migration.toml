@@ -1,0 +1,10 @@
+# Prisma Migrate
+# Learn more: https://pris.ly/d/prisma-migrate
+
+migration_name = "20250818093029_add_attendance_module"
+version = "5.0.0"
+
+# The SQL executed
+datasource_url = "postgresql://postgres:postgres@localhost:5432/sms?schema=public"
+
+

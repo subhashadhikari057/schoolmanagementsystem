@@ -14,6 +14,8 @@ export const STUDENT_ENDPOINTS = {
   GET_GUARDIANS: (id: string) => `/api/v1/students/${id}/guardians`,
   GET_COUNT: '/api/v1/students/stats/count',
   GET_STATS: '/api/v1/students/stats',
+  GET_BY_CLASS: (classId: string) =>
+    `/api/v1/students?classId=${classId}&limit=100`,
 } as const;
 
 // Types based on the backend DTOs
@@ -421,6 +423,25 @@ export class StudentService {
     return this.httpClient.get(STUDENT_ENDPOINTS.GET_ALL, params, {
       requiresAuth: true,
     });
+  }
+
+  // Get students for a specific class
+  async getStudentsByClass(classId: string): Promise<
+    ApiResponse<{
+      data: StudentListResponse[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>
+  > {
+    return this.httpClient.get(
+      STUDENT_ENDPOINTS.GET_BY_CLASS(classId),
+      undefined,
+      {
+        requiresAuth: true,
+      },
+    );
   }
 
   // Get student by ID

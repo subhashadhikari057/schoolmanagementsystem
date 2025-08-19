@@ -87,8 +87,6 @@ export default function OverviewTab({ classDetails }: OverviewTabProps) {
     totalStudents: classDetails.students?.length || 0,
     capacity: classDetails.capacity || 0,
     ongoingAssignments: assignments.length,
-    attendanceToday: 25,
-    attendancePercentage: 89,
   };
 
   // Get current teacher's ID

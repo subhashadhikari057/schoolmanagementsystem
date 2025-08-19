@@ -1,3 +1,7 @@
+/**
+ * Attendance status enum 
+ * MUST match the Prisma enum AttendanceStatus exactly
+ */
 export enum AttendanceStatus {
   PRESENT = 'present',
   ABSENT = 'absent',
