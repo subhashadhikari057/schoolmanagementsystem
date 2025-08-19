@@ -12,7 +12,7 @@ import {
 import AddTeacherFormModal from '@/components/organisms/modals/AddTeacherFormModal';
 import AddStudentFormModal from '@/components/organisms/modals/AddStudentFormModal';
 import AddStaffFormModal from '@/components/organisms/modals/AddStaffFormModal';
-import AddParentFormModal from '@/components/organisms/modals/AddParentFormModal';
+
 import AddSubjectFormModal from '@/components/organisms/modals/AddSubjectFormModal';
 import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
 import AddClassModal from '@/components/organisms/modals/AddClassModal';
@@ -297,21 +297,25 @@ const getActionButtonsConfig = (
     });
   }
 
-  let addButtonLabel = '';
-  if (pageType === 'subjects') addButtonLabel = 'Subject';
-  else if (pageType === 'id-cards') addButtonLabel = 'ID Card';
-  else if (pageType === 'calendar') addButtonLabel = 'Event';
-  else if (pageType === 'notices') addButtonLabel = 'Notice';
-  else addButtonLabel = pageType.charAt(0).toUpperCase() + pageType.slice(1, 7);
+  // Only add the "Add" button if not parents page
+  if (pageType !== 'parents') {
+    let addButtonLabel = '';
+    if (pageType === 'subjects') addButtonLabel = 'Subject';
+    else if (pageType === 'id-cards') addButtonLabel = 'ID Card';
+    else if (pageType === 'calendar') addButtonLabel = 'Event';
+    else if (pageType === 'notices') addButtonLabel = 'Notice';
+    else
+      addButtonLabel = pageType.charAt(0).toUpperCase() + pageType.slice(1, 7);
 
-  additionalButtons.push({
-    id: `add-${pageType === 'subjects' ? 'subject' : pageType === 'id-cards' ? 'id-card' : pageType === 'calendar' ? 'event' : pageType === 'notices' ? 'notice' : pageType.slice(0, -1)}`,
-    label: `Add ${addButtonLabel}`,
-    className: 'bg-[#2F80ED] text-white hover:bg-blue-600 rounded-lg',
-    variant: 'primary',
-    icon: <Plus size={16} />,
-    onClick: openAddModal,
-  });
+    additionalButtons.push({
+      id: `add-${pageType === 'subjects' ? 'subject' : pageType === 'id-cards' ? 'id-card' : pageType === 'calendar' ? 'event' : pageType === 'notices' ? 'notice' : pageType.slice(0, -1)}`,
+      label: `Add ${addButtonLabel}`,
+      className: 'bg-[#2F80ED] text-white hover:bg-blue-600 rounded-lg',
+      variant: 'primary',
+      icon: <Plus size={16} />,
+      onClick: openAddModal,
+    });
+  }
 
   return [...baseButtons, ...additionalButtons];
 };
@@ -423,12 +427,6 @@ export const ActionButtons = ({
         />
       ) : pageType === 'staff' ? (
         <AddStaffFormModal
-          isOpen={isModalOpen}
-          onClose={closeModal}
-          onSuccess={handleSuccess}
-        />
-      ) : pageType === 'parents' ? (
-        <AddParentFormModal
           isOpen={isModalOpen}
           onClose={closeModal}
           onSuccess={handleSuccess}
