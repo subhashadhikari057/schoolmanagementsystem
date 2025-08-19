@@ -17,6 +17,22 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiParam,
+  ApiQuery,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+} from '@nestjs/swagger';
 import { StudentService } from '../application/student.service';
 import {
   CreateStudentDto,
@@ -38,8 +54,13 @@ import { UserRole } from '@sms/shared-types';
 import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 
+@ApiTags('Students')
+@ApiBearerAuth('JWT-auth')
 @Controller('api/v1/students')
 @UseGuards(JwtAuthGuard)
+@ApiUnauthorizedResponse({
+  description: 'Unauthorized - Invalid or missing JWT token',
+})
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
@@ -232,5 +253,47 @@ export class StudentController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async getGuardians(@Param('id') id: string) {
     return this.studentService.getGuardians(id);
+  }
+
+  @Post(':id/guardians')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async addGuardians(
+    @Param('id') id: string,
+    @Body() guardianData: { guardians: any[] },
+    @CurrentUser() user: { id: string },
+    @Req() req: Request,
+  ) {
+    return this.studentService.addGuardiansToStudent(
+      id,
+      guardianData.guardians,
+      user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+  }
+
+  @Patch(':id/guardians/:guardianId')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async updateGuardian(
+    @Param('id') studentId: string,
+    @Param('guardianId') guardianId: string,
+    @Body() guardianData: any,
+    @CurrentUser() user: { id: string },
+    @Req() req: Request,
+  ) {
+    return this.studentService.updateGuardian(
+      studentId,
+      guardianId,
+      guardianData,
+      user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+  }
+
+  @Post(':id/guardians/cleanup-duplicates')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async cleanupDuplicateGuardians(@Param('id') studentId: string) {
+    return this.studentService.cleanupDuplicateGuardians(studentId);
   }
 }

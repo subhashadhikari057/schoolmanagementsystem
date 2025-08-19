@@ -489,6 +489,91 @@ export class StudentService {
     );
   }
 
+  // Add guardian to existing student
+  async addGuardianToStudent(
+    studentId: string,
+    guardianData: {
+      guardians: Array<{
+        firstName: string;
+        middleName?: string;
+        lastName: string;
+        phone: string;
+        email: string;
+        relation: string;
+        occupation?: string;
+        createUserAccount: boolean;
+      }>;
+    },
+  ): Promise<
+    ApiResponse<{
+      message: string;
+      guardianCredentials?: Array<{
+        id: string;
+        fullName: string;
+        email: string;
+        relationship: string;
+        temporaryPassword: string;
+      }>;
+    }>
+  > {
+    try {
+      const response = await this.httpClient.post(
+        `/api/v1/students/${studentId}/guardians`,
+        guardianData,
+        { requiresAuth: true },
+      );
+
+      return response;
+    } catch (error) {
+      console.error('Add guardian error:', error);
+      throw error;
+    }
+  }
+
+  // Update existing guardian
+  async updateGuardian(
+    studentId: string,
+    guardianId: string,
+    guardianData: {
+      fullName: string;
+      phone: string;
+      email: string;
+      relation: string;
+      occupation?: string;
+    },
+  ): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response = await this.httpClient.patch(
+        `/api/v1/students/${studentId}/guardians/${guardianId}`,
+        guardianData,
+        { requiresAuth: true },
+      );
+
+      return response;
+    } catch (error) {
+      console.error('Update guardian error:', error);
+      throw error;
+    }
+  }
+
+  // Cleanup duplicate guardians
+  async cleanupDuplicateGuardians(
+    studentId: string,
+  ): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response = await this.httpClient.post(
+        `/api/v1/students/${studentId}/guardians/cleanup-duplicates`,
+        {},
+        { requiresAuth: true },
+      );
+
+      return response;
+    } catch (error) {
+      console.error('Cleanup duplicate guardians error:', error);
+      throw error;
+    }
+  }
+
   // Get student count
   async getStudentCount(): Promise<ApiResponse<StudentCountResponse>> {
     return this.httpClient.get<StudentCountResponse>(
