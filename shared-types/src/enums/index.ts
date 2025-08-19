@@ -60,6 +60,7 @@ export * from './achievements/certificate-status.enum';
 // Calendar Module Enums
 export * from './calendar/calendar-entry-type.enum';
 export * from './calendar/holiday-type.enum';
+export * from './calendar/exam-type.enum';
 export * from './calendar/reminder-type.enum';
 export * from './calendar/priority.enum';
 

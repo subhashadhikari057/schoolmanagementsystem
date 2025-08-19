@@ -166,7 +166,19 @@ const CustomBSCalendar = ({
 
   // Get events for a specific AD date string (YYYY-MM-DD)
   const getEventsForDate = (adDateString: string) => {
-    const dayEvents = events.filter(event => event.date === adDateString);
+    const dayEvents = events.filter(event => {
+      // Check if this date falls within the event's date range
+      const eventStartDate = event.date;
+      const eventEndDate = event.endDate || event.date; // Use endDate if available, otherwise use start date
+
+      // Convert dates to timestamps for comparison
+      const currentDate = new Date(adDateString);
+      const startDate = new Date(eventStartDate);
+      const endDate = new Date(eventEndDate);
+
+      // Check if current date is within the event's date range (inclusive)
+      return currentDate >= startDate && currentDate <= endDate;
+    });
     return dayEvents;
   };
 
@@ -302,15 +314,24 @@ const CustomBSCalendar = ({
                     ? String((e as any).type).toLowerCase()
                     : '') === 'holiday',
               );
-            const hasOnlyEvent =
+            const hasEvent =
               hasEvents &&
-              !hasHoliday &&
               dayEvents.some(
                 (e: any) =>
                   (e && (e as any).type
                     ? String((e as any).type).toLowerCase()
                     : '') === 'event',
               );
+            const hasExam =
+              hasEvents &&
+              dayEvents.some(
+                (e: any) =>
+                  (e && (e as any).type
+                    ? String((e as any).type).toLowerCase()
+                    : '') === 'exam',
+              );
+            const hasOnlyEvent =
+              hasEvents && !hasHoliday && !hasExam && hasEvent;
             const holidayEvent = hasHoliday
               ? dayEvents.find(
                   (e: any) =>
@@ -343,9 +364,11 @@ const CustomBSCalendar = ({
                         ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-300'
                         : isSaturday || hasHoliday
                           ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
-                          : hasOnlyEvent
-                            ? 'bg-gradient-to-br from-yellow-200 to-yellow-300 text-gray-900 border border-yellow-300'
-                            : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
+                          : hasExam
+                            ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-purple-300 hover:from-purple-600 hover:to-purple-700'
+                            : hasOnlyEvent
+                              ? 'bg-gradient-to-br from-yellow-200 to-yellow-300 text-gray-900 border border-yellow-300'
+                              : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
                   }
                 `}
               >
@@ -354,7 +377,7 @@ const CustomBSCalendar = ({
                   <div className='flex-shrink-0 text-center py-1'>
                     <div className='flex flex-col items-center'>
                       <span
-                        className={`text-sm font-bold ${isTodayDate || isSelected || isSaturday || hasHoliday ? 'text-white' : hasOnlyEvent ? 'text-gray-900' : 'text-gray-900'}`}
+                        className={`text-sm font-bold ${isTodayDate || isSelected || isSaturday || hasHoliday || hasExam ? 'text-white' : hasOnlyEvent ? 'text-gray-900' : 'text-gray-900'}`}
                       >
                         {bsDay}
                       </span>
@@ -376,7 +399,7 @@ const CustomBSCalendar = ({
                           {holidayName.slice(0, 12)}
                         </span>
                       )}
-                      {!hasHoliday && hasOnlyEvent && (
+                      {!hasHoliday && !hasExam && hasOnlyEvent && (
                         <span
                           className={`text-xs ${isSelected ? 'text-white' : 'text-gray-800'} leading-none`}
                         >
@@ -384,6 +407,19 @@ const CustomBSCalendar = ({
                             0,
                             10,
                           )}
+                        </span>
+                      )}
+                      {hasExam && (
+                        <span
+                          className={`text-xs ${isSelected ? 'text-white' : 'text-white'} leading-none`}
+                        >
+                          {String(
+                            (
+                              dayEvents.find(
+                                (e: any) => e.type?.toLowerCase() === 'exam',
+                              ) as any
+                            )?.title || 'Exam',
+                          ).slice(0, 10)}
                         </span>
                       )}
                     </div>
@@ -498,7 +534,19 @@ const CustomADCalendar = ({
   // Get events for a specific date
   const getEventsForDate = (day: number) => {
     const dateString = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    const dayEvents = events.filter(event => event.date === dateString);
+    const dayEvents = events.filter(event => {
+      // Check if this date falls within the event's date range
+      const eventStartDate = event.date;
+      const eventEndDate = event.endDate || event.date; // Use endDate if available, otherwise use start date
+
+      // Convert dates to timestamps for comparison
+      const currentDate = new Date(dateString);
+      const startDate = new Date(eventStartDate);
+      const endDate = new Date(eventEndDate);
+
+      // Check if current date is within the event's date range (inclusive)
+      return currentDate >= startDate && currentDate <= endDate;
+    });
 
     return dayEvents;
   };
@@ -722,6 +770,7 @@ export default function AcademicCalendar({
       id: calendarEvent.id || `temp-${Date.now()}-${Math.random()}`,
       title: calendarEvent.name || calendarEvent.title || 'Untitled Event',
       date: calendarEvent.date || new Date().toISOString().split('T')[0],
+      endDate: calendarEvent.endDate || undefined, // Include endDate for multi-day events
       time: calendarEvent.time || '00:00',
       location: calendarEvent.location || calendarEvent.venue || 'No location',
       status: calendarEvent.status || 'Active',

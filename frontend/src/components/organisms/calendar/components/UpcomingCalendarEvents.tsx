@@ -116,6 +116,7 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
     const colors = {
       holiday: 'bg-red-100 text-red-700',
       event: 'bg-blue-100 text-blue-700',
+      exam: 'bg-purple-100 text-purple-700',
       reminder: 'bg-yellow-100 text-yellow-700',
     };
     return (
@@ -127,6 +128,38 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
   // Get status color
   const getStatusColor = (): string => {
     return 'bg-green-100 text-green-700'; // All events are active in simplified schema
+  };
+
+  // Convert 24-hour time to 12-hour format
+  const convertTo12HourFormat = (time: string): string => {
+    if (!time) return '';
+
+    try {
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      return `${displayHour}:${minutes} ${ampm}`;
+    } catch (error) {
+      return time; // Return original if conversion fails
+    }
+  };
+
+  // Format date range for display
+  const formatDateRange = (startDate: string, endDate?: string): string => {
+    if (!endDate || startDate === endDate) {
+      return (
+        formatDateBadge(startDate).fullMonth +
+        ' ' +
+        formatDateBadge(startDate).day
+      );
+    }
+
+    const startInfo = formatDateBadge(startDate);
+    const endInfo = formatDateBadge(endDate);
+
+    // Always show full month names for both start and end dates
+    return `${startInfo.fullMonth} ${startInfo.day} - ${endInfo.fullMonth} ${endInfo.day}`;
   };
 
   // Check if event date is today (in BS)
@@ -336,9 +369,12 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
         {!loading && !error && displayedEvents.length > 0 && (
           <div className='space-y-4 max-h-96 overflow-y-auto modal-scrollbar'>
             {displayedEvents.map((event, index) => {
-              const dateInfo = formatDateBadge(event.date);
-              const { day, month } = dateInfo;
+              const startDateInfo = formatDateBadge(event.date);
+              const endDateInfo = event.endDate
+                ? formatDateBadge(event.endDate)
+                : null;
               const isToday = isTodayBS(event.date);
+              const isMultiDay = event.endDate && event.date !== event.endDate;
 
               return (
                 <div
@@ -350,32 +386,6 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
                   }`}
                   onClick={() => onEventClick?.(event)}
                 >
-                  {/* Date Badge */}
-                  <div
-                    className='flex-shrink-0 text-center'
-                    title={`${dateInfo.fullMonth} ${dateInfo.day}, ${dateInfo.year} बि.सं.`}
-                  >
-                    <div
-                      className={`text-2xl font-bold ${
-                        isToday ? 'text-blue-600' : 'text-gray-600'
-                      }`}
-                    >
-                      {day}
-                    </div>
-                    <div
-                      className={`text-xs font-medium ${
-                        isToday ? 'text-blue-500' : 'text-gray-500'
-                      }`}
-                    >
-                      {month}
-                    </div>
-                    {isToday && (
-                      <div className='text-xs text-blue-600 font-semibold mt-1'>
-                        आज
-                      </div>
-                    )}
-                  </div>
-
                   {/* Event Details */}
                   <div className='flex-1 min-w-0'>
                     <div className='flex items-start justify-between gap-2 mb-2'>
@@ -397,19 +407,55 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
                     </div>
 
                     <div className='space-y-1'>
-                      {event.time && event.time.trim() !== '' && (
+                      {/* Date range display for multi-day events */}
+                      {isMultiDay && (
                         <div className='flex items-center gap-1 text-xs text-gray-600'>
-                          <Clock className='w-3 h-3 flex-shrink-0' />
-                          <span>{event.time}</span>
+                          <Calendar className='w-3 h-3 flex-shrink-0' />
+                          <span>
+                            {formatDateRange(event.date, event.endDate)}
+                          </span>
                         </div>
                       )}
 
+                      {/* Time display for events and exams */}
+                      {(event.startTime || event.endTime) && (
+                        <div className='flex items-center gap-1 text-xs text-gray-600'>
+                          <Clock className='w-3 h-3 flex-shrink-0' />
+                          <span>
+                            {convertTo12HourFormat(event.startTime || '')}
+                            {event.endTime &&
+                              event.startTime !== event.endTime &&
+                              ` - ${convertTo12HourFormat(event.endTime)}`}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Fallback to old time field for backward compatibility */}
+                      {!event.startTime &&
+                        !event.endTime &&
+                        event.time &&
+                        event.time.trim() !== '' && (
+                          <div className='flex items-center gap-1 text-xs text-gray-600'>
+                            <Clock className='w-3 h-3 flex-shrink-0' />
+                            <span>{convertTo12HourFormat(event.time)}</span>
+                          </div>
+                        )}
+
+                      {/* Venue/Location */}
                       {(event.venue || event.location) && (
                         <div className='flex items-center gap-1 text-xs text-gray-600'>
                           <MapPin className='w-3 h-3 flex-shrink-0' />
                           <span className='line-clamp-1'>
                             {event.venue || event.location}
                           </span>
+                        </div>
+                      )}
+
+                      {/* Exam details */}
+                      {event.examDetails && (
+                        <div className='text-xs text-gray-600 line-clamp-2'>
+                          <span className='font-medium'>Details:</span>{' '}
+                          {event.examDetails}
                         </div>
                       )}
                     </div>

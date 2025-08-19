@@ -9,6 +9,7 @@
 export enum CalendarEntryType {
   HOLIDAY = 'HOLIDAY',
   EVENT = 'EVENT',
+  EXAM = 'EXAM',
 }
 
 /**
@@ -17,6 +18,7 @@ export enum CalendarEntryType {
 export const CalendarEntryTypeLabels: Record<CalendarEntryType, string> = {
   [CalendarEntryType.HOLIDAY]: 'Holiday',
   [CalendarEntryType.EVENT]: 'Event',
+  [CalendarEntryType.EXAM]: 'Exam',
 };
 
 /**

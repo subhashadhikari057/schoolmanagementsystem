@@ -16,6 +16,7 @@ import {
   EventFormData,
   CalendarEntryType,
   HolidayType,
+  ExamType,
   CreateCalendarEntryDto,
 } from '../types/calendar.types';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
@@ -29,7 +30,12 @@ export default function AddEventModal({
   const { createEvent } = useCalendarEvents();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [bsDate, setBsDate] = useState({ year: 2081, month: 1, day: 1 });
+  const [startBsDate, setStartBsDate] = useState({
+    year: 2081,
+    month: 1,
+    day: 1,
+  });
+  const [endBsDate, setEndBsDate] = useState({ year: 2081, month: 1, day: 1 });
   const [formData, setFormData] = useState<EventFormData>({
     name: '',
     type: CalendarEntryType.EVENT,
@@ -39,6 +45,8 @@ export default function AddEventModal({
     endTime: '17:00',
     venue: '',
     holidayType: undefined,
+    examType: undefined,
+    examDetails: '',
   });
 
   // Nepali month names
@@ -69,9 +77,11 @@ export default function AddEventModal({
         endTime: '17:00',
         venue: '',
         holidayType: undefined,
+        examType: undefined,
+        examDetails: '',
       });
 
-      // Set BS date based on initialDate or current date
+      // Set BS dates based on initialDate or current date
       if (initialDate) {
         // Convert the provided initialDate (AD) to BS
         try {
@@ -87,7 +97,12 @@ export default function AddEventModal({
             selectedBS.month &&
             selectedBS.date
           ) {
-            setBsDate({
+            setStartBsDate({
+              year: selectedBS.year,
+              month: selectedBS.month,
+              day: selectedBS.date,
+            });
+            setEndBsDate({
               year: selectedBS.year,
               month: selectedBS.month,
               day: selectedBS.date,
@@ -104,7 +119,12 @@ export default function AddEventModal({
             today.getMonth() + 1,
             today.getDate(),
           );
-          setBsDate({
+          setStartBsDate({
+            year: currentBS.year,
+            month: currentBS.month,
+            day: currentBS.date,
+          });
+          setEndBsDate({
             year: currentBS.year,
             month: currentBS.month,
             day: currentBS.date,
@@ -125,7 +145,12 @@ export default function AddEventModal({
             currentBS.month &&
             currentBS.date
           ) {
-            setBsDate({
+            setStartBsDate({
+              year: currentBS.year,
+              month: currentBS.month,
+              day: currentBS.date,
+            });
+            setEndBsDate({
               year: currentBS.year,
               month: currentBS.month,
               day: currentBS.date,
@@ -134,7 +159,8 @@ export default function AddEventModal({
             throw new Error('Invalid current BS date');
           }
         } catch (error) {
-          setBsDate({ year: 2081, month: 9, day: 15 }); // Default to a safe date
+          setStartBsDate({ year: 2081, month: 9, day: 15 }); // Default to a safe date
+          setEndBsDate({ year: 2081, month: 9, day: 15 }); // Default to a safe date
         }
       }
     }
@@ -170,19 +196,28 @@ export default function AddEventModal({
       return;
     }
 
+    if (formData.type === CalendarEntryType.EXAM && !formData.examType) {
+      alert('Please select an exam type');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       // Create proper datetime strings based on event type (force UTC to avoid timezone issues)
       const startDateTime =
-        formData.type === CalendarEntryType.EVENT && formData.startTime
+        (formData.type === CalendarEntryType.EVENT ||
+          formData.type === CalendarEntryType.EXAM) &&
+        formData.startTime
           ? new Date(
               `${formData.startDate}T${formData.startTime}:00.000Z`,
             ).toISOString()
           : new Date(`${formData.startDate}T00:00:00.000Z`).toISOString();
 
       const endDateTime =
-        formData.type === CalendarEntryType.EVENT && formData.endTime
+        (formData.type === CalendarEntryType.EVENT ||
+          formData.type === CalendarEntryType.EXAM) &&
+        formData.endTime
           ? new Date(
               `${formData.endDate}T${formData.endTime}:00.000Z`,
             ).toISOString()
@@ -198,6 +233,16 @@ export default function AddEventModal({
         }),
         ...(formData.type === CalendarEntryType.HOLIDAY && {
           holidayType: formData.holidayType,
+        }),
+        ...(formData.type === CalendarEntryType.EXAM && {
+          examType: formData.examType,
+          examDetails: formData.examDetails?.trim(),
+        }),
+        // Time fields for events and exams
+        ...((formData.type === CalendarEntryType.EVENT ||
+          formData.type === CalendarEntryType.EXAM) && {
+          startTime: formData.startTime,
+          endTime: formData.endTime,
         }),
       };
 
@@ -221,22 +266,37 @@ export default function AddEventModal({
       ...(field === 'type' &&
         value === CalendarEntryType.EVENT && {
           holidayType: undefined,
+          examType: undefined,
+          examDetails: '',
           startTime: '09:00',
           endTime: '17:00',
         }),
       ...(field === 'type' &&
         value === CalendarEntryType.HOLIDAY && {
           venue: '',
+          examType: undefined,
+          examDetails: '',
           startTime: undefined,
           endTime: undefined,
+        }),
+      ...(field === 'type' &&
+        value === CalendarEntryType.EXAM && {
+          venue: '',
+          holidayType: undefined,
+          startTime: '09:00',
+          endTime: '17:00',
         }),
     }));
   };
 
   // Convert BS date to AD date for form submission
-  const convertBsToAdDate = () => {
+  const convertBsToAdDate = (bsDateObj: {
+    year: number;
+    month: number;
+    day: number;
+  }) => {
     try {
-      const adDate = bs2ad(bsDate.year, bsDate.month, bsDate.day);
+      const adDate = bs2ad(bsDateObj.year, bsDateObj.month, bsDateObj.day);
       const adDateString = `${adDate.year}-${adDate.month.toString().padStart(2, '0')}-${adDate.date.toString().padStart(2, '0')}`;
       return adDateString;
     } catch (error) {
@@ -245,12 +305,12 @@ export default function AddEventModal({
     }
   };
 
-  // Handle BS date changes
-  const handleBsDateChange = (
+  // Handle BS date changes for start date
+  const handleStartBsDateChange = (
     field: 'year' | 'month' | 'day',
     value: number,
   ) => {
-    setBsDate(prev => {
+    setStartBsDate(prev => {
       const newBsDate = { ...prev, [field]: value };
 
       // Validate BS date ranges
@@ -258,7 +318,6 @@ export default function AddEventModal({
         setFormData(prevForm => ({
           ...prevForm,
           startDate: '',
-          endDate: '',
         }));
         return newBsDate;
       }
@@ -267,7 +326,6 @@ export default function AddEventModal({
         setFormData(prevForm => ({
           ...prevForm,
           startDate: '',
-          endDate: '',
         }));
         return newBsDate;
       }
@@ -276,7 +334,6 @@ export default function AddEventModal({
         setFormData(prevForm => ({
           ...prevForm,
           startDate: '',
-          endDate: '',
         }));
         return newBsDate;
       }
@@ -300,26 +357,98 @@ export default function AddEventModal({
             setFormData(prevForm => ({
               ...prevForm,
               startDate: adDateString,
-              endDate: adDateString,
             }));
           } else {
             setFormData(prevForm => ({
               ...prevForm,
               startDate: '',
-              endDate: '',
             }));
           }
         } else {
           setFormData(prevForm => ({
             ...prevForm,
             startDate: '',
-            endDate: '',
           }));
         }
       } catch (error) {
         setFormData(prevForm => ({
           ...prevForm,
           startDate: '',
+        }));
+      }
+
+      return newBsDate;
+    });
+  };
+
+  // Handle BS date changes for end date
+  const handleEndBsDateChange = (
+    field: 'year' | 'month' | 'day',
+    value: number,
+  ) => {
+    setEndBsDate(prev => {
+      const newBsDate = { ...prev, [field]: value };
+
+      // Validate BS date ranges
+      if (newBsDate.year < 2070 || newBsDate.year > 2090) {
+        setFormData(prevForm => ({
+          ...prevForm,
+          endDate: '',
+        }));
+        return newBsDate;
+      }
+
+      if (newBsDate.month < 1 || newBsDate.month > 12) {
+        setFormData(prevForm => ({
+          ...prevForm,
+          endDate: '',
+        }));
+        return newBsDate;
+      }
+
+      if (newBsDate.day < 1 || newBsDate.day > 32) {
+        setFormData(prevForm => ({
+          ...prevForm,
+          endDate: '',
+        }));
+        return newBsDate;
+      }
+
+      // Convert to AD and update form data
+      try {
+        const adDate = bs2ad(newBsDate.year, newBsDate.month, newBsDate.day);
+
+        if (
+          adDate &&
+          typeof adDate === 'object' &&
+          adDate.year &&
+          adDate.month &&
+          adDate.date
+        ) {
+          const adDateString = `${adDate.year}-${adDate.month.toString().padStart(2, '0')}-${adDate.date.toString().padStart(2, '0')}`;
+
+          // Validate the resulting AD date
+          const testDate = new Date(adDateString);
+          if (!isNaN(testDate.getTime())) {
+            setFormData(prevForm => ({
+              ...prevForm,
+              endDate: adDateString,
+            }));
+          } else {
+            setFormData(prevForm => ({
+              ...prevForm,
+              endDate: '',
+            }));
+          }
+        } else {
+          setFormData(prevForm => ({
+            ...prevForm,
+            endDate: '',
+          }));
+        }
+      } catch (error) {
+        setFormData(prevForm => ({
+          ...prevForm,
           endDate: '',
         }));
       }
@@ -369,6 +498,7 @@ export default function AddEventModal({
             >
               <option value={CalendarEntryType.EVENT}>Event</option>
               <option value={CalendarEntryType.HOLIDAY}>Holiday</option>
+              <option value={CalendarEntryType.EXAM}>Exam</option>
             </select>
           </div>
 
@@ -392,10 +522,11 @@ export default function AddEventModal({
             />
           </div>
 
-          {/* BS Date Input */}
+          {/* Start Date (BS) */}
           <div>
             <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Date (BS - Bikram Sambat) <span className='text-red-500'>*</span>
+              Start Date (BS - Bikram Sambat){' '}
+              <span className='text-red-500'>*</span>
             </label>
             <div className='grid grid-cols-3 gap-2'>
               {/* Year */}
@@ -403,9 +534,12 @@ export default function AddEventModal({
                 <label className='block text-xs text-gray-500 mb-1'>Year</label>
                 <input
                   type='number'
-                  value={bsDate.year}
+                  value={startBsDate.year}
                   onChange={e =>
-                    handleBsDateChange('year', parseInt(e.target.value) || 2081)
+                    handleStartBsDateChange(
+                      'year',
+                      parseInt(e.target.value) || 2081,
+                    )
                   }
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
                   min='2070'
@@ -421,9 +555,9 @@ export default function AddEventModal({
                   Month
                 </label>
                 <select
-                  value={bsDate.month}
+                  value={startBsDate.month}
                   onChange={e =>
-                    handleBsDateChange('month', parseInt(e.target.value))
+                    handleStartBsDateChange('month', parseInt(e.target.value))
                   }
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
                   disabled={isSubmitting}
@@ -441,9 +575,12 @@ export default function AddEventModal({
                 <label className='block text-xs text-gray-500 mb-1'>Day</label>
                 <input
                   type='number'
-                  value={bsDate.day}
+                  value={startBsDate.day}
                   onChange={e =>
-                    handleBsDateChange('day', parseInt(e.target.value) || 1)
+                    handleStartBsDateChange(
+                      'day',
+                      parseInt(e.target.value) || 1,
+                    )
                   }
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
                   min='1'
@@ -454,12 +591,12 @@ export default function AddEventModal({
               </div>
             </div>
 
-            {/* BS Date Display */}
+            {/* Start Date Display */}
             <div className='mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg'>
               <div className='text-sm text-blue-800 font-medium'>
-                <strong>Selected BS Date:</strong>{' '}
-                {nepaliMonths[bsDate.month - 1] || 'Invalid'} {bsDate.day},{' '}
-                {bsDate.year}
+                <strong>Start BS Date:</strong>{' '}
+                {nepaliMonths[startBsDate.month - 1] || 'Invalid'}{' '}
+                {startBsDate.day}, {startBsDate.year}
               </div>
               <div className='text-xs text-blue-600 mt-1'>
                 <strong>Equivalent AD Date:</strong>{' '}
@@ -479,8 +616,100 @@ export default function AddEventModal({
             </div>
           </div>
 
-          {/* Time Fields (only for Events) */}
-          {formData.type === CalendarEntryType.EVENT && (
+          {/* End Date (BS) */}
+          <div>
+            <label className='block text-sm font-medium text-gray-700 mb-2'>
+              End Date (BS - Bikram Sambat){' '}
+              <span className='text-red-500'>*</span>
+            </label>
+            <div className='grid grid-cols-3 gap-2'>
+              {/* Year */}
+              <div>
+                <label className='block text-xs text-gray-500 mb-1'>Year</label>
+                <input
+                  type='number'
+                  value={endBsDate.year}
+                  onChange={e =>
+                    handleEndBsDateChange(
+                      'year',
+                      parseInt(e.target.value) || 2081,
+                    )
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                  min='2070'
+                  max='2090'
+                  disabled={isSubmitting}
+                  placeholder='2081'
+                />
+              </div>
+
+              {/* Month */}
+              <div>
+                <label className='block text-xs text-gray-500 mb-1'>
+                  Month
+                </label>
+                <select
+                  value={endBsDate.month}
+                  onChange={e =>
+                    handleEndBsDateChange('month', parseInt(e.target.value))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                  disabled={isSubmitting}
+                >
+                  {nepaliMonths.map((month, index) => (
+                    <option key={index + 1} value={index + 1}>
+                      {index + 1}. {month}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Day */}
+              <div>
+                <label className='block text-xs text-gray-500 mb-1'>Day</label>
+                <input
+                  type='number'
+                  value={endBsDate.day}
+                  onChange={e =>
+                    handleEndBsDateChange('day', parseInt(e.target.value) || 1)
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
+                  min='1'
+                  max='32'
+                  disabled={isSubmitting}
+                  placeholder='1'
+                />
+              </div>
+            </div>
+
+            {/* End Date Display */}
+            <div className='mt-2 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg'>
+              <div className='text-sm text-green-800 font-medium'>
+                <strong>End BS Date:</strong>{' '}
+                {nepaliMonths[endBsDate.month - 1] || 'Invalid'} {endBsDate.day}
+                , {endBsDate.year}
+              </div>
+              <div className='text-xs text-green-600 mt-1'>
+                <strong>Equivalent AD Date:</strong>{' '}
+                {formData.endDate
+                  ? new Date(formData.endDate).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  : 'Calculating...'}
+              </div>
+              {!formData.endDate && (
+                <div className='text-xs text-red-600 mt-1'>
+                  ⚠️ Please select a valid BS date (Year: 2070-2090)
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Time Fields (for Events and Exams) */}
+          {(formData.type === CalendarEntryType.EVENT ||
+            formData.type === CalendarEntryType.EXAM) && (
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
                 <label
@@ -566,6 +795,58 @@ export default function AddEventModal({
                 <option value={HolidayType.SCHOOL}>School Holiday</option>
               </select>
             </div>
+          )}
+
+          {/* Exam-specific fields */}
+          {formData.type === CalendarEntryType.EXAM && (
+            <>
+              <div>
+                <label
+                  htmlFor='examType'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Exam Type <span className='text-red-500'>*</span>
+                </label>
+                <select
+                  id='examType'
+                  value={formData.examType || ''}
+                  onChange={e =>
+                    handleInputChange('examType', e.target.value as ExamType)
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  disabled={isSubmitting}
+                  required
+                >
+                  <option value=''>Select exam type</option>
+                  <option value={ExamType.FIRST_TERM}>First Term</option>
+                  <option value={ExamType.SECOND_TERM}>Second Term</option>
+                  <option value={ExamType.THIRD_TERM}>Third Term</option>
+                  <option value={ExamType.FINAL}>Final</option>
+                  <option value={ExamType.UNIT_TEST}>Unit Test</option>
+                  <option value={ExamType.OTHER}>Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor='examDetails'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Exam Details (Optional)
+                </label>
+                <textarea
+                  id='examDetails'
+                  value={formData.examDetails || ''}
+                  onChange={e =>
+                    handleInputChange('examDetails', e.target.value)
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Enter additional exam details, subjects, or instructions...'
+                  rows={3}
+                  disabled={isSubmitting}
+                />
+              </div>
+            </>
           )}
 
           {/* Form Actions */}
