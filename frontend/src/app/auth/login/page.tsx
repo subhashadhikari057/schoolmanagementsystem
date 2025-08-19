@@ -16,7 +16,6 @@ export default function LoginPage() {
 
   // Check for session expiry message on mount - client-side only
   useEffect(() => {
-    // Delay to prevent hydration mismatch
     const checkRedirectMessage = () => {
       const message = sessionStorage.getItem('auth_redirect_message');
       const path = sessionStorage.getItem('auth_redirect_path');
@@ -217,10 +216,10 @@ export default function LoginPage() {
       className='grid grid-cols-1 lg:grid-cols-2 min-h-screen h-screen w-full overflow-hidden'
       style={{
         background: `
-    radial-gradient(circle at 0% 0%, rgba(0, 97, 255, 0.4) 0%, rgba(0, 97, 255, 0.10) 30%, transparent 35%),
-    radial-gradient(circle at 100% 100%, rgba(96, 239, 255, 0.3) 0%, rgba(96, 239, 255, 0.20) 30%, transparent 35%),
-    #F7F7F7
-  `,
+          radial-gradient(circle at 0% 0%, rgba(0, 97, 255, 0.4) 0%, rgba(0, 97, 255, 0.10) 30%, transparent 35%),
+          radial-gradient(circle at 100% 100%, rgba(96, 239, 255, 0.3) 0%, rgba(96, 239, 255, 0.20) 30%, transparent 35%),
+          #F7F7F7
+        `,
         backgroundSize: 'cover',
         backgroundAttachment: 'fixed',
         backgroundRepeat: 'no-repeat',

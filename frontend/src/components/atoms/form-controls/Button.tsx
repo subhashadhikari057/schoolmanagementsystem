@@ -8,6 +8,7 @@ interface Props {
   label?: string;
   as?: 'button' | 'div';
   children?: React.ReactNode;
+  type?: 'button' | 'submit' | 'reset'; // Add this line
 }
 
 export default function ReusableButton({
@@ -16,6 +17,7 @@ export default function ReusableButton({
   className,
   as = 'button',
   children,
+  type, // Add this parameter
 }: Props) {
   if (as === 'div') {
     return (
@@ -36,7 +38,9 @@ export default function ReusableButton({
   }
 
   return (
-    <Button onClick={onClick} className={`${className}`}>
+    <Button onClick={onClick} className={`${className}`} type={type}>
+      {' '}
+      {/* Pass the type prop */}
       {children ? children : label}
     </Button>
   );
