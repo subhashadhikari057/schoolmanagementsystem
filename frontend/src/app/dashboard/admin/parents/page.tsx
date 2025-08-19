@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import GenericList from '@/components/templates/GenericList';
 import {
   getListConfig,
@@ -8,29 +8,176 @@ import {
 } from '@/components/templates/listConfigurations';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
-import { Users, UserCheck, Phone, Mail } from 'lucide-react';
+import {
+  Users,
+  UserCheck,
+  Phone,
+  Mail,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  parentService,
+  ParentResponse,
+  ParentQueryParams,
+} from '@/api/services/parent.service';
+import ParentViewModal from '@/components/organisms/modals/ParentViewModal';
+import ParentEditModal from '@/components/organisms/modals/ParentEditModal';
 
 const ParentsPage = () => {
   // State for parents data
   const [parents, setParents] = useState<Parent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage] = useState(10);
+
+  // Modal states
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedParent, setSelectedParent] = useState<Parent | null>(null);
+
+  // Stats state
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    pending: 0,
+    inactive: 0,
+  });
+
+  // Transform backend ParentResponse to frontend Parent interface
+  const transformParentData = (
+    backendParent: ParentResponse,
+  ): Parent | null => {
+    // Filter out soft-deleted children (children with deletedAt not null)
+    const activeChildren = (backendParent.children || []).filter(
+      child => !child.deletedAt || child.deletedAt === null,
+    );
+
+    // If parent has no active children, don't include them in the list
+    // (This handles the case where all children were soft-deleted)
+    if (activeChildren.length === 0) {
+      return null;
+    }
+
+    const linkedStudents = activeChildren.map(child => child.id);
+
+    return {
+      id: backendParent.id,
+      userId: backendParent.userId,
+      name: backendParent.fullName,
+      fullName: backendParent.fullName,
+      email: backendParent.email,
+      phone: backendParent.phone,
+      accountStatus: backendParent.deletedAt ? 'Inactive' : 'Active',
+      occupation: backendParent.profile?.occupation,
+      workPlace: backendParent.profile?.workPlace,
+      workPhone: backendParent.profile?.workPhone,
+      job: backendParent.profile?.occupation,
+      profile: backendParent.profile,
+      children: activeChildren.map(child => ({
+        ...child,
+        name: child.fullName,
+        grade: child.classId || 'N/A',
+        studentId: child.id,
+        profilePhotoUrl: child.profilePhotoUrl,
+        avatar: child.avatar,
+      })),
+      linkedStudents,
+      contact: backendParent.phone,
+      address: backendParent.profile?.address
+        ? `${backendParent.profile.address.street || ''} ${backendParent.profile.address.city || ''}`.trim()
+        : undefined,
+      createdAt: backendParent.createdAt,
+      updatedAt: backendParent.updatedAt,
+      deletedAt: backendParent.deletedAt,
+    };
+  };
+
+  // Fetch parents data from backend
+  const fetchParents = useCallback(
+    async (page: number = 1) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const params: ParentQueryParams = {
+          page,
+          limit: itemsPerPage,
+        };
+
+        const response = await parentService.getAllParents(params);
+
+        if (response.success && response.data) {
+          const transformedParents = response.data.parents
+            .map(transformParentData)
+            .filter((parent): parent is Parent => parent !== null);
+          setParents(transformedParents);
+          setTotalPages(response.data.totalPages);
+          setTotalItems(response.data.total);
+          setCurrentPage(response.data.page);
+
+          // Calculate stats
+          const activeParents = transformedParents.filter(
+            p => p.accountStatus === 'Active',
+          ).length;
+          const inactiveParents = transformedParents.filter(
+            p => p.accountStatus === 'Inactive',
+          ).length;
+          const pendingParents = transformedParents.filter(
+            p => p.accountStatus === 'Pending',
+          ).length;
+
+          setStats({
+            total: response.data.total,
+            active: activeParents,
+            inactive: inactiveParents,
+            pending: pendingParents,
+          });
+        } else {
+          setError(response.message || 'Failed to fetch parents data');
+          toast.error('Failed to load parents data');
+        }
+      } catch (err) {
+        console.error('Error fetching parents:', err);
+        setError('Failed to fetch parents data');
+        toast.error('Failed to load parents data');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [itemsPerPage],
+  );
+
+  // Load data on component mount and page changes
+  useEffect(() => {
+    fetchParents(currentPage);
+  }, [currentPage, fetchParents]);
+
+  // Handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   // Action handlers for parent rows
   const handleParentAction = (action: string, parent: Parent) => {
     switch (action) {
       case 'view':
-        toast.info(`View parent: ${parent.name}`);
-        // TODO: Open view parent modal
+        setSelectedParent(parent);
+        setIsViewModalOpen(true);
         break;
       case 'edit':
-        toast.info(`Edit parent: ${parent.name}`);
-        // TODO: Open edit parent modal
+        setSelectedParent(parent);
+        setIsEditModalOpen(true);
         break;
       case 'delete':
         if (confirm(`Are you sure you want to delete ${parent.name}?`)) {
-          toast.success(`Parent ${parent.name} deleted successfully`);
-          // TODO: Call delete API and refresh data
+          handleDeleteParent(parent);
         }
         break;
       case 'status':
@@ -42,13 +189,38 @@ const ParentsPage = () => {
     }
   };
 
-  // Parent-specific stats data
+  // Handle parent deletion
+  const handleDeleteParent = async (parent: Parent) => {
+    try {
+      setIsLoading(true);
+      const response = await parentService.deleteParent(parent.id);
+
+      if (response.success) {
+        toast.success(`Parent ${parent.name} deleted successfully`);
+        fetchParents(currentPage); // Refresh the list
+      } else {
+        toast.error(response.message || 'Failed to delete parent');
+      }
+    } catch (err) {
+      console.error('Error deleting parent:', err);
+      toast.error('Failed to delete parent');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle successful edit
+  const handleEditSuccess = () => {
+    fetchParents(currentPage); // Refresh the list
+  };
+
+  // Parent-specific stats data using real data
   const parentStats = [
     {
       icon: Users,
       bgColor: 'bg-blue-50',
       iconColor: 'text-blue-600',
-      value: '120',
+      value: stats.total.toString(),
       label: 'Total Parents',
       change: '2.1%',
       isPositive: true,
@@ -57,7 +229,7 @@ const ParentsPage = () => {
       icon: UserCheck,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-600',
-      value: '115',
+      value: stats.active.toString(),
       label: 'Active Parents',
       change: '1.5%',
       isPositive: true,
@@ -66,7 +238,7 @@ const ParentsPage = () => {
       icon: Phone,
       bgColor: 'bg-yellow-50',
       iconColor: 'text-yellow-600',
-      value: '3',
+      value: stats.pending.toString(),
       label: 'Pending Verification',
       change: '8.2%',
       isPositive: false,
@@ -75,56 +247,42 @@ const ParentsPage = () => {
       icon: Mail,
       bgColor: 'bg-purple-50',
       iconColor: 'text-purple-600',
-      value: '2',
+      value: stats.inactive.toString(),
       label: 'Inactive',
       change: '0.5%',
       isPositive: false,
     },
   ];
 
-  // Sample parent data
-  const parentsData: Parent[] = [
-    {
-      id: 1,
-      name: 'Michael Johnson',
-      accountStatus: 'Active',
-      email: 'michael.johnson@email.com',
-      linkedStudents: ['1'],
-      contact: '',
-    },
-    {
-      id: 2,
-      name: 'Michael Smith',
-      accountStatus: 'Active',
-      email: 'michael.smith@email.com',
-      linkedStudents: ['2'],
-      contact: '',
-    },
-    {
-      id: 3,
-      name: 'David Brown',
-      accountStatus: 'Active',
-      email: 'david.brown@email.com',
-      linkedStudents: ['3'],
-      contact: '',
-    },
-    {
-      id: 4,
-      name: 'Jennifer Wilson',
-      accountStatus: 'Active',
-      email: 'jennifer.wilson@email.com',
-      linkedStudents: ['4'],
-      contact: '',
-    },
-    {
-      id: 5,
-      name: 'Robert Davis',
-      accountStatus: 'Active',
-      email: 'robert.davis@email.com',
-      linkedStudents: ['5'],
-      contact: '',
-    },
-  ];
+  // Loading component
+  if (isLoading && parents.length === 0) {
+    return (
+      <div className='min-h-screen bg-background flex items-center justify-center'>
+        <div className='text-center'>
+          <Loader2 className='h-8 w-8 animate-spin mx-auto mb-4 text-blue-600' />
+          <p className='text-gray-600'>Loading parents data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error component
+  if (error && parents.length === 0) {
+    return (
+      <div className='min-h-screen bg-background flex items-center justify-center'>
+        <div className='text-center'>
+          <AlertCircle className='h-8 w-8 mx-auto mb-4 text-red-600' />
+          <p className='text-gray-600 mb-4'>Failed to load parents data</p>
+          <button
+            onClick={() => fetchParents(currentPage)}
+            className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen bg-background'>
@@ -150,19 +308,35 @@ const ParentsPage = () => {
       {/* Main Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
         <div className='max-w-7xl mx-auto'>
-          {/* Parent List - Now using Generic List */}
+          {/* Parent List - Using Real Data */}
           <GenericList<Parent>
             config={getListConfig('parents')}
-            data={parentsData}
-            currentPage={1}
-            totalPages={12}
-            totalItems={120}
-            itemsPerPage={10}
+            data={parents}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
             onItemAction={handleParentAction}
             customActions={<ActionButtons pageType='parents' />}
+            onPageChange={handlePageChange}
           />
         </div>
       </div>
+
+      {/* Parent View Modal */}
+      <ParentViewModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        parent={selectedParent}
+      />
+
+      {/* Parent Edit Modal */}
+      <ParentEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSuccess={handleEditSuccess}
+        parent={selectedParent}
+      />
     </div>
   );
 };

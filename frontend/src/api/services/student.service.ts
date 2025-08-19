@@ -280,6 +280,7 @@ export interface StudentResponse {
     phone: string;
     email: string;
     relation: string;
+    occupation?: string;
   }>;
 }
 

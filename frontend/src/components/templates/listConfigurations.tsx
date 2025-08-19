@@ -281,25 +281,59 @@ export interface Teacher extends BaseItem {
 }
 
 export interface Parent extends BaseItem {
-  id: number;
-  name: string;
-  linkedStudents: string[];
-  contact: string;
+  id: string;
+  userId: string;
+  name: string; // This will be fullName from backend
+  fullName: string;
+  email: string;
+  phone: string;
   accountStatus: 'Active' | 'Inactive' | 'Pending';
   avatar?: string;
   parentId?: string;
-  email?: string;
-  phone?: string;
   address?: string;
   lastActivity?: string;
   preferredContact?: 'Email' | 'SMS';
   relation?: string; // Father, Mother, Guardian, etc.
-  job?: string; // Software Engineer, Doctor, etc.
+  job?: string; // This will be occupation from profile
+  occupation?: string;
+  workPlace?: string;
+  workPhone?: string;
+  profile?: {
+    dateOfBirth?: string;
+    gender?: string;
+    occupation?: string;
+    workPlace?: string;
+    workPhone?: string;
+    emergencyContact?: {
+      name?: string;
+      phone?: string;
+      relationship?: string;
+    };
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      pinCode?: string;
+      country?: string;
+    };
+    notes?: string;
+    specialInstructions?: string;
+  };
   children?: Array<{
-    name: string;
+    id: string;
+    fullName: string;
+    name: string; // For compatibility
     grade: string;
+    classId?: string;
     studentId: string;
+    rollNumber?: string;
+    relationship: string;
   }>;
+  linkedStudents: string[]; // For compatibility - derived from children
+  contact: string; // For compatibility - will be phone
+  createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
 }
 
 export interface Staff extends BaseItem {
@@ -938,40 +972,71 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
               <div className='font-medium text-gray-900 truncate'>
                 {item.name}
               </div>
-              <div className='text-sm text-gray-500 truncate'>
-                PAR{item.parentId}
-              </div>
               <div className='flex items-center gap-2 mt-1'>
-                <span
-                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    item.relation === 'Father'
-                      ? 'bg-blue-100 text-blue-800'
-                      : item.relation === 'Mother'
-                        ? 'bg-pink-100 text-pink-800'
-                        : item.relation === 'Guardian'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {item.relation}
-                </span>
-                <span
-                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    item.job === 'Software Engineer'
-                      ? 'bg-blue-100 text-blue-800'
-                      : item.job === 'Doctor'
-                        ? 'bg-green-100 text-green-800'
-                        : item.job === 'Teacher'
-                          ? 'bg-purple-100 text-purple-800'
-                          : item.job === 'Business Owner'
-                            ? 'bg-orange-100 text-orange-800'
-                            : item.job === 'Retired'
-                              ? 'bg-gray-100 text-gray-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                  }`}
-                >
-                  {item.job || 'Unknown'}
-                </span>
+                {(() => {
+                  // Determine relationship from children data or profile
+                  const relationship =
+                    item.children && item.children.length > 0
+                      ? item.children[0].relationship
+                      : item.profile?.gender === 'male'
+                        ? 'Father'
+                        : item.profile?.gender === 'female'
+                          ? 'Mother'
+                          : 'Guardian';
+
+                  return (
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        relationship === 'Father' || relationship === 'father'
+                          ? 'bg-blue-100 text-blue-800'
+                          : relationship === 'Mother' ||
+                              relationship === 'mother'
+                            ? 'bg-pink-100 text-pink-800'
+                            : relationship === 'Guardian' ||
+                                relationship === 'guardian'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-green-100 text-green-800'
+                      }`}
+                    >
+                      {relationship || 'Parent'}
+                    </span>
+                  );
+                })()}
+                {(() => {
+                  // Get occupation from profile or job field
+                  const occupation =
+                    item.occupation || item.profile?.occupation || item.job;
+
+                  // Only show occupation badge if it exists and is not empty
+                  if (!occupation || occupation.trim() === '') {
+                    return null;
+                  }
+
+                  return (
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        occupation.toLowerCase().includes('engineer')
+                          ? 'bg-blue-100 text-blue-800'
+                          : occupation.toLowerCase().includes('doctor') ||
+                              occupation.toLowerCase().includes('physician')
+                            ? 'bg-green-100 text-green-800'
+                            : occupation.toLowerCase().includes('teacher') ||
+                                occupation.toLowerCase().includes('educator')
+                              ? 'bg-purple-100 text-purple-800'
+                              : occupation.toLowerCase().includes('business') ||
+                                  occupation
+                                    .toLowerCase()
+                                    .includes('entrepreneur')
+                                ? 'bg-orange-100 text-orange-800'
+                                : occupation.toLowerCase().includes('retired')
+                                  ? 'bg-gray-100 text-gray-800'
+                                  : 'bg-indigo-100 text-indigo-800'
+                      }`}
+                    >
+                      {occupation}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -1018,43 +1083,19 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
           </div>
         ),
       },
-      {
-        key: 'lastActivity',
-        header: 'Last Activity',
-        mobileLabel: 'Last Active',
-        render: (item: Parent) => (
-          <div className='text-sm text-gray-600'>
-            <div className='flex items-center gap-2'>
-              <span className='text-gray-400'>🕒</span>
-              <span>{item.lastActivity || 'Never'}</span>
-            </div>
-          </div>
-        ),
-      },
+
       {
         key: 'actions',
         header: 'Actions',
         mobileLabel: 'Actions',
-        render: (item: Parent) => (
+        render: (item: Parent, _isSelected, _onSelect, onItemAction) => (
           <ActionsCell
             onAction={(action: string) => {
-              switch (action) {
-                case 'view':
-                  console.log('View parent:', item.id);
-                  break;
-                case 'edit':
-                  console.log('Edit parent:', item.id);
-                  break;
-                case 'schedule':
-                  console.log('Schedule meeting with parent:', item.id);
-                  break;
-                case 'link':
-                  console.log('Share link with parent:', item.id);
-                  break;
-                default:
-                  console.log('Action:', action, 'for parent:', item.id);
+              if (onItemAction) {
+                onItemAction(action, item);
               }
             }}
+            entityType='parent'
           />
         ),
       },
