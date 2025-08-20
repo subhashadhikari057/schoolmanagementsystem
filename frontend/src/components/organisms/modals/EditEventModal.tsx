@@ -16,6 +16,7 @@ import {
 } from '@sms/shared-types';
 import { Save, X, Calendar, Clock, MapPin, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { ad2bs, bs2ad } from 'hamro-nepali-patro';
 
 interface EditEventModalProps {
   isOpen: boolean;
@@ -47,6 +48,34 @@ export default function EditEventModal({
     examDetails: '',
   });
 
+  // BS date state
+  const [startBsDate, setStartBsDate] = useState({
+    year: 2081,
+    month: 1,
+    day: 1,
+  });
+  const [endBsDate, setEndBsDate] = useState({
+    year: 2081,
+    month: 1,
+    day: 1,
+  });
+
+  // Nepali month names
+  const nepaliMonths = [
+    'बैशाख',
+    'जेठ',
+    'असार',
+    'साउन',
+    'भदौ',
+    'असोज',
+    'कार्तिक',
+    'मंसिर',
+    'पुष',
+    'माघ',
+    'फागुन',
+    'चैत',
+  ];
+
   // Reset form when event changes
   useEffect(() => {
     if (event) {
@@ -64,6 +93,48 @@ export default function EditEventModal({
         examType: event.examType as ExamType | undefined,
         examDetails: event.examDetails || '',
       });
+
+      // Convert AD dates to BS dates
+      if (event.date) {
+        try {
+          const adDate = new Date(event.date);
+          const bsDate = ad2bs(
+            adDate.getFullYear(),
+            adDate.getMonth() + 1,
+            adDate.getDate(),
+          );
+          if (bsDate && typeof bsDate === 'object') {
+            setStartBsDate({
+              year: bsDate.year,
+              month: bsDate.month,
+              day: bsDate.date,
+            });
+          }
+        } catch (error) {
+          console.error('Error converting start date to BS:', error);
+        }
+      }
+
+      if (event.endDate) {
+        try {
+          const adDate = new Date(event.endDate);
+          const bsDate = ad2bs(
+            adDate.getFullYear(),
+            adDate.getMonth() + 1,
+            adDate.getDate(),
+          );
+          if (bsDate && typeof bsDate === 'object') {
+            setEndBsDate({
+              year: bsDate.year,
+              month: bsDate.month,
+              day: bsDate.date,
+            });
+          }
+        } catch (error) {
+          console.error('Error converting end date to BS:', error);
+        }
+      }
+
       setError(null);
     }
   }, [event]);
@@ -138,6 +209,158 @@ export default function EditEventModal({
     }
   };
 
+  // Handle BS date changes for start date
+  const handleStartBsDateChange = (
+    field: 'year' | 'month' | 'day',
+    value: number,
+  ) => {
+    setStartBsDate(prev => {
+      const newBsDate = { ...prev, [field]: value };
+
+      // Validate BS date ranges
+      if (newBsDate.year < 2070 || newBsDate.year > 2090) {
+        setForm(prevForm => ({
+          ...prevForm,
+          date: '',
+        }));
+        return newBsDate;
+      }
+
+      if (newBsDate.month < 1 || newBsDate.month > 12) {
+        setForm(prevForm => ({
+          ...prevForm,
+          date: '',
+        }));
+        return newBsDate;
+      }
+
+      if (newBsDate.day < 1 || newBsDate.day > 32) {
+        setForm(prevForm => ({
+          ...prevForm,
+          date: '',
+        }));
+        return newBsDate;
+      }
+
+      // Convert to AD and update form data
+      try {
+        const adDate = bs2ad(newBsDate.year, newBsDate.month, newBsDate.day);
+
+        if (
+          adDate &&
+          typeof adDate === 'object' &&
+          adDate.year &&
+          adDate.month &&
+          adDate.date
+        ) {
+          const adDateString = `${adDate.year}-${adDate.month.toString().padStart(2, '0')}-${adDate.date.toString().padStart(2, '0')}`;
+
+          // Validate the resulting AD date
+          const testDate = new Date(adDateString);
+          if (!isNaN(testDate.getTime())) {
+            setForm(prevForm => ({
+              ...prevForm,
+              date: adDateString,
+            }));
+          } else {
+            setForm(prevForm => ({
+              ...prevForm,
+              date: '',
+            }));
+          }
+        } else {
+          setForm(prevForm => ({
+            ...prevForm,
+            date: '',
+          }));
+        }
+      } catch (error) {
+        setForm(prevForm => ({
+          ...prevForm,
+          date: '',
+        }));
+      }
+
+      return newBsDate;
+    });
+  };
+
+  // Handle BS date changes for end date
+  const handleEndBsDateChange = (
+    field: 'year' | 'month' | 'day',
+    value: number,
+  ) => {
+    setEndBsDate(prev => {
+      const newBsDate = { ...prev, [field]: value };
+
+      // Validate BS date ranges
+      if (newBsDate.year < 2070 || newBsDate.year > 2090) {
+        setForm(prevForm => ({
+          ...prevForm,
+          endDate: '',
+        }));
+        return newBsDate;
+      }
+
+      if (newBsDate.month < 1 || newBsDate.month > 12) {
+        setForm(prevForm => ({
+          ...prevForm,
+          endDate: '',
+        }));
+        return newBsDate;
+      }
+
+      if (newBsDate.day < 1 || newBsDate.day > 32) {
+        setForm(prevForm => ({
+          ...prevForm,
+          endDate: '',
+        }));
+        return newBsDate;
+      }
+
+      // Convert to AD and update form data
+      try {
+        const adDate = bs2ad(newBsDate.year, newBsDate.month, newBsDate.day);
+
+        if (
+          adDate &&
+          typeof adDate === 'object' &&
+          adDate.year &&
+          adDate.month &&
+          adDate.date
+        ) {
+          const adDateString = `${adDate.year}-${adDate.month.toString().padStart(2, '0')}-${adDate.date.toString().padStart(2, '0')}`;
+
+          // Validate the resulting AD date
+          const testDate = new Date(adDateString);
+          if (!isNaN(testDate.getTime())) {
+            setForm(prevForm => ({
+              ...prevForm,
+              endDate: adDateString,
+            }));
+          } else {
+            setForm(prevForm => ({
+              ...prevForm,
+              endDate: '',
+            }));
+          }
+        } else {
+          setForm(prevForm => ({
+            ...prevForm,
+            endDate: '',
+          }));
+        }
+      } catch (error) {
+        setForm(prevForm => ({
+          ...prevForm,
+          endDate: '',
+        }));
+      }
+
+      return newBsDate;
+    });
+  };
+
   const handleClose = () => {
     setError(null);
     onClose();
@@ -165,9 +388,9 @@ export default function EditEventModal({
           title: 'Edit Exam',
           icon: '📝',
           color: 'purple',
-          showTime: true,
-          showLocation: true,
-          showEndDate: false,
+          showTime: false,
+          showLocation: false,
+          showEndDate: true,
           nameLabel: 'Exam Name',
           namePlaceholder: 'e.g., Final Examination',
           descriptionPlaceholder: 'Exam details and instructions',
@@ -214,7 +437,7 @@ export default function EditEventModal({
   const config = getEventTypeConfig(form.type);
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm'>
       <div className='bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-100'>
         {/* Header */}
         <div
@@ -276,30 +499,108 @@ export default function EditEventModal({
             <div className='space-y-2'>
               <Label className='flex items-center gap-2'>
                 <Calendar size={16} className='text-gray-500' />
-                Start Date *
+                Start Date (BS) *
               </Label>
-              <Input
-                type='date'
-                value={form.date}
-                onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                className='w-full'
-              />
+              <div className='grid grid-cols-3 gap-2'>
+                <div>
+                  <Select
+                    value={startBsDate.year.toString()}
+                    onChange={e =>
+                      handleStartBsDateChange('year', parseInt(e.target.value))
+                    }
+                    options={Array.from({ length: 21 }, (_, i) => ({
+                      value: (2070 + i).toString(),
+                      label: (2070 + i).toString(),
+                    }))}
+                    className='w-full'
+                  />
+                </div>
+                <div>
+                  <Select
+                    value={startBsDate.month.toString()}
+                    onChange={e =>
+                      handleStartBsDateChange('month', parseInt(e.target.value))
+                    }
+                    options={nepaliMonths.map((month, index) => ({
+                      value: (index + 1).toString(),
+                      label: month,
+                    }))}
+                    className='w-full'
+                  />
+                </div>
+                <div>
+                  <Select
+                    value={startBsDate.day.toString()}
+                    onChange={e =>
+                      handleStartBsDateChange('day', parseInt(e.target.value))
+                    }
+                    options={Array.from({ length: 32 }, (_, i) => ({
+                      value: (i + 1).toString(),
+                      label: (i + 1).toString(),
+                    }))}
+                    className='w-full'
+                  />
+                </div>
+              </div>
+              {form.date && (
+                <p className='text-xs text-gray-500'>
+                  AD: {new Date(form.date).toLocaleDateString('en-US')}
+                </p>
+              )}
             </div>
 
             {config.showEndDate && (
               <div className='space-y-2'>
                 <Label className='flex items-center gap-2'>
                   <Calendar size={16} className='text-gray-500' />
-                  End Date
+                  End Date (BS)
                 </Label>
-                <Input
-                  type='date'
-                  value={form.endDate}
-                  onChange={e =>
-                    setForm(f => ({ ...f, endDate: e.target.value }))
-                  }
-                  className='w-full'
-                />
+                <div className='grid grid-cols-3 gap-2'>
+                  <div>
+                    <Select
+                      value={endBsDate.year.toString()}
+                      onChange={e =>
+                        handleEndBsDateChange('year', parseInt(e.target.value))
+                      }
+                      options={Array.from({ length: 21 }, (_, i) => ({
+                        value: (2070 + i).toString(),
+                        label: (2070 + i).toString(),
+                      }))}
+                      className='w-full'
+                    />
+                  </div>
+                  <div>
+                    <Select
+                      value={endBsDate.month.toString()}
+                      onChange={e =>
+                        handleEndBsDateChange('month', parseInt(e.target.value))
+                      }
+                      options={nepaliMonths.map((month, index) => ({
+                        value: (index + 1).toString(),
+                        label: month,
+                      }))}
+                      className='w-full'
+                    />
+                  </div>
+                  <div>
+                    <Select
+                      value={endBsDate.day.toString()}
+                      onChange={e =>
+                        handleEndBsDateChange('day', parseInt(e.target.value))
+                      }
+                      options={Array.from({ length: 32 }, (_, i) => ({
+                        value: (i + 1).toString(),
+                        label: (i + 1).toString(),
+                      }))}
+                      className='w-full'
+                    />
+                  </div>
+                </div>
+                {form.endDate && (
+                  <p className='text-xs text-gray-500'>
+                    AD: {new Date(form.endDate).toLocaleDateString('en-US')}
+                  </p>
+                )}
               </div>
             )}
 
@@ -340,7 +641,7 @@ export default function EditEventModal({
               <div className='space-y-2'>
                 <Label className='flex items-center gap-2'>
                   <MapPin size={16} className='text-gray-500' />
-                  {form.type === 'exam' ? 'Exam Hall/Room' : 'Venue'}
+                  {form.type === 'exam' ? 'Exam Venue' : 'Venue'}
                 </Label>
                 <Input
                   value={form.venue}
@@ -349,7 +650,7 @@ export default function EditEventModal({
                   }
                   placeholder={
                     form.type === 'exam'
-                      ? 'e.g., Room 101, Main Hall'
+                      ? 'e.g., Room 101, Main Hall, Auditorium'
                       : 'e.g., Auditorium, Sports Ground'
                   }
                   className='w-full'
@@ -444,8 +745,8 @@ export default function EditEventModal({
                   onChange={e =>
                     setForm(f => ({ ...f, examDetails: e.target.value }))
                   }
-                  placeholder='e.g., Subject: Mathematics, Class: Grade 10, Duration: 3 hours, Total Marks: 100'
-                  rows={4}
+                  placeholder='e.g., Subject: Mathematics, Class: Grade 10, Duration: 3 hours, Total Marks: 100, Instructions: Bring calculator and ruler'
+                  rows={3}
                   className='w-full resize-none'
                 />
               </div>
@@ -473,17 +774,17 @@ export default function EditEventModal({
                 (!form.holidayType || form.holidayType === '')) ||
               (form.type === 'exam' && (!form.examType || form.examType === ''))
             }
-            className={`px-6 ${
+            className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
               config.color === 'red'
-                ? 'bg-red-600 hover:bg-red-700'
+                ? 'bg-red-600 hover:bg-red-700 shadow-lg hover:shadow-xl'
                 : config.color === 'purple'
-                  ? 'bg-purple-600 hover:bg-purple-700'
+                  ? 'bg-purple-600 hover:bg-purple-700 shadow-lg hover:shadow-xl'
                   : config.color === 'yellow'
-                    ? 'bg-yellow-600 hover:bg-yellow-700'
+                    ? 'bg-yellow-600 hover:bg-yellow-700 shadow-lg hover:shadow-xl'
                     : config.color === 'blue'
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-gray-600 hover:bg-gray-700'
-            } text-white`}
+                      ? 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl'
+                      : 'bg-gray-600 hover:bg-gray-700 shadow-lg hover:shadow-xl'
+            } text-white transform hover:scale-105`}
           >
             <Save size={16} className='mr-2' />
             {isLoading ? 'Saving...' : 'Save Changes'}

@@ -4,19 +4,11 @@ import Button from '@/components/atoms/form-controls/Button';
 import Input from '@/components/atoms/form-controls/Input';
 import { CalendarEvent } from '@/components/organisms/calendar/types/calendar.types';
 import { calendarService } from '@/api/services/calendar.service';
-import {
-  Edit,
-  Trash2,
-  X,
-  Search,
-  Calendar,
-  Clock,
-  MapPin,
-  FileText,
-} from 'lucide-react';
+import { Edit, Trash2, X, Search, Calendar } from 'lucide-react';
 import EditEventModal from './EditEventModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { toast } from 'sonner';
+import { ad2bs } from 'hamro-nepali-patro';
 
 interface ManageEventsModalProps {
   isOpen: boolean;
@@ -40,6 +32,40 @@ export default function ManageEventsModal({
     null,
   );
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Nepali month names
+  const nepaliMonths = [
+    'बैशाख',
+    'जेठ',
+    'असार',
+    'साउन',
+    'भदौ',
+    'असोज',
+    'कार्तिक',
+    'मंसिर',
+    'पुष',
+    'माघ',
+    'फागुन',
+    'चैत',
+  ];
+
+  // Convert AD date to BS format
+  const convertToBSDate = (adDateString: string) => {
+    try {
+      const adDate = new Date(adDateString);
+      const bsDate = ad2bs(
+        adDate.getFullYear(),
+        adDate.getMonth() + 1,
+        adDate.getDate(),
+      );
+      if (bsDate && typeof bsDate === 'object') {
+        return `${nepaliMonths[bsDate.month - 1]} ${bsDate.date}, ${bsDate.year}`;
+      }
+    } catch (error) {
+      console.error('Error converting date to BS:', error);
+    }
+    return adDateString;
+  };
 
   // Filter events based on search term
   const filteredEvents = events.filter(
@@ -92,14 +118,14 @@ export default function ManageEventsModal({
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-      <div className='bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm'>
+      <div className='bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden border border-gray-100'>
         {/* Header */}
         <div className='flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white'>
           <SectionTitle text='Manage Events' className='text-white' />
           <button
             onClick={onClose}
-            className='text-white hover:text-gray-200 text-xl p-1 rounded-full hover:bg-white/20 transition-colors'
+            className='text-white hover:text-gray-200 p-2 rounded-full hover:bg-white/20 transition-colors'
           >
             <X size={20} />
           </button>
@@ -114,7 +140,7 @@ export default function ManageEventsModal({
             />
             <Input
               type='text'
-              placeholder='Search events by name, description, or location...'
+              placeholder='Search events...'
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className='pl-10'
@@ -123,7 +149,7 @@ export default function ManageEventsModal({
         </div>
 
         {/* Content */}
-        <div className='flex-1 overflow-y-auto p-4 max-h-[60vh]'>
+        <div className='flex-1 overflow-y-auto p-4 max-h-[calc(85vh-200px)]'>
           {error && (
             <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700'>
               {error}
@@ -137,105 +163,69 @@ export default function ManageEventsModal({
                 : 'No events available.'}
             </div>
           ) : (
-            <div className='space-y-3'>
+            <div className='space-y-2'>
               {filteredEvents.map(event => (
                 <div
                   key={event.id}
-                  className='border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 bg-white'
+                  className='border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all duration-200 bg-white'
                 >
-                  <div className='flex items-start justify-between'>
-                    <div className='flex-1'>
-                      {/* Event Header */}
-                      <div className='flex items-center gap-2 mb-3'>
-                        <div
-                          className={`p-1.5 rounded-lg ${
-                            event.type === 'holiday'
-                              ? 'bg-red-100 text-red-600'
-                              : event.type === 'exam'
-                                ? 'bg-purple-100 text-purple-600'
-                                : event.type === 'meeting'
-                                  ? 'bg-blue-100 text-blue-600'
-                                  : 'bg-yellow-100 text-yellow-600'
-                          }`}
-                        >
-                          {event.type === 'holiday'
-                            ? '🎉'
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-3 flex-1'>
+                      {/* Event Icon */}
+                      <div
+                        className={`p-2 rounded-lg ${
+                          event.type === 'holiday'
+                            ? 'bg-red-100 text-red-600'
                             : event.type === 'exam'
-                              ? '📝'
+                              ? 'bg-purple-100 text-purple-600'
                               : event.type === 'meeting'
-                                ? '🤝'
-                                : '🎪'}
-                        </div>
-                        <div className='flex-1'>
-                          <h3 className='text-lg font-semibold text-gray-900'>
-                            {event.name}
-                          </h3>
-                          <p className='text-xs text-gray-500 capitalize'>
+                                ? 'bg-blue-100 text-blue-600'
+                                : 'bg-yellow-100 text-yellow-600'
+                        }`}
+                      >
+                        {event.type === 'holiday'
+                          ? '🎉'
+                          : event.type === 'exam'
+                            ? '📝'
+                            : event.type === 'meeting'
+                              ? '🤝'
+                              : '🎪'}
+                      </div>
+
+                      {/* Event Info */}
+                      <div className='flex-1 min-w-0'>
+                        <h3 className='text-base font-semibold text-gray-900 truncate'>
+                          {event.name}
+                        </h3>
+                        <div className='flex items-center gap-4 mt-1'>
+                          <span className='text-xs text-gray-500 capitalize bg-gray-100 px-2 py-1 rounded-full'>
                             {event.type || 'event'}
-                          </p>
-                        </div>
-                        <div
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            event.status === 'active'
-                              ? 'bg-green-100 text-green-700'
-                              : event.status === 'inactive'
-                                ? 'bg-gray-100 text-gray-700'
-                                : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {event.status || 'active'}
-                        </div>
-                      </div>
-
-                      {/* Event Details */}
-                      <div className='grid grid-cols-1 md:grid-cols-3 gap-3 mb-3'>
-                        <div className='flex items-center gap-1.5 text-gray-600'>
-                          <Calendar size={14} className='text-gray-400' />
-                          <span className='text-xs'>
-                            {event.date}
-                            {event.endDate &&
-                              event.endDate !== event.date &&
-                              ` - ${event.endDate}`}
                           </span>
+                          <div className='flex items-center gap-1 text-xs text-gray-600'>
+                            <Calendar size={12} className='text-gray-400' />
+                            <span>
+                              {convertToBSDate(event.date)}
+                              {event.endDate &&
+                                event.endDate !== event.date &&
+                                ` - ${convertToBSDate(event.endDate)}`}
+                            </span>
+                          </div>
                         </div>
-
-                        {event.time && (
-                          <div className='flex items-center gap-1.5 text-gray-600'>
-                            <Clock size={14} className='text-gray-400' />
-                            <span className='text-xs'>{event.time}</span>
-                          </div>
-                        )}
-
-                        {event.location && (
-                          <div className='flex items-center gap-1.5 text-gray-600'>
-                            <MapPin size={14} className='text-gray-400' />
-                            <span className='text-xs'>{event.location}</span>
-                          </div>
-                        )}
                       </div>
-
-                      {/* Description */}
-                      {event.description && (
-                        <div className='mb-3 p-2 bg-gray-50 rounded-lg'>
-                          <p className='text-xs text-gray-700 line-clamp-2'>
-                            {event.description}
-                          </p>
-                        </div>
-                      )}
                     </div>
 
                     {/* Action Buttons */}
-                    <div className='flex gap-1 ml-3'>
+                    <div className='flex gap-1 ml-4'>
                       <button
                         onClick={() => handleEdit(event)}
-                        className='p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors'
+                        className='p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                         title='Edit Event'
                       >
                         <Edit size={16} />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(event)}
-                        className='p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors'
+                        className='p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors'
                         disabled={isLoading}
                         title='Delete Event'
                       >
@@ -250,15 +240,12 @@ export default function ManageEventsModal({
         </div>
 
         {/* Footer */}
-        <div className='px-4 py-3 border-t bg-gray-50'>
+        <div className='px-6 py-4 border-t bg-gray-50'>
           <div className='flex justify-between items-center'>
             <p className='text-sm text-gray-600'>
               {filteredEvents.length} event
               {filteredEvents.length !== 1 ? 's' : ''} found
             </p>
-            <Button onClick={onClose} variant='secondary'>
-              Close
-            </Button>
           </div>
         </div>
       </div>

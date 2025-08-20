@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
 import UpcomingCalendarEvents from './components/UpcomingCalendarEvents';
 import UpcomingExams from './components/UpcomingExams';
+
 import ChartCard from '@/components/atoms/display/ChartCard';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
@@ -13,6 +14,12 @@ import { ad2bs, bs2ad } from 'hamro-nepali-patro';
 import AddEventModal from './components/AddEventModal';
 import { useCalendarEvents } from './hooks/useCalendarEvents';
 import { AcademicCalendarProps } from './types/calendar.types';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // Custom BS Calendar Component with Nepali Dates
 const CustomBSCalendar = ({
@@ -360,73 +367,196 @@ const CustomBSCalendar = ({
             const isSaturday = adDate.getDay() === 6;
 
             return (
-              <button
-                key={index}
-                onClick={() => handleDateSelect(adDateString)}
-                className={`
-                  h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden
-                  ${
-                    isSelected
-                      ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-300'
-                      : isSaturday
-                        ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
-                        : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
-                  }
-                `}
-              >
-                <div className='flex flex-col h-full relative'>
-                  {/* Day Number and Status */}
-                  <div className='flex-shrink-0 text-center py-1'>
-                    <div className='flex flex-col items-center'>
-                      <span
-                        className={`text-sm font-bold ${
-                          isTodayDate
-                            ? 'bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto'
-                            : isSelected || isSaturday
-                              ? 'text-white'
-                              : 'text-gray-900'
-                        }`}
-                      >
-                        {bsDay}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Event Badges */}
-                  {hasEvents && (
-                    <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
-                      {dayEvents.slice(0, 2).map((event, eventIndex) => {
-                        const eventType =
-                          (event as any).type?.toLowerCase() || 'event';
-                        let badgeColor = 'bg-gray-500 text-white';
-
-                        if (eventType === 'holiday') {
-                          badgeColor = 'bg-red-500 text-white';
-                        } else if (eventType === 'exam') {
-                          badgeColor = 'bg-purple-500 text-white';
-                        } else if (eventType === 'event') {
-                          badgeColor = 'bg-yellow-600 text-white';
+              <TooltipProvider key={index}>
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <button
+                      className={`
+                        h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden
+                        ${
+                          isSaturday
+                            ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
+                            : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
                         }
-
-                        return (
-                          <div
-                            key={`${event.id}-${eventIndex}`}
-                            className={`text-[10px] px-1 py-0.5 rounded-full font-medium ${badgeColor}`}
-                            title={`${(event as any).title || 'Event'}`}
-                          >
-                            {truncateTitle((event as any).title || 'Event')}
+                      `}
+                    >
+                      <div className='flex flex-col h-full relative'>
+                        {/* Day Number and Status */}
+                        <div className='flex-shrink-0 text-center py-1'>
+                          <div className='flex flex-col items-center'>
+                            <span
+                              className={`text-sm font-bold ${
+                                isTodayDate
+                                  ? 'bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto'
+                                  : isSaturday
+                                    ? 'text-white'
+                                    : 'text-gray-900'
+                              }`}
+                            >
+                              {bsDay}
+                            </span>
                           </div>
-                        );
-                      })}
-                      {dayEvents.length > 2 && (
-                        <div className='text-xs text-gray-500 px-1'>
-                          +{dayEvents.length - 2}
                         </div>
+
+                        {/* Event Badges */}
+                        {hasEvents && (
+                          <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
+                            {dayEvents.slice(0, 2).map((event, eventIndex) => {
+                              const eventType =
+                                (event as any).type?.toLowerCase() || 'event';
+                              let badgeColor = 'bg-blue-500 text-white';
+                              let dotColor = 'bg-blue-600';
+
+                              if (eventType === 'holiday') {
+                                badgeColor = 'bg-red-500 text-white';
+                                dotColor = 'bg-red-600';
+                              } else if (eventType === 'exam') {
+                                badgeColor = 'bg-purple-500 text-white';
+                                dotColor = 'bg-purple-600';
+                              } else if (eventType === 'event') {
+                                badgeColor = 'bg-blue-500 text-white';
+                                dotColor = 'bg-blue-600';
+                              }
+
+                              return (
+                                <div
+                                  key={`${event.id}-${eventIndex}`}
+                                  className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
+                                ></div>
+                              );
+                            })}
+                            {dayEvents.length > 2 && (
+                              <div className='text-xs text-gray-500 px-1'>
+                                +{dayEvents.length - 2}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className='max-w-sm bg-white border border-gray-200 shadow-lg'>
+                    <div className='p-2'>
+                      <div className='font-semibold text-sm text-gray-900 mb-1'>
+                        {(() => {
+                          try {
+                            const currentBS = ad2bs(
+                              adDate.getFullYear(),
+                              adDate.getMonth() + 1,
+                              adDate.getDate(),
+                            );
+                            return `${nepaliWeekdays[adDate.getDay()]}, ${nepaliMonths[currentBS.month - 1]} ${currentBS.date}, ${currentBS.year}`;
+                          } catch (error) {
+                            return adDate.toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            });
+                          }
+                        })()}
+                      </div>
+                      {hasEvents ? (
+                        <div className='space-y-1'>
+                          {dayEvents.map((event, eventIndex) => {
+                            const eventType =
+                              (event as any).type?.toLowerCase() || 'event';
+                            let borderColor = 'border-blue-500';
+                            let icon = '📅';
+
+                            if (eventType === 'holiday') {
+                              borderColor = 'border-red-500';
+                              icon = '🎉';
+                            } else if (eventType === 'exam') {
+                              borderColor = 'border-purple-500';
+                              icon = '📝';
+                            }
+
+                            return (
+                              <div
+                                key={eventIndex}
+                                className={`text-xs border-l-2 ${borderColor} pl-2`}
+                              >
+                                <div className='font-medium text-gray-900 flex items-center gap-1'>
+                                  <span>{icon}</span>
+                                  <span>
+                                    {(event as any).title ||
+                                      (event as any).name ||
+                                      'Untitled Event'}
+                                  </span>
+                                </div>
+
+                                {/* Holiday-specific details */}
+                                {eventType === 'holiday' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-red-600 font-medium'>
+                                      Holiday
+                                    </div>
+                                    {(event as any).description && (
+                                      <div className='text-gray-500 text-xs mt-1'>
+                                        {(event as any).description}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Exam-specific details */}
+                                {eventType === 'exam' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-purple-600 font-medium'>
+                                      Exam
+                                    </div>
+                                    {(event as any).subject && (
+                                      <div className='text-gray-500 text-xs'>
+                                        📚 {(event as any).subject}
+                                      </div>
+                                    )}
+                                    {(event as any).duration && (
+                                      <div className='text-gray-500 text-xs'>
+                                        ⏱️ {(event as any).duration}
+                                      </div>
+                                    )}
+                                    {(event as any).location &&
+                                      (event as any).location !==
+                                        'No location' && (
+                                        <div className='text-gray-500 text-xs'>
+                                          📍 {(event as any).location}
+                                        </div>
+                                      )}
+                                  </div>
+                                )}
+
+                                {/* Regular event details */}
+                                {eventType === 'event' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-blue-600 font-medium'>
+                                      Event
+                                    </div>
+                                    {(event as any).location &&
+                                      (event as any).location !==
+                                        'No location' && (
+                                        <div className='text-gray-500 text-xs'>
+                                          📍 {(event as any).location}
+                                        </div>
+                                      )}
+                                    {(event as any).description && (
+                                      <div className='text-gray-500 text-xs mt-1'>
+                                        {(event as any).description}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className='text-xs text-gray-500'>No events</p>
                       )}
                     </div>
-                  )}
-                </div>
-              </button>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           })}
         </div>
@@ -680,73 +810,179 @@ const CustomADCalendar = ({
             const isSaturday = currentDayDate.getDay() === 6;
 
             return (
-              <button
-                key={index}
-                onClick={() => handleDateSelect(day)}
-                className={`
-                  h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden
-                  ${
-                    isSelected
-                      ? 'bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-teal-300'
-                      : isSaturday
-                        ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
-                        : 'bg-white hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50 text-gray-700 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300'
-                  }
-                `}
-              >
-                <div className='flex flex-col h-full relative'>
-                  {/* Day Number and Status */}
-                  <div className='flex-shrink-0 text-center py-1'>
-                    <div className='flex flex-col items-center'>
-                      <span
-                        className={`text-sm font-bold ${
-                          isTodayDate
-                            ? 'bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto'
-                            : isSelected || isSaturday
-                              ? 'text-white'
-                              : 'text-gray-900'
-                        }`}
-                      >
-                        {day}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Event Badges */}
-                  {hasEvents && (
-                    <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
-                      {dayEvents.slice(0, 2).map((event, eventIndex) => {
-                        const eventType =
-                          (event as any).type?.toLowerCase() || 'event';
-                        let badgeColor = 'bg-gray-500 text-white';
-
-                        if (eventType === 'holiday') {
-                          badgeColor = 'bg-red-500 text-white';
-                        } else if (eventType === 'exam') {
-                          badgeColor = 'bg-purple-500 text-white';
-                        } else if (eventType === 'event') {
-                          badgeColor = 'bg-yellow-600 text-white';
+              <TooltipProvider key={index}>
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <button
+                      className={`
+                        h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden
+                        ${
+                          isSaturday
+                            ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
+                            : 'bg-white hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50 text-gray-700 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300'
                         }
-
-                        return (
-                          <div
-                            key={`${event.id}-${eventIndex}`}
-                            className={`text-[10px] px-1 py-0.5 rounded-full font-medium ${badgeColor}`}
-                            title={`${event.title} - ${event.time} - ${event.location || 'No location'}`}
-                          >
-                            {truncateTitle(event.title)}
+                      `}
+                    >
+                      <div className='flex flex-col h-full relative'>
+                        {/* Day Number and Status */}
+                        <div className='flex-shrink-0 text-center py-1'>
+                          <div className='flex flex-col items-center'>
+                            <span
+                              className={`text-sm font-bold ${
+                                isTodayDate
+                                  ? 'bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto'
+                                  : isSelected || isSaturday
+                                    ? 'text-white'
+                                    : 'text-gray-900'
+                              }`}
+                            >
+                              {day}
+                            </span>
                           </div>
-                        );
-                      })}
-                      {dayEvents.length > 2 && (
-                        <div className='text-xs text-gray-500 px-1'>
-                          +{dayEvents.length - 2}
                         </div>
+
+                        {/* Event Badges */}
+                        {hasEvents && (
+                          <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
+                            {dayEvents.slice(0, 2).map((event, eventIndex) => {
+                              const eventType =
+                                (event as any).type?.toLowerCase() || 'event';
+                              let badgeColor = 'bg-blue-500 text-white';
+                              let dotColor = 'bg-blue-600';
+
+                              if (eventType === 'holiday') {
+                                badgeColor = 'bg-red-500 text-white';
+                                dotColor = 'bg-red-600';
+                              } else if (eventType === 'exam') {
+                                badgeColor = 'bg-purple-500 text-white';
+                                dotColor = 'bg-purple-600';
+                              } else if (eventType === 'event') {
+                                badgeColor = 'bg-blue-500 text-white';
+                                dotColor = 'bg-blue-600';
+                              }
+
+                              return (
+                                <div
+                                  key={`${event.id}-${eventIndex}`}
+                                  className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
+                                ></div>
+                              );
+                            })}
+                            {dayEvents.length > 2 && (
+                              <div className='text-xs text-gray-500 px-1'>
+                                +{dayEvents.length - 2}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className='max-w-sm bg-white border border-gray-200 shadow-lg'>
+                    <div className='p-2'>
+                      <div className='font-semibold text-sm text-gray-900 mb-1'>
+                        {currentDayDate.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </div>
+                      {hasEvents ? (
+                        <div className='space-y-1'>
+                          {dayEvents.map((event, eventIndex) => {
+                            const eventType =
+                              (event as any).type?.toLowerCase() || 'event';
+                            let borderColor = 'border-blue-500';
+                            let icon = '📅';
+
+                            if (eventType === 'holiday') {
+                              borderColor = 'border-red-500';
+                              icon = '🎉';
+                            } else if (eventType === 'exam') {
+                              borderColor = 'border-purple-500';
+                              icon = '📝';
+                            }
+
+                            return (
+                              <div
+                                key={eventIndex}
+                                className={`text-xs border-l-2 ${borderColor} pl-2`}
+                              >
+                                <div className='font-medium text-gray-900 flex items-center gap-1'>
+                                  <span>{icon}</span>
+                                  <span>{event.title}</span>
+                                </div>
+
+                                {/* Holiday-specific details */}
+                                {eventType === 'holiday' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-red-600 font-medium'>
+                                      Holiday
+                                    </div>
+                                    {(event as any).description && (
+                                      <div className='text-gray-500 text-xs mt-1'>
+                                        {(event as any).description}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Exam-specific details */}
+                                {eventType === 'exam' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-purple-600 font-medium'>
+                                      Exam
+                                    </div>
+                                    {(event as any).subject && (
+                                      <div className='text-gray-500 text-xs'>
+                                        📚 {(event as any).subject}
+                                      </div>
+                                    )}
+                                    {(event as any).duration && (
+                                      <div className='text-gray-500 text-xs'>
+                                        ⏱️ {(event as any).duration}
+                                      </div>
+                                    )}
+                                    {event.location &&
+                                      event.location !== 'No location' && (
+                                        <div className='text-gray-500 text-xs'>
+                                          📍 {event.location}
+                                        </div>
+                                      )}
+                                  </div>
+                                )}
+
+                                {/* Regular event details */}
+                                {eventType === 'event' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-blue-600 font-medium'>
+                                      Event
+                                    </div>
+                                    {event.location &&
+                                      event.location !== 'No location' && (
+                                        <div className='text-gray-500 text-xs'>
+                                          📍 {event.location}
+                                        </div>
+                                      )}
+                                    {(event as any).description && (
+                                      <div className='text-gray-500 text-xs mt-1'>
+                                        {(event as any).description}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className='text-xs text-gray-500'>No events</p>
                       )}
                     </div>
-                  )}
-                </div>
-              </button>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           })}
         </div>
@@ -933,9 +1169,6 @@ export default function AcademicCalendar({
                 showRefresh={true}
                 onRefresh={handleRefresh}
                 externalRefreshing={isRefreshing}
-                onExamClick={exam => {
-                  // TODO: Add exam click handler (open exam details modal)
-                }}
               />
 
               {/* Upcoming Events */}
@@ -964,9 +1197,6 @@ export default function AcademicCalendar({
                   showRefresh={true}
                   onRefresh={handleRefresh}
                   externalRefreshing={isRefreshing}
-                  onEventClick={event => {
-                    // TODO: Add event click handler (open event details modal)
-                  }}
                 />
               </div>
             </div>
