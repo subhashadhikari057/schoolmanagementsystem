@@ -25,6 +25,7 @@ import { RoomModule } from './modules/room/room.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { AssignmentModule } from './modules/assignment/assignment.module';
 import { ParentModule } from './modules/parent/parent.module';
+import { ScheduleModule } from './modules/schedule/schedule.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ParentModule } from './modules/parent/parent.module';
     FileModule,
     CalendarModule,
     AssignmentModule,
+    ScheduleModule,
   ],
 })
 export class AppModule implements NestModule {

@@ -39,6 +39,10 @@ export * from "./parent/parent.dto";
 export * from "./academic/assignment.dto";
 export * from "./academic/submission.dto";
 
+// Schedule Module DTOs
+export * from "./schedule/timeslot.dto";
+export * from "./schedule/schedule.dto";
+
 // Attendance Module DTOs
 export * from "./attendance/attendance.dto";
 export * from "./attendance/leave-request.dto";

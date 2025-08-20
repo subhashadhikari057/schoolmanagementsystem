@@ -11,7 +11,6 @@ import {
   BookOpen,
   AlertCircle,
   Loader2,
-  Calendar,
   Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,10 +19,8 @@ import { isDevMockEnabled } from '@/utils';
 import ClassFormModal from '@/components/organisms/modals/ClassFormModal';
 import ClassEditModal from '@/components/organisms/modals/ClassEditModal';
 import ClassDeleteModal from '@/components/organisms/modals/ClassDeleteModal';
-import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
 import ClassSearchFilter from '@/components/molecules/filters/ClassSearchFilter';
 import ClassViewModal from '@/components/organisms/modals/ClassViewModal';
-import ClassTimeTable from '@/components/organisms/tabs/ClassTimeTable';
 import SimpleTabs from '@/components/molecules/navigation/SimpleTabs';
 
 // Define the Class type for the component
@@ -550,11 +547,6 @@ const ClassesPage = () => {
       icon: <School className='h-4 w-4 mr-2' />,
     },
     {
-      id: 'timetable',
-      label: 'Timetable',
-      icon: <Calendar className='h-4 w-4 mr-2' />,
-    },
-    {
       id: 'schedule-builder',
       label: 'Schedule Builder',
       icon: <Clock className='h-4 w-4 mr-2' />,
@@ -692,31 +684,20 @@ const ClassesPage = () => {
           )}
 
           {activeTab === 1 && (
-            <div className='bg-white p-4 rounded-lg shadow'>
-              <ClassTimeTable />
-            </div>
-          )}
-
-          {activeTab === 2 && (
-            <div className='bg-white p-4 rounded-lg shadow'>
-              <h2 className='text-lg font-semibold text-gray-800 mb-4'>
-                Schedule Builder
-              </h2>
-              <p className='text-gray-600'>
-                Create and manage class schedules with our intuitive schedule
-                builder tool.
-              </p>
-              {/* Schedule Builder content will go here */}
-              <div className='flex justify-center items-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 mt-4'>
-                <div className='text-center'>
-                  <Clock className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-                  <p className='text-gray-600 font-medium'>Schedule Builder</p>
-                  <p className='text-gray-500 text-sm mt-2'>
-                    Create and manage class schedules
-                  </p>
-                  <button className='mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'>
-                    Create New Schedule
-                  </button>
+            <div>
+              {/* Integrated Schedule Builder */}
+              <div className='bg-white rounded-lg shadow'>
+                <div className='p-0'>
+                  {/* We're using the custom schedule builder component */}
+                  <div className='w-full'>
+                    {/* Using dynamic import to avoid server-side rendering issues with Zustand store */}
+                    {(() => {
+                      const {
+                        ScheduleBuilder,
+                      } = require('@/components/schedule');
+                      return <ScheduleBuilder />;
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>
