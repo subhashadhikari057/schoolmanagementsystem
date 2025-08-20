@@ -6,7 +6,7 @@
  * =============================================================================
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Standard API success response
@@ -14,16 +14,16 @@ import { z } from 'zod';
 export interface ApiSuccessResponseDto<T = any> {
   /** Whether the request was successful */
   success: true;
-  
+
   /** Response data */
   data: T;
-  
+
   /** Optional success message */
   message?: string;
-  
+
   /** HTTP status code */
   statusCode: number;
-  
+
   /** Request trace ID for debugging */
   traceId?: string;
 }
@@ -34,22 +34,22 @@ export interface ApiSuccessResponseDto<T = any> {
 export interface ApiErrorResponseDto {
   /** Whether the request was successful */
   success: false;
-  
+
   /** HTTP status code */
   statusCode: number;
-  
+
   /** Error type */
   error: string;
-  
+
   /** Human-readable error message */
   message: string;
-  
+
   /** Machine-readable error code */
   code?: string;
-  
+
   /** Request trace ID */
   traceId?: string;
-  
+
   /** Validation errors (if applicable) */
   errors?: Record<string, string[]>;
 }
@@ -57,7 +57,9 @@ export interface ApiErrorResponseDto {
 /**
  * Union type for all API responses
  */
-export type ApiResponseDto<T = any> = ApiSuccessResponseDto<T> | ApiErrorResponseDto;
+export type ApiResponseDto<T = any> =
+  | ApiSuccessResponseDto<T>
+  | ApiErrorResponseDto;
 
 /**
  * Zod schema for success response
@@ -98,15 +100,15 @@ export function createSuccessResponse<T>(
     data,
     statusCode,
   };
-  
+
   if (message !== undefined) {
     response.message = message;
   }
-  
+
   if (traceId !== undefined) {
     response.traceId = traceId;
   }
-  
+
   return response;
 }
 
@@ -127,18 +129,18 @@ export function createErrorResponse(
     error,
     message,
   };
-  
+
   if (code !== undefined) {
     response.code = code;
   }
-  
+
   if (traceId !== undefined) {
     response.traceId = traceId;
   }
-  
+
   if (errors !== undefined) {
     response.errors = errors;
   }
-  
+
   return response;
 }

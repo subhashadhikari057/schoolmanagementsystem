@@ -7,8 +7,8 @@
  * =============================================================================
  */
 
-import { z } from 'zod';
-import { BaseEntity, CommonValidation, UuidSchema } from '../common/base.dto';
+import { z } from "zod";
+import { BaseEntity, CommonValidation, UuidSchema } from "../common/base.dto";
 
 /**
  * Teacher profile information
@@ -101,10 +101,12 @@ export interface AssignSubjectsRequestDto {
  * Zod schemas for validation
  */
 export const TeacherProfileSchema = z.object({
-  qualification: z.string().min(1, 'Qualification is required'),
+  qualification: z.string().min(1, "Qualification is required"),
   designation: z.string().optional(),
   experience_years: z.number().int().min(0).max(50).optional(),
-  date_of_joining: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  date_of_joining: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
   bio: z.string().max(1000).optional(),
 });
 
@@ -127,20 +129,28 @@ export const UpdateTeacherRequestSchema = z.object({
 });
 
 export const AssignSubjectsRequestSchema = z.object({
-  subject_ids: z.array(UuidSchema).min(1, 'At least one subject ID is required'),
+  subject_ids: z
+    .array(UuidSchema)
+    .min(1, "At least one subject ID is required"),
 });
 
 export const SubjectSummarySchema = z.object({
   id: UuidSchema,
-  name: z.string().min(1, 'Subject name is required'),
-  code: z.string().min(1, 'Subject code is required'),
+  name: z.string().min(1, "Subject name is required"),
+  code: z.string().min(1, "Subject code is required"),
   class_ids: z.array(UuidSchema).optional(),
 });
 
 /**
  * Type inference from Zod schemas
  */
-export type CreateTeacherRequestType = z.infer<typeof CreateTeacherRequestSchema>;
-export type UpdateTeacherRequestType = z.infer<typeof UpdateTeacherRequestSchema>;
-export type AssignSubjectsRequestType = z.infer<typeof AssignSubjectsRequestSchema>;
+export type CreateTeacherRequestType = z.infer<
+  typeof CreateTeacherRequestSchema
+>;
+export type UpdateTeacherRequestType = z.infer<
+  typeof UpdateTeacherRequestSchema
+>;
+export type AssignSubjectsRequestType = z.infer<
+  typeof AssignSubjectsRequestSchema
+>;
 export type SubjectSummaryType = z.infer<typeof SubjectSummarySchema>;

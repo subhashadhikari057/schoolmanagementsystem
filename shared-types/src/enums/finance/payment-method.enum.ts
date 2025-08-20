@@ -13,28 +13,28 @@
  */
 export enum PaymentMethod {
   /** Cash payment */
-  CASH = 'cash',
-  
+  CASH = "cash",
+
   /** Credit card payment */
-  CREDIT_CARD = 'credit_card',
-  
+  CREDIT_CARD = "credit_card",
+
   /** Debit card payment */
-  DEBIT_CARD = 'debit_card',
-  
+  DEBIT_CARD = "debit_card",
+
   /** Bank transfer */
-  BANK_TRANSFER = 'bank_transfer',
-  
+  BANK_TRANSFER = "bank_transfer",
+
   /** eSewa digital wallet (Nepal) */
-  ESEWA = 'esewa',
-  
+  ESEWA = "esewa",
+
   /** Khalti digital wallet (Nepal) */
-  KHALTI = 'khalti',
-  
+  KHALTI = "khalti",
+
   /** FonePay digital wallet (Nepal) */
-  FONEPAY = 'fonepay',
-  
+  FONEPAY = "fonepay",
+
   /** Cheque payment */
-  CHEQUE = 'cheque',
+  CHEQUE = "cheque",
 }
 
 /**
@@ -92,15 +92,15 @@ export function isOfflinePaymentMethod(method: PaymentMethod): boolean {
  */
 export function getPaymentMethodDisplayName(method: PaymentMethod): string {
   const displayNames: Record<PaymentMethod, string> = {
-    [PaymentMethod.CASH]: 'Cash',
-    [PaymentMethod.CREDIT_CARD]: 'Credit Card',
-    [PaymentMethod.DEBIT_CARD]: 'Debit Card',
-    [PaymentMethod.BANK_TRANSFER]: 'Bank Transfer',
-    [PaymentMethod.ESEWA]: 'eSewa',
-    [PaymentMethod.KHALTI]: 'Khalti',
-    [PaymentMethod.FONEPAY]: 'FonePay',
-    [PaymentMethod.CHEQUE]: 'Cheque',
+    [PaymentMethod.CASH]: "Cash",
+    [PaymentMethod.CREDIT_CARD]: "Credit Card",
+    [PaymentMethod.DEBIT_CARD]: "Debit Card",
+    [PaymentMethod.BANK_TRANSFER]: "Bank Transfer",
+    [PaymentMethod.ESEWA]: "eSewa",
+    [PaymentMethod.KHALTI]: "Khalti",
+    [PaymentMethod.FONEPAY]: "FonePay",
+    [PaymentMethod.CHEQUE]: "Cheque",
   };
-  
+
   return displayNames[method];
 }

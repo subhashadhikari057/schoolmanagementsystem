@@ -3,16 +3,16 @@
  * DTOs for audit log operations and queries
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Schema for creating an audit log entry
  */
 export const CreateAuditLogSchema = z.object({
   userId: z.string().optional(),
-  action: z.string().min(1, 'Action is required'),
+  action: z.string().min(1, "Action is required"),
   module: z.string().optional(),
-  status: z.string().default('SUCCESS'),
+  status: z.string().default("SUCCESS"),
   details: z.record(z.any()).optional(),
   ipAddress: z.string().optional(),
   userAgent: z.string().optional(),
@@ -44,8 +44,8 @@ export const AuditLogQuerySchema = z.object({
   resourceType: z.string().optional(),
   page: z.number().min(1).default(1),
   limit: z.number().min(1).max(100).default(20),
-  sortBy: z.string().default('timestamp'),
-  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  sortBy: z.string().default("timestamp"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 
 /**
@@ -82,14 +82,18 @@ export const AuditStatsSchema = z.object({
   failureCount: z.number(),
   errorCount: z.number(),
   uniqueUsers: z.number(),
-  topActions: z.array(z.object({
-    action: z.string(),
-    count: z.number(),
-  })),
-  topModules: z.array(z.object({
-    module: z.string(),
-    count: z.number(),
-  })),
+  topActions: z.array(
+    z.object({
+      action: z.string(),
+      count: z.number(),
+    }),
+  ),
+  topModules: z.array(
+    z.object({
+      module: z.string(),
+      count: z.number(),
+    }),
+  ),
   timeRange: z.object({
     startDate: z.string().datetime(),
     endDate: z.string().datetime(),

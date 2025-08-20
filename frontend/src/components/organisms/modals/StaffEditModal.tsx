@@ -1,622 +1,1011 @@
-/**
- * =============================================================================
- * Staff Edit Modal Component
- * =============================================================================
- * Modal for editing staff member information with form validation
- * =============================================================================
- */
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  X,
-  Save,
-  User,
-  Briefcase,
-  DollarSign,
-  MapPin,
-  Phone,
-  Mail,
-  Landmark,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { StaffMember } from '@/components/templates/StaffColumns';
+import React, { useEffect, useState } from 'react';
+import { X, Loader2, Save } from 'lucide-react';
+import { Staff } from '@/components/templates/listConfigurations';
 import { staffService } from '@/api/services/staff.service';
+import { toast } from 'sonner';
+
+// Use local components instead of importing from molecules/forms
 
 interface StaffEditModalProps {
-  staff: StaffMember | null;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (updatedStaff: Record<string, unknown>) => void;
+  staff: Staff | null;
 }
 
-interface EditStaffFormData {
-  // User data
-  fullName: string;
-  email: string;
-  phone: string;
+// Local Input (label + input)
+const LabeledInput: React.FC<{
+  label: string;
+  name: string;
+  type?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  required?: boolean;
+  icon?: React.ReactNode;
+  onBlur?: () => void;
+  disabled?: boolean;
+}> = ({
+  label,
+  name,
+  type = 'text',
+  value,
+  onChange,
+  placeholder,
+  required,
+  icon,
+  onBlur,
+  disabled,
+}) => {
+  return (
+    <div>
+      <label
+        htmlFor={name}
+        className='block text-sm font-medium text-gray-700 mb-1'
+      >
+        {label}
+        {required && <span className='text-red-500 ml-1'>*</span>}
+      </label>
+      <div className='relative rounded-md shadow-sm'>
+        {icon && (
+          <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+            {icon}
+          </div>
+        )}
+        <input
+          type={type}
+          name={name}
+          id={name}
+          className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+            icon ? 'pl-10' : 'pl-3'
+          } ${disabled ? 'bg-gray-100 text-gray-500' : ''}`}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          required={required}
+          disabled={disabled}
+        />
+      </div>
+    </div>
+  );
+};
 
-  // Profile data
-  designation: string;
-  department: string;
-  basicSalary: string;
-  employmentStatus: string;
-  experienceYears: string;
-  bio: string;
+// Local Select (label + select)
+const LabeledSelect: React.FC<{
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+}> = ({
+  label,
+  name,
+  value,
+  onChange,
+  options,
+  placeholder = 'Select...',
+  required,
+  disabled,
+}) => {
+  return (
+    <div>
+      <label
+        htmlFor={name}
+        className='block text-sm font-medium text-gray-700 mb-1'
+      >
+        {label}
+        {required && <span className='text-red-500 ml-1'>*</span>}
+      </label>
+      <select
+        id={name}
+        name={name}
+        className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+          disabled ? 'bg-gray-100 text-gray-500' : ''
+        }`}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+      >
+        <option value=''>{placeholder}</option>
+        {options.map(option => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
 
-  // Address
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
+// Local Checkbox component
+const LabeledCheckbox: React.FC<{
+  label: string;
+  name: string;
+  checked: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+}> = ({ label, name, checked, onChange, disabled }) => {
+  return (
+    <div className='flex items-center'>
+      <input
+        id={name}
+        name={name}
+        type='checkbox'
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+        className='h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+      />
+      <label htmlFor={name} className='ml-2 block text-sm text-gray-700'>
+        {label}
+      </label>
+    </div>
+  );
+};
 
-  // Bank details
-  bankName: string;
-  bankAccountNumber: string;
-  bankBranch: string;
-  panNumber: string;
-  citizenshipNumber: string;
-}
+// Local FileUpload component
+const FileUploadField: React.FC<{
+  label: string;
+  onChange: (file: File | null) => void;
+  accept?: string;
+}> = ({ label, onChange, accept }) => {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = React.useState<string>('');
 
-const DEPARTMENT_OPTIONS = [
-  'administration',
-  'finance',
-  'hr',
-  'maintenance',
-  'security',
-  'library',
-  'canteen',
-  'transport',
-  'it_support',
-  'academic_support',
-];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setFileName(file?.name || '');
+    onChange(file);
+  };
 
-const DESIGNATION_OPTIONS = [
-  'Administrative Officer',
-  'Finance Manager',
-  'HR Manager',
-  'Accountant',
-  'Librarian',
-  'Lab Assistant',
-  'Security Guard',
-  'Maintenance Staff',
-  'Canteen Manager',
-  'Transport Coordinator',
-  'IT Support',
-  'Academic Coordinator',
-];
-
-const EMPLOYMENT_STATUS_OPTIONS = [
-  'active',
-  'on_leave',
-  'resigned',
-  'terminated',
-];
+  return (
+    <div>
+      <label className='block text-sm font-medium text-gray-700 mb-1'>
+        {label}
+      </label>
+      <div className='mt-1 flex items-center'>
+        <input
+          type='file'
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept={accept}
+          className='sr-only'
+        />
+        <button
+          type='button'
+          onClick={() => fileInputRef.current?.click()}
+          className='inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+        >
+          Choose File
+        </button>
+        <span className='ml-3 text-sm text-gray-500'>
+          {fileName || 'No file selected'}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 const StaffEditModal: React.FC<StaffEditModalProps> = ({
-  staff,
   isOpen,
   onClose,
   onSuccess,
+  staff,
 }) => {
-  const [formData, setFormData] = useState<EditStaffFormData>({
-    fullName: '',
+  // Form state
+  const [formData, setFormData] = useState({
+    firstName: '',
+    middleName: '',
+    lastName: '',
     email: '',
     phone: '',
     designation: '',
     department: '',
-    basicSalary: '',
-    employmentStatus: 'active',
+    qualification: '',
     experienceYears: '',
-    bio: '',
+    joiningDate: '',
+    employmentDate: '',
+    status: 'Active',
+    gender: '',
+    bloodGroup: '',
+    maritalStatus: '',
+    address: '',
     street: '',
     city: '',
     state: '',
-    zipCode: '',
-    country: '',
+    pinCode: '',
     bankName: '',
     bankAccountNumber: '',
     bankBranch: '',
     panNumber: '',
     citizenshipNumber: '',
+    basicSalary: '',
+    allowances: '',
+    totalSalary: '',
+    employeeId: '',
+    hasLoginAccount: false,
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
 
-  // Populate form when staff data is available
+  // Options for dropdown selects
+  const departmentOptions = [
+    { value: 'administration', label: 'Administration' },
+    { value: 'finance', label: 'Finance' },
+    { value: 'hr', label: 'HR' },
+    { value: 'maintenance', label: 'Maintenance' },
+    { value: 'security', label: 'Security' },
+    { value: 'library', label: 'Library' },
+    { value: 'canteen', label: 'Canteen' },
+    { value: 'transport', label: 'Transport' },
+    { value: 'it_support', label: 'IT Support' },
+  ];
+
+  const designationOptions = [
+    { value: 'office-manager', label: 'Office Manager' },
+    { value: 'accountant', label: 'Accountant' },
+    { value: 'receptionist', label: 'Receptionist' },
+    { value: 'security-officer', label: 'Security Officer' },
+    { value: 'it-support', label: 'IT Support' },
+    { value: 'librarian', label: 'Librarian' },
+    { value: 'canteen-staff', label: 'Canteen Staff' },
+    { value: 'driver', label: 'Driver' },
+  ];
+
+  const statusOptions = [
+    { value: 'Active', label: 'Active' },
+    { value: 'On Leave', label: 'On Leave' },
+    { value: 'Inactive', label: 'Inactive' },
+    { value: 'Suspended', label: 'Suspended' },
+    { value: 'Terminated', label: 'Terminated' },
+  ];
+
+  const genderOptions = [
+    { value: 'Male', label: 'Male' },
+    { value: 'Female', label: 'Female' },
+    { value: 'Other', label: 'Other' },
+  ];
+
+  const bloodGroupOptions = [
+    { value: 'A+', label: 'A+' },
+    { value: 'A-', label: 'A-' },
+    { value: 'B+', label: 'B+' },
+    { value: 'B-', label: 'B-' },
+    { value: 'AB+', label: 'AB+' },
+    { value: 'AB-', label: 'AB-' },
+    { value: 'O+', label: 'O+' },
+    { value: 'O-', label: 'O-' },
+  ];
+
+  const maritalStatusOptions = [
+    { value: 'Single', label: 'Single' },
+    { value: 'Married', label: 'Married' },
+    { value: 'Divorced', label: 'Divorced' },
+    { value: 'Widowed', label: 'Widowed' },
+  ];
+
+  // Load staff data when modal opens
   useEffect(() => {
-    if (staff && isOpen) {
-      setFormData({
-        fullName: staff.fullName || '',
-        email: staff.email || '',
-        phone: staff.phone || '',
-        designation: staff.designation || '',
-        department: staff.department || '',
-        basicSalary: staff.basicSalary?.toString() || '',
-        employmentStatus: staff.employmentStatus || 'active',
-        experienceYears: staff.experienceYears?.toString() || '',
-        bio: staff.profile?.bio || '',
+    if (isOpen && staff && staff.id) {
+      setLoading(true);
+      setError(null);
+
+      // Validate staff ID before making API call
+      const staffId = String(staff.id);
+      if (!staffId || staffId === 'undefined' || staffId === 'null') {
+        setError('Invalid staff ID');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch detailed staff data from API
+      staffService
+        .getStaffById(staffId)
+        .then(response => {
+          if (response.success && response.data) {
+            console.log('API Response for edit:', response.data);
+
+            // Extract name parts from API response or use defaults
+            const nameParts = staff.name ? staff.name.split(' ') : ['', '', ''];
+            const firstName = response.data.firstName || nameParts[0] || '';
+            const lastName =
+              response.data.lastName || nameParts[nameParts.length - 1] || '';
+            let middleName = '';
+            if (response.data.middleName) {
+              middleName = response.data.middleName;
+            } else if (nameParts.length > 2) {
+              middleName = nameParts.slice(1, -1).join(' ');
+            }
+
+            // Update form data with API response
+            setFormData(() => ({
+              firstName,
+              middleName,
+              lastName,
+              email: response.data.email || staff.email || '',
+              phone: response.data.phone || staff.phone || '',
+              designation: response.data.designation || staff.designation || '',
+              department: response.data.department || staff.department || '',
+              qualification:
+                response.data.qualification || staff.qualification || '',
+              experienceYears: response.data.experienceYears?.toString() || '',
+              joiningDate: response.data.joiningDate
+                ? response.data.joiningDate.split('T')[0]
+                : staff.joinedDate || '',
+              employmentDate: response.data.employmentDate
+                ? response.data.employmentDate.split('T')[0]
+                : staff.joinedDate || '',
+              status:
+                response.data.employmentStatus === 'active'
+                  ? 'Active'
+                  : response.data.employmentStatus === 'on_leave'
+                    ? 'On Leave'
+                    : staff.status || 'Active',
+              gender: response.data.gender || '',
+              bloodGroup: response.data.bloodGroup || '',
+              maritalStatus: response.data.maritalStatus || '',
+              address: response.data.address || '',
+              street: response.data.street || '',
+              city: response.data.city || '',
+              state: response.data.state || '',
+              pinCode: response.data.pinCode || '',
+              bankName: response.data.bankName || '',
+              bankAccountNumber: response.data.bankAccountNumber || '',
+              bankBranch: response.data.bankBranch || '',
+              panNumber: response.data.panNumber || '',
+              citizenshipNumber: response.data.citizenshipNumber || '',
+              basicSalary: response.data.basicSalary?.toString() || '',
+              allowances: response.data.allowances?.toString() || '',
+              totalSalary: response.data.totalSalary?.toString() || '',
+              employeeId: response.data.employeeId || staff.employeeId || '',
+              hasLoginAccount: !!response.data.userId,
+            }));
+          } else {
+            setError('Failed to load staff details');
+            // Fallback to basic staff data
+            const nameParts = staff.name ? staff.name.split(' ') : ['', '', ''];
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts[nameParts.length - 1] || '';
+            let middleName = '';
+            if (nameParts.length > 2) {
+              middleName = nameParts.slice(1, -1).join(' ');
+            }
+
+            setFormData({
+              ...formData,
+              firstName,
+              middleName,
+              lastName,
+              email: staff.email || '',
+              phone: staff.phone || '',
+              designation: (staff.designation as string) || '',
+              department: (staff.department as string) || '',
+              qualification: (staff.qualification as string) || '',
+              experienceYears: staff.experienceYears?.toString() || '',
+              joiningDate: (staff.joinedDate as string) || '',
+              employmentDate: (staff.joinedDate as string) || '',
+              status: staff.status || 'Active',
+              employeeId: (staff.employeeId as string) || '',
+              basicSalary: staff.basicSalary?.toString() || '',
+              allowances: staff.allowances?.toString() || '',
+              totalSalary: staff.totalSalary?.toString() || '',
+              hasLoginAccount: (staff.hasLoginAccount as boolean) || false,
+            });
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching staff details:', err);
+          setError('Failed to load staff details');
+          // Fallback to basic staff data
+          const nameParts = staff.name ? staff.name.split(' ') : ['', '', ''];
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts[nameParts.length - 1] || '';
+          let middleName = '';
+          if (nameParts.length > 2) {
+            middleName = nameParts.slice(1, -1).join(' ');
+          }
+
+          setFormData({
+            ...formData,
+            firstName,
+            middleName,
+            lastName,
+            email: staff.email || '',
+            phone: staff.phone || '',
+            designation: (staff.designation as string) || '',
+            department: (staff.department as string) || '',
+            qualification: (staff.qualification as string) || '',
+            experienceYears: staff.experienceYears?.toString() || '',
+            joiningDate: (staff.joinedDate as string) || '',
+            employmentDate: (staff.joinedDate as string) || '',
+            status: staff.status || 'Active',
+            employeeId: (staff.employeeId as string) || '',
+            basicSalary: staff.basicSalary?.toString() || '',
+            allowances: staff.allowances?.toString() || '',
+            totalSalary: staff.totalSalary?.toString() || '',
+            hasLoginAccount: (staff.hasLoginAccount as boolean) || false,
+          });
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      // Reset form when modal closes
+      setFormData(() => ({
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        designation: '',
+        department: '',
+        qualification: '',
+        experienceYears: '',
+        joiningDate: '',
+        employmentDate: '',
+        status: 'Active',
+        gender: '',
+        bloodGroup: '',
+        maritalStatus: '',
+        address: '',
         street: '',
         city: '',
         state: '',
-        zipCode: '',
-        country: '',
-        bankName: staff.bankName || '',
-        bankAccountNumber: staff.bankAccountNumber || '',
-        bankBranch: staff.bankBranch || '',
-        panNumber: staff.panNumber || '',
-        citizenshipNumber: staff.citizenshipNumber || '',
-      });
-      setError(null);
+        pinCode: '',
+        bankName: '',
+        bankAccountNumber: '',
+        bankBranch: '',
+        panNumber: '',
+        citizenshipNumber: '',
+        basicSalary: '',
+        allowances: '',
+        totalSalary: '',
+        employeeId: '',
+        hasLoginAccount: false,
+      }));
+      setProfilePicture(null);
     }
-  }, [staff, isOpen]);
+  }, [isOpen, staff]);
 
+  // Handle input changes
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (error) setError(null);
-  };
 
-  const validateForm = (): string | null => {
-    if (!formData.fullName.trim()) return 'Full name is required';
-    if (!formData.email.trim()) return 'Email is required';
-    if (!formData.designation.trim()) return 'Designation is required';
-    if (!formData.department.trim()) return 'Department is required';
-    if (formData.basicSalary && isNaN(parseFloat(formData.basicSalary))) {
-      return 'Basic salary must be a valid number';
+    // Auto-calculate total salary when basic salary or allowances change
+    if (name === 'basicSalary' || name === 'allowances') {
+      const basicSalary =
+        name === 'basicSalary'
+          ? parseFloat(value) || 0
+          : parseFloat(formData.basicSalary) || 0;
+      const allowances =
+        name === 'allowances'
+          ? parseFloat(value) || 0
+          : parseFloat(formData.allowances) || 0;
+      setFormData(prev => ({
+        ...prev,
+        totalSalary: (basicSalary + allowances).toString(),
+      }));
     }
-    return null;
   };
 
+  // Handle checkbox changes
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
+  };
+
+  // Handle file upload
+  const handleFileChange = (file: File | null) => {
+    setProfilePicture(file);
+  };
+
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!staff) return;
 
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    // Show confirmation toast
-    const confirmed = await new Promise<boolean>(resolve => {
-      toast('Confirm Changes', {
-        description: `Are you sure you want to update ${formData.fullName}'s information?`,
-        action: {
-          label: 'Update',
-          onClick: () => resolve(true),
-        },
-        cancel: {
-          label: 'Cancel',
-          onClick: () => resolve(false),
-        },
-        duration: Infinity,
-      });
-    });
-
-    if (!confirmed) return;
-
-    setIsLoading(true);
+    setSaving(true);
     setError(null);
 
     try {
+      // Prepare data for API call
       const updateData = {
         user: {
-          fullName: formData.fullName.trim(),
-          email: formData.email.trim(),
-          phone: formData.phone.trim() || undefined,
+          firstName: formData.firstName,
+          middleName: formData.middleName || undefined,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone || undefined,
         },
         profile: {
-          designation: formData.designation,
-          department: formData.department,
-          salary: formData.basicSalary
-            ? parseFloat(formData.basicSalary)
-            : undefined,
-          employmentStatus: formData.employmentStatus,
+          designation: formData.designation || undefined,
+          department: formData.department || undefined,
+          qualification: formData.qualification || undefined,
           experienceYears: formData.experienceYears
-            ? parseInt(formData.experienceYears)
+            ? parseInt(formData.experienceYears, 10)
             : undefined,
-          bio: formData.bio.trim() || undefined,
+          employmentDate: formData.employmentDate || undefined,
+          joiningDate: formData.joiningDate || undefined,
+          employmentStatus:
+            formData.status === 'Active'
+              ? 'active'
+              : formData.status === 'On Leave'
+                ? 'on_leave'
+                : formData.status.toLowerCase(),
+          gender: formData.gender || undefined,
+          bloodGroup: formData.bloodGroup || undefined,
+          maritalStatus: formData.maritalStatus || undefined,
           address: {
-            street: formData.street.trim() || undefined,
-            city: formData.city.trim() || undefined,
-            state: formData.state.trim() || undefined,
-            zipCode: formData.zipCode.trim() || undefined,
-            country: formData.country.trim() || undefined,
+            street: formData.street || undefined,
+            city: formData.city || undefined,
+            state: formData.state || undefined,
+            pinCode: formData.pinCode || undefined,
           },
         },
         bankDetails: {
-          bankName: formData.bankName.trim() || undefined,
-          bankAccountNumber: formData.bankAccountNumber.trim() || undefined,
-          bankBranch: formData.bankBranch.trim() || undefined,
-          panNumber: formData.panNumber.trim() || undefined,
-          citizenshipNumber: formData.citizenshipNumber.trim() || undefined,
+          bankName: formData.bankName || undefined,
+          bankAccountNumber: formData.bankAccountNumber || undefined,
+          bankBranch: formData.bankBranch || undefined,
+          panNumber: formData.panNumber || undefined,
+          citizenshipNumber: formData.citizenshipNumber || undefined,
+        },
+        salary: {
+          basicSalary: formData.basicSalary
+            ? parseFloat(formData.basicSalary)
+            : undefined,
+          allowances: formData.allowances
+            ? parseFloat(formData.allowances)
+            : undefined,
+          totalSalary: formData.totalSalary
+            ? parseFloat(formData.totalSalary)
+            : undefined,
         },
       };
 
-      const response = await staffService.updateStaffByAdmin(
-        staff.id,
-        updateData,
-      );
+      // Create FormData for file upload if needed
+      let response;
+      if (profilePicture) {
+        const formDataObj = new FormData();
+        formDataObj.append('photo', profilePicture);
+        formDataObj.append('data', JSON.stringify(updateData));
+        response = await staffService.updateStaffByAdmin(
+          String(staff.id),
+          formDataObj,
+        );
+      } else {
+        response = await staffService.updateStaffByAdmin(
+          String(staff.id),
+          updateData,
+        );
+      }
 
-      if (response?.success) {
-        toast.success('Staff Updated Successfully', {
-          description: `${formData.fullName} has been updated.`,
-          duration: 4000,
+      if (response.success) {
+        toast.success('Staff updated successfully', {
+          description: `${formData.firstName} ${formData.lastName}'s information has been updated.`,
         });
-        onSuccess();
+
+        // Pass updated data to parent component
+        onSuccess({
+          id: staff.id,
+          firstName: formData.firstName,
+          middleName: formData.middleName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          designation: formData.designation,
+          department: formData.department,
+          qualification: formData.qualification,
+          experienceYears: formData.experienceYears
+            ? parseInt(formData.experienceYears, 10)
+            : undefined,
+          employmentDate: formData.employmentDate,
+          joiningDate: formData.joiningDate,
+          status: formData.status,
+          gender: formData.gender,
+          bloodGroup: formData.bloodGroup,
+          maritalStatus: formData.maritalStatus,
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          pinCode: formData.pinCode,
+          bankName: formData.bankName,
+          bankAccountNumber: formData.bankAccountNumber,
+          bankBranch: formData.bankBranch,
+          panNumber: formData.panNumber,
+          citizenshipNumber: formData.citizenshipNumber,
+          basicSalary: formData.basicSalary
+            ? parseFloat(formData.basicSalary)
+            : undefined,
+          allowances: formData.allowances
+            ? parseFloat(formData.allowances)
+            : undefined,
+          totalSalary: formData.totalSalary
+            ? parseFloat(formData.totalSalary)
+            : undefined,
+          hasLoginAccount: formData.hasLoginAccount,
+        });
+
         onClose();
       } else {
-        throw new Error(response?.message || 'Failed to update staff');
+        throw new Error(response.message || 'Failed to update staff');
       }
-    } catch (err: any) {
-      const errorMessage =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Failed to update staff member';
-      setError(errorMessage);
-      toast.error('Failed to update staff', {
-        description: errorMessage,
-        duration: 6000,
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error updating staff:', error);
+      setError(error.message || 'Failed to update staff');
+      toast.error('Update failed', {
+        description: error.message || 'There was a problem updating the staff.',
       });
     } finally {
-      setIsLoading(false);
+      setSaving(false);
     }
   };
 
-  if (!isOpen || !staff) return null;
+  if (!isOpen) return null;
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+        <div className='bg-white rounded-xl p-8 w-full max-w-md shadow-2xl animate-in fade-in duration-300 text-center'>
+          <Loader2 className='h-8 w-8 animate-spin text-blue-600 mx-auto mb-4' />
+          <p className='text-gray-700'>Loading staff details...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className='fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
-      <div className='bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto'>
+    <div
+      className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4'
+      role='dialog'
+      aria-modal='true'
+      onClick={onClose}
+    >
+      <div
+        className='bg-white rounded-xl w-full max-w-full sm:max-w-3xl lg:max-w-4xl shadow-2xl animate-in fade-in duration-300 max-h-[90vh] overflow-y-auto'
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className='flex items-center justify-between p-6 border-b border-gray-200'>
-          <div className='flex items-center space-x-3'>
-            <div className='h-10 w-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center'>
-              <User className='h-5 w-5 text-white' />
-            </div>
-            <div>
-              <h2 className='text-xl font-semibold text-gray-900'>
-                Edit Staff Member
-              </h2>
-              <p className='text-sm text-gray-600'>Update staff information</p>
-            </div>
-          </div>
+        <div className='sticky top-0 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 rounded-t-xl border-b border-gray-100 z-10'>
           <button
             onClick={onClose}
-            disabled={isLoading}
-            className='text-gray-400 hover:text-gray-600 transition-colors duration-200 disabled:opacity-50'
+            className='absolute top-4 right-4 p-2 rounded-full hover:bg-white/50 transition-colors'
           >
-            <X className='h-6 w-6' />
+            <X className='h-5 w-5 text-gray-500' />
           </button>
+
+          <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>
+            Edit Staff
+          </h2>
+          <p className='text-gray-600 mt-1 text-sm sm:text-base'>
+            Update staff information
+          </p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className='p-6 space-y-6'>
-          {/* Personal Information */}
-          <div className='space-y-4'>
-            <h3 className='text-lg font-medium text-gray-900 flex items-center'>
-              <User className='h-5 w-5 mr-2 text-blue-600' />
-              Personal Information
-            </h3>
+        <form onSubmit={handleSubmit} className='p-4 sm:p-6'>
+          {/* Error message */}
+          {error && (
+            <div className='mb-4 p-3 bg-red-50 border border-red-200 rounded-md'>
+              <p className='text-sm text-red-600'>{error}</p>
+            </div>
+          )}
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Full Name <span className='text-red-500'>*</span>
-                </label>
-                <div className='relative'>
-                  <User className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                  <input
-                    type='text'
-                    name='fullName'
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
-                    placeholder='Enter full name'
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Email <span className='text-red-500'>*</span>
-                </label>
-                <div className='relative'>
-                  <Mail className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                  <input
-                    type='email'
-                    name='email'
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
-                    placeholder='Enter email address'
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Phone Number
-                </label>
-                <div className='relative'>
-                  <Phone className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                  <input
-                    type='text'
-                    name='phone'
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
-                    placeholder='Enter phone number'
+          {/* Form sections */}
+          <div className='space-y-6'>
+            {/* Personal Information */}
+            <div className='bg-gray-50 p-4 rounded-lg'>
+              <h3 className='text-md font-semibold text-gray-900 mb-3'>
+                Personal Information
+              </h3>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <LabeledInput
+                  label='First Name'
+                  name='firstName'
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  required
+                  placeholder='Enter first name'
+                />
+                <LabeledInput
+                  label='Middle Name'
+                  name='middleName'
+                  value={formData.middleName}
+                  onChange={handleInputChange}
+                  placeholder='Enter middle name (optional)'
+                />
+                <LabeledInput
+                  label='Last Name'
+                  name='lastName'
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  required
+                  placeholder='Enter last name'
+                />
+                <LabeledInput
+                  label='Email'
+                  name='email'
+                  type='email'
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  placeholder='Enter email address'
+                />
+                <LabeledInput
+                  label='Phone'
+                  name='phone'
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder='Enter phone number'
+                />
+                <LabeledSelect
+                  label='Gender'
+                  name='gender'
+                  value={formData.gender}
+                  onChange={handleInputChange}
+                  options={genderOptions}
+                  placeholder='Select gender'
+                />
+                <LabeledSelect
+                  label='Blood Group'
+                  name='bloodGroup'
+                  value={formData.bloodGroup}
+                  onChange={handleInputChange}
+                  options={bloodGroupOptions}
+                  placeholder='Select blood group'
+                />
+                <LabeledSelect
+                  label='Marital Status'
+                  name='maritalStatus'
+                  value={formData.maritalStatus}
+                  onChange={handleInputChange}
+                  options={maritalStatusOptions}
+                  placeholder='Select marital status'
+                />
+                <div className='md:col-span-3'>
+                  <FileUploadField
+                    label='Profile Picture'
+                    onChange={handleFileChange}
+                    accept='image/*'
                   />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Professional Information */}
-          <div className='space-y-4'>
-            <h3 className='text-lg font-medium text-gray-900 flex items-center'>
-              <Briefcase className='h-5 w-5 mr-2 text-blue-600' />
-              Professional Information
-            </h3>
-
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Designation <span className='text-red-500'>*</span>
-                </label>
-                <select
-                  name='designation'
-                  value={formData.designation}
+            {/* Professional Information */}
+            <div className='bg-blue-50 p-4 rounded-lg'>
+              <h3 className='text-md font-semibold text-gray-900 mb-3'>
+                Professional Information
+              </h3>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <LabeledInput
+                  label='Employee ID'
+                  name='employeeId'
+                  value={formData.employeeId}
                   onChange={handleInputChange}
-                  disabled={isLoading}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
-                >
-                  <option value=''>Select designation</option>
-                  {DESIGNATION_OPTIONS.map(option => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Department <span className='text-red-500'>*</span>
-                </label>
-                <select
+                  placeholder='Enter employee ID'
+                />
+                <LabeledSelect
+                  label='Department'
                   name='department'
                   value={formData.department}
                   onChange={handleInputChange}
-                  disabled={isLoading}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
-                >
-                  <option value=''>Select department</option>
-                  {DEPARTMENT_OPTIONS.map(option => (
-                    <option key={option} value={option}>
-                      {option
-                        .replace(/_/g, ' ')
-                        .replace(/\b\w/g, l => l.toUpperCase())}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Employment Status
-                </label>
-                <select
-                  name='employmentStatus'
-                  value={formData.employmentStatus}
+                  options={departmentOptions}
+                  placeholder='Select department'
+                />
+                <LabeledSelect
+                  label='Designation'
+                  name='designation'
+                  value={formData.designation}
                   onChange={handleInputChange}
-                  disabled={isLoading}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
-                >
-                  {EMPLOYMENT_STATUS_OPTIONS.map(option => (
-                    <option key={option} value={option}>
-                      {option
-                        .replace(/_/g, ' ')
-                        .replace(/\b\w/g, l => l.toUpperCase())}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Experience (Years)
-                </label>
-                <input
-                  type='number'
+                  options={designationOptions}
+                  placeholder='Select designation'
+                />
+                <LabeledInput
+                  label='Qualification'
+                  name='qualification'
+                  value={formData.qualification}
+                  onChange={handleInputChange}
+                  placeholder='Enter qualification'
+                />
+                <LabeledInput
+                  label='Experience (Years)'
                   name='experienceYears'
+                  type='number'
                   value={formData.experienceYears}
                   onChange={handleInputChange}
-                  disabled={isLoading}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
                   placeholder='Enter years of experience'
-                  min='0'
-                  step='1'
+                />
+                <LabeledInput
+                  label='Joining Date'
+                  name='joiningDate'
+                  type='date'
+                  value={formData.joiningDate}
+                  onChange={handleInputChange}
+                />
+                <LabeledInput
+                  label='Employment Date'
+                  name='employmentDate'
+                  type='date'
+                  value={formData.employmentDate}
+                  onChange={handleInputChange}
+                />
+                <LabeledSelect
+                  label='Status'
+                  name='status'
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  options={statusOptions}
+                  placeholder='Select status'
+                />
+                <div className='flex items-center'>
+                  <LabeledCheckbox
+                    label='Has Login Account'
+                    name='hasLoginAccount'
+                    checked={formData.hasLoginAccount}
+                    onChange={handleCheckboxChange}
+                    disabled={true} // Cannot change login status after creation
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Address Information */}
+            <div className='bg-green-50 p-4 rounded-lg'>
+              <h3 className='text-md font-semibold text-gray-900 mb-3'>
+                Address Information
+              </h3>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <LabeledInput
+                  label='Street'
+                  name='street'
+                  value={formData.street}
+                  onChange={handleInputChange}
+                  placeholder='Enter street address'
+                />
+                <LabeledInput
+                  label='City'
+                  name='city'
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  placeholder='Enter city'
+                />
+                <LabeledInput
+                  label='State/Province'
+                  name='state'
+                  value={formData.state}
+                  onChange={handleInputChange}
+                  placeholder='Enter state or province'
+                />
+                <LabeledInput
+                  label='PIN/ZIP Code'
+                  name='pinCode'
+                  value={formData.pinCode}
+                  onChange={handleInputChange}
+                  placeholder='Enter postal code'
                 />
               </div>
             </div>
-          </div>
 
-          {/* Salary Information */}
-          <div className='space-y-4'>
-            <h3 className='text-lg font-medium text-gray-900 flex items-center'>
-              <DollarSign className='h-5 w-5 mr-2 text-blue-600' />
-              Salary Information
-            </h3>
-
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Basic Salary
-                </label>
-                <div className='relative'>
-                  <DollarSign className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                  <input
-                    type='number'
-                    name='basicSalary'
-                    value={formData.basicSalary}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
-                    placeholder='Enter basic salary'
-                    min='0'
-                    step='0.01'
-                  />
-                </div>
+            {/* Salary Information */}
+            <div className='bg-yellow-50 p-4 rounded-lg'>
+              <h3 className='text-md font-semibold text-gray-900 mb-3'>
+                Salary Information
+              </h3>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <LabeledInput
+                  label='Basic Salary'
+                  name='basicSalary'
+                  type='number'
+                  value={formData.basicSalary}
+                  onChange={handleInputChange}
+                  placeholder='Enter basic salary'
+                />
+                <LabeledInput
+                  label='Allowances'
+                  name='allowances'
+                  type='number'
+                  value={formData.allowances}
+                  onChange={handleInputChange}
+                  placeholder='Enter allowances'
+                />
+                <LabeledInput
+                  label='Total Salary'
+                  name='totalSalary'
+                  type='number'
+                  value={formData.totalSalary}
+                  onChange={handleInputChange}
+                  disabled
+                  placeholder='Calculated automatically'
+                />
               </div>
             </div>
-          </div>
 
-          {/* Bio */}
-          <div className='space-y-4'>
-            <h3 className='text-lg font-medium text-gray-900'>Bio</h3>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                About
-              </label>
-              <textarea
-                name='bio'
-                value={formData.bio}
-                onChange={handleInputChange}
-                disabled={isLoading}
-                rows={3}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 resize-none'
-                placeholder='Brief description about the staff member'
-              />
-            </div>
-          </div>
-
-          {/* Bank Account Details */}
-          <div className='space-y-4'>
-            <h3 className='text-lg font-medium text-gray-900 flex items-center'>
-              <Landmark className='h-5 w-5 mr-2 text-purple-600' />
-              Bank Account Details
-            </h3>
-
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Bank Name
-                </label>
-                <div className='relative'>
-                  <Landmark className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                  <input
-                    type='text'
-                    name='bankName'
-                    value={formData.bankName}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                    className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
-                    placeholder='Enter bank name'
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Account Number
-                </label>
-                <input
-                  type='text'
+            {/* Bank Details */}
+            <div className='bg-purple-50 p-4 rounded-lg'>
+              <h3 className='text-md font-semibold text-gray-900 mb-3'>
+                Bank & Legal Information
+              </h3>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <LabeledInput
+                  label='Bank Name'
+                  name='bankName'
+                  value={formData.bankName}
+                  onChange={handleInputChange}
+                  placeholder='Enter bank name'
+                />
+                <LabeledInput
+                  label='Account Number'
                   name='bankAccountNumber'
                   value={formData.bankAccountNumber}
                   onChange={handleInputChange}
-                  disabled={isLoading}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
                   placeholder='Enter account number'
                 />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Bank Branch
-                </label>
-                <input
-                  type='text'
+                <LabeledInput
+                  label='Bank Branch'
                   name='bankBranch'
                   value={formData.bankBranch}
                   onChange={handleInputChange}
-                  disabled={isLoading}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
-                  placeholder='Enter branch name'
+                  placeholder='Enter bank branch'
                 />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  PAN Number
-                </label>
-                <input
-                  type='text'
+                <LabeledInput
+                  label='PAN Number'
                   name='panNumber'
                   value={formData.panNumber}
                   onChange={handleInputChange}
-                  disabled={isLoading}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
                   placeholder='Enter PAN number'
                 />
-              </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Citizenship Number
-                </label>
-                <input
-                  type='text'
+                <LabeledInput
+                  label='Citizenship Number'
                   name='citizenshipNumber'
                   value={formData.citizenshipNumber}
                   onChange={handleInputChange}
-                  disabled={isLoading}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50'
                   placeholder='Enter citizenship number'
                 />
               </div>
             </div>
           </div>
 
-          {/* Error Display */}
-          {error && (
-            <div className='bg-red-50 border border-red-200 rounded-md p-4'>
-              <div className='flex'>
-                <div className='text-sm text-red-700'>{error}</div>
-              </div>
-            </div>
-          )}
-
           {/* Footer */}
-          <div className='flex justify-end space-x-3 pt-6 border-t border-gray-200'>
+          <div className='bg-gray-50 px-4 py-4 rounded-lg mt-6 flex justify-end sticky bottom-0'>
             <button
               type='button'
               onClick={onClose}
-              disabled={isLoading}
-              className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50'
+              className='px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors mr-2'
+              disabled={saving}
             >
               Cancel
             </button>
             <button
               type='submit'
-              disabled={isLoading}
-              className='inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 disabled:opacity-50'
+              disabled={saving}
+              className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center'
             >
-              <Save className='h-4 w-4 mr-2' />
-              {isLoading ? 'Updating...' : 'Update Staff'}
+              {saving ? (
+                <>
+                  <Loader2 className='h-4 w-4 animate-spin mr-2' />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className='h-4 w-4 mr-2' />
+                  Save Changes
+                </>
+              )}
             </button>
           </div>
         </form>

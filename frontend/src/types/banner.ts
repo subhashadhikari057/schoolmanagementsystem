@@ -1,5 +1,5 @@
 export interface Banner {
-    id: string;
+  id: string;
   imageUrl: string;
   link: string;
   alt?: string;

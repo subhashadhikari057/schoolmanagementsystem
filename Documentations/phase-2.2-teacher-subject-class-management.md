@@ -1,16 +1,17 @@
 # 📚 Phase 2.2 – Teacher, Subject, and Class Management
+
 **School Management System – Backend Documentation**
 
 ## 📋 Overview
 
-| **Attribute**           | **Details**                                                    |
-|-------------------------|----------------------------------------------------------------|
-| **Tech Stack**          | NestJS + Prisma + PostgreSQL + Zod + JWT + Argon2           |
-| **Phase Tag**           | `phase-2.2`                                                  |
-| **Status**              | ✅ **Completed**                                              |
-| **Scope**               | Teachers CRUD, Subject Management, Class Assignment, Role-based Access |
-| **Security**            | JWT Authentication + Role-based Authorization                |
-| **Audit System**        | Complete audit trail with IP, User-Agent tracking           |
+| **Attribute**    | **Details**                                                            |
+| ---------------- | ---------------------------------------------------------------------- |
+| **Tech Stack**   | NestJS + Prisma + PostgreSQL + Zod + JWT + Argon2                      |
+| **Phase Tag**    | `phase-2.2`                                                            |
+| **Status**       | ✅ **Completed**                                                       |
+| **Scope**        | Teachers CRUD, Subject Management, Class Assignment, Role-based Access |
+| **Security**     | JWT Authentication + Role-based Authorization                          |
+| **Audit System** | Complete audit trail with IP, User-Agent tracking                      |
 
 ---
 
@@ -19,14 +20,14 @@
 ### ✅ Core Functionality
 
 | **Feature**                  | **Description**                                               |
-|------------------------------|---------------------------------------------------------------|
-| 👩‍🏫 **Teacher CRUD**           | Create, update, soft delete, and retrieve teacher profiles   |
-| 🎓 **Subject Assignment**     | Assign and unassign subjects to teachers                     |
-| 🏫 **Class Assignment**       | Assign and unassign classes (with optional sections)         |
-| 🔒 **Role-Based Access**      | Routes protected using `IsAuthenticated` and `hasRole` guards|
-| 🧾 **Comprehensive Audit**    | Tracks all CRUD operations with metadata                     |
+| ---------------------------- | ------------------------------------------------------------- |
+| 👩‍🏫 **Teacher CRUD**          | Create, update, soft delete, and retrieve teacher profiles    |
+| 🎓 **Subject Assignment**    | Assign and unassign subjects to teachers                      |
+| 🏫 **Class Assignment**      | Assign and unassign classes (with optional sections)          |
+| 🔒 **Role-Based Access**     | Routes protected using `IsAuthenticated` and `hasRole` guards |
+| 🧾 **Comprehensive Audit**   | Tracks all CRUD operations with metadata                      |
 | 💾 **Soft Deletion Support** | Teachers and assignments are soft deleted                     |
-| 🔐 **Session Management**     | Automatic session revocation on user deletion                |
+| 🔐 **Session Management**    | Automatic session revocation on user deletion                 |
 
 ### 🏗️ Architecture Highlights
 
@@ -47,7 +48,7 @@ model Teacher {
   id                String                  @id @default(uuid())
   userId            String                  @unique
   user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   // Employment Information
   designation       String?
   qualification     String?
@@ -55,7 +56,7 @@ model Teacher {
   employmentStatus  TeacherEmploymentStatus @default(active)
   department        String?
   additionalMetadata Json?                  @default("{}")
-  
+
   // Audit Fields
   createdAt         DateTime                @default(now())
   updatedAt         DateTime?
@@ -63,17 +64,18 @@ model Teacher {
   createdById       String?                 @db.Uuid
   updatedById       String?                 @db.Uuid
   deletedById       String?                 @db.Uuid
-  
+
   // Relations
   profile           TeacherProfile?
   subjects          TeacherSubject[]
   classAssignments  TeacherClass[]
-  
+
   @@index([userId, createdById, updatedById, deletedById])
 }
 ```
 
 **Employment Status Enum:**
+
 ```prisma
 enum TeacherEmploymentStatus {
   active      // Currently employed
@@ -90,14 +92,14 @@ model TeacherProfile {
   id                String   @id @default(uuid())
   teacherId         String   @unique
   teacher           Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  
+
   // Public Profile Information
   bio               String?
   profilePhotoUrl   String?
   contactInfo       Json     @default("{}")     // Phone, emergency contacts
   socialLinks       Json     @default("{}")     // LinkedIn, Twitter, etc.
   additionalData    Json     @default("{}")     // Extensible metadata
-  
+
   // Audit Fields
   createdAt         DateTime @default(now())
   updatedAt         DateTime?
@@ -116,7 +118,7 @@ model Subject {
   name            String           // e.g., "Mathematics", "Physics"
   code            String           @unique // e.g., "MATH101", "PHY201"
   description     String?
-  
+
   // Audit Fields
   createdAt       DateTime         @default(now())
   updatedAt       DateTime?
@@ -124,10 +126,10 @@ model Subject {
   createdById     String?          @db.Uuid
   updatedById     String?          @db.Uuid
   deletedById     String?          @db.Uuid
-  
+
   // Relations
   teacherSubjects TeacherSubject[]
-  
+
   @@index([code])
 }
 ```
@@ -139,10 +141,10 @@ model Class {
   id                String         @id @default(uuid())
   name              String         // e.g., "Grade 10", "Class XII"
   section           String?        // Optional: "A", "B", "C" or null
-  
+
   // Relations
   teacherAssignments TeacherClass[]
-  
+
   // Audit Fields
   createdAt         DateTime       @default(now())
   updatedAt         DateTime?
@@ -150,7 +152,7 @@ model Class {
   createdById       String?        @db.Uuid
   updatedById       String?        @db.Uuid
   deletedById       String?        @db.Uuid
-  
+
   @@index([name, section])
 }
 ```
@@ -158,17 +160,18 @@ model Class {
 ### 5. **Join Tables (Many-to-Many Relations)**
 
 #### **TeacherSubject**
+
 ```prisma
 model TeacherSubject {
   id         String   @id @default(uuid())
   teacherId  String
   subjectId  String
-  
+
   teacher    Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  
+
   assignedAt DateTime @default(now())
-  
+
   // Audit Fields
   createdAt  DateTime @default(now())
   updatedAt  DateTime?
@@ -176,24 +179,25 @@ model TeacherSubject {
   createdById String? @db.Uuid
   updatedById String? @db.Uuid
   deletedById String? @db.Uuid
-  
+
   @@unique([teacherId, subjectId])
   @@index([teacherId, subjectId])
 }
 ```
 
 #### **TeacherClass**
+
 ```prisma
 model TeacherClass {
   id         String   @id @default(uuid())
   teacherId  String
   classId    String
-  
+
   teacher    Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  
+
   assignedAt DateTime @default(now())
-  
+
   // Audit Fields
   createdAt  DateTime @default(now())
   updatedAt  DateTime?
@@ -201,7 +205,7 @@ model TeacherClass {
   createdById String? @db.Uuid
   updatedById String? @db.Uuid
   deletedById String? @db.Uuid
-  
+
   @@unique([teacherId, classId])
   @@index([teacherId, classId])
 }
@@ -213,38 +217,38 @@ model TeacherClass {
 
 ### 🧑‍🏫 Teacher Management
 
-| **Method** | **Endpoint**           | **Description**                    | **Roles**                     |
-|------------|------------------------|------------------------------------|-------------------------------|
-| `POST`     | `/api/v1/teachers`     | Create new teacher                 | `SUPERADMIN`, `ADMIN`         |
-| `GET`      | `/api/v1/teachers`     | List all teachers                  | `SUPERADMIN`, `ADMIN`         |
-| `GET`      | `/api/v1/teachers/me`  | Get own teacher profile            | `TEACHER`                     |
-| `GET`      | `/api/v1/teachers/:id` | Get teacher by ID (full details)   | `SUPERADMIN`, `ADMIN`, `TEACHER` |
-| `PATCH`    | `/api/v1/teachers/me`  | Update own profile                 | `TEACHER`                     |
-| `PATCH`    | `/api/v1/teachers/:id` | Update teacher by admin            | `SUPERADMIN`, `ADMIN`         |
-| `DELETE`   | `/api/v1/teachers/:id` | Soft delete teacher                | `SUPERADMIN`, `ADMIN`         |
+| **Method** | **Endpoint**           | **Description**                  | **Roles**                        |
+| ---------- | ---------------------- | -------------------------------- | -------------------------------- |
+| `POST`     | `/api/v1/teachers`     | Create new teacher               | `SUPERADMIN`, `ADMIN`            |
+| `GET`      | `/api/v1/teachers`     | List all teachers                | `SUPERADMIN`, `ADMIN`            |
+| `GET`      | `/api/v1/teachers/me`  | Get own teacher profile          | `TEACHER`                        |
+| `GET`      | `/api/v1/teachers/:id` | Get teacher by ID (full details) | `SUPERADMIN`, `ADMIN`, `TEACHER` |
+| `PATCH`    | `/api/v1/teachers/me`  | Update own profile               | `TEACHER`                        |
+| `PATCH`    | `/api/v1/teachers/:id` | Update teacher by admin          | `SUPERADMIN`, `ADMIN`            |
+| `DELETE`   | `/api/v1/teachers/:id` | Soft delete teacher              | `SUPERADMIN`, `ADMIN`            |
 
 ### 📚 Subject Assignment
 
-| **Method** | **Endpoint**                           | **Description**                    | **Roles**                     |
-|------------|----------------------------------------|------------------------------------|-------------------------------|
-| `GET`      | `/api/v1/teachers/:id/subjects`       | View assigned subjects             | `SUPERADMIN`, `ADMIN`, `TEACHER` |
-| `POST`     | `/api/v1/teachers/:id/subjects`       | Assign subjects to teacher         | `SUPERADMIN`, `ADMIN`         |
-| `DELETE`   | `/api/v1/teachers/:id/subjects/:subjectId` | Unassign single subject        | `SUPERADMIN`, `ADMIN`         |
+| **Method** | **Endpoint**                               | **Description**            | **Roles**                        |
+| ---------- | ------------------------------------------ | -------------------------- | -------------------------------- |
+| `GET`      | `/api/v1/teachers/:id/subjects`            | View assigned subjects     | `SUPERADMIN`, `ADMIN`, `TEACHER` |
+| `POST`     | `/api/v1/teachers/:id/subjects`            | Assign subjects to teacher | `SUPERADMIN`, `ADMIN`            |
+| `DELETE`   | `/api/v1/teachers/:id/subjects/:subjectId` | Unassign single subject    | `SUPERADMIN`, `ADMIN`            |
 
 ### 🏫 Class Assignment
 
-| **Method** | **Endpoint**                           | **Description**                    | **Roles**                     |
-|------------|----------------------------------------|------------------------------------|-------------------------------|
-| `GET`      | `/api/v1/teachers/:id/classes`        | View assigned classes              | `SUPERADMIN`, `ADMIN`, `TEACHER` |
-| `POST`     | `/api/v1/teachers/:id/classes`        | Assign classes to teacher          | `SUPERADMIN`, `ADMIN`         |
-| `DELETE`   | `/api/v1/teachers/:id/classes/:classId` | Unassign single class            | `SUPERADMIN`, `ADMIN`         |
-| `DELETE`   | `/api/v1/teachers/:id/classes`        | Unassign all classes               | `SUPERADMIN`, `ADMIN`         |
+| **Method** | **Endpoint**                            | **Description**           | **Roles**                        |
+| ---------- | --------------------------------------- | ------------------------- | -------------------------------- |
+| `GET`      | `/api/v1/teachers/:id/classes`          | View assigned classes     | `SUPERADMIN`, `ADMIN`, `TEACHER` |
+| `POST`     | `/api/v1/teachers/:id/classes`          | Assign classes to teacher | `SUPERADMIN`, `ADMIN`            |
+| `DELETE`   | `/api/v1/teachers/:id/classes/:classId` | Unassign single class     | `SUPERADMIN`, `ADMIN`            |
+| `DELETE`   | `/api/v1/teachers/:id/classes`          | Unassign all classes      | `SUPERADMIN`, `ADMIN`            |
 
 ### 👤 Public Profile
 
-| **Method** | **Endpoint**                    | **Description**                    | **Roles**                     |
-|------------|---------------------------------|------------------------------------|-------------------------------|
-| `GET`      | `/api/v1/teachers/:id/profile` | View public profile (privacy-safe) | `ALL` (no sensitive data)     |
+| **Method** | **Endpoint**                   | **Description**                    | **Roles**                 |
+| ---------- | ------------------------------ | ---------------------------------- | ------------------------- |
+| `GET`      | `/api/v1/teachers/:id/profile` | View public profile (privacy-safe) | `ALL` (no sensitive data) |
 
 ---
 
@@ -253,6 +257,7 @@ model TeacherClass {
 ### 🆕 Create Teacher
 
 **Request:**
+
 ```http
 POST /api/v1/teachers
 Content-Type: application/json
@@ -279,6 +284,7 @@ Cookie: accessToken=<jwt_token>
 ```
 
 **Response:**
+
 ```http
 HTTP/1.1 201 Created
 Content-Type: application/json
@@ -298,6 +304,7 @@ Content-Type: application/json
 ### 📚 Assign Subjects
 
 **Request:**
+
 ```http
 POST /api/v1/teachers/123e4567-e89b-12d3-a456-426614174000/subjects
 Content-Type: application/json
@@ -313,6 +320,7 @@ Cookie: accessToken=<jwt_token>
 ```
 
 **Response:**
+
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -322,7 +330,7 @@ Content-Type: application/json
   "teacherId": "123e4567-e89b-12d3-a456-426614174000",
   "subjectIds": [
     "subject-uuid-1",
-    "subject-uuid-2", 
+    "subject-uuid-2",
     "subject-uuid-3"
   ]
 }
@@ -331,6 +339,7 @@ Content-Type: application/json
 ### 🏫 Assign Classes
 
 **Request:**
+
 ```http
 POST /api/v1/teachers/123e4567-e89b-12d3-a456-426614174000/classes
 Content-Type: application/json
@@ -345,6 +354,7 @@ Cookie: accessToken=<jwt_token>
 ```
 
 **Response:**
+
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -362,12 +372,14 @@ Content-Type: application/json
 ### 📖 Get Teacher Details (Full)
 
 **Request:**
+
 ```http
 GET /api/v1/teachers/123e4567-e89b-12d3-a456-426614174000
 Cookie: accessToken=<jwt_token>
 ```
 
 **Response:**
+
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -433,12 +445,14 @@ Content-Type: application/json
 ### 👤 Get Public Profile (Privacy-Safe)
 
 **Request:**
+
 ```http
 GET /api/v1/teachers/123e4567-e89b-12d3-a456-426614174000/profile
 Cookie: accessToken=<jwt_token>
 ```
 
 **Response:**
+
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -462,6 +476,7 @@ Content-Type: application/json
 ### 🛡️ Authentication & Authorization
 
 #### **1. IsAuthenticated Guard**
+
 ```typescript
 @Injectable()
 export class IsAuthenticated implements CanActivate {
@@ -471,22 +486,27 @@ export class IsAuthenticated implements CanActivate {
 
     // Verify JWT token
     const decoded = verifyToken(token);
-    
+
     // Validate session and user status
     const session = await this.prisma.userSession.findUnique({
       where: { id: decoded.sessionId },
       include: {
         user: {
           include: {
-            roles: { include: { role: true } }
-          }
-        }
-      }
+            roles: { include: { role: true } },
+          },
+        },
+      },
     });
 
     // Check session validity and user status
-    if (!session || session.revokedAt || !session.user.isActive || session.user.deletedAt) {
-      throw new UnauthorizedException('Session invalid or user revoked');
+    if (
+      !session ||
+      session.revokedAt ||
+      !session.user.isActive ||
+      session.user.deletedAt
+    ) {
+      throw new UnauthorizedException("Session invalid or user revoked");
     }
 
     // Attach user to request
@@ -498,6 +518,7 @@ export class IsAuthenticated implements CanActivate {
 ```
 
 #### **2. Role-Based Access Control**
+
 ```typescript
 export function hasRole(...requiredRoles: string[]): any {
   return class RoleGuard implements CanActivate {
@@ -507,11 +528,11 @@ export function hasRole(...requiredRoles: string[]): any {
 
       // Check if user has any of the required roles
       const isAuthorized = userRoles.some((r) =>
-        requiredRoles.includes(r.role?.name)
+        requiredRoles.includes(r.role?.name),
       );
 
       if (!isAuthorized) {
-        throw new ForbiddenException('You do not have permission');
+        throw new ForbiddenException("You do not have permission");
       }
 
       return true;
@@ -521,61 +542,73 @@ export function hasRole(...requiredRoles: string[]): any {
 ```
 
 #### **3. Usage in Controllers**
+
 ```typescript
-@Controller('api/v1/teachers')
-@UseGuards(IsAuthenticated)  // 🔐 All routes require authentication
+@Controller("api/v1/teachers")
+@UseGuards(IsAuthenticated) // 🔐 All routes require authentication
 export class TeacherController {
-  
   @Post()
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))  // 🔒 Only admins can create
-  async create(@Body() body: CreateTeacherDtoType) { }
+  @UseGuards(hasRole("SUPERADMIN", "ADMIN")) // 🔒 Only admins can create
+  async create(@Body() body: CreateTeacherDtoType) {}
 
-  @Get('me')
-  @UseGuards(hasRole('TEACHER'))  // 🔒 Only teachers can access own profile
-  async getSelf(@CurrentUser() user: any) { }
+  @Get("me")
+  @UseGuards(hasRole("TEACHER")) // 🔒 Only teachers can access own profile
+  async getSelf(@CurrentUser() user: any) {}
 
-  @Get(':id/profile')
-  @UseGuards(hasRole('SUPERADMIN', 'ADMIN', 'TEACHER', 'STUDENT'))  // 👀 Public profile
-  async getProfile(@Param('id') id: string) { }
+  @Get(":id/profile")
+  @UseGuards(hasRole("SUPERADMIN", "ADMIN", "TEACHER", "STUDENT")) // 👀 Public profile
+  async getProfile(@Param("id") id: string) {}
 }
 ```
 
 ### 🛡️ Data Validation with Zod
 
 #### **1. Teacher Creation DTO**
+
 ```typescript
 export const CreateTeacherDto = z.object({
   user: z.object({
-    fullName: z.string().min(1, 'Full name is required'),
-    email: z.string().email('Invalid email format'),
+    fullName: z.string().min(1, "Full name is required"),
+    email: z.string().email("Invalid email format"),
     phone: z.string().optional(),
-    password: z.string().optional()
+    password: z.string().optional(),
   }),
   profile: z.object({
-    qualification: z.string().min(1, 'Qualification is required'),
+    qualification: z.string().min(1, "Qualification is required"),
     designation: z.string().optional(),
-    dateOfJoining: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+    dateOfJoining: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
     bio: z.string().optional(),
-    socialLinks: z.object({
-      linkedin: z.string().url().optional(),
-      twitter: z.string().url().optional(),
-      website: z.string().url().optional()
-    }).partial().optional()
-  })
+    socialLinks: z
+      .object({
+        linkedin: z.string().url().optional(),
+        twitter: z.string().url().optional(),
+        website: z.string().url().optional(),
+      })
+      .partial()
+      .optional(),
+  }),
 });
 ```
 
 #### **2. Subject Assignment DTO**
+
 ```typescript
 export const AssignSubjectsDto = z.object({
-  subjectIds: z.array(z.string().uuid()).min(1, 'At least one subject ID is required')
+  subjectIds: z
+    .array(z.string().uuid())
+    .min(1, "At least one subject ID is required"),
 });
 ```
 
 #### **3. Class Assignment DTO**
+
 ```typescript
 export const AssignTeacherClassesDto = z.object({
-  classIds: z.array(z.string().uuid()).min(1, 'At least one classId is required')
+  classIds: z
+    .array(z.string().uuid())
+    .min(1, "At least one classId is required"),
 });
 ```
 
@@ -593,14 +626,14 @@ export class AuditService {
   async record(options: RecordAuditOptions): Promise<void> {
     await this.prisma.auditLog.create({
       data: {
-        userId: options.userId,      // Who performed the action
-        action: options.action,      // What action was performed
-        module: options.module,      // Which module (teacher, subject, etc.)
-        status: options.status,      // SUCCESS/FAIL/BLOCKED
+        userId: options.userId, // Who performed the action
+        action: options.action, // What action was performed
+        module: options.module, // Which module (teacher, subject, etc.)
+        status: options.status, // SUCCESS/FAIL/BLOCKED
         ipAddress: options.ipAddress, // Where from
         userAgent: options.userAgent, // What client
-        details: options.details     // Additional context
-      }
+        details: options.details, // Additional context
+      },
     });
   }
 }
@@ -608,17 +641,17 @@ export class AuditService {
 
 ### 📝 Audit Actions Tracked
 
-| **Action**                | **Module** | **Details Logged**                              |
-|---------------------------|------------|-------------------------------------------------|
-| `CREATE_TEACHER`          | `teacher`  | `teacherId`, `userId`                           |
-| `UPDATE_TEACHER`          | `teacher`  | `teacherId`, updated fields                     |
-| `UPDATE_SELF_TEACHER`     | `teacher`  | `updatedFields`                                 |
-| `DELETE_TEACHER`          | `teacher`  | `teacherId`                                     |
-| `ASSIGN_SUBJECTS`         | `teacher`  | `teacherId`, `subjectIds[]`                     |
-| `REMOVE_SUBJECT`          | `teacher`  | `teacherId`, `subjectId`                        |
-| `ASSIGN_CLASSES`          | `teacher`  | `teacherId`, `classIds[]`                       |
-| `REMOVE_CLASS`            | `teacher`  | `teacherId`, `classId`                          |
-| `REMOVE_ALL_CLASSES`      | `teacher`  | `teacherId`                                     |
+| **Action**            | **Module** | **Details Logged**          |
+| --------------------- | ---------- | --------------------------- |
+| `CREATE_TEACHER`      | `teacher`  | `teacherId`, `userId`       |
+| `UPDATE_TEACHER`      | `teacher`  | `teacherId`, updated fields |
+| `UPDATE_SELF_TEACHER` | `teacher`  | `updatedFields`             |
+| `DELETE_TEACHER`      | `teacher`  | `teacherId`                 |
+| `ASSIGN_SUBJECTS`     | `teacher`  | `teacherId`, `subjectIds[]` |
+| `REMOVE_SUBJECT`      | `teacher`  | `teacherId`, `subjectId`    |
+| `ASSIGN_CLASSES`      | `teacher`  | `teacherId`, `classIds[]`   |
+| `REMOVE_CLASS`        | `teacher`  | `teacherId`, `classId`      |
+| `REMOVE_ALL_CLASSES`  | `teacher`  | `teacherId`                 |
 
 ### 📈 Sample Audit Log Entry
 
@@ -662,11 +695,11 @@ src/modules/teacher/
 
 ```typescript
 @Module({
-  imports: [LoggerModule],                    // Audit logging
-  controllers: [TeacherController],           // HTTP layer
+  imports: [LoggerModule], // Audit logging
+  controllers: [TeacherController], // HTTP layer
   providers: [
-    TeacherService,                          // Business logic
-    PrismaService,                           // Database access
+    TeacherService, // Business logic
+    PrismaService, // Database access
   ],
 })
 export class TeacherModule {}
@@ -675,17 +708,18 @@ export class TeacherModule {}
 ### 🎯 Service Layer Highlights
 
 #### **1. Teacher Creation with User Setup**
+
 ```typescript
 async create(dto: CreateTeacherDtoType, createdBy: string, ip?: string, userAgent?: string) {
   // 1. Validate email uniqueness
   const existingUser = await this.prisma.user.findUnique({
     where: { email: user.email }
   });
-  
+
   // 2. Generate password if not provided
   const rawPassword = user.password || generateRandomPassword();
   const passwordHash = await hashPassword(rawPassword);
-  
+
   // 3. Create user with TEACHER role
   const newUser = await this.prisma.user.create({
     data: {
@@ -697,7 +731,7 @@ async create(dto: CreateTeacherDtoType, createdBy: string, ip?: string, userAgen
       }
     }
   });
-  
+
   // 4. Create teacher profile
   const newTeacher = await this.prisma.teacher.create({
     data: {
@@ -713,7 +747,7 @@ async create(dto: CreateTeacherDtoType, createdBy: string, ip?: string, userAgen
       }
     }
   });
-  
+
   // 5. Log the action
   await this.audit.record({
     userId: createdBy,
@@ -721,16 +755,17 @@ async create(dto: CreateTeacherDtoType, createdBy: string, ip?: string, userAgen
     module: 'teacher',
     details: { teacherId: newTeacher.id }
   });
-  
+
   return { teacher, temporaryPassword: rawPassword };
 }
 ```
 
 #### **2. Soft Deletion with Session Cleanup**
+
 ```typescript
 async softDelete(id: string, deletedBy: string, ip?: string, userAgent?: string) {
   const teacher = await this.prisma.teacher.findUnique({ where: { id } });
-  
+
   // 1. Soft delete teacher
   await this.prisma.teacher.update({
     where: { id },
@@ -739,7 +774,7 @@ async softDelete(id: string, deletedBy: string, ip?: string, userAgent?: string)
       deletedById: deletedBy
     }
   });
-  
+
   // 2. Deactivate user account
   await this.prisma.user.update({
     where: { id: teacher.userId },
@@ -749,13 +784,13 @@ async softDelete(id: string, deletedBy: string, ip?: string, userAgent?: string)
       isActive: false  // Prevent future logins
     }
   });
-  
+
   // 3. Revoke all active sessions
   await this.prisma.userSession.updateMany({
     where: { userId: teacher.userId, revokedAt: null },
     data: { revokedAt: new Date() }
   });
-  
+
   // 4. Audit the deletion
   await this.audit.record({
     userId: deletedBy,
@@ -767,25 +802,26 @@ async softDelete(id: string, deletedBy: string, ip?: string, userAgent?: string)
 ```
 
 #### **3. Subject Assignment with Duplicate Prevention**
+
 ```typescript
 async assignSubjects(teacherId: string, subjectIds: string[], actorId: string) {
   // Validate teacher exists
   const teacher = await this.prisma.teacher.findUnique({ where: { id: teacherId } });
   if (!teacher || teacher.deletedAt) throw new NotFoundException('Teacher not found');
-  
+
   // Prepare assignment data
   const data = subjectIds.map((subjectId) => ({
     teacherId,
     subjectId,
     createdById: actorId
   }));
-  
+
   // Insert with duplicate skip
   await this.prisma.teacherSubject.createMany({
     data,
     skipDuplicates: true  // 🛡️ Prevents duplicate assignments
   });
-  
+
   // Audit the assignment
   await this.audit.record({
     action: 'ASSIGN_SUBJECTS',
@@ -800,20 +836,21 @@ async assignSubjects(teacherId: string, subjectIds: string[], actorId: string) {
 
 ### ✅ Testing Checklist
 
-| **Feature**                     | **Status** | **Test Method**           |
-|---------------------------------|------------|---------------------------|
-| **Teacher CRUD Operations**     | ✅ Tested  | Postman + Manual         |
-| **Role-Based Access Control**   | ✅ Tested  | Different user sessions  |
-| **Subject Assignment/Removal**  | ✅ Tested  | Postman API calls        |
-| **Class Assignment/Removal**    | ✅ Tested  | Postman API calls        |
-| **Soft Deletion & Session Cleanup** | ✅ Tested | Database verification   |
-| **Audit Log Generation**        | ✅ Tested  | Database audit queries   |
-| **Input Validation (Zod)**     | ✅ Tested  | Invalid payload tests    |
-| **Public Profile Privacy**     | ✅ Tested  | Response data validation |
+| **Feature**                         | **Status** | **Test Method**          |
+| ----------------------------------- | ---------- | ------------------------ |
+| **Teacher CRUD Operations**         | ✅ Tested  | Postman + Manual         |
+| **Role-Based Access Control**       | ✅ Tested  | Different user sessions  |
+| **Subject Assignment/Removal**      | ✅ Tested  | Postman API calls        |
+| **Class Assignment/Removal**        | ✅ Tested  | Postman API calls        |
+| **Soft Deletion & Session Cleanup** | ✅ Tested  | Database verification    |
+| **Audit Log Generation**            | ✅ Tested  | Database audit queries   |
+| **Input Validation (Zod)**          | ✅ Tested  | Invalid payload tests    |
+| **Public Profile Privacy**          | ✅ Tested  | Response data validation |
 
 ### 🔍 Key Test Scenarios
 
 #### **1. Authentication & Authorization**
+
 - ✅ Unauthenticated requests rejected
 - ✅ Invalid JWT tokens rejected
 - ✅ Expired sessions blocked
@@ -821,6 +858,7 @@ async assignSubjects(teacherId: string, subjectIds: string[], actorId: string) {
 - ✅ Teachers can only update own profiles
 
 #### **2. Data Integrity**
+
 - ✅ Email uniqueness enforced
 - ✅ UUID validation on all IDs
 - ✅ Foreign key constraints respected
@@ -828,6 +866,7 @@ async assignSubjects(teacherId: string, subjectIds: string[], actorId: string) {
 - ✅ Soft deletion preserves referential integrity
 
 #### **3. Business Logic**
+
 - ✅ Teacher creation with automatic role assignment
 - ✅ Password generation when not provided
 - ✅ Profile privacy in public endpoints
@@ -841,6 +880,7 @@ async assignSubjects(teacherId: string, subjectIds: string[], actorId: string) {
 ### 📈 Database Optimizations
 
 #### **1. Strategic Indexing**
+
 ```sql
 -- Teacher lookups
 CREATE INDEX idx_teacher_userid ON Teacher(userId);
@@ -851,7 +891,7 @@ CREATE INDEX idx_teacher_subject_teacher ON TeacherSubject(teacherId);
 CREATE INDEX idx_teacher_subject_subject ON TeacherSubject(subjectId);
 CREATE UNIQUE INDEX idx_teacher_subject_unique ON TeacherSubject(teacherId, subjectId);
 
--- Class assignments  
+-- Class assignments
 CREATE INDEX idx_teacher_class_teacher ON TeacherClass(teacherId);
 CREATE INDEX idx_teacher_class_class ON TeacherClass(classId);
 CREATE UNIQUE INDEX idx_teacher_class_unique ON TeacherClass(teacherId, classId);
@@ -862,6 +902,7 @@ CREATE INDEX idx_audit_module_timestamp ON AuditLog(module, timestamp);
 ```
 
 #### **2. Query Optimizations**
+
 - **Selective Loading**: Only load required relations
 - **Pagination**: Implement cursor-based pagination for large datasets
 - **Caching**: Consider Redis for frequently accessed teacher profiles
@@ -870,6 +911,7 @@ CREATE INDEX idx_audit_module_timestamp ON AuditLog(module, timestamp);
 ### 🔧 Configuration Management
 
 #### **Environment Variables**
+
 ```env
 # Database
 DATABASE_URL="postgresql://user:pass@localhost:5432/school_db"
@@ -924,6 +966,7 @@ AUDIT_RETENTION_DAYS=365
 ### 🔧 Common Operations
 
 #### **1. Manual Teacher Creation**
+
 ```bash
 # Via Prisma Studio
 npx prisma studio
@@ -936,23 +979,25 @@ curl -X POST http://localhost:3000/api/v1/teachers \
 ```
 
 #### **2. Audit Log Queries**
+
 ```sql
 -- Recent teacher operations
-SELECT * FROM AuditLog 
-WHERE module = 'teacher' 
-ORDER BY timestamp DESC 
+SELECT * FROM AuditLog
+WHERE module = 'teacher'
+ORDER BY timestamp DESC
 LIMIT 50;
 
 -- Teacher assignment changes
-SELECT * FROM AuditLog 
+SELECT * FROM AuditLog
 WHERE action IN ('ASSIGN_SUBJECTS', 'ASSIGN_CLASSES', 'REMOVE_SUBJECT', 'REMOVE_CLASS')
 ORDER BY timestamp DESC;
 ```
 
 #### **3. Data Cleanup**
+
 ```sql
 -- Find soft-deleted teachers
-SELECT t.id, u.fullName, t.deletedAt 
+SELECT t.id, u.fullName, t.deletedAt
 FROM Teacher t
 JOIN User u ON t.userId = u.id
 WHERE t.deletedAt IS NOT NULL;
@@ -986,4 +1031,4 @@ The module is **production-ready** and provides a solid foundation for the broad
 
 **📅 Last Updated:** January 2024  
 **👨‍💻 Maintainer:** Development Team  
-**📧 Contact:** dev-team@school-system.com 
+**📧 Contact:** dev-team@school-system.com

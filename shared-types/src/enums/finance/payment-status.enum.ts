@@ -13,16 +13,16 @@
  */
 export enum PaymentStatus {
   /** Payment is pending processing */
-  PENDING = 'pending',
-  
+  PENDING = "pending",
+
   /** Payment has been completed successfully */
-  COMPLETED = 'completed',
-  
+  COMPLETED = "completed",
+
   /** Payment processing failed */
-  FAILED = 'failed',
-  
+  FAILED = "failed",
+
   /** Payment has been refunded */
-  REFUNDED = 'refunded',
+  REFUNDED = "refunded",
 }
 
 /**
@@ -38,7 +38,10 @@ export type PaymentStatusType = `${PaymentStatus}`;
 /**
  * Payment status transitions
  */
-export const PAYMENT_STATUS_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
+export const PAYMENT_STATUS_TRANSITIONS: Record<
+  PaymentStatus,
+  PaymentStatus[]
+> = {
   [PaymentStatus.PENDING]: [PaymentStatus.COMPLETED, PaymentStatus.FAILED],
   [PaymentStatus.COMPLETED]: [PaymentStatus.REFUNDED],
   [PaymentStatus.FAILED]: [PaymentStatus.PENDING], // Allow retry

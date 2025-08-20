@@ -7,16 +7,16 @@
  */
 
 export enum CalendarEntryType {
-  HOLIDAY = 'HOLIDAY',
-  EVENT = 'EVENT',
+  HOLIDAY = "HOLIDAY",
+  EVENT = "EVENT",
 }
 
 /**
  * Display labels for calendar entry types
  */
 export const CalendarEntryTypeLabels: Record<CalendarEntryType, string> = {
-  [CalendarEntryType.HOLIDAY]: 'Holiday',
-  [CalendarEntryType.EVENT]: 'Event',
+  [CalendarEntryType.HOLIDAY]: "Holiday",
+  [CalendarEntryType.EVENT]: "Event",
 };
 
 /**

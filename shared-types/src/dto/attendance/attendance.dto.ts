@@ -1,4 +1,4 @@
-import { AttendanceStatus } from '../../enums/attendance/attendance-status.enum';
+import { AttendanceStatus } from "../../enums/attendance/attendance-status.enum";
 
 export interface AttendanceDto {
   id: string;

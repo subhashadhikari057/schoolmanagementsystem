@@ -7,30 +7,30 @@
  */
 
 export enum Priority {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
-  URGENT = 'URGENT',
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  URGENT = "URGENT",
 }
 
 /**
  * Display labels for priority levels
  */
 export const PriorityLabels: Record<Priority, string> = {
-  [Priority.LOW]: 'Low',
-  [Priority.MEDIUM]: 'Medium',
-  [Priority.HIGH]: 'High',
-  [Priority.URGENT]: 'Urgent',
+  [Priority.LOW]: "Low",
+  [Priority.MEDIUM]: "Medium",
+  [Priority.HIGH]: "High",
+  [Priority.URGENT]: "Urgent",
 };
 
 /**
  * Color codes for priority levels (useful for UI)
  */
 export const PriorityColors: Record<Priority, string> = {
-  [Priority.LOW]: '#10B981', // Green
-  [Priority.MEDIUM]: '#F59E0B', // Yellow
-  [Priority.HIGH]: '#F97316', // Orange
-  [Priority.URGENT]: '#EF4444', // Red
+  [Priority.LOW]: "#10B981", // Green
+  [Priority.MEDIUM]: "#F59E0B", // Yellow
+  [Priority.HIGH]: "#F97316", // Orange
+  [Priority.URGENT]: "#EF4444", // Red
 };
 
 /**
