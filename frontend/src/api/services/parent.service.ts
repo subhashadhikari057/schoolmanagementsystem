@@ -99,6 +99,7 @@ export interface ParentResponse {
   fullName: string;
   email: string;
   phone: string;
+  occupation?: string; // Some responses may have occupation at the top level
   profile?: {
     dateOfBirth?: string;
     gender?: string;
@@ -126,6 +127,9 @@ export interface ParentResponse {
     classId?: string;
     rollNumber?: string;
     relationship: string;
+    profilePhotoUrl?: string;
+    avatar?: string;
+    deletedAt?: string | null;
   }>;
   createdAt: string;
   updatedAt?: string;
@@ -228,7 +232,7 @@ export class ParentService {
       ? `${PARENT_ENDPOINTS.LIST}?${queryString}`
       : PARENT_ENDPOINTS.LIST;
 
-    return this.httpClient.get<ParentListResponse>(url, {
+    return this.httpClient.get<ParentListResponse>(url, undefined, {
       requiresAuth: true,
     });
   }
@@ -237,9 +241,13 @@ export class ParentService {
    * Get parent by ID
    */
   async getParentById(id: string): Promise<ApiResponse<ParentResponse>> {
-    return this.httpClient.get<ParentResponse>(PARENT_ENDPOINTS.GET_BY_ID(id), {
-      requiresAuth: true,
-    });
+    return this.httpClient.get<ParentResponse>(
+      PARENT_ENDPOINTS.GET_BY_ID(id),
+      undefined,
+      {
+        requiresAuth: true,
+      },
+    );
   }
 
   /**
@@ -271,9 +279,13 @@ export class ParentService {
    * Get parent's children
    */
   async getParentChildren(parentId: string): Promise<ApiResponse<any[]>> {
-    return this.httpClient.get<any[]>(PARENT_ENDPOINTS.GET_CHILDREN(parentId), {
-      requiresAuth: true,
-    });
+    return this.httpClient.get<any[]>(
+      PARENT_ENDPOINTS.GET_CHILDREN(parentId),
+      undefined,
+      {
+        requiresAuth: true,
+      },
+    );
   }
 
   /**
@@ -352,9 +364,13 @@ export class ParentService {
    * Get available students for linking
    */
   async getAvailableStudents(): Promise<ApiResponse<any[]>> {
-    return this.httpClient.get<any[]>('api/v1/parents/available-students', {
-      requiresAuth: true,
-    });
+    return this.httpClient.get<any[]>(
+      'api/v1/parents/available-students',
+      undefined,
+      {
+        requiresAuth: true,
+      },
+    );
   }
 
   /**
@@ -366,6 +382,7 @@ export class ParentService {
   ): Promise<ApiResponse<ParentSearchResult[]>> {
     return this.httpClient.get<ParentSearchResult[]>(
       `api/v1/parents/search-for-linking?search=${encodeURIComponent(searchTerm)}&limit=${limit}`,
+      undefined,
       {
         requiresAuth: true,
       },
