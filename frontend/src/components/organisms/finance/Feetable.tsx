@@ -5,7 +5,6 @@ import StatCard from '@/components/molecules/cards/StatCard';
 import { FileText, Users, DollarSign, TrendingUp } from 'lucide-react';
 import GenericList from '@/components/templates/GenericList';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
-import SectionTitle from '@/components/atoms/display/SectionTitle';
 import { getListConfig } from '@/components/templates/listConfigurations';
 import Tabs from '../tabs/GenericTabs';
 const stats = [

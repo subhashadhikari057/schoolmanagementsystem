@@ -554,6 +554,111 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
       ],
     },
   },
+  events: {
+    title: 'Event Management',
+    searchPlaceholder: 'Search events by title, content, or organizer...',
+    enableSelection: true,
+    columns: [
+      {
+        key: 'title',
+        header: 'Event Details',
+        mobileLabel: 'Event',
+        render: (item: any) => (
+          <div>
+            <div className='font-semibold'>{item.title}</div>
+            <div className='text-gray-500 text-sm'>{item.content}</div>
+            <div className='text-xs text-gray-400 mt-1 flex items-center gap-2'>
+              By: {item.organizer}
+              {item.files > 0 && (
+                <span className='flex items-center gap-1 ml-2'>
+                  <span role='img' aria-label='file'>
+                    📎
+                  </span>{' '}
+                  {item.files} files
+                </span>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'participants',
+        header: 'Participants & Attendance',
+        mobileLabel: 'Participants',
+        render: (item: any) => (
+          <div>
+            <div className='text-xs font-medium text-gray-700'>
+              {item.participants}
+            </div>
+            <div className='text-xs text-green-600 font-semibold'>
+              {item.attended} / {item.total} attended
+            </div>
+            <div className='w-28 bg-gray-200 rounded-full h-2 mt-1'>
+              <div
+                className='bg-green-500 h-2 rounded-full'
+                style={{ width: `${(item.attended / item.total) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status & Priority',
+        mobileLabel: 'Status',
+        render: (item: any) => (
+          <div className='flex gap-2 items-center'>
+            <StatusBadge
+              status={
+                item.status === 'Scheduled'
+                  ? 'Active'
+                  : item.status === 'Draft'
+                    ? 'Scheduled'
+                    : 'Inactive'
+              }
+            />
+            <StatusBadge
+              status={
+                item.priority === 'High'
+                  ? 'Inactive'
+                  : item.priority === 'Medium'
+                    ? 'Scheduled'
+                    : 'Active'
+              }
+            />
+          </div>
+        ),
+      },
+      {
+        key: 'date',
+        header: 'Date',
+        mobileLabel: 'Date',
+        render: (item: any) => (
+          <div className='text-xs text-gray-500'>
+            {new Date(item.date).toLocaleDateString()}
+          </div>
+        ),
+      },
+    ],
+    emptyMessage: 'No events found',
+    primaryFilter: {
+      title: 'Status',
+      options: [
+        { value: 'all', label: 'All Status' },
+        { value: 'scheduled', label: 'Scheduled' },
+        { value: 'draft', label: 'Draft' },
+      ],
+    },
+    secondaryFilter: {
+      title: 'Priority',
+      options: [
+        { value: 'all', label: 'All Priorities' },
+        { value: 'high', label: 'High' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'low', label: 'Low' },
+      ],
+    },
+  },
 
   'leave-requests': {
     title: 'Leave Request Management',

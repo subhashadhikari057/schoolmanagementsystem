@@ -109,7 +109,6 @@ export default function StudentAssignmentsTab({
         return 'bg-gray-100 text-gray-700';
     }
   };
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -122,7 +121,6 @@ export default function StudentAssignmentsTab({
         return 'bg-gray-100 text-gray-700';
     }
   };
-
   return (
     <div className='space-y-6'>
       {/* Search and Filters */}
@@ -167,7 +165,6 @@ export default function StudentAssignmentsTab({
           />
         </div>
       </div>
-
       {/* Assignments List */}
       <div className='space-y-4'>
         {filteredAssignments.length === 0 ? (
@@ -202,11 +199,9 @@ export default function StudentAssignmentsTab({
                       {assignment.subject}
                     </span>
                   </div>
-
                   <h3 className='text-lg font-semibold text-gray-900 mb-2'>
                     {assignment.title}
                   </h3>
-
                   <div className='flex items-center gap-6 text-sm text-gray-600'>
                     <div className='flex items-center gap-2'>
                       <Users className='w-4 h-4' />
@@ -218,15 +213,7 @@ export default function StudentAssignmentsTab({
                     </div>
                   </div>
                 </div>
-
-                <div className='flex gap-3'>
-                  <Button
-                    label='View Details'
-                    className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700'
-                  />
-                </div>
               </div>
-
               {/* Submission Status */}
               <div className='space-y-3'>
                 <div>
@@ -247,7 +234,6 @@ export default function StudentAssignmentsTab({
                     ></div>
                   </div>
                 </div>
-
                 <div>
                   <div className='flex justify-between text-sm mb-1'>
                     <span className='text-gray-600'>Graded</span>
@@ -263,7 +249,6 @@ export default function StudentAssignmentsTab({
                   </div>
                 </div>
               </div>
-
               {/* Overdue Notice */}
               {assignment.status === 'overdue' && (
                 <div className='mt-4 pt-4 border-t border-gray-200'>
