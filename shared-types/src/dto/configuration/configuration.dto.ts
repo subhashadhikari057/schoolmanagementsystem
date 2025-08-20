@@ -6,8 +6,8 @@
  * =============================================================================
  */
 
-import { z } from 'zod';
-import { BaseEntity } from '../common/base.dto';
+import { z } from "zod";
+import { BaseEntity } from "../common/base.dto";
 
 /**
  * Configuration value type
@@ -23,7 +23,7 @@ export interface ConfigurationDto extends BaseEntity {
   /** Configuration value */
   value: ConfigValue;
   /** Value type */
-  type: 'string' | 'number' | 'boolean' | 'object';
+  type: "string" | "number" | "boolean" | "object";
   /** Description */
   description?: string;
   /** Is editable by admin */
@@ -41,7 +41,7 @@ export interface CreateConfigurationDto {
   /** Configuration value */
   value: ConfigValue;
   /** Value type */
-  type: 'string' | 'number' | 'boolean' | 'object';
+  type: "string" | "number" | "boolean" | "object";
   /** Description */
   description?: string;
   /** Is editable by admin */
@@ -67,10 +67,15 @@ export interface UpdateConfigurationDto {
 /**
  * Zod schemas
  */
-export const ConfigurationTypeSchema = z.enum(['string', 'number', 'boolean', 'object']);
+export const ConfigurationTypeSchema = z.enum([
+  "string",
+  "number",
+  "boolean",
+  "object",
+]);
 
 export const CreateConfigurationSchema = z.object({
-  key: z.string().min(1, 'Key is required'),
+  key: z.string().min(1, "Key is required"),
   value: z.union([z.string(), z.number(), z.boolean(), z.object({})]),
   type: ConfigurationTypeSchema,
   description: z.string().optional(),
@@ -79,7 +84,9 @@ export const CreateConfigurationSchema = z.object({
 });
 
 export const UpdateConfigurationSchema = z.object({
-  value: z.union([z.string(), z.number(), z.boolean(), z.object({})]).optional(),
+  value: z
+    .union([z.string(), z.number(), z.boolean(), z.object({})])
+    .optional(),
   description: z.string().optional(),
   is_editable: z.boolean().optional(),
   category: z.string().optional(),

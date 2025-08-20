@@ -1,6 +1,7 @@
 # Phase 0 Task 0.0-1: ESLint/Prettier/Husky Setup Guide
 
 ## Overview
+
 Complete setup of code quality tools with automated enforcement through Git hooks.
 
 **Status**: ✅ **COMPLETE**  
@@ -10,13 +11,13 @@ Complete setup of code quality tools with automated enforcement through Git hook
 
 ## 🎯 Task Requirements
 
-| Component | Purpose | Status |
-|-----------|---------|--------|
-| **ESLint** | Code linting and quality enforcement | ✅ Configured |
-| **Prettier** | Code formatting consistency | ✅ Configured |
-| **Husky** | Git hooks automation | ✅ Configured |
-| **lint-staged** | Pre-commit file processing | ✅ Configured |
-| **Commit Hooks** | Automated quality enforcement | ✅ Active |
+| Component        | Purpose                              | Status        |
+| ---------------- | ------------------------------------ | ------------- |
+| **ESLint**       | Code linting and quality enforcement | ✅ Configured |
+| **Prettier**     | Code formatting consistency          | ✅ Configured |
+| **Husky**        | Git hooks automation                 | ✅ Configured |
+| **lint-staged**  | Pre-commit file processing           | ✅ Configured |
+| **Commit Hooks** | Automated quality enforcement        | ✅ Active     |
 
 ---
 
@@ -48,36 +49,38 @@ schoolmanagementsystem/
 ### ESLint Configuration
 
 **Backend** (`backend/.eslintrc.js`):
+
 ```javascript
 module.exports = {
-  parser: '@typescript-eslint/parser',
+  parser: "@typescript-eslint/parser",
   parserOptions: {
-    project: 'tsconfig.json',
+    project: "tsconfig.json",
     tsconfigRootDir: __dirname,
-    sourceType: 'module',
+    sourceType: "module",
   },
-  plugins: ['@typescript-eslint/eslint-plugin'],
+  plugins: ["@typescript-eslint/eslint-plugin"],
   extends: [
-    '@nestjs/eslint-config',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:prettier/recommended',
+    "@nestjs/eslint-config",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:prettier/recommended",
   ],
   root: true,
   env: {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.js'],
+  ignorePatterns: [".eslintrc.js"],
   rules: {
-    '@typescript-eslint/interface-name-prefix': 'off',
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
+    "@typescript-eslint/interface-name-prefix": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-explicit-any": "off",
   },
 };
 ```
 
 **Frontend** (`frontend/eslint.config.mjs`):
+
 ```javascript
 import { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -100,6 +103,7 @@ export default eslintConfig;
 ### Prettier Configuration
 
 **Both Backend & Frontend** (`.prettierrc`):
+
 ```json
 {
   "singleQuote": true,
@@ -114,21 +118,18 @@ export default eslintConfig;
 ### lint-staged Configuration
 
 **Both Backend & Frontend** (`.lintstagedrc.json`):
+
 ```json
 {
-  "*.{ts,tsx,js,jsx}": [
-    "eslint --fix",
-    "prettier --write"
-  ],
-  "*.{json,md,yml,yaml}": [
-    "prettier --write"
-  ]
+  "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
+  "*.{json,md,yml,yaml}": ["prettier --write"]
 }
 ```
 
 ### Husky Git Hooks
 
 **Pre-commit Hook** (`.husky/pre-commit`):
+
 ```bash
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
@@ -139,6 +140,7 @@ cd ../frontend && npx lint-staged
 ```
 
 **Commit Message Hook** (`.husky/commit-msg`):
+
 ```bash
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
@@ -185,18 +187,20 @@ git commit -m "test: verify hooks are working"
 ### Initial Setup
 
 1. **Install Dependencies**:
+
    ```bash
    # Root dependencies
    npm install
-   
+
    # Backend dependencies
    cd backend && npm install
-   
+
    # Frontend dependencies
    cd ../frontend && npm install
    ```
 
 2. **Initialize Husky**:
+
    ```bash
    # From project root
    npx husky install
@@ -216,13 +220,14 @@ git commit -m "test: verify hooks are working"
    - Commit messages must follow conventional commit format
 
 2. **Manual Code Quality Checks**:
+
    ```bash
    # Backend
    cd backend
    npm run lint        # Check for issues
    npm run lint:fix    # Auto-fix issues
    npm run format      # Format code
-   
+
    # Frontend
    cd frontend
    npm run lint        # Check for issues
@@ -235,6 +240,7 @@ git commit -m "test: verify hooks are working"
 **Common Issues**:
 
 1. **Husky hooks not running**:
+
    ```bash
    npx husky install
    chmod +x .husky/pre-commit
@@ -285,4 +291,4 @@ git commit -m "test: verify hooks are working"
 3. **Pre-commit Speed**: Only changed files are processed by lint-staged
 4. **IDE Integration**: Install ESLint and Prettier extensions for real-time feedback
 
-**Task 0.0-1 Status**: ✅ **COMPLETE AND VERIFIED** 
+**Task 0.0-1 Status**: ✅ **COMPLETE AND VERIFIED**

@@ -6,12 +6,12 @@ const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
   modulusLength: 2048,
   publicKeyEncoding: {
     type: 'spki',
-    format: 'pem'
+    format: 'pem',
   },
   privateKeyEncoding: {
     type: 'pkcs8',
-    format: 'pem'
-  }
+    format: 'pem',
+  },
 });
 
 // Convert to base64
@@ -52,5 +52,7 @@ REFRESH_TOKEN_EXPIRES_IN=604800000
   fs.writeFileSync(envPath, envContent);
   console.log('\n✅ Created .env file with generated keys');
 } else {
-  console.log('\n⚠️  .env file already exists. Please manually add the JWT keys.');
-} 
+  console.log(
+    '\n⚠️  .env file already exists. Please manually add the JWT keys.',
+  );
+}

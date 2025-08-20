@@ -88,12 +88,20 @@ services:
     environment:
       TZ: UTC
     ports:
-      - "1025:1025"  # SMTP server
-      - "8025:8025"  # Web interface
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web interface
     networks:
       - sms_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8025",
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -107,8 +115,8 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@schoolsystem.local
       PGADMIN_DEFAULT_PASSWORD: admin_dev_password
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
       TZ: UTC
     ports:
       - "5050:80"
@@ -162,4 +170,4 @@ networks:
     name: sms_network
     ipam:
       config:
-        - subnet: 172.20.0.0/16 
+        - subnet: 172.20.0.0/16

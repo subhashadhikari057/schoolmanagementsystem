@@ -1,6 +1,7 @@
 # Phase 0 Task 0.0-3: Docker Development Stack Guide
 
 ## Overview
+
 Complete Docker development environment with PostgreSQL, Redis, MailHog, and pgAdmin for local development and VPS database integration.
 
 **Status**: ✅ **COMPLETE**  
@@ -10,13 +11,13 @@ Complete Docker development environment with PostgreSQL, Redis, MailHog, and pgA
 
 ## 🎯 Task Requirements
 
-| Component | Purpose | Status |
-|-----------|---------|--------|
-| **Docker Compose** | Multi-container orchestration | ✅ Complete |
-| **PostgreSQL** | Primary database (local + VPS) | ✅ Working |
-| **Redis** | Caching and session storage | ✅ Working |
-| **MailHog** | Email testing and debugging | ✅ Working |
-| **pgAdmin** | Database administration | ✅ Available (VPS) |
+| Component          | Purpose                        | Status             |
+| ------------------ | ------------------------------ | ------------------ |
+| **Docker Compose** | Multi-container orchestration  | ✅ Complete        |
+| **PostgreSQL**     | Primary database (local + VPS) | ✅ Working         |
+| **Redis**          | Caching and session storage    | ✅ Working         |
+| **MailHog**        | Email testing and debugging    | ✅ Working         |
+| **pgAdmin**        | Database administration        | ✅ Available (VPS) |
 
 ---
 
@@ -123,15 +124,23 @@ services:
     container_name: sms_mailhog
     restart: unless-stopped
     ports:
-      - "1025:1025"  # SMTP port
-      - "8025:8025"  # Web UI port
+      - "1025:1025" # SMTP port
+      - "8025:8025" # Web UI port
     environment:
       MH_STORAGE: maildir
       MH_MAILDIR_PATH: /maildir
     volumes:
       - mailhog_data:/maildir
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8025",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -315,7 +324,7 @@ CREATE TABLE IF NOT EXISTS system_info (
 );
 
 -- Insert initial system info
-INSERT INTO system_info (version, environment) 
+INSERT INTO system_info (version, environment)
 VALUES ('1.0.0', 'development')
 ON CONFLICT DO NOTHING;
 
@@ -349,7 +358,7 @@ function Test-DockerCommand {
         [string]$Command,
         [int]$TimeoutSeconds = 10
     )
-    
+
     try {
         # Use cmd.exe to run Docker commands for better compatibility
         $result = cmd /c "$Command 2>nul"
@@ -385,7 +394,7 @@ $containerTest = Test-DockerCommand -Command "docker-compose ps --services --fil
 
 if ($containerTest.Success) {
     $runningServices = $containerTest.Output -split "`n" | Where-Object { $_ -and $_.Trim() -ne "" }
-    
+
     if ($runningServices.Count -gt 0) {
         Write-Host "Running containers: $($runningServices.Count)" -ForegroundColor Green
         foreach ($service in $runningServices) {
@@ -408,7 +417,7 @@ if ($psTest.Success -and $psTest.Output) {
     Write-Host "Docker Compose Status:" -ForegroundColor Gray
     $lines = $psTest.Output -split "`n"
     $foundContainers = @()
-    
+
     foreach ($line in $lines) {
         if ($line -match "sms_") {
             Write-Host "  $line" -ForegroundColor White
@@ -417,7 +426,7 @@ if ($psTest.Success -and $psTest.Output) {
             if ($line -match "sms_mailhog.*Up") { $foundContainers += "mailhog" }
         }
     }
-    
+
     # Update container list based on actual status
     $containerList = $foundContainers -join " "
 }
@@ -428,7 +437,7 @@ Write-Host "5. Testing individual services..." -ForegroundColor Yellow
 # Test PostgreSQL
 if ($containerList -match "postgres") {
     Write-Host "PASSED: PostgreSQL Database (sms_postgres) is running" -ForegroundColor Green
-    
+
     # Test PostgreSQL connection
     $pgTest = Test-DockerCommand -Command "docker exec sms_postgres pg_isready -U postgres"
     if ($pgTest.Success) {
@@ -443,7 +452,7 @@ if ($containerList -match "postgres") {
 # Test Redis
 if ($containerList -match "redis") {
     Write-Host "PASSED: Redis Cache (sms_redis) is running" -ForegroundColor Green
-    
+
     # Test Redis connection
     $redisTest = Test-DockerCommand -Command "docker exec sms_redis redis-cli ping"
     if ($redisTest.Success -and $redisTest.Output -match "PONG") {
@@ -458,7 +467,7 @@ if ($containerList -match "redis") {
 # Test MailHog
 if ($containerList -match "mailhog") {
     Write-Host "PASSED: MailHog Email Testing (sms_mailhog) is running" -ForegroundColor Green
-    
+
     # Test MailHog web interface
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:8025" -TimeoutSec 5 -ErrorAction Stop
@@ -525,11 +534,11 @@ docker-compose up -d
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "SUCCESS: All services started!" -ForegroundColor Green
-    
+
     # Wait for services to be ready
     Write-Host "Waiting for services to be ready..." -ForegroundColor Yellow
     Start-Sleep 10
-    
+
     # Test services
     Write-Host "Testing services..." -ForegroundColor Yellow
     .\scripts\test-docker-services.ps1
@@ -591,11 +600,11 @@ docker-compose up -d
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "SUCCESS: Development stack reset and restarted!" -ForegroundColor Green
-    
+
     # Wait for services to be ready
     Write-Host "Waiting for services to be ready..." -ForegroundColor Yellow
     Start-Sleep 15
-    
+
     # Test services
     Write-Host "Testing services..." -ForegroundColor Yellow
     .\scripts\test-docker-services.ps1
@@ -612,6 +621,7 @@ if ($LASTEXITCODE -eq 0) {
 ### Initial Setup
 
 1. **Prerequisites**:
+
    ```bash
    # Ensure Docker Desktop is installed and running
    docker --version
@@ -619,19 +629,21 @@ if ($LASTEXITCODE -eq 0) {
    ```
 
 2. **Start Development Stack**:
+
    ```bash
    # From project root
    .\scripts\docker-dev-start.ps1
-   
+
    # Or manually
    docker-compose up -d
    ```
 
 3. **Verify Services**:
+
    ```bash
    # Test all services
    .\scripts\test-docker-services.ps1
-   
+
    # Check individual services
    docker-compose ps
    ```
@@ -639,10 +651,11 @@ if ($LASTEXITCODE -eq 0) {
 ### Daily Development Workflow
 
 1. **Start Development**:
+
    ```bash
    # Quick start
    .\scripts\docker-dev-start.ps1
-   
+
    # Check status
    docker-compose ps
    ```
@@ -654,10 +667,11 @@ if ($LASTEXITCODE -eq 0) {
    - **MailHog SMTP**: localhost:1025
 
 3. **Stop Development**:
+
    ```bash
    # Stop services
    .\scripts\docker-dev-stop.ps1
-   
+
    # Or manually
    docker-compose down
    ```
@@ -671,6 +685,7 @@ if ($LASTEXITCODE -eq 0) {
 ### Database Connections
 
 #### Local Docker Database
+
 ```bash
 # Connection string for local development
 DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/schoolmanagement?schema=public"
@@ -680,6 +695,7 @@ psql "postgresql://postgres:postgres123@localhost:5432/schoolmanagement"
 ```
 
 #### VPS Production Database
+
 ```bash
 # Connection string for VPS database
 DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement?schema=public"
@@ -692,22 +708,23 @@ DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/school
 
 ### Service Ports Reference
 
-| Service | Local Port | Container Port | Purpose |
-|---------|------------|----------------|---------|
-| **PostgreSQL** | 5432 | 5432 | Database connection |
-| **Redis** | 6379 | 6379 | Cache and sessions |
-| **MailHog SMTP** | 1025 | 1025 | Email sending |
-| **MailHog Web** | 8025 | 8025 | Email testing UI |
+| Service          | Local Port | Container Port | Purpose             |
+| ---------------- | ---------- | -------------- | ------------------- |
+| **PostgreSQL**   | 5432       | 5432           | Database connection |
+| **Redis**        | 6379       | 6379           | Cache and sessions  |
+| **MailHog SMTP** | 1025       | 1025           | Email sending       |
+| **MailHog Web**  | 8025       | 8025           | Email testing UI    |
 
 ### Troubleshooting
 
 **Common Issues**:
 
 1. **Containers not starting**:
+
    ```bash
    # Check Docker Desktop is running
    docker info
-   
+
    # Check for port conflicts
    netstat -an | findstr :5432
    netstat -an | findstr :6379
@@ -715,19 +732,21 @@ DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/school
    ```
 
 2. **Database connection issues**:
+
    ```bash
    # Check PostgreSQL is ready
    docker exec sms_postgres pg_isready -U postgres
-   
+
    # Check logs
    docker logs sms_postgres
    ```
 
 3. **Redis connection issues**:
+
    ```bash
    # Test Redis connection
    docker exec sms_redis redis-cli ping
-   
+
    # Check logs
    docker logs sms_redis
    ```
@@ -736,23 +755,24 @@ DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/school
    - **Problem**: Redis container keeps restarting with "Invalid save parameters" error
    - **Cause**: Inline comments in `redis.conf` are not allowed in Redis 7.4.5+
    - **Solution**: Ensure all comments are on separate lines from configuration directives
-   
+
    ```bash
    # WRONG (causes restart loop):
    save 900 1    # Save if at least 1 key changed
-   
+
    # CORRECT:
    # Save if at least 1 key changed in 900 seconds
    save 900 1
    ```
 
 4. **Services keep restarting**:
+
    ```bash
    # Check service logs
    docker-compose logs postgres
    docker-compose logs redis
    docker-compose logs mailhog
-   
+
    # Reset everything
    .\scripts\docker-dev-reset.ps1
    ```
@@ -797,4 +817,4 @@ DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/school
 4. **Development vs Production**: Local Docker for development, VPS for production-like testing
 5. **Email Testing**: Use MailHog for all email testing during development
 
-**Task 0.0-3 Status**: ✅ **COMPLETE AND VERIFIED** 
+**Task 0.0-3 Status**: ✅ **COMPLETE AND VERIFIED**

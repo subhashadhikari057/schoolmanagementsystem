@@ -1,5 +1,5 @@
-import { FileStatus } from '../../enums/files/file-status.enum';
-import { FileType } from '../../enums/files/file-type.enum';
+import { FileStatus } from "../../enums/files/file-status.enum";
+import { FileType } from "../../enums/files/file-type.enum";
 
 export interface FileUploadDto {
   id: string;

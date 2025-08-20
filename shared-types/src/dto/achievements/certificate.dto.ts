@@ -1,4 +1,4 @@
-import { CertificateStatus } from '../../enums/achievements/certificate-status.enum';
+import { CertificateStatus } from "../../enums/achievements/certificate-status.enum";
 
 export interface CertificateDto {
   id: string;

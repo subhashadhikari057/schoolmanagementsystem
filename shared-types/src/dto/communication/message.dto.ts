@@ -1,4 +1,4 @@
-import { MessageStatus } from '../../enums/communication/message-status.enum';
+import { MessageStatus } from "../../enums/communication/message-status.enum";
 
 export interface MessageDto {
   id: string;

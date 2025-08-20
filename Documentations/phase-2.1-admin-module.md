@@ -15,6 +15,7 @@ This phase introduces a fully secure and role-restricted **Admin Management Modu
 - Soft-deleting admin users
 
 It also implements:
+
 - Secure password hashing
 - Optional auto-generation of admin passwords
 - Soft delete with session revocation
@@ -61,11 +62,14 @@ src/
 ## 🛠 API Endpoints
 
 All endpoints are protected by:
+
 - ✅ `@UseGuards(IsAuthenticated, hasRole('SUPERADMIN'))`
 - ✅ Cookies for authentication (`accessToken`)
 
 ### 🔐 POST `/api/admin`
-Create new admin user  
+
+Create new admin user
+
 ```json
 // Request Body
 {
@@ -75,19 +79,23 @@ Create new admin user
   "password": "securePass123" // Optional
 }
 ```
+
 Returns: `{ message: 'Admin created', id: 'uuid' }`  
 If password is omitted, a temporary one is generated and returned.
 
 ---
 
 ### 👁️ GET `/api/admin`
+
 Returns all active (non-deleted) admins  
 Fields: `id`, `fullName`, `email`, `phone`, `createdAt`
 
 ---
 
 ### ✏️ PATCH `/api/admin/:id`
-Update admin by ID  
+
+Update admin by ID
+
 ```json
 // Request Body
 {
@@ -99,6 +107,7 @@ Update admin by ID
 ---
 
 ### 🗑️ DELETE `/api/admin/:id`
+
 Soft delete admin (sets `isActive: false`, `deletedAt`) and revokes all sessions  
 Returns: `{ message: 'Admin soft-deleted', id }`
 
@@ -114,6 +123,7 @@ Returns: `{ message: 'Admin soft-deleted', id }`
 ## 🧾 Audit Log Example
 
 All actions (create, update, delete) generate audit records:
+
 ```json
 {
   "action": "DELETE_ADMIN",
@@ -157,12 +167,12 @@ This results in cleaner, more focused methods.
 
 > ❗ Note: This was only applied in the Admin module. It's not required in `AuthController` since it handles login and refresh tokens manually without guards.
 
-
 ---
 
 ## 📌 Summary
 
 The Admin module is now:
+
 - 🔐 Secure (guarded, audited, RBAC)
 - 🧩 Modular and well-isolated
 - 💡 Ready for frontend integration

@@ -7,9 +7,9 @@
  * =============================================================================
  */
 
-import { z } from 'zod';
-import { CommonValidation } from '../common/base.dto';
-import { UserRole } from '../../enums/core/user-roles.enum';
+import { z } from "zod";
+import { CommonValidation } from "../common/base.dto";
+import { UserRole } from "../../enums/core/user-roles.enum";
 
 /**
  * User registration request payload
@@ -17,19 +17,19 @@ import { UserRole } from '../../enums/core/user-roles.enum';
 export interface RegisterRequestDto {
   /** User's full name */
   full_name: string;
-  
+
   /** Email address */
   email: string;
-  
+
   /** Phone number (optional) */
   phone?: string;
-  
+
   /** Password */
   password: string;
-  
+
   /** User role (student or parent for self-registration) */
   role: UserRole.STUDENT | UserRole.PARENT;
-  
+
   /** Optional metadata */
   metadata?: Record<string, any>;
 }
@@ -40,19 +40,19 @@ export interface RegisterRequestDto {
 export interface RegisterResponseDto {
   /** User ID */
   id: string;
-  
+
   /** User's full name */
   full_name: string;
-  
+
   /** Email address */
   email: string;
-  
+
   /** Phone number */
   phone?: string;
-  
+
   /** User role */
   role: UserRole;
-  
+
   /** Success message */
   message: string;
 }
@@ -66,7 +66,9 @@ export const RegisterRequestSchema = z.object({
   phone: CommonValidation.phone.optional(),
   password: CommonValidation.password,
   role: z.enum([UserRole.STUDENT, UserRole.PARENT], {
-    errorMap: () => ({ message: 'Only student and parent roles can self-register' }),
+    errorMap: () => ({
+      message: "Only student and parent roles can self-register",
+    }),
   }),
   metadata: z.record(z.any()).optional(),
 });
@@ -75,7 +77,7 @@ export const RegisterRequestSchema = z.object({
  * Zod schema for registration response validation
  */
 export const RegisterResponseSchema = z.object({
-  id: z.string().uuid('Invalid user ID format'),
+  id: z.string().uuid("Invalid user ID format"),
   full_name: CommonValidation.name,
   email: CommonValidation.email,
   phone: CommonValidation.phone.optional(),

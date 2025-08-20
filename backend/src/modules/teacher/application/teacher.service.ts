@@ -13,6 +13,7 @@ import {
   UpdateTeacherByAdminDtoType,
   UpdateTeacherSelfDtoType,
 } from '../dto/teacher.dto';
+import { TeacherSalaryService } from './teacher-salary.service';
 import {
   TeacherProfileWithAdditionalData,
   TeacherAdditionalData,
@@ -23,6 +24,7 @@ export class TeacherService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly salaryService: TeacherSalaryService,
   ) {}
 
   async create(
@@ -247,6 +249,26 @@ export class TeacherService {
           // Later when class/section IDs are provided, we can create TeacherClass records
           // Note: Frontend form data has class/section but we need to handle the mapping
         }
+
+        // Create initial salary history record
+        const joiningDate = new Date(professional.joiningDate);
+        const effectiveMonth = new Date(
+          joiningDate.getFullYear(),
+          joiningDate.getMonth(),
+          1,
+        );
+
+        await tx.teacherSalaryHistory.create({
+          data: {
+            teacherId: newTeacher.id,
+            effectiveMonth,
+            basicSalary: salary?.basicSalary || 0,
+            allowances: salary?.allowances || 0,
+            totalSalary: (salary?.basicSalary || 0) + (salary?.allowances || 0),
+            changeType: 'INITIAL',
+            createdById: createdBy,
+          },
+        });
 
         return {
           teacher: newTeacher,
@@ -1156,10 +1178,9 @@ export class TeacherService {
     classId?: string,
   ) {
     const where: any = { teacherId };
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
     if (classId) where.classId = classId;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     await this.prisma.teacherClass.deleteMany({ where });
 
     await this.audit.record({

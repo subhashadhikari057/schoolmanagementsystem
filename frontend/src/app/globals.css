@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 /* @plugin "daisyui";
 @plugin "daisyui/theme" {
   name: "school-theme";
@@ -35,17 +35,17 @@
 } */
 
 :root {
-  --background: #F7F7F7;
+  --background: #f7f7f7;
   --foreground: #171717;
   --tertiary: #333333;
-  --primary:#454545;
+  --primary: #454545;
   --secondary: #737373;
   --placeholder: #b0b0b0;
-  --border: #B0B0B0;
+  --border: #b0b0b0;
   --accent: #727272;
   --muted-foreground: #888888;
-  --muted-hover:#D9EDFF;
-  --hover:#EE0000;
+  --muted-hover: #d9edff;
+  --hover: #ee0000;
 }
 
 @theme {
@@ -80,16 +80,21 @@ body {
 /* Mobile-specific utilities */
 @media (max-width: 767px) {
   .sidebar {
-    transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+    transition:
+      transform 0.3s ease-in-out,
+      width 0.3s ease-in-out;
   }
-  
+
   /* Prevent horizontal scroll on mobile */
-  html, body {
+  html,
+  body {
     overflow-x: hidden;
   }
-  
+
   /* Ensure touch targets are at least 44px */
-  button, a, input {
+  button,
+  a,
+  input {
     min-height: 44px;
   }
 
@@ -166,7 +171,9 @@ body {
   overflow-y: auto;
   position: relative;
   border: 1px solid rgba(156, 163, 175, 0.2); /* Subtle border matching sidebar */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Subtle shadow like sidebar */
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Subtle shadow like sidebar */
 }
 
 .modal-scroll-blend::-webkit-scrollbar {
@@ -200,8 +207,8 @@ body {
   backdrop-filter: blur(8px);
   background: rgba(255, 255, 255, 0.98); /* Slightly transparent white */
   border: 1px solid rgba(229, 231, 235, 0.8); /* Light gray border */
-  box-shadow: 
-    0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
     0 10px 10px -5px rgba(0, 0, 0, 0.04),
     0 0 0 1px rgba(255, 255, 255, 0.05); /* Multi-layer shadow for depth */
 }

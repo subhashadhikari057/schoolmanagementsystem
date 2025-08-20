@@ -8,13 +8,13 @@
  */
 
 // Export all enums
-export * from './enums';
+export * from "./enums";
 
 // Export all DTOs
-export * from './dto';
+export * from "./dto";
 
 // Export all interfaces
-export * from './interfaces';
+export * from "./interfaces";
 
 // Export auth schemas specifically
 export {
@@ -29,7 +29,7 @@ export {
   RequestPasswordResetSchema,
   PasswordResetSchema,
   ForceChangePasswordSchema,
-} from './schemas/auth/auth.schemas';
+} from "./schemas/auth/auth.schemas";
 
 // Export specific schemas to avoid conflicts
 export {
@@ -52,8 +52,8 @@ export {
   createValidationErrorResponse,
   createAuthErrorResponse,
   createBusinessErrorResponse,
-  createRateLimitErrorResponse
-} from './schemas/common/error.schemas';
+  createRateLimitErrorResponse,
+} from "./schemas/common/error.schemas";
 
 // Export error types
 export type {
@@ -66,15 +66,16 @@ export type {
   FileErrorDetail,
   ExternalServiceErrorDetail,
   BaseErrorResponse as BaseErrorResponseDto,
-  DetailedErrorResponse as DetailedErrorResponseDto
-} from './schemas/common/error.schemas';
+  DetailedErrorResponse as DetailedErrorResponseDto,
+} from "./schemas/common/error.schemas";
 
 // Export all utilities
-export * from './utils';
+export * from "./utils";
 
 // Package information
 export const PACKAGE_INFO = {
-  name: '@sms/shared-types',
-  version: '1.0.0',
-  description: 'Shared TypeScript types, DTOs, and enums for School Management System',
+  name: "@sms/shared-types",
+  version: "1.0.0",
+  description:
+    "Shared TypeScript types, DTOs, and enums for School Management System",
 } as const;
