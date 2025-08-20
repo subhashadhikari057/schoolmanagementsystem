@@ -20,6 +20,7 @@ import {
   CreateCalendarEntryDto,
 } from '../types/calendar.types';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
+import { toast } from 'sonner';
 
 export default function AddEventModal({
   isOpen,
@@ -172,32 +173,50 @@ export default function AddEventModal({
 
     // Validation
     if (!formData.name.trim()) {
-      alert('Please enter a name');
+      toast.error('Validation Error', {
+        description: 'Please enter a name for the event.',
+        duration: 3000,
+      });
       return;
     }
 
     if (!formData.startDate) {
-      alert('Please select a start date');
+      toast.error('Validation Error', {
+        description: 'Please select a start date.',
+        duration: 3000,
+      });
       return;
     }
 
     if (!formData.endDate) {
-      alert('Please select an end date');
+      toast.error('Validation Error', {
+        description: 'Please select an end date.',
+        duration: 3000,
+      });
       return;
     }
 
     if (formData.type === CalendarEntryType.EVENT && !formData.venue?.trim()) {
-      alert('Please enter a venue for the event');
+      toast.error('Validation Error', {
+        description: 'Please enter a venue for the event.',
+        duration: 3000,
+      });
       return;
     }
 
     if (formData.type === CalendarEntryType.HOLIDAY && !formData.holidayType) {
-      alert('Please select a holiday type');
+      toast.error('Validation Error', {
+        description: 'Please select a holiday type.',
+        duration: 3000,
+      });
       return;
     }
 
     if (formData.type === CalendarEntryType.EXAM && !formData.examType) {
-      alert('Please select an exam type');
+      toast.error('Validation Error', {
+        description: 'Please select an exam type.',
+        duration: 3000,
+      });
       return;
     }
 
@@ -230,6 +249,8 @@ export default function AddEventModal({
         endDate: endDateTime,
         ...(formData.type === CalendarEntryType.EVENT && {
           venue: formData.venue?.trim(),
+          startTime: formData.startTime,
+          endTime: formData.endTime,
         }),
         ...(formData.type === CalendarEntryType.HOLIDAY && {
           holidayType: formData.holidayType,
@@ -237,10 +258,7 @@ export default function AddEventModal({
         ...(formData.type === CalendarEntryType.EXAM && {
           examType: formData.examType,
           examDetails: formData.examDetails?.trim(),
-        }),
-        // Time fields for events and exams
-        ...((formData.type === CalendarEntryType.EVENT ||
-          formData.type === CalendarEntryType.EXAM) && {
+          venue: formData.venue?.trim(),
           startTime: formData.startTime,
           endTime: formData.endTime,
         }),
@@ -248,11 +266,23 @@ export default function AddEventModal({
 
       await createEvent(createDto);
 
+      toast.success('Event created successfully!', {
+        description: `${formData.name} has been added to the calendar.`,
+        duration: 3000,
+      });
+
       onEventCreated?.();
       onClose();
     } catch (error) {
       console.error('Failed to create calendar entry:', error);
-      alert('Failed to create calendar entry. Please try again.');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to create calendar entry. Please try again.';
+      toast.error('Failed to create event', {
+        description: errorMessage,
+        duration: 5000,
+      });
     } finally {
       setIsSubmitting(false);
     }

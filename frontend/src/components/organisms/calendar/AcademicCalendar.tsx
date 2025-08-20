@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 
 import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
 import UpcomingCalendarEvents from './components/UpcomingCalendarEvents';
+import UpcomingExams from './components/UpcomingExams';
 import ChartCard from '@/components/atoms/display/ChartCard';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
@@ -895,6 +896,7 @@ export default function AcademicCalendar({
               pageType='calendar'
               onRefresh={handleRefresh}
               onAddNew={handleAddEvent}
+              events={calendarEvents}
             />
           )}
 
@@ -920,33 +922,53 @@ export default function AcademicCalendar({
             </div>
 
             {/* Upcoming Events Panel - 30% width */}
-            <div className='lg:col-span-3'>
-              <div className='mb-4'>
-                <div
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-                    calendarType === 'BS'
-                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                  }`}
-                >
-                  <Globe className='w-3 h-3' />
-                  <span>
-                    {calendarType === 'BS' ? 'Events (BS)' : 'Events (AD)'}
-                  </span>
-                </div>
-              </div>
-              <UpcomingCalendarEvents
-                externalEvents={calendarEvents}
-                initialLimit={7}
-                daysAhead={7}
-                showLoadMore={true}
+            <div className='lg:col-span-3 space-y-6'>
+              {/* Upcoming Exams */}
+              <UpcomingExams
+                externalExams={calendarEvents.filter(
+                  event => event.type === 'exam',
+                )}
+                initialLimit={3}
+                daysAhead={30}
                 showRefresh={true}
                 onRefresh={handleRefresh}
                 externalRefreshing={isRefreshing}
-                onEventClick={event => {
-                  // TODO: Add event click handler (open event details modal)
+                onExamClick={exam => {
+                  // TODO: Add exam click handler (open exam details modal)
                 }}
               />
+
+              {/* Upcoming Events */}
+              <div>
+                <div className='mb-4'>
+                  <div
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
+                      calendarType === 'BS'
+                        ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    }`}
+                  >
+                    <Globe className='w-3 h-3' />
+                    <span>
+                      {calendarType === 'BS' ? 'Events (BS)' : 'Events (AD)'}
+                    </span>
+                  </div>
+                </div>
+                <UpcomingCalendarEvents
+                  externalEvents={calendarEvents.filter(
+                    event => event.type !== 'exam',
+                  )}
+                  initialLimit={7}
+                  daysAhead={7}
+                  showLoadMore={true}
+                  showRefresh={true}
+                  onRefresh={handleRefresh}
+                  externalRefreshing={isRefreshing}
+                  onEventClick={event => {
+                    // TODO: Add event click handler (open event details modal)
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

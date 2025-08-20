@@ -26,7 +26,11 @@ import {
 } from 'lucide-react';
 import { calendarService } from '@/api/services/calendar.service';
 import { CalendarEvent } from '@/components/organisms/calendar/types/calendar.types';
-import { CalendarEntryType } from '@sms/shared-types';
+import {
+  CalendarEntryType,
+  HolidayType,
+  HolidayTypeLabels,
+} from '@sms/shared-types';
 import { ad2bs } from 'hamro-nepali-patro';
 
 interface UpcomingCalendarEventsProps {
@@ -128,6 +132,11 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
   // Get status color
   const getStatusColor = (): string => {
     return 'bg-green-100 text-green-700'; // All events are active in simplified schema
+  };
+
+  // Get holiday type label
+  const getHolidayTypeLabel = (holidayType: string): string => {
+    return HolidayTypeLabels[holidayType as HolidayType] || holidayType;
   };
 
   // Convert 24-hour time to 12-hour format
@@ -379,10 +388,16 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
               return (
                 <div
                   key={`${event.id}-${index}`}
-                  className={`flex items-start gap-4 p-3 rounded-lg transition-colors cursor-pointer hover:bg-gray-50 ${
+                  className={`flex items-start gap-4 p-3 rounded-lg border transition-colors cursor-pointer ${
                     isToday
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'border border-transparent'
+                      ? 'bg-blue-50 border-blue-200 hover:border-blue-300 hover:bg-blue-100'
+                      : event.type === 'event'
+                        ? 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                        : event.type === 'exam'
+                          ? 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                          : event.type === 'holiday'
+                            ? 'border-gray-200 hover:border-red-300 hover:bg-red-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                   onClick={() => onEventClick?.(event)}
                 >
@@ -393,11 +408,21 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
                         {event.name || event.title || 'Untitled Event'}
                       </h4>
                       <div className='flex gap-1 flex-shrink-0'>
-                        {event.type && (
+                        {isToday && (
+                          <span className='text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700 border border-green-200'>
+                            Today
+                          </span>
+                        )}
+                        {event.type && event.type !== 'holiday' && (
                           <span
                             className={`text-xs px-2 py-1 rounded-full font-medium ${getEventTypeColor(event.type)}`}
                           >
                             {event.type}
+                          </span>
+                        )}
+                        {event.type === 'holiday' && event.holidayType && (
+                          <span className='text-[10px] px-2 py-1 rounded-full font-medium bg-red-100 text-red-700 border border-red-200'>
+                            {getHolidayTypeLabel(event.holidayType)}
                           </span>
                         )}
                         {/* <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor()}`}>
@@ -407,15 +432,15 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
                     </div>
 
                     <div className='space-y-1'>
-                      {/* Date range display for multi-day events */}
-                      {isMultiDay && (
-                        <div className='flex items-center gap-1 text-xs text-gray-600'>
-                          <Calendar className='w-3 h-3 flex-shrink-0' />
-                          <span>
-                            {formatDateRange(event.date, event.endDate)}
-                          </span>
-                        </div>
-                      )}
+                      {/* Date display for all events */}
+                      <div className='flex items-center gap-1 text-xs text-gray-600'>
+                        <Calendar className='w-3 h-3 flex-shrink-0' />
+                        <span>
+                          {isMultiDay
+                            ? formatDateRange(event.date, event.endDate)
+                            : formatDateRange(event.date)}
+                        </span>
+                      </div>
 
                       {/* Time display for events and exams */}
                       {(event.startTime || event.endTime) && (
