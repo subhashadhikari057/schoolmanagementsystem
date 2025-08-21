@@ -33,6 +33,10 @@ model User {
   sessions           UserSession[]
   teacherSalaryApprovals TeacherSalaryHistory[] @relation("SalaryApprover")
   staffSalaryApprovals   StaffSalaryHistory[]   @relation("StaffSalaryApprover")
+  noticesCreated     Notice[] @relation("NoticeCreator")
+  noticesUpdated     Notice[] @relation("NoticeUpdater")
+  noticesDeleted     Notice[] @relation("NoticeDeleter")
+  noticesReceived    NoticeRecipient[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -87,7 +91,7 @@ model Class {
   assignedSubjects   ClassSubject[]
   students           Student[]
   teacherAssignments TeacherClass[] @relation("ClassTeacherAssignments")
-
+  notices            Notice[] @relation("NoticeClass")
 
   @@index([createdById])
   @@index([updatedById])
@@ -707,4 +711,115 @@ model StaffSalaryHistory {
   @@index([updatedById])
   @@index([deletedById])
   @@index([approvedById])
+}
+
+// Notice Management Enums
+enum NoticePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum NoticeRecipientType {
+  ALL
+  STUDENT
+  PARENT
+  TEACHER
+  STAFF
+  CLASS
+}
+
+enum NoticeCategory {
+  GENERAL
+  ACADEMIC
+  EXAMINATION
+  FEE
+  EVENT
+  HOLIDAY
+  MEETING
+  ANNOUNCEMENT
+  URGENT
+  OTHER
+}
+
+enum NoticeStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  EXPIRED
+}
+
+// Notice Management Models
+model Notice {
+  id                    String              @id @default(uuid())
+  title                 String
+  content               String
+  priority              NoticePriority
+  recipientType         NoticeRecipientType
+  selectedClassId       String?
+  category              NoticeCategory?
+  publishDate           DateTime
+  expiryDate            DateTime
+  status                NoticeStatus        @default(DRAFT)
+  sendEmailNotification Boolean             @default(false)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime?
+  deletedAt             DateTime?
+  createdById           String?
+  updatedById           String?
+  deletedById           String?
+
+  // Relationships
+  selectedClass         Class?              @relation("NoticeClass", fields: [selectedClassId], references: [id])
+  createdBy             User?               @relation("NoticeCreator", fields: [createdById], references: [id])
+  updatedBy             User?               @relation("NoticeUpdater", fields: [updatedById], references: [id])
+  deletedBy             User?               @relation("NoticeDeleter", fields: [deletedById], references: [id])
+  recipients            NoticeRecipient[]
+  attachments           NoticeAttachment[]
+
+  @@index([recipientType])
+  @@index([priority])
+  @@index([category])
+  @@index([status])
+  @@index([publishDate])
+  @@index([expiryDate])
+  @@index([selectedClassId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model NoticeRecipient {
+  id        String   @id @default(uuid())
+  noticeId  String
+  userId    String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  // Relationships
+  notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([noticeId, userId])
+  @@index([noticeId])
+  @@index([userId])
+  @@index([readAt])
+}
+
+model NoticeAttachment {
+  id           String   @id @default(uuid())
+  noticeId     String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  uploadedAt   DateTime @default(now())
+
+  // Relationships
+  notice       Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
+  @@index([noticeId])
+  @@index([mimeType])
 }

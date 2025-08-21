@@ -1,10 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/database/prisma.service';
-import { json } from 'express';
+import { json, static as expressStatic } from 'express';
 import * as cookieParser from 'cookie-parser';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { Express } from 'express';
+import { join } from 'path';
 export async function createApp() {
   const app = await NestFactory.create(AppModule);
 
@@ -36,7 +37,10 @@ export async function createApp() {
 
   // ✅ Add test route here
   const expressApp: Express = app.getHttpAdapter().getInstance();
+  // Serve /uploads statically so files can be accessed directly
+  expressApp.use('/uploads', expressStatic(join(process.cwd(), 'uploads')));
   expressApp.get('/test', (req, res) => {
+    // eslint-disable-next-line no-console
     console.log('✅ /test route hit');
     res.send({ message: 'Main test route working' });
   });
@@ -47,6 +51,7 @@ export async function createApp() {
   // ✅ Connect Prisma DB and confirm
   const prisma = app.get(PrismaService);
   await prisma.$connect();
+  // eslint-disable-next-line no-console
   console.log('✅ DB connected');
 
   return app;
@@ -62,9 +67,12 @@ async function bootstrap(): Promise<void> {
 
     const app = await createApp();
     await app.listen(envConfig.PORT);
+    // eslint-disable-next-line no-console
     console.log(`🚀 Server ready at http://localhost:${envConfig.PORT}`);
+    // eslint-disable-next-line no-console
     console.log('📚 School Management System Backend Started');
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error(
       '❌ Failed to start server:',
       error instanceof Error ? error.message : String(error),

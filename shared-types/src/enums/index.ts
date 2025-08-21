@@ -35,6 +35,9 @@ export * from "./finance/payment-method.enum";
 
 // Communication Module Enums
 export * from "./communication/notice-status.enum";
+export * from "./communication/notice-priority.enum";
+export * from "./communication/notice-recipient-type.enum";
+export * from "./communication/notice-category.enum";
 export * from "./communication/message-status.enum";
 export * from "./communication/complaint-status.enum";
 
