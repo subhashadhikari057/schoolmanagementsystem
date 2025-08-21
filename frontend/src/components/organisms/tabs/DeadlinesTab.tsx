@@ -63,16 +63,16 @@ export default function DeadlinesTab() {
   };
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-6 px-2 sm:px-0'>
       {/* Header */}
-      <div className='flex items-center justify-between'>
+      <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0'>
         <div>
           <SectionTitle
             text='Upcoming Deadlines'
             level={3}
-            className='text-xl font-semibold text-gray-900'
+            className='text-lg sm:text-xl font-semibold text-gray-900'
           />
-          <Label className='text-gray-600'>
+          <Label className='text-gray-600 text-sm sm:text-base'>
             Track assignments with approaching due dates
           </Label>
         </div>
@@ -87,11 +87,11 @@ export default function DeadlinesTab() {
         {deadlineAssignments.map(assignment => (
           <div
             key={assignment.id}
-            className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'
+            className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm'
           >
-            <div className='flex items-start justify-between'>
-              <div className='flex-1'>
-                <div className='flex items-center gap-3 mb-3'>
+            <div className='flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4 sm:gap-0'>
+              <div className='flex-1 w-full'>
+                <div className='flex flex-wrap items-center gap-2 sm:gap-3 mb-3'>
                   {assignment.isUrgent && (
                     <span className='inline-block px-3 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full'>
                       Urgent
@@ -102,11 +102,11 @@ export default function DeadlinesTab() {
                   </span>
                 </div>
 
-                <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+                <h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-2'>
                   {assignment.title}
                 </h3>
 
-                <div className='flex items-center gap-6 text-sm text-gray-600 mb-4'>
+                <div className='flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-600 mb-4'>
                   <div className='flex items-center gap-2'>
                     <Users className='w-4 h-4' />
                     <span>{assignment.class}</span>
@@ -124,14 +124,16 @@ export default function DeadlinesTab() {
                 </div>
 
                 {/* Submission Progress */}
-                <div className='flex items-center justify-between'>
+                <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0'>
                   <div className='flex items-center gap-2'>
-                    <span className='text-sm text-gray-600'>Submissions:</span>
-                    <span className='text-sm font-medium text-gray-900'>
+                    <span className='text-xs sm:text-sm text-gray-600'>
+                      Submissions:
+                    </span>
+                    <span className='text-xs sm:text-sm font-medium text-gray-900'>
                       {assignment.submissions}/{assignment.totalStudents}
                     </span>
                   </div>
-                  <div className='text-sm text-gray-500'>
+                  <div className='text-xs sm:text-sm text-gray-500'>
                     {Math.round(
                       (assignment.submissions / assignment.totalStudents) * 100,
                     )}
@@ -150,9 +152,9 @@ export default function DeadlinesTab() {
               </div>
 
               {/* Submission Count Box */}
-              <div className='ml-6'>
+              <div className='w-full sm:w-auto ml-0 sm:ml-6 mt-4 sm:mt-0'>
                 <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 text-center'>
-                  <div className='text-lg font-bold text-blue-600'>
+                  <div className='text-base sm:text-lg font-bold text-blue-600'>
                     {assignment.submissions}/{assignment.totalStudents}
                   </div>
                   <div className='text-xs text-blue-600'>submissions</div>
@@ -165,7 +167,7 @@ export default function DeadlinesTab() {
               <div className='mt-4 pt-4 border-t border-gray-200'>
                 <div className='flex items-center gap-2 text-red-600'>
                   <AlertTriangle className='w-4 h-4' />
-                  <span className='text-sm font-medium'>
+                  <span className='text-xs sm:text-sm font-medium'>
                     This assignment is due soon! Consider sending a reminder to
                     students.
                   </span>
@@ -182,8 +184,10 @@ export default function DeadlinesTab() {
           <div className='w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4'>
             <Calendar className='w-8 h-8 text-green-600' />
           </div>
-          <Label className='text-gray-500 text-lg'>No upcoming deadlines</Label>
-          <Label className='text-gray-400'>
+          <Label className='text-gray-500 text-base sm:text-lg'>
+            No upcoming deadlines
+          </Label>
+          <Label className='text-gray-400 text-sm sm:text-base'>
             All assignments have comfortable due dates
           </Label>
         </div>
