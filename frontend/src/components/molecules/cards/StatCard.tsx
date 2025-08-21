@@ -60,13 +60,14 @@ export default function StatCard({
     <div
       className={`bg-white rounded-xl border border-gray-200 ${paddingBySize} shadow-sm hover:shadow-md transition-shadow min-w-0 w-full ${className}`}
     >
-      <div className='flex items-start justify-between gap-2 sm:gap-3 lg:gap-4 w-full'>
+      <div className='px-4 sm:px-0 sm:flex items-start justify-between gap-2 sm:gap-3 lg:gap-4  w-full'>
         <div className='flex-1 min-w-0'>
           <MetricDisplay
             value={value}
             label={label}
             change={change}
             isPositive={isPositive}
+            className='px-4 sm:p-0'
           />
         </div>
         {IconComponent && (

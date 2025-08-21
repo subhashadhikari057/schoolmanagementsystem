@@ -38,22 +38,18 @@ export const Pagination = ({
       }
 
       // Show current page and neighbors
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
-
-      for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== totalPages) {
-          pages.push(i);
-        }
+      for (
+        let i = Math.max(2, currentPage - 1);
+        i <= Math.min(totalPages - 1, currentPage + 1);
+        i++
+      ) {
+        pages.push(i);
       }
 
       if (currentPage < totalPages - 3) {
         pages.push('...');
       }
-
-      if (totalPages > 1) {
-        pages.push(totalPages);
-      }
+      pages.push(totalPages);
     }
 
     return pages;
@@ -62,18 +58,21 @@ export const Pagination = ({
   const pageNumbers = generatePageNumbers();
 
   return (
-    <div className='flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6'>
-      {/* Mobile pagination */}
+    <div className='flex items-center justify-between border-t border-gray-200 px-2 py-2 sm:px-6'>
+      {/* Mobile pagination - compact and easy to tap */}
       <div className='flex flex-1 justify-between sm:hidden'>
         <ToggleButton
-          className='hover:bg-gray-100'
+          className='hover:bg-gray-100 px-2 py-1 text-xs rounded-md min-w-[60px]'
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
         >
-          Previous
+          Prev
         </ToggleButton>
+        <span className='text-xs font-medium text-gray-700 mx-2'>
+          {currentPage} / {totalPages}
+        </span>
         <ToggleButton
-          className='hover:bg-gray-100'
+          className='hover:bg-gray-100 px-2 py-1 text-xs rounded-md min-w-[60px]'
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
         >

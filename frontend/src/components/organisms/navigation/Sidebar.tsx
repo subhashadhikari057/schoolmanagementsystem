@@ -221,7 +221,15 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                         <li key={item.label}>
                           <Link
                             href={item.path}
-                            onClick={onToggle} // Close sidebar when navigation link is clicked on mobile
+                            onClick={e => {
+                              if (
+                                typeof window !== 'undefined' &&
+                                window.innerWidth < 768 &&
+                                onToggle
+                              ) {
+                                onToggle();
+                              }
+                            }}
                             className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
                               text-foreground hover:bg-muted-hover hover:font-bold
                               ${isCollapsed && !expandedByHover ? 'justify-center' : ''}
@@ -254,7 +262,15 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
               <li>
                 <Link
                   href={`/dashboard/system/myprofile/${user.id}`}
-                  onClick={onToggle}
+                  onClick={e => {
+                    if (
+                      typeof window !== 'undefined' &&
+                      window.innerWidth < 768 &&
+                      onToggle
+                    ) {
+                      onToggle();
+                    }
+                  }}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
                     text-foreground hover:bg-muted-hover hover:font-bold
                     ${isCollapsed && !expandedByHover ? 'justify-center' : ''}`}

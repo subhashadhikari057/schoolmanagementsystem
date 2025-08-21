@@ -175,11 +175,11 @@ export default function ExamsTab() {
         {filteredExams.map(exam => (
           <div
             key={exam.id}
-            className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'
+            className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm w-full'
           >
-            <div className='flex items-start justify-between mb-4'>
-              <div className='flex-1'>
-                <div className='flex items-center gap-3 mb-3'>
+            <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4'>
+              <div className='flex-1 min-w-0'>
+                <div className='flex flex-wrap gap-2 mb-3'>
                   <span
                     className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(exam.status)}`}
                   >
@@ -193,11 +193,11 @@ export default function ExamsTab() {
                   </span>
                 </div>
 
-                <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+                <h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words truncate'>
                   {exam.title}
                 </h3>
 
-                <div className='flex items-center gap-6 text-sm text-gray-600 mb-4'>
+                <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6 text-xs sm:text-sm text-gray-600 mb-4'>
                   <div className='flex items-center gap-2'>
                     <Calendar className='w-4 h-4' />
                     <span>{exam.date}</span>
@@ -212,32 +212,32 @@ export default function ExamsTab() {
                   </div>
                   <div className='flex items-center gap-2'>
                     <Users className='w-4 h-4' />
-                    <span>Classes: {exam.class}</span>
+                    <span className='break-words'>{exam.class}</span>
                   </div>
                 </div>
 
-                {/* Statistics Row */}
-                <div className='grid grid-cols-4 gap-4 mb-4'>
-                  <div className='text-center'>
-                    <div className='text-lg font-semibold text-gray-900'>
+                {/* Statistics Row - horizontal scroll on mobile */}
+                <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 overflow-x-auto'>
+                  <div className='text-center min-w-[90px]'>
+                    <div className='text-base sm:text-lg font-semibold text-gray-900'>
                       {exam.totalStudents}
                     </div>
                     <div className='text-xs text-gray-600'>Total Students</div>
                   </div>
-                  <div className='text-center'>
-                    <div className='text-lg font-semibold text-gray-900'>
+                  <div className='text-center min-w-[90px]'>
+                    <div className='text-base sm:text-lg font-semibold text-gray-900'>
                       {exam.completed}
                     </div>
                     <div className='text-xs text-gray-600'>Completed</div>
                   </div>
-                  <div className='text-center'>
-                    <div className='text-lg font-semibold text-gray-900'>
+                  <div className='text-center min-w-[90px]'>
+                    <div className='text-base sm:text-lg font-semibold text-gray-900'>
                       {exam.graded}
                     </div>
                     <div className='text-xs text-gray-600'>Graded</div>
                   </div>
-                  <div className='text-center'>
-                    <div className='text-lg font-semibold text-gray-900'>
+                  <div className='text-center min-w-[90px]'>
+                    <div className='text-base sm:text-lg font-semibold text-gray-900'>
                       {exam.averageScore > 0 ? `${exam.averageScore}%` : '-'}
                     </div>
                     <div className='text-xs text-gray-600'>Average Score</div>
@@ -245,14 +245,14 @@ export default function ExamsTab() {
                 </div>
               </div>
 
-              <div className='flex gap-3'>
+              <div className='flex gap-2 sm:gap-3 w-full sm:w-auto'>
                 <Button
                   label='Edit'
-                  className='bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200'
+                  className='bg-gray-100 text-gray-700 px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-200 w-full sm:w-auto'
                 />
                 <Button
                   label='View Details'
-                  className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700'
+                  className='bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 w-full sm:w-auto'
                 />
               </div>
             </div>

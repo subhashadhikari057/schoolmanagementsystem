@@ -29,7 +29,7 @@ export default function QuickActions({ actions }: QuickActionsProps) {
   return (
     <div className='bg-white rounded-xl border border-gray-200 p-6 max-w-7xl mx-auto'>
       <SectionHeader title='Quick Actions' />
-      <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4'>
+      <div className='grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4'>
         {safeActions.length > 0 ? (
           safeActions.map(action => (
             <QuickActionItems

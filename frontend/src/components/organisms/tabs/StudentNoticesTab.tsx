@@ -85,7 +85,7 @@ export default function StudentNoticesTab({
             placeholder='Search notices...'
             value={query}
             onChange={e => setQuery(e.target.value)}
-            className='bg-white border border-gray-200 rounded-lg px-4 py-2 w-full'
+            className='bg-white border border-gray-200 rounded-lg px-4 py-2 w-full hidden sm:block'
           />
         </div>
         <Dropdown

@@ -129,7 +129,9 @@ export default function Dropdown({
         onClick: logout,
       },
     ];
-    if (displayUser?.role === 'superadmin') {
+    // Normalize role to handle all superadmin variants
+    const normalizedRole = displayUser?.role?.toLowerCase().replace(/_/g, '');
+    if (normalizedRole === 'superadmin') {
       opts.push({
         value: 'toggle-analytics',
         label: showAnalytics ? 'Hide Analytics' : 'Show Analytics',
@@ -213,7 +215,7 @@ export default function Dropdown({
                     className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
                     showInitials={true}
                   />
-                  <div className='text-left flex-1 min-w-0 hidden sm:block'>
+                  <div className='text-left flex-1 min-w-0'>
                     <p className='text-sm font-semibold text-foreground truncate'>
                       {getUserDisplayName(displayUser)}
                     </p>
