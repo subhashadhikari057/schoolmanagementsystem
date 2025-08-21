@@ -546,6 +546,10 @@ model CalendarEntry {
   endDate     DateTime
   venue       String?
   holidayType HolidayType?
+  startTime   String?
+  endTime     String?
+  examType    ExamType?
+  examDetails String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime?
   deletedAt   DateTime?
@@ -620,11 +624,21 @@ model Submission {
 enum CalendarEntryType {
   HOLIDAY
   EVENT
+  EXAM
 }
 
 enum HolidayType {
   NATIONAL
   SCHOOL
+}
+
+enum ExamType {
+  FIRST_TERM
+  SECOND_TERM
+  THIRD_TERM
+  FINAL
+  UNIT_TEST
+  OTHER
 }
 
 enum ClassShift {

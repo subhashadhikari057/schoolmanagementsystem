@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Plus,
   Printer,
+  Edit,
 } from 'lucide-react';
 import AddTeacherFormModal from '@/components/organisms/modals/AddTeacherFormModal';
 import AddStudentFormModal from '@/components/organisms/modals/AddStudentFormModal';
@@ -28,6 +29,7 @@ interface ActionButtonConfig {
 }
 
 import AddEventModal from '@/components/organisms/modals/AddEventModal';
+import ManageEventsModal from '@/components/organisms/modals/ManageEventsModal';
 import CreateNoticeModal from '@/components/organisms/modals/CreateNoticeModal';
 
 interface ActionButtonsProps {
@@ -47,6 +49,7 @@ interface ActionButtonsProps {
     | 'fee-management';
   onRefresh?: () => void;
   onAddNew?: () => void;
+  events?: any[]; // For calendar events
 }
 
 const getActionButtonsConfig = (
@@ -193,14 +196,13 @@ const getActionButtonsConfig = (
     pageType === 'calendar'
       ? [
           {
-            id: 'export',
-            label: 'Export Calendar',
-            variant: 'export',
-            className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
-            icon: <Download size={16} />,
-            onClick: () => {
-              alert('Exporting calendar...');
-            },
+            id: 'manage-events',
+            label: 'Manage Events',
+            variant: 'secondary',
+            className:
+              'bg-orange-50 text-orange-700 hover:bg-orange-100 rounded-lg',
+            icon: <Edit size={16} />,
+            onClick: () => {}, // will be patched in ActionButtons
           },
         ]
       : [
@@ -326,13 +328,17 @@ export const ActionButtons = ({
   pageType,
   onRefresh,
   onAddNew,
+  events = [],
 }: ActionButtonsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isManageEventsModalOpen, setIsManageEventsModalOpen] = useState(false);
   const [isSendCommModalOpen, setIsSendCommModalOpen] = useState(false);
   const [isMassEmailModalOpen, setIsMassEmailModalOpen] = useState(false);
 
   const openMassEmailModal = () => setIsMassEmailModalOpen(true);
   const closeMassEmailModal = () => setIsMassEmailModalOpen(false);
+  const openManageEventsModal = () => setIsManageEventsModalOpen(true);
+  const closeManageEventsModal = () => setIsManageEventsModalOpen(false);
   const openAddModal = () => {
     if (onAddNew) {
       onAddNew();
@@ -369,6 +375,14 @@ export const ActionButtons = ({
     const idx = actionButtonsConfig.findIndex(b => b.id === 'mass-emails');
     if (idx !== -1) {
       actionButtonsConfig[idx].onClick = openMassEmailModal;
+    }
+  }
+
+  // Patch the onClick for Manage Events button if present
+  if (pageType === 'calendar') {
+    const idx = actionButtonsConfig.findIndex(b => b.id === 'manage-events');
+    if (idx !== -1) {
+      actionButtonsConfig[idx].onClick = openManageEventsModal;
     }
   }
 
@@ -432,6 +446,16 @@ export const ActionButtons = ({
           onSuccess={handleSuccess}
         />
       ) : null}
+
+      {/* Manage Events Modal for Calendar */}
+      {pageType === 'calendar' && (
+        <ManageEventsModal
+          isOpen={isManageEventsModalOpen}
+          onClose={closeManageEventsModal}
+          onEventUpdated={handleSuccess}
+          events={events}
+        />
+      )}
 
       {(pageType === 'staff' ||
         pageType === 'parents' ||

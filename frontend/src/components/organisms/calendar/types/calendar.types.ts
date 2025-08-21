@@ -9,6 +9,7 @@
 import {
   CalendarEntryType,
   HolidayType,
+  ExamType,
   CalendarEntryResponseDto,
   CreateCalendarEntryDto,
   UpdateCalendarEntryDto,
@@ -27,7 +28,7 @@ export type {
   BulkCalendarOperationDto,
 };
 
-export { CalendarEntryType, HolidayType };
+export { CalendarEntryType, HolidayType, ExamType };
 
 // Local calendar event interface (compatible with existing Event type)
 export interface CalendarEvent {
@@ -42,6 +43,10 @@ export interface CalendarEvent {
   venue?: string;
   endDate?: string;
   holidayType?: string;
+  startTime?: string;
+  endTime?: string;
+  examType?: string;
+  examDetails?: string;
 }
 
 // Form data interface for event creation
@@ -54,6 +59,8 @@ export interface EventFormData {
   endTime?: string;
   venue?: string;
   holidayType?: HolidayType;
+  examType?: ExamType;
+  examDetails?: string;
 }
 
 // Modal props interface

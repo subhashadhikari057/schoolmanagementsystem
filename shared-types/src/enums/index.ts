@@ -58,10 +58,11 @@ export * from "./achievements/achievement-type.enum";
 export * from "./achievements/certificate-status.enum";
 
 // Calendar Module Enums
-export * from "./calendar/calendar-entry-type.enum";
-export * from "./calendar/holiday-type.enum";
-export * from "./calendar/reminder-type.enum";
-export * from "./calendar/priority.enum";
+export * from './calendar/calendar-entry-type.enum';
+export * from './calendar/holiday-type.enum';
+export * from './calendar/exam-type.enum';
+export * from './calendar/reminder-type.enum';
+export * from './calendar/priority.enum';
 
 // Utility Types and Helpers
 export * from "./utils/status-helpers";

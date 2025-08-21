@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 
 import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
 import UpcomingCalendarEvents from './components/UpcomingCalendarEvents';
+import UpcomingExams from './components/UpcomingExams';
+
 import ChartCard from '@/components/atoms/display/ChartCard';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
@@ -12,6 +14,12 @@ import { ad2bs, bs2ad } from 'hamro-nepali-patro';
 import AddEventModal from './components/AddEventModal';
 import { useCalendarEvents } from './hooks/useCalendarEvents';
 import { AcademicCalendarProps } from './types/calendar.types';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // Custom BS Calendar Component with Nepali Dates
 const CustomBSCalendar = ({
@@ -25,6 +33,14 @@ const CustomBSCalendar = ({
   onDateSelect: (dateString: string) => void;
   onDateDoubleClick: (dateString: string) => void;
 }) => {
+  // Helper function to truncate titles with ellipsis only if needed
+  const truncateTitle = (title: string, maxLength: number = 10) => {
+    if (title.length > maxLength) {
+      return title.slice(0, maxLength) + '...';
+    }
+    return title;
+  };
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -166,7 +182,19 @@ const CustomBSCalendar = ({
 
   // Get events for a specific AD date string (YYYY-MM-DD)
   const getEventsForDate = (adDateString: string) => {
-    const dayEvents = events.filter(event => event.date === adDateString);
+    const dayEvents = events.filter(event => {
+      // Check if this date falls within the event's date range
+      const eventStartDate = event.date;
+      const eventEndDate = event.endDate || event.date; // Use endDate if available, otherwise use start date
+
+      // Convert dates to timestamps for comparison
+      const currentDate = new Date(adDateString);
+      const startDate = new Date(eventStartDate);
+      const endDate = new Date(eventEndDate);
+
+      // Check if current date is within the event's date range (inclusive)
+      return currentDate >= startDate && currentDate <= endDate;
+    });
     return dayEvents;
   };
 
@@ -267,13 +295,12 @@ const CustomBSCalendar = ({
             >
               <span
                 className={`text-sm font-semibold ${
-                  index === 6 ? 'text-white' : 'text-gray-700'
+                  index === 6
+                    ? 'text-slate-200 font-bold drop-shadow-lg'
+                    : 'text-gray-700'
                 }`}
               >
                 {day}
-                {index === 6 && (
-                  <span className='block text-xs text-red-100 mt-1'>बिदा</span>
-                )}
               </span>
             </div>
           ))}
@@ -302,15 +329,24 @@ const CustomBSCalendar = ({
                     ? String((e as any).type).toLowerCase()
                     : '') === 'holiday',
               );
-            const hasOnlyEvent =
+            const hasEvent =
               hasEvents &&
-              !hasHoliday &&
               dayEvents.some(
                 (e: any) =>
                   (e && (e as any).type
                     ? String((e as any).type).toLowerCase()
                     : '') === 'event',
               );
+            const hasExam =
+              hasEvents &&
+              dayEvents.some(
+                (e: any) =>
+                  (e && (e as any).type
+                    ? String((e as any).type).toLowerCase()
+                    : '') === 'exam',
+              );
+            const hasOnlyEvent =
+              hasEvents && !hasHoliday && !hasExam && hasEvent;
             const holidayEvent = hasHoliday
               ? dayEvents.find(
                   (e: any) =>
@@ -331,66 +367,196 @@ const CustomBSCalendar = ({
             const isSaturday = adDate.getDay() === 6;
 
             return (
-              <button
-                key={index}
-                onClick={() => handleDateSelect(adDateString)}
-                className={`
-                  h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden
-                  ${
-                    isTodayDate
-                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-blue-300'
-                      : isSelected
-                        ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-300'
-                        : isSaturday || hasHoliday
-                          ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
-                          : hasOnlyEvent
-                            ? 'bg-gradient-to-br from-yellow-200 to-yellow-300 text-gray-900 border border-yellow-300'
+              <TooltipProvider key={index}>
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <button
+                      className={`
+                        h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden
+                        ${
+                          isSaturday
+                            ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
                             : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
-                  }
-                `}
-              >
-                <div className='flex flex-col h-full relative'>
-                  {/* Day Number and Status */}
-                  <div className='flex-shrink-0 text-center py-1'>
-                    <div className='flex flex-col items-center'>
-                      <span
-                        className={`text-sm font-bold ${isTodayDate || isSelected || isSaturday || hasHoliday ? 'text-white' : hasOnlyEvent ? 'text-gray-900' : 'text-gray-900'}`}
-                      >
-                        {bsDay}
-                      </span>
-                      {isTodayDate && (
-                        <span className='text-xs text-blue-100 leading-none'>
-                          आज
-                        </span>
-                      )}
-                      {isSaturday &&
-                        !isTodayDate &&
-                        !hasOnlyEvent &&
-                        !hasHoliday && (
-                          <span className='text-xs text-red-100 leading-none'>
-                            बिदा
-                          </span>
+                        }
+                      `}
+                    >
+                      <div className='flex flex-col h-full relative'>
+                        {/* Day Number and Status */}
+                        <div className='flex-shrink-0 text-center py-1'>
+                          <div className='flex flex-col items-center'>
+                            <span
+                              className={`text-sm font-bold ${
+                                isTodayDate
+                                  ? 'bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto'
+                                  : isSaturday
+                                    ? 'text-white'
+                                    : 'text-gray-900'
+                              }`}
+                            >
+                              {bsDay}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Event Badges */}
+                        {hasEvents && (
+                          <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
+                            {dayEvents.slice(0, 2).map((event, eventIndex) => {
+                              const eventType =
+                                (event as any).type?.toLowerCase() || 'event';
+                              let badgeColor = 'bg-blue-500 text-white';
+                              let dotColor = 'bg-blue-600';
+
+                              if (eventType === 'holiday') {
+                                badgeColor = 'bg-red-500 text-white';
+                                dotColor = 'bg-red-600';
+                              } else if (eventType === 'exam') {
+                                badgeColor = 'bg-purple-500 text-white';
+                                dotColor = 'bg-purple-600';
+                              } else if (eventType === 'event') {
+                                badgeColor = 'bg-blue-500 text-white';
+                                dotColor = 'bg-blue-600';
+                              }
+
+                              return (
+                                <div
+                                  key={`${event.id}-${eventIndex}`}
+                                  className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
+                                ></div>
+                              );
+                            })}
+                            {dayEvents.length > 2 && (
+                              <div className='text-xs text-gray-500 px-1'>
+                                +{dayEvents.length - 2}
+                              </div>
+                            )}
+                          </div>
                         )}
-                      {hasHoliday && !isSaturday && (
-                        <span className='text-xs text-red-100 leading-none'>
-                          {holidayName.slice(0, 12)}
-                        </span>
-                      )}
-                      {!hasHoliday && hasOnlyEvent && (
-                        <span
-                          className={`text-xs ${isSelected ? 'text-white' : 'text-gray-800'} leading-none`}
-                        >
-                          {String((dayEvents[0] as any)?.title || '').slice(
-                            0,
-                            10,
-                          )}
-                        </span>
+                      </div>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className='max-w-sm bg-white border border-gray-200 shadow-lg'>
+                    <div className='p-2'>
+                      <div className='font-semibold text-sm text-gray-900 mb-1'>
+                        {(() => {
+                          try {
+                            const currentBS = ad2bs(
+                              adDate.getFullYear(),
+                              adDate.getMonth() + 1,
+                              adDate.getDate(),
+                            );
+                            return `${nepaliWeekdays[adDate.getDay()]}, ${nepaliMonths[currentBS.month - 1]} ${currentBS.date}, ${currentBS.year}`;
+                          } catch (error) {
+                            return adDate.toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            });
+                          }
+                        })()}
+                      </div>
+                      {hasEvents ? (
+                        <div className='space-y-1'>
+                          {dayEvents.map((event, eventIndex) => {
+                            const eventType =
+                              (event as any).type?.toLowerCase() || 'event';
+                            let borderColor = 'border-blue-500';
+                            let icon = '📅';
+
+                            if (eventType === 'holiday') {
+                              borderColor = 'border-red-500';
+                              icon = '🎉';
+                            } else if (eventType === 'exam') {
+                              borderColor = 'border-purple-500';
+                              icon = '📝';
+                            }
+
+                            return (
+                              <div
+                                key={eventIndex}
+                                className={`text-xs border-l-2 ${borderColor} pl-2`}
+                              >
+                                <div className='font-medium text-gray-900 flex items-center gap-1'>
+                                  <span>{icon}</span>
+                                  <span>
+                                    {(event as any).title ||
+                                      (event as any).name ||
+                                      'Untitled Event'}
+                                  </span>
+                                </div>
+
+                                {/* Holiday-specific details */}
+                                {eventType === 'holiday' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-red-600 font-medium'>
+                                      Holiday
+                                    </div>
+                                    {(event as any).description && (
+                                      <div className='text-gray-500 text-xs mt-1'>
+                                        {(event as any).description}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Exam-specific details */}
+                                {eventType === 'exam' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-purple-600 font-medium'>
+                                      Exam
+                                    </div>
+                                    {(event as any).subject && (
+                                      <div className='text-gray-500 text-xs'>
+                                        📚 {(event as any).subject}
+                                      </div>
+                                    )}
+                                    {(event as any).duration && (
+                                      <div className='text-gray-500 text-xs'>
+                                        ⏱️ {(event as any).duration}
+                                      </div>
+                                    )}
+                                    {(event as any).location &&
+                                      (event as any).location !==
+                                        'No location' && (
+                                        <div className='text-gray-500 text-xs'>
+                                          📍 {(event as any).location}
+                                        </div>
+                                      )}
+                                  </div>
+                                )}
+
+                                {/* Regular event details */}
+                                {eventType === 'event' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-blue-600 font-medium'>
+                                      Event
+                                    </div>
+                                    {(event as any).location &&
+                                      (event as any).location !==
+                                        'No location' && (
+                                        <div className='text-gray-500 text-xs'>
+                                          📍 {(event as any).location}
+                                        </div>
+                                      )}
+                                    {(event as any).description && (
+                                      <div className='text-gray-500 text-xs mt-1'>
+                                        {(event as any).description}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className='text-xs text-gray-500'>No events</p>
                       )}
                     </div>
-                  </div>
-                  {/* No separate event chips; info shown as small text above */}
-                </div>
-              </button>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           })}
         </div>
@@ -411,6 +577,14 @@ const CustomADCalendar = ({
   onDateSelect: (dateString: string) => void;
   onDateDoubleClick: (dateString: string) => void;
 }) => {
+  // Helper function to truncate titles with ellipsis only if needed
+  const truncateTitle = (title: string, maxLength: number = 10) => {
+    if (title.length > maxLength) {
+      return title.slice(0, maxLength) + '...';
+    }
+    return title;
+  };
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -440,7 +614,15 @@ const CustomADCalendar = ({
   ];
 
   // English weekday names
-  const englishWeekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const englishWeekdays = [
+    'Sun',
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Saturday',
+  ];
 
   // Generate AD calendar days for current month
   const generateCalendarDays = () => {
@@ -498,7 +680,19 @@ const CustomADCalendar = ({
   // Get events for a specific date
   const getEventsForDate = (day: number) => {
     const dateString = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    const dayEvents = events.filter(event => event.date === dateString);
+    const dayEvents = events.filter(event => {
+      // Check if this date falls within the event's date range
+      const eventStartDate = event.date;
+      const eventEndDate = event.endDate || event.date; // Use endDate if available, otherwise use start date
+
+      // Convert dates to timestamps for comparison
+      const currentDate = new Date(dateString);
+      const startDate = new Date(eventStartDate);
+      const endDate = new Date(eventEndDate);
+
+      // Check if current date is within the event's date range (inclusive)
+      return currentDate >= startDate && currentDate <= endDate;
+    });
 
     return dayEvents;
   };
@@ -582,15 +776,12 @@ const CustomADCalendar = ({
             >
               <span
                 className={`text-sm font-semibold ${
-                  index === 6 ? 'text-white' : 'text-gray-700'
+                  index === 6
+                    ? 'text-slate-200 font-bold drop-shadow-lg'
+                    : 'text-gray-700'
                 }`}
               >
                 {day}
-                {index === 6 && (
-                  <span className='block text-xs text-red-100 mt-1'>
-                    Holiday
-                  </span>
-                )}
               </span>
             </div>
           ))}
@@ -619,75 +810,179 @@ const CustomADCalendar = ({
             const isSaturday = currentDayDate.getDay() === 6;
 
             return (
-              <button
-                key={index}
-                onClick={() => handleDateSelect(day)}
-                className={`
-                  h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden
-                  ${
-                    isTodayDate
-                      ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-emerald-300'
-                      : isSelected
-                        ? 'bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-teal-300'
-                        : isSaturday
-                          ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
-                          : hasEvents
-                            ? 'bg-gradient-to-br from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 text-gray-800 border border-amber-300'
+              <TooltipProvider key={index}>
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <button
+                      className={`
+                        h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden
+                        ${
+                          isSaturday
+                            ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
                             : 'bg-white hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50 text-gray-700 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300'
-                  }
-                `}
-              >
-                <div className='flex flex-col h-full relative'>
-                  {/* Day Number and Status */}
-                  <div className='flex-shrink-0 text-center py-1'>
-                    <div className='flex flex-col items-center'>
-                      <span
-                        className={`text-sm font-bold ${isTodayDate || isSelected || isSaturday ? 'text-white' : hasEvents ? 'text-gray-800' : 'text-gray-900'}`}
-                      >
-                        {day}
-                      </span>
-                      {isTodayDate && (
-                        <span className='text-xs text-emerald-100 leading-none'>
-                          Today
-                        </span>
-                      )}
-                      {isSaturday && !isTodayDate && (
-                        <span className='text-xs text-red-100 leading-none'>
-                          Holiday
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Events Section */}
-                  {hasEvents && (
-                    <div className='flex-1 px-1 pb-1 overflow-hidden'>
-                      <div className='space-y-1'>
-                        {dayEvents.slice(0, 2).map((event, eventIndex) => (
-                          <div
-                            key={`${event.id}-${eventIndex}`}
-                            className={`text-xs px-2 py-1 rounded-md text-center font-medium shadow-sm ${
-                              event.status === 'Active'
-                                ? 'bg-green-500 text-white'
-                                : 'bg-orange-400 text-white'
-                            }`}
-                            title={`${event.title} - ${event.time} - ${event.location || 'No location'}`}
-                          >
-                            {event.title.length > 10
-                              ? `${event.title.substring(0, 10)}...`
-                              : event.title}
+                        }
+                      `}
+                    >
+                      <div className='flex flex-col h-full relative'>
+                        {/* Day Number and Status */}
+                        <div className='flex-shrink-0 text-center py-1'>
+                          <div className='flex flex-col items-center'>
+                            <span
+                              className={`text-sm font-bold ${
+                                isTodayDate
+                                  ? 'bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto'
+                                  : isSelected || isSaturday
+                                    ? 'text-white'
+                                    : 'text-gray-900'
+                              }`}
+                            >
+                              {day}
+                            </span>
                           </div>
-                        ))}
-                        {dayEvents.length > 2 && (
-                          <div className='text-xs text-gray-600 px-1 font-medium text-center'>
-                            +{dayEvents.length - 2} more
+                        </div>
+
+                        {/* Event Badges */}
+                        {hasEvents && (
+                          <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
+                            {dayEvents.slice(0, 2).map((event, eventIndex) => {
+                              const eventType =
+                                (event as any).type?.toLowerCase() || 'event';
+                              let badgeColor = 'bg-blue-500 text-white';
+                              let dotColor = 'bg-blue-600';
+
+                              if (eventType === 'holiday') {
+                                badgeColor = 'bg-red-500 text-white';
+                                dotColor = 'bg-red-600';
+                              } else if (eventType === 'exam') {
+                                badgeColor = 'bg-purple-500 text-white';
+                                dotColor = 'bg-purple-600';
+                              } else if (eventType === 'event') {
+                                badgeColor = 'bg-blue-500 text-white';
+                                dotColor = 'bg-blue-600';
+                              }
+
+                              return (
+                                <div
+                                  key={`${event.id}-${eventIndex}`}
+                                  className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
+                                ></div>
+                              );
+                            })}
+                            {dayEvents.length > 2 && (
+                              <div className='text-xs text-gray-500 px-1'>
+                                +{dayEvents.length - 2}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className='max-w-sm bg-white border border-gray-200 shadow-lg'>
+                    <div className='p-2'>
+                      <div className='font-semibold text-sm text-gray-900 mb-1'>
+                        {currentDayDate.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </div>
+                      {hasEvents ? (
+                        <div className='space-y-1'>
+                          {dayEvents.map((event, eventIndex) => {
+                            const eventType =
+                              (event as any).type?.toLowerCase() || 'event';
+                            let borderColor = 'border-blue-500';
+                            let icon = '📅';
+
+                            if (eventType === 'holiday') {
+                              borderColor = 'border-red-500';
+                              icon = '🎉';
+                            } else if (eventType === 'exam') {
+                              borderColor = 'border-purple-500';
+                              icon = '📝';
+                            }
+
+                            return (
+                              <div
+                                key={eventIndex}
+                                className={`text-xs border-l-2 ${borderColor} pl-2`}
+                              >
+                                <div className='font-medium text-gray-900 flex items-center gap-1'>
+                                  <span>{icon}</span>
+                                  <span>{event.title}</span>
+                                </div>
+
+                                {/* Holiday-specific details */}
+                                {eventType === 'holiday' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-red-600 font-medium'>
+                                      Holiday
+                                    </div>
+                                    {(event as any).description && (
+                                      <div className='text-gray-500 text-xs mt-1'>
+                                        {(event as any).description}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Exam-specific details */}
+                                {eventType === 'exam' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-purple-600 font-medium'>
+                                      Exam
+                                    </div>
+                                    {(event as any).subject && (
+                                      <div className='text-gray-500 text-xs'>
+                                        📚 {(event as any).subject}
+                                      </div>
+                                    )}
+                                    {(event as any).duration && (
+                                      <div className='text-gray-500 text-xs'>
+                                        ⏱️ {(event as any).duration}
+                                      </div>
+                                    )}
+                                    {event.location &&
+                                      event.location !== 'No location' && (
+                                        <div className='text-gray-500 text-xs'>
+                                          📍 {event.location}
+                                        </div>
+                                      )}
+                                  </div>
+                                )}
+
+                                {/* Regular event details */}
+                                {eventType === 'event' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-blue-600 font-medium'>
+                                      Event
+                                    </div>
+                                    {event.location &&
+                                      event.location !== 'No location' && (
+                                        <div className='text-gray-500 text-xs'>
+                                          📍 {event.location}
+                                        </div>
+                                      )}
+                                    {(event as any).description && (
+                                      <div className='text-gray-500 text-xs mt-1'>
+                                        {(event as any).description}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className='text-xs text-gray-500'>No events</p>
+                      )}
                     </div>
-                  )}
-                </div>
-              </button>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             );
           })}
         </div>
@@ -722,6 +1017,7 @@ export default function AcademicCalendar({
       id: calendarEvent.id || `temp-${Date.now()}-${Math.random()}`,
       title: calendarEvent.name || calendarEvent.title || 'Untitled Event',
       date: calendarEvent.date || new Date().toISOString().split('T')[0],
+      endDate: calendarEvent.endDate || undefined, // Include endDate for multi-day events
       time: calendarEvent.time || '00:00',
       location: calendarEvent.location || calendarEvent.venue || 'No location',
       status: calendarEvent.status || 'Active',
@@ -836,6 +1132,7 @@ export default function AcademicCalendar({
               pageType='calendar'
               onRefresh={handleRefresh}
               onAddNew={handleAddEvent}
+              events={calendarEvents}
             />
           )}
 
@@ -861,33 +1158,47 @@ export default function AcademicCalendar({
             </div>
 
             {/* Upcoming Events Panel - 30% width */}
-            <div className='lg:col-span-3'>
-              <div className='mb-4'>
-                <div
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
-                    calendarType === 'BS'
-                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                  }`}
-                >
-                  <Globe className='w-3 h-3' />
-                  <span>
-                    {calendarType === 'BS' ? 'Events (BS)' : 'Events (AD)'}
-                  </span>
-                </div>
-              </div>
-              <UpcomingCalendarEvents
-                externalEvents={calendarEvents}
-                initialLimit={7}
-                daysAhead={7}
-                showLoadMore={true}
+            <div className='lg:col-span-3 space-y-6'>
+              {/* Upcoming Exams */}
+              <UpcomingExams
+                externalExams={calendarEvents.filter(
+                  event => event.type === 'exam',
+                )}
+                initialLimit={3}
+                daysAhead={30}
                 showRefresh={true}
                 onRefresh={handleRefresh}
                 externalRefreshing={isRefreshing}
-                onEventClick={event => {
-                  // TODO: Add event click handler (open event details modal)
-                }}
               />
+
+              {/* Upcoming Events */}
+              <div>
+                <div className='mb-4'>
+                  <div
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
+                      calendarType === 'BS'
+                        ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    }`}
+                  >
+                    <Globe className='w-3 h-3' />
+                    <span>
+                      {calendarType === 'BS' ? 'Events (BS)' : 'Events (AD)'}
+                    </span>
+                  </div>
+                </div>
+                <UpcomingCalendarEvents
+                  externalEvents={calendarEvents.filter(
+                    event => event.type !== 'exam',
+                  )}
+                  initialLimit={7}
+                  daysAhead={7}
+                  showLoadMore={true}
+                  showRefresh={true}
+                  onRefresh={handleRefresh}
+                  externalRefreshing={isRefreshing}
+                />
+              </div>
             </div>
           </div>
         </div>

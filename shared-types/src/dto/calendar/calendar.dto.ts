@@ -6,9 +6,10 @@
  * =============================================================================
  */
 
-import { z } from "zod";
-import { CalendarEntryType } from "../../enums/calendar/calendar-entry-type.enum";
-import { HolidayType } from "../../enums/calendar/holiday-type.enum";
+import { z } from 'zod';
+import { CalendarEntryType } from '../../enums/calendar/calendar-entry-type.enum';
+import { HolidayType } from '../../enums/calendar/holiday-type.enum';
+import { ExamType } from '../../enums/calendar/exam-type.enum';
 
 /**
  * Base calendar entry schema with common fields
@@ -20,34 +21,63 @@ export const BaseCalendarEntrySchema = z.object({
   endDate: z.string().datetime("Invalid end date format"),
   venue: z.string().optional(),
   holidayType: z.nativeEnum(HolidayType).optional(),
+  // Time fields for events and exams only
+  startTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)').optional(),
+  endTime: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)').optional(),
+  // Exam-specific fields
+  examType: z.nativeEnum(ExamType).optional(),
+  examDetails: z.string().optional(),
 });
 
 /**
  * Create calendar entry DTO
  */
-export const CreateCalendarEntrySchema = BaseCalendarEntrySchema.refine(
-  (data) => {
-    if (data.type === CalendarEntryType.HOLIDAY && !data.holidayType) {
-      return false;
+export const CreateCalendarEntrySchema = BaseCalendarEntrySchema
+  .refine(
+    (data) => {
+      if (data.type === CalendarEntryType.HOLIDAY && !data.holidayType) {
+        return false;
+      }
+      if (data.type === CalendarEntryType.EVENT && !data.venue) {
+        return false;
+      }
+      if (data.type === CalendarEntryType.EXAM && !data.examType) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Holiday type is required for holidays, venue is required for events, exam type is required for exams',
     }
-    if (data.type === CalendarEntryType.EVENT && !data.venue) {
-      return false;
+  )
+  .refine(
+    (data) => {
+      // Time fields should only be present for events and exams
+      if (data.type === CalendarEntryType.HOLIDAY && (data.startTime || data.endTime)) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Time fields are not allowed for holidays',
+      path: ['startTime', 'endTime'],
     }
-    return true;
-  },
-  {
-    message:
-      "Holiday type is required for holidays, venue is required for events",
-  },
-).refine(
-  (data) => {
-    return new Date(data.endDate) >= new Date(data.startDate);
-  },
-  {
-    message: "End date must be after start date",
-    path: ["endDate"],
-  },
-);
+  )
+  .refine(
+    (data) => {
+      // If both times are provided, end time should be after start time
+      if (data.startTime && data.endTime) {
+        const startTime = new Date(`2000-01-01T${data.startTime}:00`);
+        const endTime = new Date(`2000-01-01T${data.endTime}:00`);
+        return endTime > startTime;
+      }
+      return true;
+    },
+    {
+      message: 'End time must be after start time',
+      path: ['endTime'],
+    }
+  );
 
 export type CreateCalendarEntryDto = z.infer<typeof CreateCalendarEntrySchema>;
 
@@ -94,6 +124,7 @@ export const CalendarEntriesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   type: z.nativeEnum(CalendarEntryType).optional(),
+  examType: z.nativeEnum(ExamType).optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
   month: z.coerce.number().int().min(1).max(12).optional(),

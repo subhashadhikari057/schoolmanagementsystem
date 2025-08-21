@@ -96,6 +96,7 @@ export class CalendarController {
     total: number;
     holidays: number;
     events: number;
+    exams: number;
     thisMonth: number;
   }> {
     return this.calendarService.getStatistics();
