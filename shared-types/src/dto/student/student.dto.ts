@@ -7,16 +7,16 @@
  * =============================================================================
  */
 
-import { z } from 'zod';
-import { BaseEntity, CommonValidation, UuidSchema } from '../common/base.dto';
+import { z } from "zod";
+import { BaseEntity, CommonValidation, UuidSchema } from "../common/base.dto";
 
 /**
  * Gender enum for students
  */
 export enum Gender {
-  MALE = 'male',
-  FEMALE = 'female',
-  OTHER = 'other',
+  MALE = "male",
+  FEMALE = "female",
+  OTHER = "other",
 }
 
 /**
@@ -150,10 +150,12 @@ export const CreateStudentUserSchema = z.object({
 
 export const CreateStudentRequestSchema = z.object({
   user: CreateStudentUserSchema,
-  class_id: UuidSchema.describe('Class ID'),
-  section_id: UuidSchema.describe('Section ID'),
-  roll_number: z.string().min(1, 'Roll number is required'),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  class_id: UuidSchema.describe("Class ID"),
+  section_id: UuidSchema.describe("Section ID"),
+  roll_number: z.string().min(1, "Roll number is required"),
+  dob: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
   gender: GenderSchema,
   additional_metadata: z.record(z.any()).optional(),
 });
@@ -164,7 +166,10 @@ export const UpdateStudentRequestSchema = z.object({
   class_id: UuidSchema.optional(),
   section_id: UuidSchema.optional(),
   roll_number: z.string().min(1).optional(),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
+  dob: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format")
+    .optional(),
   gender: GenderSchema.optional(),
   additional_metadata: z.record(z.any()).optional(),
 });
@@ -175,8 +180,14 @@ export const SearchStudentsRequestSchema = z.object({
   section_id: UuidSchema.optional(),
   roll_number: z.string().optional(),
   gender: GenderSchema.optional(),
-  dob_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  dob_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dob_from: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  dob_to: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   page: z.number().int().min(1).default(1),
   limit: z.number().int().min(1).max(200).default(50),
 });
@@ -184,6 +195,12 @@ export const SearchStudentsRequestSchema = z.object({
 /**
  * Type inference from Zod schemas
  */
-export type CreateStudentRequestType = z.infer<typeof CreateStudentRequestSchema>;
-export type UpdateStudentRequestType = z.infer<typeof UpdateStudentRequestSchema>;
-export type SearchStudentsRequestType = z.infer<typeof SearchStudentsRequestSchema>;
+export type CreateStudentRequestType = z.infer<
+  typeof CreateStudentRequestSchema
+>;
+export type UpdateStudentRequestType = z.infer<
+  typeof UpdateStudentRequestSchema
+>;
+export type SearchStudentsRequestType = z.infer<
+  typeof SearchStudentsRequestSchema
+>;

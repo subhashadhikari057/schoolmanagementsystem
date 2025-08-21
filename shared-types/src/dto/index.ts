@@ -8,67 +8,67 @@
  */
 
 // Common/Base DTOs
-export * from './common/base.dto';
-export * from './common/pagination.dto';
-export * from './common/response.dto';
+export * from "./common/base.dto";
+export * from "./common/pagination.dto";
+export * from "./common/response.dto";
 
 // Auth Module DTOs
-export * from './auth/login.dto';
-export * from './auth/register.dto';
-export * from './auth/password-reset.dto';
-export * from './auth/session.dto';
+export * from "./auth/login.dto";
+export * from "./auth/register.dto";
+export * from "./auth/password-reset.dto";
+export * from "./auth/session.dto";
 
 // User Module DTOs
-export * from './user/user.dto';
-export * from './user/profile.dto';
+export * from "./user/user.dto";
+export * from "./user/profile.dto";
 
 // Calendar DTOs
-export * from './calendar/calendar.dto';
+export * from "./calendar/calendar.dto";
 
 // Student Module DTOs
-export * from './student/student.dto';
+export * from "./student/student.dto";
 
 // Teacher Module DTOs
-export * from './teacher/teacher.dto';
-export * from './staff/staff.dto';
+export * from "./teacher/teacher.dto";
+export * from "./staff/staff.dto";
 
 // Parent Module DTOs
-export * from './parent/parent.dto';
+export * from "./parent/parent.dto";
 
 // Academic Module DTOs
-export * from './academic/assignment.dto';
-export * from './academic/submission.dto';
+export * from "./academic/assignment.dto";
+export * from "./academic/submission.dto";
 
 // Attendance Module DTOs
-export * from './attendance/attendance.dto';
-export * from './attendance/leave-request.dto';
+export * from "./attendance/attendance.dto";
+export * from "./attendance/leave-request.dto";
 
 // Finance Module DTOs
-export * from './finance/payment.dto';
-export * from './finance/invoice.dto';
-export * from './finance/fee.dto';
+export * from "./finance/payment.dto";
+export * from "./finance/invoice.dto";
+export * from "./finance/fee.dto";
 
 // Communication Module DTOs
-export * from './communication/notice.dto';
-export * from './communication/message.dto';
-export * from './communication/complaint.dto';
+export * from "./communication/notice.dto";
+export * from "./communication/message.dto";
+export * from "./communication/complaint.dto";
 
 // Exam Module DTOs
-export * from './exam/exam.dto';
-export * from './exam/result.dto';
+export * from "./exam/exam.dto";
+export * from "./exam/result.dto";
 
 // Files Module DTOs
-export * from './files/file-upload.dto';
+export * from "./files/file-upload.dto";
 
 // Platform Module DTOs
-export * from './platform/feature-flag.dto';
+export * from "./platform/feature-flag.dto";
 
 // Configuration Module DTOs
-export * from './configuration/configuration.dto';
+export * from "./configuration/configuration.dto";
 
 // Forum Module DTOs
-export * from './forum/forum.dto';
+export * from "./forum/forum.dto";
 
 // Achievements Module DTOs
-export * from './achievements/achievement.dto';
-export * from './achievements/certificate.dto';
+export * from "./achievements/achievement.dto";
+export * from "./achievements/certificate.dto";

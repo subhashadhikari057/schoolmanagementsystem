@@ -1,37 +1,37 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // ---------------------------
 // Staff Department Enum Schema
 // ---------------------------
 export const StaffDepartmentSchema = z.enum([
-  'administration',
-  'finance',
-  'hr',
-  'maintenance',
-  'security',
-  'library',
-  'canteen',
-  'transport',
-  'it_support',
-  'academic_support',
+  "administration",
+  "finance",
+  "hr",
+  "maintenance",
+  "security",
+  "library",
+  "canteen",
+  "transport",
+  "it_support",
+  "academic_support",
 ]);
 
 // ---------------------------
 // Staff Employment Status Enum Schema
 // ---------------------------
 export const StaffEmploymentStatusSchema = z.enum([
-  'active',
-  'on_leave',
-  'resigned',
-  'terminated',
+  "active",
+  "on_leave",
+  "resigned",
+  "terminated",
 ]);
 
 // ---------------------------
 // Subschema for user creation
 // ---------------------------
 export const CreateStaffUserSchema = z.object({
-  fullName: z.string().min(1, 'Full name is required'),
-  email: z.string().email('Invalid email format'),
+  fullName: z.string().min(1, "Full name is required"),
+  email: z.string().email("Invalid email format"),
   phone: z.string().optional(),
   password: z.string().optional(), // Will be auto-generated if not provided
 });
@@ -40,14 +40,14 @@ export const CreateStaffUserSchema = z.object({
 // Subschema for staff profile creation
 // ---------------------------
 export const CreateStaffProfileSchema = z.object({
-  qualification: z.string().min(1, 'Qualification is required'),
-  designation: z.string().min(1, 'Designation is required'),
+  qualification: z.string().min(1, "Qualification is required"),
+  designation: z.string().min(1, "Designation is required"),
   department: StaffDepartmentSchema,
   experienceYears: z.number().min(0).optional(),
   employmentDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
-  salary: z.number().positive('Salary must be positive').optional(),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  salary: z.number().positive("Salary must be positive").optional(),
   bio: z.string().optional(),
   emergencyContact: z
     .object({
@@ -189,8 +189,10 @@ export const GetAllStaffDto = z.object({
   search: z.string().optional(),
   department: StaffDepartmentSchema.optional(),
   employmentStatus: StaffEmploymentStatusSchema.optional(),
-  sortBy: z.enum(['fullName', 'employmentDate', 'department', 'designation']).default('fullName'),
-  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+  sortBy: z
+    .enum(["fullName", "employmentDate", "department", "designation"])
+    .default("fullName"),
+  sortOrder: z.enum(["asc", "desc"]).default("asc"),
 });
 
 export type GetAllStaffDtoType = z.infer<typeof GetAllStaffDto>;

@@ -1,6 +1,7 @@
 # 📚 **Student Module - Complete Documentation**
 
 ## 📋 **Table of Contents**
+
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [API Endpoints](#api-endpoints)
@@ -49,6 +50,7 @@ src/modules/student/
 ### **1. Student Creation APIs**
 
 #### **Create Student with New Parents**
+
 Creates a completely new student with new parent accounts.
 
 ```http
@@ -58,6 +60,7 @@ Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```typescript
 {
   user: {
@@ -67,7 +70,7 @@ Content-Type: application/json
     password?: string;          // Optional, auto-generated if missing
   };
   classId: string;              // Required, UUID
-  sectionId: string;            // Required, UUID  
+  sectionId: string;            // Required, UUID
   rollNumber: string;           // Required
   dob: string;                  // Required, YYYY-MM-DD format
   gender: 'male' | 'female' | 'other';  // Required
@@ -92,6 +95,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```typescript
 {
   message: string;
@@ -114,6 +118,7 @@ Content-Type: application/json
 ```
 
 #### **Create Student with Existing Parents**
+
 Creates a student and links to existing parents (for siblings).
 
 ```http
@@ -123,6 +128,7 @@ Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```typescript
 {
   user: {
@@ -154,6 +160,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```typescript
 {
   message: string;
@@ -176,6 +183,7 @@ Content-Type: application/json
 ### **2. Student Retrieval APIs**
 
 #### **Get All Students**
+
 Retrieves paginated list of students with filtering.
 
 ```http
@@ -184,6 +192,7 @@ Authorization: Bearer <admin-jwt-token>
 ```
 
 **Query Parameters:**
+
 ```typescript
 {
   page?: number;        // Default: 1
@@ -195,6 +204,7 @@ Authorization: Bearer <admin-jwt-token>
 ```
 
 **Response:**
+
 ```typescript
 {
   total: number;
@@ -219,6 +229,7 @@ Authorization: Bearer <admin-jwt-token>
 ```
 
 #### **Get Student by ID**
+
 Retrieves detailed student information.
 
 ```http
@@ -227,6 +238,7 @@ Authorization: Bearer <jwt-token>
 ```
 
 **Response:**
+
 ```typescript
 {
   id: string;
@@ -266,6 +278,7 @@ Authorization: Bearer <jwt-token>
 ### **3. Student Update APIs**
 
 #### **Admin Update Student**
+
 Updates student information (admin only).
 
 ```http
@@ -275,6 +288,7 @@ Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```typescript
 {
   fullName?: string;
@@ -290,6 +304,7 @@ Content-Type: application/json
 ```
 
 #### **Student Self Update**
+
 Students can update their own basic information.
 
 ```http
@@ -299,6 +314,7 @@ Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```typescript
 {
   fullName?: string;
@@ -318,6 +334,7 @@ Content-Type: application/json
 ### **4. Parent Management APIs**
 
 #### **Get Student Parents**
+
 Retrieves all parents linked to a student.
 
 ```http
@@ -326,18 +343,20 @@ Authorization: Bearer <admin-jwt-token>
 ```
 
 **Response:**
+
 ```typescript
 Array<{
-  id?: string;               // null for contact-only parents
+  id?: string; // null for contact-only parents
   fullName: string;
   email: string;
   phone?: string;
   relationship: string;
   isPrimary: boolean;
-}>
+}>;
 ```
 
 #### **Set Primary Parent**
+
 Sets any parent (user or contact) as primary. Handles all scenarios.
 
 ```http
@@ -347,6 +366,7 @@ Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```typescript
 {
   password?: string;          // Optional, auto-generated if missing for contacts
@@ -354,6 +374,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```typescript
 {
   message: string;
@@ -371,6 +392,7 @@ Content-Type: application/json
 ### **5. Profile Management APIs**
 
 #### **Update Student Profile**
+
 Updates detailed student profile (admin only).
 
 ```http
@@ -380,6 +402,7 @@ Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```typescript
 {
   bio?: string;
@@ -393,6 +416,7 @@ Content-Type: application/json
 ### **6. Parent-Specific APIs**
 
 #### **Get Children (Parent View)**
+
 Parents can view their linked children.
 
 ```http
@@ -401,6 +425,7 @@ Authorization: Bearer <parent-jwt-token>
 ```
 
 **Response:**
+
 ```typescript
 Array<{
   relationship: string;
@@ -421,10 +446,11 @@ Array<{
     };
     profile?: Record<string, any>;
   };
-}>
+}>;
 ```
 
 #### **Get All Parents**
+
 Admin can view all parent users with pagination.
 
 ```http
@@ -435,6 +461,7 @@ Authorization: Bearer <admin-jwt-token>
 ### **7. Administrative APIs**
 
 #### **Soft Delete Student**
+
 Soft deletes a student and deactivates their account.
 
 ```http
@@ -443,6 +470,7 @@ Authorization: Bearer <admin-jwt-token>
 ```
 
 **Response:**
+
 ```typescript
 {
   message: string;
@@ -460,70 +488,77 @@ Authorization: Bearer <admin-jwt-token>
 // Create Student with New Parents DTO
 export const CreateStudentWithNewParentsDto = z.object({
   user: z.object({
-    fullName: z.string().min(1, 'Full name is required'),
-    email: z.string().email('Invalid email'),
+    fullName: z.string().min(1, "Full name is required"),
+    email: z.string().email("Invalid email"),
     phone: z.string().optional(),
     password: z.string().optional(),
   }),
   classId: z.string().uuid(),
   sectionId: z.string().uuid(),
   rollNumber: z.string().min(1),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
-  gender: z.enum(['male', 'female', 'other']),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  gender: z.enum(["male", "female", "other"]),
   additionalMetadata: z.record(z.any()).optional(),
-  profile: z.object({
-    bio: z.string().optional(),
-    profilePhotoUrl: z.string().url().optional(),
-    emergencyContact: z.record(z.any()).optional(),
-    interests: z.record(z.any()).optional(),
-    additionalData: z.record(z.any()).optional(),
-  }).optional(),
-  parents: z.array(
-    z.object({
-      fullName: z.string().min(1, 'Parent full name is required'),
-      email: z.string().email('Invalid parent email'),
-      phone: z.string().optional(),
-      password: z.string().optional(),
-      relationship: z.string().min(1, 'Relationship is required'),
-      isPrimary: z.boolean(),
-      createUserAccount: z.boolean().optional().default(false),
+  profile: z
+    .object({
+      bio: z.string().optional(),
+      profilePhotoUrl: z.string().url().optional(),
+      emergencyContact: z.record(z.any()).optional(),
+      interests: z.record(z.any()).optional(),
+      additionalData: z.record(z.any()).optional(),
     })
-  ).min(1, 'At least one parent is required')
-  .refine(
-    (parents) => parents.filter(p => p.isPrimary).length === 1,
-    { message: 'Exactly one parent must be marked as primary' }
-  ),
+    .optional(),
+  parents: z
+    .array(
+      z.object({
+        fullName: z.string().min(1, "Parent full name is required"),
+        email: z.string().email("Invalid parent email"),
+        phone: z.string().optional(),
+        password: z.string().optional(),
+        relationship: z.string().min(1, "Relationship is required"),
+        isPrimary: z.boolean(),
+        createUserAccount: z.boolean().optional().default(false),
+      }),
+    )
+    .min(1, "At least one parent is required")
+    .refine((parents) => parents.filter((p) => p.isPrimary).length === 1, {
+      message: "Exactly one parent must be marked as primary",
+    }),
 });
 
-// Create Student with Existing Parents DTO  
+// Create Student with Existing Parents DTO
 export const CreateStudentWithExistingParentsDto = z.object({
   user: z.object({
-    fullName: z.string().min(1, 'Full name is required'),
-    email: z.string().email('Invalid email'),
+    fullName: z.string().min(1, "Full name is required"),
+    email: z.string().email("Invalid email"),
     phone: z.string().optional(),
     password: z.string().optional(),
   }),
   classId: z.string().uuid(),
   sectionId: z.string().uuid(),
   rollNumber: z.string().min(1),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
-  gender: z.enum(['male', 'female', 'other']),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  gender: z.enum(["male", "female", "other"]),
   additionalMetadata: z.record(z.any()).optional(),
-  profile: z.object({
-    bio: z.string().optional(),
-    profilePhotoUrl: z.string().url().optional(),
-    emergencyContact: z.record(z.any()).optional(),
-    interests: z.record(z.any()).optional(),
-    additionalData: z.record(z.any()).optional(),
-  }).optional(),
-  parents: z.array(
-    z.object({
-      email: z.string().email('Parent email is required'),
-      relationship: z.string().min(1, 'Relationship is required'),
-      isPrimary: z.boolean(),
-      fullName: z.string().optional(),
+  profile: z
+    .object({
+      bio: z.string().optional(),
+      profilePhotoUrl: z.string().url().optional(),
+      emergencyContact: z.record(z.any()).optional(),
+      interests: z.record(z.any()).optional(),
+      additionalData: z.record(z.any()).optional(),
     })
-  ).min(1, 'At least one parent is required'),
+    .optional(),
+  parents: z
+    .array(
+      z.object({
+        email: z.string().email("Parent email is required"),
+        relationship: z.string().min(1, "Relationship is required"),
+        isPrimary: z.boolean(),
+        fullName: z.string().optional(),
+      }),
+    )
+    .min(1, "At least one parent is required"),
 });
 
 // Update Student DTO
@@ -534,8 +569,11 @@ export const UpdateStudentDto = z.object({
   classId: z.string().uuid().optional(),
   sectionId: z.string().uuid().optional(),
   rollNumber: z.string().optional(),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  gender: z.enum(['male', 'female', 'other']).optional(),
+  dob: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  gender: z.enum(["male", "female", "other"]).optional(),
   additionalMetadata: z.record(z.any()).optional(),
 });
 
@@ -646,7 +684,7 @@ User {
   studentProfile: Student? @relation("StudentUser")
 }
 
-// Student Relations  
+// Student Relations
 Student {
   user: User @relation("StudentUser")
   class: Class
@@ -674,13 +712,13 @@ ParentStudentLink {
 
 ### **Roles & Permissions**
 
-| Role | Endpoint Access | Description |
-|------|----------------|-------------|
-| **SUPERADMIN** | All endpoints | Full system access |
-| **ADMIN** | All student endpoints except self-update | School administration |
-| **TEACHER** | Read student data | View students in their classes |
-| **PARENT** | View own children, limited student data | Parent portal access |
-| **STUDENT** | Self-update, view own profile | Student portal access |
+| Role           | Endpoint Access                          | Description                    |
+| -------------- | ---------------------------------------- | ------------------------------ |
+| **SUPERADMIN** | All endpoints                            | Full system access             |
+| **ADMIN**      | All student endpoints except self-update | School administration          |
+| **TEACHER**    | Read student data                        | View students in their classes |
+| **PARENT**     | View own children, limited student data  | Parent portal access           |
+| **STUDENT**    | Self-update, view own profile            | Student portal access          |
 
 ### **Authorization Rules**
 
@@ -688,20 +726,20 @@ ParentStudentLink {
 // Student Access Control
 async findById(studentId: string, currentUser: any) {
   const { id: userId, roleNames } = currentUser;
-  
+
   // Admin/Teacher: Full access
-  const isAdminOrTeacher = roleNames.some(r => 
+  const isAdminOrTeacher = roleNames.some(r =>
     ['SUPERADMIN', 'ADMIN', 'TEACHER'].includes(r)
   );
-  
+
   // Student: Own record only
   const isSelf = student.userId === userId;
-  
+
   // Parent: Linked children only
   const isLinkedParent = await this.prisma.parentStudentLink.findFirst({
     where: { parentId: userId, studentId }
   });
-  
+
   if (!isAdminOrTeacher && !isSelf && !isLinkedParent) {
     throw new NotFoundException('Access denied');
   }
@@ -713,16 +751,17 @@ async findById(studentId: string, currentUser: any) {
 ```typescript
 // JWT Payload
 {
-  sub: string;              // User ID
-  email: string;            // User email
-  fullName: string;         // User full name
-  roles: Array<{            // User roles
+  sub: string; // User ID
+  email: string; // User email
+  fullName: string; // User full name
+  roles: Array<{
+    // User roles
     role: {
-      name: string;         // Role name (ADMIN, TEACHER, etc.)
-    }
+      name: string; // Role name (ADMIN, TEACHER, etc.)
+    };
   }>;
-  iat: number;              // Issued at
-  exp: number;              // Expires at
+  iat: number; // Issued at
+  exp: number; // Expires at
 }
 ```
 
@@ -771,19 +810,19 @@ async findById(studentId: string, currentUser: any) {
 async setPrimaryParent(studentId: string, parentLinkId: string) {
   // 1. Get target parent (user or contact)
   const targetParent = await getParentLink(parentLinkId);
-  
+
   // 2. If contact, create user account
   if (!targetParent.parentId) {
     const newUser = await createParentUser(targetParent.contactData);
     targetParent.parentId = newUser.id;
   }
-  
+
   // 3. Disable current primary
   await disableCurrentPrimary(studentId);
-  
+
   // 4. Enable new primary
   await enableNewPrimary(targetParent.parentId);
-  
+
   // 5. Update primary status
   await updatePrimaryStatus(parentLinkId, true);
 }
@@ -795,14 +834,14 @@ async setPrimaryParent(studentId: string, parentLinkId: string) {
 
 ### **Common Error Codes**
 
-| Status Code | Error Type | Description |
-|-------------|------------|-------------|
-| **400** | BadRequestException | Invalid input data |
-| **401** | UnauthorizedException | Authentication required |
-| **403** | ForbiddenException | Insufficient permissions |
-| **404** | NotFoundException | Resource not found |
-| **409** | ConflictException | Duplicate resource |
-| **500** | InternalServerErrorException | Server error |
+| Status Code | Error Type                   | Description              |
+| ----------- | ---------------------------- | ------------------------ |
+| **400**     | BadRequestException          | Invalid input data       |
+| **401**     | UnauthorizedException        | Authentication required  |
+| **403**     | ForbiddenException           | Insufficient permissions |
+| **404**     | NotFoundException            | Resource not found       |
+| **409**     | ConflictException            | Duplicate resource       |
+| **500**     | InternalServerErrorException | Server error             |
 
 ### **Validation Errors**
 
@@ -842,7 +881,7 @@ async setPrimaryParent(studentId: string, parentLinkId: string) {
 
 {
   "statusCode": 401,
-  "message": "Account is disabled", 
+  "message": "Account is disabled",
   "error": "Unauthorized"
 }
 ```
@@ -855,16 +894,16 @@ async setPrimaryParent(studentId: string, parentLinkId: string) {
 
 ```typescript
 // 1. Create first child with new parents
-const firstChild = await fetch('/api/v1/students/create-with-new-parents', {
-  method: 'POST',
+const firstChild = await fetch("/api/v1/students/create-with-new-parents", {
+  method: "POST",
   headers: {
-    'Authorization': 'Bearer <admin-token>',
-    'Content-Type': 'application/json'
+    Authorization: "Bearer <admin-token>",
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
     user: {
       fullName: "John Doe",
-      email: "john@school.com"
+      email: "john@school.com",
     },
     classId: "class-uuid",
     sectionId: "section-uuid",
@@ -877,81 +916,84 @@ const firstChild = await fetch('/api/v1/students/create-with-new-parents', {
         email: "robert@example.com",
         relationship: "father",
         isPrimary: true,
-        createUserAccount: true
+        createUserAccount: true,
       },
       {
-        fullName: "Sarah Doe", 
+        fullName: "Sarah Doe",
         email: "sarah@example.com",
         relationship: "mother",
         isPrimary: false,
-        createUserAccount: false
-      }
-    ]
-  })
+        createUserAccount: false,
+      },
+    ],
+  }),
 });
 
 // 2. Create sibling with existing parents
-const sibling = await fetch('/api/v1/students/create-with-existing-parents', {
-  method: 'POST',
+const sibling = await fetch("/api/v1/students/create-with-existing-parents", {
+  method: "POST",
   headers: {
-    'Authorization': 'Bearer <admin-token>',
-    'Content-Type': 'application/json'
+    Authorization: "Bearer <admin-token>",
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
     user: {
       fullName: "Jane Doe",
-      email: "jane@school.com"
+      email: "jane@school.com",
     },
     classId: "class-uuid",
-    sectionId: "section-uuid", 
+    sectionId: "section-uuid",
     rollNumber: "002",
     dob: "2012-08-20",
     gender: "female",
     parents: [
       {
         email: "robert@example.com",
-        relationship: "father", 
-        isPrimary: true
+        relationship: "father",
+        isPrimary: true,
       },
       {
         email: "sarah@example.com",
         relationship: "mother",
         fullName: "Sarah Doe",
-        isPrimary: false
-      }
-    ]
-  })
+        isPrimary: false,
+      },
+    ],
+  }),
 });
 
 // 3. Switch primary parent (promote contact to user)
-const switchPrimary = await fetch(`/api/v1/students/${sibling.student.id}/parents/${sarahLinkId}/set-primary`, {
-  method: 'PATCH',
-  headers: {
-    'Authorization': 'Bearer <admin-token>',
-    'Content-Type': 'application/json'
+const switchPrimary = await fetch(
+  `/api/v1/students/${sibling.student.id}/parents/${sarahLinkId}/set-primary`,
+  {
+    method: "PATCH",
+    headers: {
+      Authorization: "Bearer <admin-token>",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      password: "SarahSecure2024!",
+    }),
   },
-  body: JSON.stringify({
-    password: "SarahSecure2024!"
-  })
-});
+);
 ```
 
 ### **Parent Portal Access**
 
 ```typescript
 // Parent login
-const parentLogin = await fetch('/api/v1/auth/login', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const parentLogin = await fetch("/api/v1/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     email: "robert@example.com",
-    password: "RobertSecure2024!"
-  })
+    password: "RobertSecure2024!",
+  }),
 });
 
 // Get children
-const children = await fetch('/api/v1/students/me/children', {
-  headers: { 'Authorization': `Bearer ${parentLogin.accessToken}` }
+const children = await fetch("/api/v1/students/me/children", {
+  headers: { Authorization: `Bearer ${parentLogin.accessToken}` },
 });
 ```
 
@@ -959,20 +1001,20 @@ const children = await fetch('/api/v1/students/me/children', {
 
 ```typescript
 // Student updating own profile
-const updateProfile = await fetch('/api/v1/students/me', {
-  method: 'PATCH',
+const updateProfile = await fetch("/api/v1/students/me", {
+  method: "PATCH",
   headers: {
-    'Authorization': 'Bearer <student-token>',
-    'Content-Type': 'application/json'
+    Authorization: "Bearer <student-token>",
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
     phone: "+1-555-9999",
     bio: "Updated bio information",
     interests: {
       sports: ["basketball", "swimming"],
-      hobbies: ["reading", "gaming"]
-    }
-  })
+      hobbies: ["reading", "gaming"],
+    },
+  }),
 });
 ```
 
@@ -985,26 +1027,26 @@ const updateProfile = await fetch('/api/v1/students/me', {
 ```typescript
 // ✅ DO: Always have exactly one primary parent
 parents: [
-  { isPrimary: true, relationship: "father" },   // One primary
-  { isPrimary: false, relationship: "mother" }   // Others non-primary
-]
+  { isPrimary: true, relationship: "father" }, // One primary
+  { isPrimary: false, relationship: "mother" }, // Others non-primary
+];
 
 // ❌ DON'T: Multiple or zero primary parents
 parents: [
-  { isPrimary: true, relationship: "father" },   // ❌ Multiple primary
-  { isPrimary: true, relationship: "mother" }    // ❌ Multiple primary
-]
+  { isPrimary: true, relationship: "father" }, // ❌ Multiple primary
+  { isPrimary: true, relationship: "mother" }, // ❌ Multiple primary
+];
 ```
 
 ### **2. Email Validation**
 
 ```typescript
 // ✅ DO: Use proper email validation
-email: "user@example.com"
+email: "user@example.com";
 
 // ❌ DON'T: Invalid email formats
-email: "invalid-email"        // ❌ No @ symbol
-email: "user@"               // ❌ Incomplete domain
+email: "invalid-email"; // ❌ No @ symbol
+email: "user@"; // ❌ Incomplete domain
 ```
 
 ### **3. Password Management**
@@ -1030,7 +1072,7 @@ email: "user@"               // ❌ Incomplete domain
 @UseGuards(hasRole('SUPERADMIN', 'ADMIN'))
 async createStudent() { /* ... */ }
 
-// ✅ DO: Validate user access to specific students  
+// ✅ DO: Validate user access to specific students
 async findById(studentId: string, currentUser: any) {
   // Check if user has access to this specific student
   await this.validateAccess(studentId, currentUser);
@@ -1042,11 +1084,11 @@ async findById(studentId: string, currentUser: any) {
 ```typescript
 // ✅ DO: Provide clear, actionable error messages
 throw new BadRequestException(
-  'Primary parent with email john@example.com not found. Please create parent first or use the new parents creation API.'
+  "Primary parent with email john@example.com not found. Please create parent first or use the new parents creation API.",
 );
 
 // ❌ DON'T: Generic error messages
-throw new BadRequestException('Invalid request');
+throw new BadRequestException("Invalid request");
 ```
 
 ### **6. Data Validation**
@@ -1054,13 +1096,13 @@ throw new BadRequestException('Invalid request');
 ```typescript
 // ✅ DO: Validate all input data
 export const CreateStudentDto = z.object({
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
-  gender: z.enum(['male', 'female', 'other']),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  gender: z.enum(["male", "female", "other"]),
   // ... other validations
 });
 
 // ✅ DO: Sanitize and validate file uploads
-profilePhotoUrl: z.string().url().optional()
+profilePhotoUrl: z.string().url().optional();
 ```
 
 ### **7. Performance Optimization**

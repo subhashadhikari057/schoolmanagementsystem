@@ -1,6 +1,7 @@
 # Phase 0 Task 0.0-2: Environment Management & Validation Guide
 
 ## Overview
+
 Complete environment variable management with validation, documentation, and secure configuration handling.
 
 **Status**: ✅ **COMPLETE**  
@@ -10,12 +11,12 @@ Complete environment variable management with validation, documentation, and sec
 
 ## 🎯 Task Requirements
 
-| Component | Purpose | Status |
-|-----------|---------|--------|
-| **`.env.example`** | Environment template and documentation | ✅ Complete |
+| Component                  | Purpose                                  | Status         |
+| -------------------------- | ---------------------------------------- | -------------- |
+| **`.env.example`**         | Environment template and documentation   | ✅ Complete    |
 | **Environment Validation** | Runtime validation of required variables | ✅ Implemented |
-| **Secure Configuration** | Safe handling of sensitive data | ✅ Configured |
-| **Documentation** | Complete variable documentation | ✅ Complete |
+| **Secure Configuration**   | Safe handling of sensitive data          | ✅ Configured  |
+| **Documentation**          | Complete variable documentation          | ✅ Complete    |
 
 ---
 
@@ -138,13 +139,19 @@ PGADMIN_PORT=8080
 **File**: `backend/src/shared/config/env.validation.ts`
 
 ```typescript
-import { plainToInstance, Transform } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString, validateSync } from 'class-validator';
+import { plainToInstance, Transform } from "class-transformer";
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  validateSync,
+} from "class-validator";
 
 enum Environment {
-  Development = 'development',
-  Production = 'production',
-  Test = 'test',
+  Development = "development",
+  Production = "production",
+  Test = "test",
 }
 
 export class EnvironmentVariables {
@@ -218,15 +225,15 @@ export function validate(config: Record<string, unknown>) {
 **File**: `backend/src/app.module.ts` (relevant section)
 
 ```typescript
-import { ConfigModule } from '@nestjs/config';
-import { validate } from './shared/config/env.validation';
+import { ConfigModule } from "@nestjs/config";
+import { validate } from "./shared/config/env.validation";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       validate,
-      envFilePath: '.env',
+      envFilePath: ".env",
     }),
     // ... other modules
   ],
@@ -243,50 +250,53 @@ export class AppModule {}
 **File**: `backend/tests/environment/env-validation.test.ts`
 
 ```typescript
-import { validate, EnvironmentVariables } from '../../src/shared/config/env.validation';
+import {
+  validate,
+  EnvironmentVariables,
+} from "../../src/shared/config/env.validation";
 
-describe('Environment Validation', () => {
-  describe('validate', () => {
-    it('should validate correct environment variables', () => {
+describe("Environment Validation", () => {
+  describe("validate", () => {
+    it("should validate correct environment variables", () => {
       const config = {
-        NODE_ENV: 'development',
-        PORT: '8080',
-        DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
-        JWT_PRIVATE_KEY_BASE64: 'base64-private-key',
-        JWT_PUBLIC_KEY_BASE64: 'base64-public-key',
-        JWT_ACCESS_EXPIRES_IN: '900000',
-        JWT_REFRESH_EXPIRES_IN: '604800000',
-        COOKIE_SAME_SITE: 'lax',
-        CORS_ORIGIN: 'http://localhost:3000',
+        NODE_ENV: "development",
+        PORT: "8080",
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+        JWT_PRIVATE_KEY_BASE64: "base64-private-key",
+        JWT_PUBLIC_KEY_BASE64: "base64-public-key",
+        JWT_ACCESS_EXPIRES_IN: "900000",
+        JWT_REFRESH_EXPIRES_IN: "604800000",
+        COOKIE_SAME_SITE: "lax",
+        CORS_ORIGIN: "http://localhost:3000",
       };
 
       expect(() => validate(config)).not.toThrow();
     });
 
-    it('should throw error for missing required variables', () => {
+    it("should throw error for missing required variables", () => {
       const config = {
-        NODE_ENV: 'development',
+        NODE_ENV: "development",
         // Missing required variables
       };
 
       expect(() => validate(config)).toThrow();
     });
 
-    it('should transform string numbers to numbers', () => {
+    it("should transform string numbers to numbers", () => {
       const config = {
-        NODE_ENV: 'development',
-        PORT: '8080',
-        DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
-        JWT_PRIVATE_KEY_BASE64: 'base64-private-key',
-        JWT_PUBLIC_KEY_BASE64: 'base64-public-key',
-        JWT_ACCESS_EXPIRES_IN: '900000',
-        JWT_REFRESH_EXPIRES_IN: '604800000',
-        COOKIE_SAME_SITE: 'lax',
-        CORS_ORIGIN: 'http://localhost:3000',
+        NODE_ENV: "development",
+        PORT: "8080",
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+        JWT_PRIVATE_KEY_BASE64: "base64-private-key",
+        JWT_PUBLIC_KEY_BASE64: "base64-public-key",
+        JWT_ACCESS_EXPIRES_IN: "900000",
+        JWT_REFRESH_EXPIRES_IN: "604800000",
+        COOKIE_SAME_SITE: "lax",
+        CORS_ORIGIN: "http://localhost:3000",
       };
 
       const result = validate(config);
-      expect(typeof result.PORT).toBe('number');
+      expect(typeof result.PORT).toBe("number");
       expect(result.PORT).toBe(8080);
     });
   });
@@ -306,38 +316,42 @@ describe('Environment Validation', () => {
 ### Initial Setup
 
 1. **Copy Environment Templates**:
+
    ```bash
    # Backend environment
    cp backend/.env.example backend/.env
-   
+
    # Edit backend/.env with your values
    ```
 
 2. **Generate JWT Keys** (if needed):
+
    ```bash
    # Generate RSA key pair for JWT
    openssl genrsa -out private.pem 2048
    openssl rsa -in private.pem -pubout -out public.pem
-   
+
    # Convert to base64 for environment variables
    base64 -i private.pem | tr -d '\n'
    base64 -i public.pem | tr -d '\n'
    ```
 
 3. **Configure Database**:
+
    ```bash
    # For VPS database (production-like):
    DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement?schema=public"
-   
+
    # For local Docker database:
    DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/schoolmanagement?schema=public"
    ```
 
 4. **Verify Configuration**:
+
    ```bash
    # Run complete test suite
    .\scripts\test-phase0-final.ps1
-   
+
    # Start backend to test environment loading
    cd backend && npm run start:dev
    ```
@@ -346,23 +360,23 @@ describe('Environment Validation', () => {
 
 #### Required Variables
 
-| Variable | Purpose | Example | Notes |
-|----------|---------|---------|-------|
-| `DATABASE_URL` | PostgreSQL connection | `postgresql://user:pass@host:port/db` | Primary database connection |
-| `PORT` | Application port | `8080` | Port for backend server |
-| `NODE_ENV` | Environment mode | `development` | Controls app behavior |
-| `JWT_PRIVATE_KEY_BASE64` | JWT signing key | `base64-encoded-key` | For token signing |
-| `JWT_PUBLIC_KEY_BASE64` | JWT verification key | `base64-encoded-key` | For token verification |
+| Variable                 | Purpose               | Example                               | Notes                       |
+| ------------------------ | --------------------- | ------------------------------------- | --------------------------- |
+| `DATABASE_URL`           | PostgreSQL connection | `postgresql://user:pass@host:port/db` | Primary database connection |
+| `PORT`                   | Application port      | `8080`                                | Port for backend server     |
+| `NODE_ENV`               | Environment mode      | `development`                         | Controls app behavior       |
+| `JWT_PRIVATE_KEY_BASE64` | JWT signing key       | `base64-encoded-key`                  | For token signing           |
+| `JWT_PUBLIC_KEY_BASE64`  | JWT verification key  | `base64-encoded-key`                  | For token verification      |
 
 #### Optional Variables
 
-| Variable | Purpose | Default | Notes |
-|----------|---------|---------|-------|
-| `REDIS_URL` | Redis connection | `redis://localhost:6379` | For caching |
-| `CORS_ORIGIN` | CORS allowed origin | `http://localhost:3000` | Frontend URL |
-| `LOG_LEVEL` | Logging level | `debug` | debug, info, warn, error |
-| `RATE_LIMIT_TTL` | Rate limit window | `60` | Seconds |
-| `RATE_LIMIT_LIMIT` | Max requests | `100` | Per window |
+| Variable           | Purpose             | Default                  | Notes                    |
+| ------------------ | ------------------- | ------------------------ | ------------------------ |
+| `REDIS_URL`        | Redis connection    | `redis://localhost:6379` | For caching              |
+| `CORS_ORIGIN`      | CORS allowed origin | `http://localhost:3000`  | Frontend URL             |
+| `LOG_LEVEL`        | Logging level       | `debug`                  | debug, info, warn, error |
+| `RATE_LIMIT_TTL`   | Rate limit window   | `60`                     | Seconds                  |
+| `RATE_LIMIT_LIMIT` | Max requests        | `100`                    | Per window               |
 
 ### Security Best Practices
 
@@ -384,28 +398,31 @@ describe('Environment Validation', () => {
 **Common Issues**:
 
 1. **Environment validation fails**:
+
    ```bash
    # Check your .env file format
    cat backend/.env
-   
+
    # Ensure no extra spaces or quotes
    # Use the exact format from .env.example
    ```
 
 2. **Database connection fails**:
+
    ```bash
    # Test database connectivity
    psql "postgresql://user:pass@host:port/db"
-   
+
    # Check if DATABASE_URL is properly formatted
    ```
 
 3. **JWT errors**:
+
    ```bash
    # Regenerate JWT keys
    openssl genrsa -out private.pem 2048
    openssl rsa -in private.pem -pubout -out public.pem
-   
+
    # Convert to base64 and update .env
    ```
 
@@ -445,4 +462,4 @@ describe('Environment Validation', () => {
 3. **Documentation**: All variables are documented in `.env.example`
 4. **Security**: Sensitive variables are never committed to version control
 
-**Task 0.0-2 Status**: ✅ **COMPLETE AND VERIFIED** 
+**Task 0.0-2 Status**: ✅ **COMPLETE AND VERIFIED**

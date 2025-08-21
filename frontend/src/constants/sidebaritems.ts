@@ -92,11 +92,6 @@ export const sidebarItems = {
           path: '/dashboard/admin/finance/fee-management',
         },
         {
-          label: 'Fee Payments',
-          icon: 'CreditCard',
-          path: '/dashboard/admin/finance/fee-payments',
-        },
-        {
           label: 'Dues & Fines',
           icon: 'AlertCircle',
           path: '/dashboard/admin/finance/dues-fines',
@@ -106,11 +101,7 @@ export const sidebarItems = {
           icon: 'DollarSign',
           path: '/dashboard/admin/finance/salaries',
         },
-        {
-          label: 'Tax Management',
-          icon: 'Percent',
-          path: '/dashboard/admin/finance/tax-management',
-        },
+
         {
           label: 'Expenses',
           icon: 'TrendingUp',
@@ -126,11 +117,6 @@ export const sidebarItems = {
     {
       title: 'REPORTS & ANALYTICS',
       items: [
-        {
-          label: 'Events',
-          icon: 'CalendarEvent',
-          path: '/dashboard/admin/reports/events',
-        },
         {
           label: 'Reports',
           icon: 'FileText',

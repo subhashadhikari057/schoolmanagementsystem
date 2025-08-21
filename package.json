@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@types/csurf": "^1.11.5",
+    "@types/jest": "^30.0.0",
     "concurrently": "^8.2.2",
     "husky": "^9.1.7"
   },

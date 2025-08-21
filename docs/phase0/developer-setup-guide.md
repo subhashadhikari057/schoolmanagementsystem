@@ -1,6 +1,7 @@
 # School Management System - Complete Developer Setup Guide
 
 ## Overview
+
 This guide provides **EXACT STEP-BY-STEP** instructions for developers to set up their local development environment with **ZERO ERRORS**. Every command, configuration, and setup is documented exactly as it should be done.
 
 **Status**: ✅ **COMPLETE**  
@@ -40,6 +41,7 @@ npm run dev
 ```
 
 **🎉 Your development environment is ready at:**
+
 - **Backend**: http://localhost:8080
 - **Frontend**: http://localhost:3000
 - **MailHog**: http://localhost:8025
@@ -48,11 +50,11 @@ npm run dev
 
 ## 📋 Phase 0 Tasks - COMPLETE SETUP & BENEFITS
 
-| Task | What It Does | Why You Need It | Setup Time |
-|------|--------------|-----------------|------------|
-| **0.0-1** | Code Quality (ESLint/Prettier/Husky) | Prevents bugs, enforces standards, auto-formats code | 2 minutes |
-| **0.0-2** | Environment Management | Secure config, database connections, JWT keys | 3 minutes |
-| **0.0-3** | Docker Development Stack | Local database, cache, email testing | 5 minutes |
+| Task      | What It Does                         | Why You Need It                                      | Setup Time |
+| --------- | ------------------------------------ | ---------------------------------------------------- | ---------- |
+| **0.0-1** | Code Quality (ESLint/Prettier/Husky) | Prevents bugs, enforces standards, auto-formats code | 2 minutes  |
+| **0.0-2** | Environment Management               | Secure config, database connections, JWT keys        | 3 minutes  |
+| **0.0-3** | Docker Development Stack             | Local database, cache, email testing                 | 5 minutes  |
 
 ---
 
@@ -61,6 +63,7 @@ npm run dev
 ### Step 1: Install Required Software
 
 #### 1.1 Node.js (v18 or higher) - EXACT STEPS
+
 ```powershell
 # Download from: https://nodejs.org/
 # Choose "LTS" version
@@ -73,6 +76,7 @@ npm --version
 ```
 
 #### 1.2 Docker Desktop - EXACT STEPS
+
 ```powershell
 # Download from: https://www.docker.com/products/docker-desktop/
 # Install Docker Desktop
@@ -88,6 +92,7 @@ docker-compose --version
 ```
 
 #### 1.3 Git - EXACT STEPS
+
 ```powershell
 # Download from: https://git-scm.com/download/win
 # Install with default settings
@@ -97,6 +102,7 @@ git --version
 ```
 
 #### 1.4 VS Code (Recommended) - EXACT EXTENSIONS
+
 ```powershell
 # Download from: https://code.visualstudio.com/
 # Install these extensions (EXACT NAMES):
@@ -114,21 +120,21 @@ git --version
 
 ### Local Development Services (EXACT PORTS)
 
-| Service | Port | URL/Connection | Credentials | Purpose |
-|---------|------|----------------|-------------|---------|
-| **Backend API** | 8080 | http://localhost:8080 | None | NestJS backend server |
-| **Frontend** | 3000 | http://localhost:3000 | None | Next.js frontend |
-| **PostgreSQL** | 5432 | localhost:5432 | user: postgres, pass: postgres123 | Local database |
-| **Redis** | 6379 | localhost:6379 | No password | Cache and sessions |
-| **MailHog Web** | 8025 | http://localhost:8025 | None | Email testing UI |
-| **MailHog SMTP** | 1025 | localhost:1025 | None | Email sending |
+| Service          | Port | URL/Connection        | Credentials                       | Purpose               |
+| ---------------- | ---- | --------------------- | --------------------------------- | --------------------- |
+| **Backend API**  | 8080 | http://localhost:8080 | None                              | NestJS backend server |
+| **Frontend**     | 3000 | http://localhost:3000 | None                              | Next.js frontend      |
+| **PostgreSQL**   | 5432 | localhost:5432        | user: postgres, pass: postgres123 | Local database        |
+| **Redis**        | 6379 | localhost:6379        | No password                       | Cache and sessions    |
+| **MailHog Web**  | 8025 | http://localhost:8025 | None                              | Email testing UI      |
+| **MailHog SMTP** | 1025 | localhost:1025        | None                              | Email sending         |
 
 ### VPS Production Services (EXACT CREDENTIALS)
 
-| Service | Port | URL/Connection | Credentials | Purpose |
-|---------|------|----------------|-------------|---------|
-| **PostgreSQL** | 5432 | 95.216.235.115:5432 | user: schooladmin, pass: StrongPass123! | Production database |
-| **pgAdmin** | 80 | http://95.216.235.115:80/ | email: admin@school.com, pass: StrongPass123! | Database management |
+| Service        | Port | URL/Connection            | Credentials                                   | Purpose             |
+| -------------- | ---- | ------------------------- | --------------------------------------------- | ------------------- |
+| **PostgreSQL** | 5432 | 95.216.235.115:5432       | user: schooladmin, pass: StrongPass123!       | Production database |
+| **pgAdmin**    | 80   | http://95.216.235.115:80/ | email: admin@school.com, pass: StrongPass123! | Database management |
 
 ### Connection Strings (EXACT FORMAT)
 
@@ -150,8 +156,9 @@ REDIS_URL="redis://localhost:6379"
 ## **PHASE 0.0-1: Code Quality Setup (ESLint/Prettier/Husky)**
 
 ### What This Phase Does:
+
 - **ESLint**: Finds and fixes code errors automatically
-- **Prettier**: Formats your code consistently 
+- **Prettier**: Formats your code consistently
 - **Husky**: Runs quality checks before each commit
 
 ### EXACT Setup Steps:
@@ -183,23 +190,26 @@ git commit -m "test: verify hooks working"
 ```
 
 ### Configuration Files Created:
+
 - `backend/.eslintrc.js` - ESLint rules for backend
-- `frontend/eslint.config.mjs` - ESLint rules for frontend  
+- `frontend/eslint.config.mjs` - ESLint rules for frontend
 - `.prettierrc` - Code formatting rules
 - `.husky/pre-commit` - Git hook for code quality
 - `.husky/commit-msg` - Git hook for commit messages
 
 ### Benefits You Get:
+
 ✅ **No more code style debates** - Prettier formats everything  
 ✅ **Catch bugs before runtime** - ESLint finds errors  
 ✅ **Consistent code quality** - Hooks prevent bad commits  
-✅ **Team productivity** - Everyone writes the same style  
+✅ **Team productivity** - Everyone writes the same style
 
 ---
 
 ## **PHASE 0.0-2: Environment Management Setup**
 
 ### What This Phase Does:
+
 - **Secure configuration** for database, JWT, and services
 - **Environment validation** to prevent runtime errors
 - **Template system** for easy developer onboarding
@@ -214,6 +224,7 @@ copy backend\.env.example backend\.env
 ```
 
 **EXACT .env Configuration:**
+
 ```env
 # Database Configuration (CHOOSE ONE)
 # For VPS database (recommended for team work):
@@ -280,23 +291,26 @@ node -e "require('dotenv').config(); console.log('DATABASE_URL loaded:', !!proce
 ```
 
 ### Files Created:
+
 - `backend/.env` - Your actual environment variables
 - `backend/.env.example` - Template for other developers
 - `backend/src/shared/config/env.validation.ts` - Runtime validation
 
 ### Benefits You Get:
+
 ✅ **No runtime crashes** - Environment validation catches missing vars  
 ✅ **Secure secrets** - Environment variables never committed to git  
 ✅ **Easy onboarding** - New developers copy .env.example  
-✅ **Type safety** - Environment variables are typed and validated  
+✅ **Type safety** - Environment variables are typed and validated
 
 ---
 
 ## **PHASE 0.0-3: Docker Development Stack Setup**
 
 ### What This Phase Does:
+
 - **PostgreSQL database** for data storage
-- **Redis cache** for sessions and caching  
+- **Redis cache** for sessions and caching
 - **MailHog** for email testing
 - **Automated management** with scripts
 
@@ -318,7 +332,7 @@ docker info
 .\scripts\test-docker-services.ps1
 # Should show:
 # "PASSED: PostgreSQL Database (sms_postgres) is running"
-# "PASSED: Redis Cache (sms_redis) is running" 
+# "PASSED: Redis Cache (sms_redis) is running"
 # "PASSED: MailHog Email Testing (sms_mailhog) is running"
 # "All Docker services are running successfully!"
 
@@ -339,6 +353,7 @@ docker exec sms_redis redis-cli ping
 ### Docker Services Created:
 
 #### PostgreSQL Database:
+
 - **Container**: `sms_postgres`
 - **Port**: 5432
 - **Database**: schoolmanagement
@@ -347,23 +362,26 @@ docker exec sms_redis redis-cli ping
 - **Connection**: `postgresql://postgres:postgres123@localhost:5432/schoolmanagement`
 
 #### Redis Cache:
+
 - **Container**: `sms_redis`
 - **Port**: 6379
 - **Configuration**: `/data` volume for persistence
 - **Connection**: `redis://localhost:6379`
 
 #### MailHog Email Testing:
+
 - **Container**: `sms_mailhog`
 - **SMTP Port**: 1025 (for sending emails)
 - **Web Port**: 8025 (for viewing emails)
 - **Web Interface**: http://localhost:8025
 
 ### Management Scripts Created:
+
 ```powershell
 # Start all services
 .\scripts\docker-dev-start.ps1
 
-# Stop all services  
+# Stop all services
 .\scripts\docker-dev-stop.ps1
 
 # Reset all services (removes all data)
@@ -374,11 +392,12 @@ docker exec sms_redis redis-cli ping
 ```
 
 ### Benefits You Get:
+
 ✅ **Local database** - No internet needed for development  
 ✅ **Email testing** - See all emails in MailHog web interface  
 ✅ **Fast caching** - Redis improves application performance  
 ✅ **Data persistence** - Database data survives container restarts  
-✅ **Team consistency** - Everyone has identical local environment  
+✅ **Team consistency** - Everyone has identical local environment
 
 ---
 
@@ -392,7 +411,7 @@ cd backend && npm run lint
 cd ../frontend && npm run lint
 # Both should show: No errors
 
-# Test Phase 0.0-2: Environment  
+# Test Phase 0.0-2: Environment
 cd ../backend && npm run start:dev
 # Should show: "Application is running on: http://localhost:8080"
 # Press Ctrl+C to stop
@@ -410,6 +429,7 @@ cd ..
 ### Manual Verification (EXACT STEPS)
 
 1. **Backend API Test**:
+
    ```powershell
    cd backend && npm run start:dev
    # Open: http://localhost:8080
@@ -417,24 +437,27 @@ cd ..
    ```
 
 2. **Frontend Test**:
+
    ```powershell
    cd frontend && npm run dev
-   # Open: http://localhost:3000  
+   # Open: http://localhost:3000
    # Should show: Next.js application
    ```
 
 3. **Database Test**:
+
    ```powershell
    # Test local database
    docker exec -it sms_postgres psql -U postgres -d schoolmanagement -c "SELECT version();"
    # Should show: PostgreSQL version
-   
-   # Test VPS database  
+
+   # Test VPS database
    cd backend && npx prisma db push
    # Should show: "Database synchronized"
    ```
 
 4. **Redis Test**:
+
    ```powershell
    docker exec sms_redis redis-cli ping
    # Should show: "PONG"
@@ -454,6 +477,7 @@ cd ..
 
 **Symptoms**: `docker-compose up -d` fails
 **EXACT Solution**:
+
 ```powershell
 # Check Docker Desktop is running
 docker info
@@ -461,7 +485,7 @@ docker info
 
 # Check for port conflicts
 netstat -an | findstr :5432
-netstat -an | findstr :6379  
+netstat -an | findstr :6379
 netstat -an | findstr :8025
 # If ports are used, stop the conflicting services
 
@@ -473,6 +497,7 @@ netstat -an | findstr :8025
 
 **Symptoms**: `npm run start:dev` fails
 **EXACT Solution**:
+
 ```powershell
 # Check .env file exists
 dir backend\.env
@@ -497,6 +522,7 @@ npm install
 
 **Symptoms**: "Cannot connect to database"
 **EXACT Solution**:
+
 ```powershell
 # For VPS database - test connection
 telnet 95.216.235.115 5432
@@ -515,6 +541,7 @@ type backend\.env | findstr DATABASE_URL
 
 **Symptoms**: Frontend won't start or has errors
 **EXACT Solution**:
+
 ```powershell
 # Check Node.js version
 node --version
@@ -535,6 +562,7 @@ netstat -an | findstr :3000
 
 **Symptoms**: Commits don't trigger ESLint/Prettier
 **EXACT Solution**:
+
 ```powershell
 # Reinstall Husky
 npx husky install
@@ -564,7 +592,7 @@ cd backend
 npm run start:dev
 # Wait for: "Application is running on: http://localhost:8080"
 
-# 3. Start frontend (Terminal 3)  
+# 3. Start frontend (Terminal 3)
 cd frontend
 npm run dev
 # Wait for: "ready - started server on 0.0.0.0:3000"
@@ -593,7 +621,7 @@ npx prisma generate
 
 ```powershell
 # Stop backend: Ctrl+C in backend terminal
-# Stop frontend: Ctrl+C in frontend terminal  
+# Stop frontend: Ctrl+C in frontend terminal
 
 # Stop Docker services
 .\scripts\docker-dev-stop.ps1
@@ -610,7 +638,7 @@ git add .
 git commit -m "feat: add new feature"
 # Hooks will automatically:
 # - Run ESLint and fix issues
-# - Format code with Prettier  
+# - Format code with Prettier
 # - Validate commit message format
 
 # Push changes
@@ -623,26 +651,29 @@ git push origin main
 
 ### Local Docker vs VPS Database
 
-| Aspect | Local Docker | VPS Database | Recommendation |
-|--------|--------------|--------------|----------------|
-| **Speed** | ~50ms response | ~470ms response | Local for development |
-| **Reliability** | Requires Docker running | Always available | VPS for team work |
-| **Data Sharing** | Individual setup | Shared with team | VPS for integration |
-| **Offline Work** | Works offline | Requires internet | Local for travel |
+| Aspect           | Local Docker            | VPS Database      | Recommendation        |
+| ---------------- | ----------------------- | ----------------- | --------------------- |
+| **Speed**        | ~50ms response          | ~470ms response   | Local for development |
+| **Reliability**  | Requires Docker running | Always available  | VPS for team work     |
+| **Data Sharing** | Individual setup        | Shared with team  | VPS for integration   |
+| **Offline Work** | Works offline           | Requires internet | Local for travel      |
 
 ### EXACT Usage Recommendations:
 
 **For Daily Development**: Use Local Docker
+
 ```env
 DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/schoolmanagement?schema=public"
 ```
 
-**For Team Integration**: Use VPS Database  
+**For Team Integration**: Use VPS Database
+
 ```env
 DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement?schema=public"
 ```
 
 **For Production Testing**: Use VPS Database
+
 ```env
 DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement?schema=public"
 ```
@@ -658,7 +689,7 @@ DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/school
 node --version && npm --version && docker --version
 # Should show all versions
 
-# ✅ Check 2: Environment configured  
+# ✅ Check 2: Environment configured
 type backend\.env | findstr DATABASE_URL
 # Should show DATABASE_URL line
 
@@ -671,7 +702,7 @@ cd backend && timeout 10 npm run start:dev
 # Should show: "Application is running"
 
 # ✅ Check 5: Frontend loads
-cd ../frontend && timeout 10 npm run dev  
+cd ../frontend && timeout 10 npm run dev
 # Should show: "ready - started server"
 
 # ✅ Check 6: Database connection
@@ -688,7 +719,7 @@ git add . && git commit -m "test: verify setup"
 
 # ✅ Check 9: Services accessible
 # Open http://localhost:8080 (Backend)
-# Open http://localhost:3000 (Frontend)  
+# Open http://localhost:3000 (Frontend)
 # Open http://localhost:8025 (MailHog)
 ```
 
@@ -696,7 +727,7 @@ git add . && git commit -m "test: verify setup"
 
 - [x] All 27 tests passing (100%)
 - [x] VPS PostgreSQL connected and functional
-- [x] Backend application tests passing  
+- [x] Backend application tests passing
 - [x] Development environment ready
 - [x] All documentation complete
 - [x] Docker services running (3/3)
@@ -709,23 +740,27 @@ git add . && git commit -m "test: verify setup"
 
 ### Development Environment Benefits:
 
-✅ **Professional Code Quality**  
+✅ **Professional Code Quality**
+
 - ESLint catches bugs before runtime
 - Prettier ensures consistent formatting
 - Git hooks prevent bad code from being committed
 
-✅ **Secure Configuration Management**  
+✅ **Secure Configuration Management**
+
 - Environment variables for all secrets
 - Runtime validation prevents crashes
 - Easy onboarding for new developers
 
-✅ **Complete Local Development Stack**  
+✅ **Complete Local Development Stack**
+
 - PostgreSQL database for data storage
 - Redis cache for performance
 - MailHog for email testing
 - All services containerized and automated
 
-✅ **Production-Ready Setup**  
+✅ **Production-Ready Setup**
+
 - VPS database integration for team work
 - Proper security configurations
 - Scalable architecture patterns
@@ -736,10 +771,10 @@ git add . && git commit -m "test: verify setup"
 🎯 **Consistent Code Quality** - Everyone writes the same style automatically  
 🎯 **Fast Development** - Local services respond in ~50ms  
 🎯 **Team Collaboration** - Shared VPS database for integration  
-🎯 **Professional Standards** - Industry best practices implemented  
+🎯 **Professional Standards** - Industry best practices implemented
 
 ---
 
 **🎉 CONGRATULATIONS! Your School Management System development environment is now PRODUCTION-READY with complete automation, testing, and documentation!**
 
-**Next Step**: Begin Phase 1 module development with Student and Teacher modules. 
+**Next Step**: Begin Phase 1 module development with Student and Teacher modules.

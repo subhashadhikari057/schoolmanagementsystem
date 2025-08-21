@@ -21,7 +21,7 @@ const eslintConfig = [
     },
     plugins: {
       '@typescript-eslint': tseslint,
-      'react': react,
+      react: react,
       'react-hooks': reactHooks,
       '@next/next': next,
     },
@@ -29,18 +29,21 @@ const eslintConfig = [
       // Basic rules
       'no-unused-vars': 'off',
       'no-undef': 'off',
-      
+
       // TypeScript rules
-      '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_' },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-expressions': 'off',
-      
+
       // React rules
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      
+
       // Next.js rules
       '@next/next/no-html-link-for-pages': 'error',
       '@next/next/no-img-element': 'warn',
@@ -52,13 +55,7 @@ const eslintConfig = [
     },
   },
   {
-    ignores: [
-      '.next/**',
-      'node_modules/**',
-      'out/**',
-      'build/**',
-      'dist/**',
-    ],
+    ignores: ['.next/**', 'node_modules/**', 'out/**', 'build/**', 'dist/**'],
   },
 ];
 

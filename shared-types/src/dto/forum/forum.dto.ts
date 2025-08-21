@@ -6,10 +6,10 @@
  * =============================================================================
  */
 
-import { z } from 'zod';
-import { BaseEntity } from '../common/base.dto';
-import { ForumPostStatus } from '../../enums/forum/post-status.enum';
-import { ModerationStatus } from '../../enums/forum/moderation-status.enum';
+import { z } from "zod";
+import { BaseEntity } from "../common/base.dto";
+import { ForumPostStatus } from "../../enums/forum/post-status.enum";
+import { ModerationStatus } from "../../enums/forum/moderation-status.enum";
 
 /**
  * Forum post DTO
@@ -69,8 +69,8 @@ export interface UpdateForumPostDto {
  * Zod schemas
  */
 export const CreateForumPostSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(200),
-  content: z.string().min(1, 'Content is required'),
+  title: z.string().min(1, "Title is required").max(200),
+  content: z.string().min(1, "Content is required"),
   category: z.string().optional(),
   tags: z.array(z.string()).optional(),
 });

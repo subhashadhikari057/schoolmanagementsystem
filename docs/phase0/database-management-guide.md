@@ -1,11 +1,13 @@
 # 🗄️ Database Management Guide & Best Practices
 
 ## 🎯 **Overview**
+
 This guide provides practical examples and best practices for managing the School Management System database hosted on VPS infrastructure. All operations are optimized for remote PostgreSQL database management.
 
 ## 🌐 **VPS Database Configuration**
 
 ### **Connection Details**
+
 ```bash
 Host: 95.216.235.115
 Port: 5432
@@ -16,6 +18,7 @@ SSL: Enabled
 ```
 
 ### **Environment Setup**
+
 ```bash
 # Primary database connection
 DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement?schema=public"
@@ -29,6 +32,7 @@ TEST_DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/s
 ### **1. Database Seeding**
 
 **✅ Initial Setup (New Environment):**
+
 ```bash
 # Full comprehensive seeding
 npm run seed:comprehensive
@@ -38,6 +42,7 @@ npm run migration:utils status
 ```
 
 **✅ Production Deployment:**
+
 ```bash
 # Production-safe seeding (system users only)
 NODE_ENV=production npm run seed:comprehensive
@@ -47,6 +52,7 @@ npm test -- --testNamePattern="should verify database is ready"
 ```
 
 **✅ Development Environment:**
+
 ```bash
 # Development with test data
 NODE_ENV=development npm run seed:comprehensive
@@ -58,6 +64,7 @@ npm test -- --testNamePattern="should seed system users successfully"
 ### **2. Migration Management**
 
 **✅ Check Migration Status:**
+
 ```bash
 # View current migration status
 npm run migration:utils status
@@ -67,6 +74,7 @@ npm run migration:utils validate
 ```
 
 **✅ Apply New Migrations:**
+
 ```bash
 # Generate new migration
 npx prisma migrate dev --name add_new_feature
@@ -79,6 +87,7 @@ npm run migration:utils validate
 ```
 
 **✅ Rollback Migrations:**
+
 ```bash
 # Rollback last migration
 npm run migration:utils rollback --steps=1 --force
@@ -93,6 +102,7 @@ npm run migration:utils rollback --steps=1 --dry-run
 ### **3. Backup Operations**
 
 **✅ Create Backups:**
+
 ```bash
 # Create named backup
 npm run migration:utils backup "pre-deployment-$(date +%Y%m%d-%H%M)"
@@ -105,6 +115,7 @@ npm run migration:utils list-backups
 ```
 
 **✅ Restore from Backup:**
+
 ```bash
 # Restore from specific backup
 npm run migration:utils restore "path/to/backup-20250131-1430.sql"
@@ -115,6 +126,7 @@ npm run migration:utils restore "$LATEST_BACKUP"
 ```
 
 **✅ Backup Maintenance:**
+
 ```bash
 # Clean old backups (keep 10 most recent)
 npm run migration:utils clean-backups 10
@@ -128,6 +140,7 @@ npm run migration:utils clean-backups 5
 ### **Comprehensive Database Testing**
 
 **✅ Full Test Suite:**
+
 ```bash
 # Run all database tests
 npm test -- --testPathPattern="database-operations"
@@ -137,6 +150,7 @@ npm test -- --testPathPattern="database-operations" --verbose
 ```
 
 **✅ Specific Test Categories:**
+
 ```bash
 # VPS connectivity tests
 npm test -- --testNamePattern="VPS Database Connectivity"
@@ -152,6 +166,7 @@ npm test -- --testNamePattern="Database Performance"
 ```
 
 **✅ Quick Health Checks:**
+
 ```bash
 # Test VPS connection
 npm test -- --testNamePattern="should connect to VPS PostgreSQL"
@@ -166,6 +181,7 @@ npm test -- --testNamePattern="should measure database response time"
 ### **Manual Verification**
 
 **✅ Database Connection:**
+
 ```bash
 # Test connection using psql
 psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement" -c "SELECT version();"
@@ -175,6 +191,7 @@ npx prisma db pull --preview-feature
 ```
 
 **✅ Schema Validation:**
+
 ```bash
 # Generate Prisma client
 npx prisma generate
@@ -191,6 +208,7 @@ npx prisma studio
 ### **Common Issues & Solutions**
 
 **❌ Connection Timeout:**
+
 ```bash
 # Problem: Connection to VPS database times out
 # Solution: Check network connectivity and firewall settings
@@ -206,6 +224,7 @@ TEST_TIMEOUT=60000 npm test -- --testPathPattern="database-operations"
 ```
 
 **❌ Migration Conflicts:**
+
 ```bash
 # Problem: Migration conflicts or failed migrations
 # Solution: Reset and reapply migrations
@@ -224,6 +243,7 @@ npm run seed:comprehensive
 ```
 
 **❌ Seeding Failures:**
+
 ```bash
 # Problem: Seeding fails with duplicate key errors
 # Solution: Use skip existing data option
@@ -237,6 +257,7 @@ npm run seed:comprehensive
 ```
 
 **❌ Backup/Restore Issues:**
+
 ```bash
 # Problem: pg_dump/psql not found
 # Solution: Install PostgreSQL client tools
@@ -254,6 +275,7 @@ export PATH="/c/Program Files/PostgreSQL/16/bin:$PATH"
 ### **Performance Issues**
 
 **❌ Slow Query Performance:**
+
 ```bash
 # Problem: Database queries are slow
 # Solution: Analyze and optimize
@@ -269,6 +291,7 @@ npm test -- --testNamePattern="should measure database response time"
 ```
 
 **❌ Connection Pool Exhaustion:**
+
 ```bash
 # Problem: Too many database connections
 # Solution: Optimize connection usage
@@ -285,6 +308,7 @@ psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanageme
 ### **Credential Management**
 
 **✅ Environment Variables:**
+
 ```bash
 # Never hardcode credentials
 # ❌ Bad
@@ -298,6 +322,7 @@ echo 'DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/
 ```
 
 **✅ Connection Security:**
+
 ```bash
 # Always use SSL connections
 DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement?sslmode=require"
@@ -309,6 +334,7 @@ npm test -- --testNamePattern="should verify database configuration"
 ### **Access Control**
 
 **✅ User Permissions:**
+
 ```bash
 # Verify database user has appropriate permissions
 npm test -- --testNamePattern="should verify database permissions"
@@ -318,6 +344,7 @@ psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanageme
 ```
 
 **✅ Audit Trail:**
+
 ```bash
 # Ensure audit logging is working
 npm test -- --testNamePattern="should create seed audit log"
@@ -331,6 +358,7 @@ psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanageme
 ### **Regular Maintenance Tasks**
 
 **✅ Weekly Tasks:**
+
 ```bash
 # Run comprehensive tests
 npm test -- --testPathPattern="database-operations"
@@ -343,19 +371,20 @@ npm run migration:utils validate
 ```
 
 **✅ Monthly Tasks:**
+
 ```bash
 # Performance analysis
 npm test -- --testNamePattern="Database Performance"
 
 # Database statistics
 psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement" -c "
-SELECT 
+SELECT
   schemaname,
   tablename,
   n_tup_ins as inserts,
   n_tup_upd as updates,
   n_tup_del as deletes
-FROM pg_stat_user_tables 
+FROM pg_stat_user_tables
 ORDER BY n_tup_ins DESC;"
 
 # Create monthly backup
@@ -365,26 +394,28 @@ npm run migration:utils backup "monthly-backup-$(date +%Y%m)"
 ### **Performance Monitoring**
 
 **✅ Query Performance:**
+
 ```bash
 # Monitor slow queries
 psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement" -c "
-SELECT query, calls, total_time, mean_time 
-FROM pg_stat_statements 
-ORDER BY mean_time DESC 
+SELECT query, calls, total_time, mean_time
+FROM pg_stat_statements
+ORDER BY mean_time DESC
 LIMIT 10;"
 ```
 
 **✅ Connection Monitoring:**
+
 ```bash
 # Monitor active connections
 psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement" -c "
-SELECT 
+SELECT
   datname,
   usename,
   application_name,
   state,
   query_start
-FROM pg_stat_activity 
+FROM pg_stat_activity
 WHERE state = 'active';"
 ```
 
@@ -393,15 +424,16 @@ WHERE state = 'active';"
 ### **Database Optimization**
 
 **✅ Index Management:**
+
 ```bash
 # Check index usage
 psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement" -c "
-SELECT 
+SELECT
   indexrelname as index_name,
   idx_tup_read,
   idx_tup_fetch,
   idx_scan
-FROM pg_stat_user_indexes 
+FROM pg_stat_user_indexes
 ORDER BY idx_scan DESC;"
 
 # Analyze table statistics
@@ -409,13 +441,14 @@ psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanageme
 ```
 
 **✅ Vacuum Operations:**
+
 ```bash
 # Vacuum analyze (maintenance)
 psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement" -c "VACUUM ANALYZE;"
 
 # Check vacuum statistics
 psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement" -c "
-SELECT 
+SELECT
   schemaname,
   tablename,
   last_vacuum,
@@ -428,6 +461,7 @@ FROM pg_stat_user_tables;"
 ### **Data Migration**
 
 **✅ Large Data Operations:**
+
 ```bash
 # Batch data operations for large datasets
 # Use transactions and batching for performance
@@ -440,6 +474,7 @@ COMMIT;"
 ```
 
 **✅ Data Export/Import:**
+
 ```bash
 # Export specific tables
 pg_dump -h 95.216.235.115 -p 5432 -U schooladmin -d schoolmanagement -t "User" --no-password > users_export.sql
@@ -451,31 +486,34 @@ psql "postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanageme
 ## 📋 **Quick Reference**
 
 ### **Essential Commands**
-| Operation | Command |
-|-----------|---------|
-| **Seed Database** | `npm run seed:comprehensive` |
-| **Migration Status** | `npm run migration:utils status` |
-| **Create Backup** | `npm run migration:utils backup "name"` |
-| **Rollback Migration** | `npm run migration:utils rollback --steps=1 --force` |
-| **Run Tests** | `npm test -- --testPathPattern="database-operations"` |
-| **Validate Schema** | `npm run migration:utils validate` |
+
+| Operation              | Command                                               |
+| ---------------------- | ----------------------------------------------------- |
+| **Seed Database**      | `npm run seed:comprehensive`                          |
+| **Migration Status**   | `npm run migration:utils status`                      |
+| **Create Backup**      | `npm run migration:utils backup "name"`               |
+| **Rollback Migration** | `npm run migration:utils rollback --steps=1 --force`  |
+| **Run Tests**          | `npm test -- --testPathPattern="database-operations"` |
+| **Validate Schema**    | `npm run migration:utils validate`                    |
 
 ### **Environment Variables**
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `DATABASE_URL` | Primary database connection | `postgresql://user:pass@host:5432/db` |
-| `NODE_ENV` | Environment type | `development`, `production`, `test` |
-| `SKIP_EXISTING` | Skip existing data in seeding | `true`, `false` |
-| `TEST_TIMEOUT` | Test timeout for VPS operations | `30000` (30 seconds) |
+
+| Variable        | Purpose                         | Example                               |
+| --------------- | ------------------------------- | ------------------------------------- |
+| `DATABASE_URL`  | Primary database connection     | `postgresql://user:pass@host:5432/db` |
+| `NODE_ENV`      | Environment type                | `development`, `production`, `test`   |
+| `SKIP_EXISTING` | Skip existing data in seeding   | `true`, `false`                       |
+| `TEST_TIMEOUT`  | Test timeout for VPS operations | `30000` (30 seconds)                  |
 
 ### **File Locations**
-| Component | Path |
-|-----------|------|
-| **Seeding System** | `backend/prisma/seeds/comprehensive-seed.ts` |
-| **Migration Utils** | `backend/prisma/migrations/migration-utils.ts` |
-| **Rollback Scripts** | `backend/prisma/migrations/[migration]/rollback.sql` |
+
+| Component             | Path                                                                     |
+| --------------------- | ------------------------------------------------------------------------ |
+| **Seeding System**    | `backend/prisma/seeds/comprehensive-seed.ts`                             |
+| **Migration Utils**   | `backend/prisma/migrations/migration-utils.ts`                           |
+| **Rollback Scripts**  | `backend/prisma/migrations/[migration]/rollback.sql`                     |
 | **Integration Tests** | `backend/src/database/__tests__/database-operations.integration.spec.ts` |
-| **Backups** | `backend/prisma/backups/` |
+| **Backups**           | `backend/prisma/backups/`                                                |
 
 ---
 

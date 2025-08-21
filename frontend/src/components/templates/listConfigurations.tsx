@@ -344,6 +344,7 @@ export interface Staff extends BaseItem {
   status: 'Active' | 'On Leave' | 'Inactive';
   avatar?: string;
   staffId?: string;
+  employeeId?: string;
   email?: string;
   phone?: string;
   salary?: number;

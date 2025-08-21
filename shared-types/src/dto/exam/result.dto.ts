@@ -1,4 +1,4 @@
-import { ResultStatus } from '../../enums/exam/result-status.enum';
+import { ResultStatus } from "../../enums/exam/result-status.enum";
 
 export interface ResultDto {
   id: string;

@@ -6,8 +6,8 @@
  * =============================================================================
  */
 
-import { UserRole } from '../enums/core/user-roles.enum';
-import { UserStatus } from '../enums/core/user-status.enum';
+import { UserRole } from "../enums/core/user-roles.enum";
+import { UserStatus } from "../enums/core/user-status.enum";
 
 /**
  * Check if a value is a valid user role
@@ -27,8 +27,9 @@ export function isUserStatus(value: any): value is UserStatus {
  * Check if a value is a valid UUID
  */
 export function isUuid(value: any): value is string {
-  if (typeof value !== 'string') return false;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (typeof value !== "string") return false;
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(value);
 }
 
@@ -36,7 +37,7 @@ export function isUuid(value: any): value is string {
  * Check if a value is a valid email
  */
 export function isEmail(value: any): value is string {
-  if (typeof value !== 'string') return false;
+  if (typeof value !== "string") return false;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(value);
 }
@@ -45,7 +46,7 @@ export function isEmail(value: any): value is string {
  * Check if a value is a valid phone number
  */
 export function isPhoneNumber(value: any): value is string {
-  if (typeof value !== 'string') return false;
+  if (typeof value !== "string") return false;
   const phoneRegex = /^\+?[1-9]\d{1,14}$/;
   return phoneRegex.test(value);
 }
