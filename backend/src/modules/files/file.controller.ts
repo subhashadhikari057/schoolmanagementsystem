@@ -12,7 +12,13 @@ export class FileController {
     @Res() res: Response,
   ) {
     // Validate folder to prevent directory traversal
-    const allowedFolders = ['teachers', 'students', 'staff', 'documents'];
+    const allowedFolders = [
+      'teachers',
+      'students',
+      'staff',
+      'documents',
+      'notices',
+    ];
     if (!allowedFolders.includes(folder)) {
       throw new NotFoundException('Invalid folder');
     }
@@ -21,7 +27,7 @@ export class FileController {
       process.cwd(),
       'uploads',
       folder,
-      'profiles',
+      folder === 'notices' ? 'attachments' : 'profiles',
       filename,
     );
 

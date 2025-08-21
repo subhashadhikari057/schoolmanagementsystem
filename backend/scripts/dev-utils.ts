@@ -465,78 +465,88 @@ async function main(): Promise<void> {
 
   try {
     switch (command) {
-      case 'db':
+      case 'db': {
         switch (subCommand) {
           case 'reset':
             await dbManager.reset();
             break;
-          case 'seed':
+          case 'seed': {
             const seedType =
               (options[0] as 'basic' | 'comprehensive' | 'test') ||
               'comprehensive';
             await dbManager.seed(seedType);
             break;
+          }
           case 'migrate':
             await dbManager.migrate();
             break;
-          case 'backup':
+          case 'backup': {
             const backupName = options[0];
             await dbManager.backup(backupName);
             break;
+          }
           case 'status':
             await dbManager.status();
             break;
-          case 'reset-and-seed':
+          case 'reset-and-seed': {
             const resetSeedType =
               (options[0] as 'basic' | 'comprehensive' | 'test') ||
               'comprehensive';
             await dbManager.resetAndSeed(resetSeedType);
             break;
+          }
           default:
             logger.error('CLI', `Unknown database command: ${subCommand}`);
             showHelp();
         }
         break;
+      }
 
-      case 'logs':
+      case 'logs': {
         switch (subCommand) {
-          case 'format':
+          case 'format': {
             const logFile =
               options[0] || join(process.cwd(), 'logs', 'application.log');
             logFormatter.formatApplicationLogs(logFile);
             break;
-          case 'tail':
+          }
+          case 'tail': {
             const tailFile =
               options[0] || join(process.cwd(), 'logs', 'application.log');
             const lines = parseInt(options[1]) || 50;
             logFormatter.tailLogs(tailFile, lines);
             break;
-          case 'clear':
+          }
+          case 'clear': {
             const clearFile =
               options[0] || join(process.cwd(), 'logs', 'application.log');
             logFormatter.clearLogs(clearFile);
             break;
+          }
           default:
             logger.error('CLI', `Unknown logs command: ${subCommand}`);
             showHelp();
         }
         break;
+      }
 
-      case 'dev':
+      case 'dev': {
         switch (subCommand) {
           case 'start':
             await devServer.startDevelopment();
             break;
-          case 'test':
+          case 'test': {
             const testType =
               (options[0] as 'all' | 'unit' | 'integration' | 'e2e') || 'all';
             await devServer.runTests(testType);
             break;
+          }
           default:
             logger.error('CLI', `Unknown dev command: ${subCommand}`);
             showHelp();
         }
         break;
+      }
 
       default:
         showHelp();
