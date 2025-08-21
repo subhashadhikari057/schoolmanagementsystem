@@ -35,12 +35,18 @@ export interface ListConfiguration<T = BaseItem> {
   title: string;
   searchPlaceholder: string;
   enableSelection?: boolean;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
   primaryFilter: {
     title: string;
+    value?: string;
+    onChange?: (value: string) => void;
     options: FilterOption[];
   };
   secondaryFilter: {
     title: string;
+    value?: string;
+    onChange?: (value: string) => void;
     options: FilterOption[];
   };
   columns: TableColumn<T>[];
@@ -83,25 +89,51 @@ export const GenericList = <T extends BaseItem>({
   selectedItems = [],
   onSelectionChange,
 }: GenericListProps<T>) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [primaryFilter, setPrimaryFilter] = useState('all');
-  const [secondaryFilter, setSecondaryFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState(config.searchValue || '');
+  const [primaryFilter, setPrimaryFilter] = useState(
+    config.primaryFilter.value || 'all',
+  );
+  const [secondaryFilter, setSecondaryFilter] = useState(
+    config.secondaryFilter.value || 'all',
+  );
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
+    config.onSearchChange?.(value);
     onSearch?.(value);
   };
 
   const handlePrimaryFilterChange = (value: string) => {
     setPrimaryFilter(value);
+    config.primaryFilter.onChange?.(value);
     onPrimaryFilterChange?.(value);
   };
 
   const handleSecondaryFilterChange = (value: string) => {
     setSecondaryFilter(value);
+    config.secondaryFilter.onChange?.(value);
     onSecondaryFilterChange?.(value);
   };
+
+  // Sync local state with controlled values
+  React.useEffect(() => {
+    if (config.searchValue !== undefined) {
+      setSearchTerm(config.searchValue);
+    }
+  }, [config.searchValue]);
+
+  React.useEffect(() => {
+    if (config.primaryFilter.value !== undefined) {
+      setPrimaryFilter(config.primaryFilter.value);
+    }
+  }, [config.primaryFilter.value]);
+
+  React.useEffect(() => {
+    if (config.secondaryFilter.value !== undefined) {
+      setSecondaryFilter(config.secondaryFilter.value);
+    }
+  }, [config.secondaryFilter.value]);
 
   return (
     <div className='px-1 sm:px-2 lg:px-0 max-w-7xl mx-auto'>
@@ -109,7 +141,7 @@ export const GenericList = <T extends BaseItem>({
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6'>
           <SectionTitle
             level={1}
-            className='text-lg sm:text-xl lg:text-2xl font-bold'
+            className='text-lg sm:text-xl lg:text-2xl font-semibold'
             text={config.title}
           />
           <div className='flex-shrink-0'>{customActions}</div>
