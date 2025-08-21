@@ -5,7 +5,7 @@ import { noticeService, Notice } from '@/api/services/notice.service';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import Button from '@/components/atoms/form-controls/Button';
-import { AlertCircle, Eye, FileText, Bell } from 'lucide-react';
+import { AlertCircle, Eye, FileText, Bell, User, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { NoticePriority, NoticePriorityLabels } from 'shared-types';
 
@@ -276,22 +276,29 @@ const NoticeViewModal: React.FC<NoticeViewModalProps> = ({
   );
 };
 
-interface StudentNoticesTabProps {
+interface ParentNoticesTabProps {
   categoryFilter: string;
   setCategoryFilter: (value: string) => void;
+  searchTerm?: string;
 }
 
-export default function StudentNoticesTab({
+export default function ParentNoticesTab({
   categoryFilter,
   setCategoryFilter,
-}: StudentNoticesTabProps) {
+  searchTerm = '',
+}: ParentNoticesTabProps) {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(searchTerm);
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
+
+  // Update query when searchTerm prop changes
+  useEffect(() => {
+    setQuery(searchTerm);
+  }, [searchTerm]);
 
   // Fetch notices from the backend
   useEffect(() => {
@@ -412,10 +419,19 @@ export default function StudentNoticesTab({
     return new Date(expiryDate) < new Date();
   };
 
+  // Get notice relevance for children
+  const getNoticeRelevance = (notice: Notice) => {
+    // This would be based on the child's class, etc. For now we'll use a simple check
+    if (notice.recipientType === 'PARENT' || notice.recipientType === 'ALL') {
+      return true;
+    }
+    return !!notice.selectedClassId; // If it's for a class, it's relevant to the child
+  };
+
   return (
     <div className='space-y-6'>
-      {/* Search and Filters */}
-      <div className='flex flex-col sm:flex-row gap-3 items-center w-full'>
+      {/* Search and Filters - Hidden on mobile since it's handled in the parent page */}
+      <div className='hidden sm:flex flex-col sm:flex-row gap-3 items-center w-full'>
         <div className='w-full sm:flex-1'>
           <LabeledInputField
             label=''
@@ -482,6 +498,12 @@ export default function StudentNoticesTab({
                         Expired
                       </span>
                     )}
+                    {getNoticeRelevance(notice) && (
+                      <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 flex items-center gap-1'>
+                        <User className='w-3 h-3' />
+                        <span>Child-related</span>
+                      </span>
+                    )}
                   </div>
 
                   <h3 className='text-lg font-semibold text-gray-900 mb-2'>
@@ -492,12 +514,13 @@ export default function StudentNoticesTab({
                     {notice.content}
                   </p>
 
-                  <div className='flex items-center gap-6 text-sm text-gray-600'>
+                  <div className='flex items-center gap-6 text-sm text-gray-600 flex-wrap'>
                     <div className='flex items-center gap-2'>
                       <Bell className='w-4 h-4' />
                       <span>By {notice.createdBy?.fullName || 'Admin'}</span>
                     </div>
                     <div className='flex items-center gap-2'>
+                      <Calendar className='w-4 h-4' />
                       <span>
                         {new Date(notice.publishDate).toLocaleDateString()}
                       </span>
