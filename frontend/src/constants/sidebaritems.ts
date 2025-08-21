@@ -92,25 +92,9 @@ export const sidebarItems = {
           path: '/dashboard/admin/finance/fee-management',
         },
         {
-          label: 'Dues & Fines',
-          icon: 'AlertCircle',
-          path: '/dashboard/admin/finance/dues-fines',
-        },
-        {
-          label: 'Salaries',
-          icon: 'DollarSign',
-          path: '/dashboard/admin/finance/salaries',
-        },
-
-        {
           label: 'Expenses',
           icon: 'TrendingUp',
           path: '/dashboard/admin/finance/expenses',
-        },
-        {
-          label: 'Scholarships',
-          icon: 'Award',
-          path: '/dashboard/admin/finance/scholarships',
         },
       ],
     },
@@ -209,7 +193,7 @@ export const sidebarItems = {
         {
           label: 'My Subjects',
           icon: 'Layers',
-          path: '/dashboard/student/classes',
+          path: '/dashboard/student/subjects',
         },
         {
           label: 'Assignments',

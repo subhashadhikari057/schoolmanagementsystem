@@ -10,7 +10,7 @@ import ProfileDropdown from '@/components/molecules/interactive/Dropdown';
 import { useAuth } from '@/hooks/useAuth';
 // import { isDevMockEnabled } from '@/utils';
 
-type SidebarRole = 'Superadmin' | 'teacher' | 'student' | 'parent' | 'staff';
+type SidebarRole = 'Superadmin' | 'teacher' | 'student' | 'parent';
 
 interface SidebarProps {
   role?: SidebarRole;
@@ -43,8 +43,6 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
         return 'student';
       case 'parent':
         return 'parent';
-      case 'staff':
-        return 'staff';
       default:
         return 'student'; // fallback
     }
@@ -217,7 +215,8 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                         )[item.icon] || Icons.Circle;
                       const isActive =
                         pathname === item.path ||
-                        pathname.startsWith(item.path + '/');
+                        (pathname &&
+                          pathname.startsWith(item.path + '/dashboard'));
                       return (
                         <li key={item.label}>
                           <Link
@@ -226,7 +225,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                             className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
                               text-foreground hover:bg-muted-hover hover:font-bold
                               ${isCollapsed && !expandedByHover ? 'justify-center' : ''}
-                              ${isActive ? 'bg-gray-100 font-bold text-primary' : ''}`}
+                              ${isActive ? 'bg-gray-200 font-bold text-primary' : ''}`}
                             title={isCollapsed ? item.label : ''}
                           >
                             <Icon
