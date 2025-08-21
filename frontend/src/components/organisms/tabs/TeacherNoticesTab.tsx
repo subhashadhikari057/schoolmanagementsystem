@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { noticeService, Notice } from '@/api/services/notice.service';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import Button from '@/components/atoms/form-controls/Button';
-import { AlertCircle, Eye, FileText, Bell } from 'lucide-react';
+import { Bell, Eye, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { NoticePriority, NoticePriorityLabels } from 'shared-types';
 
@@ -276,18 +276,11 @@ const NoticeViewModal: React.FC<NoticeViewModalProps> = ({
   );
 };
 
-interface StudentNoticesTabProps {
-  categoryFilter: string;
-  setCategoryFilter: (value: string) => void;
-}
-
-export default function StudentNoticesTab({
-  categoryFilter,
-  setCategoryFilter,
-}: StudentNoticesTabProps) {
+export default function TeacherNoticesTab() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -326,42 +319,6 @@ export default function StudentNoticesTab({
     fetchNotices();
   }, [page, query, priorityFilter, categoryFilter]);
 
-  // Listen for refresh events
-  useEffect(() => {
-    const handleRefresh = () => {
-      // Refetch notices when the refresh event is triggered
-      const fetchNotices = async () => {
-        try {
-          const params: Record<string, unknown> = { page, limit: 10 };
-          if (query) params.search = query;
-          if (priorityFilter !== 'all')
-            params.priority = priorityFilter.toUpperCase();
-          if (categoryFilter !== 'all') params.category = categoryFilter;
-
-          const response = await noticeService.getMyNotices(params);
-          if (response.success && response.data) {
-            setNotices(response.data.notices);
-            setTotalPages(response.data.pagination.pages);
-          }
-        } catch (error) {
-          console.error('Error refreshing notices:', error);
-        }
-      };
-
-      fetchNotices();
-    };
-
-    // Add event listener for notice refreshes
-    if (typeof window !== 'undefined') {
-      window.addEventListener('notices:refresh', handleRefresh);
-
-      // Clean up
-      return () => {
-        window.removeEventListener('notices:refresh', handleRefresh);
-      };
-    }
-  }, [page, query, priorityFilter, categoryFilter]);
-
   // Priority options for filter dropdown
   const priorityOptions = [
     { value: 'all', label: 'All Priorities' },
@@ -371,7 +328,7 @@ export default function StudentNoticesTab({
     })),
   ];
 
-  // Category options
+  // Category options - we'll get these from the backend in a real implementation
   const categoryOptions = [
     { value: 'all', label: 'All Categories' },
     { value: 'GENERAL', label: 'General' },
@@ -407,40 +364,51 @@ export default function StudentNoticesTab({
     setSelectedNotice(notice);
   };
 
-  // Check if a notice is expired
-  const isNoticeExpired = (expiryDate: string) => {
-    return new Date(expiryDate) < new Date();
-  };
-
   return (
     <div className='space-y-6'>
       {/* Search and Filters */}
-      <div className='flex flex-col sm:flex-row gap-3 items-center w-full'>
+      <div className='flex items-center justify-between gap-3 flex-wrap'>
         <div className='w-full sm:flex-1'>
           <LabeledInputField
-            label=''
-            placeholder='Search notices...'
+            type='search'
             value={query}
             onChange={e => setQuery(e.target.value)}
-            className='bg-white border border-gray-200 rounded-lg px-4 py-2 w-full'
+            placeholder='Search notices...'
+            className='w-full bg-white'
+            icon={
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                className='h-4 w-4'
+                fill='none'
+                viewBox='0 0 24 24'
+                stroke='currentColor'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z'
+                />
+              </svg>
+            }
           />
         </div>
-        <div className='flex items-center gap-2 w-full sm:w-auto'>
-          <Dropdown
-            type='filter'
-            title='Category'
-            options={categoryOptions}
-            selectedValue={categoryFilter}
-            onSelect={setCategoryFilter}
-            className='max-w-xs w-full sm:w-auto'
-          />
+        <div className='flex items-center gap-2'>
           <Dropdown
             type='filter'
             title='Priority'
             options={priorityOptions}
             selectedValue={priorityFilter}
-            onSelect={setPriorityFilter}
-            className='max-w-xs w-full sm:w-auto'
+            onSelect={value => setPriorityFilter(value)}
+            className='max-w-xs'
+          />
+          <Dropdown
+            type='filter'
+            title='Category'
+            options={categoryOptions}
+            selectedValue={categoryFilter}
+            onSelect={value => setCategoryFilter(value)}
+            className='max-w-xs'
           />
         </div>
       </div>
@@ -458,41 +426,34 @@ export default function StudentNoticesTab({
           {notices.map(notice => (
             <div
               key={notice.id}
-              className={`bg-white rounded-xl border ${
-                isNoticeExpired(notice.expiryDate)
-                  ? 'border-gray-200 opacity-70'
-                  : 'border-gray-200'
-              } p-6 shadow-sm`}
+              className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'
             >
               <div className='flex items-start justify-between mb-4'>
                 <div className='flex-1'>
-                  <div className='flex items-center gap-3 mb-3 flex-wrap'>
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(notice.priority)}`}
-                    >
-                      {notice.priority.toLowerCase()}
-                    </span>
+                  <div className='flex items-center gap-3 mb-3'>
                     {notice.category && (
                       <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700'>
                         {notice.category.toLowerCase()}
                       </span>
                     )}
-                    {isNoticeExpired(notice.expiryDate) && (
-                      <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700'>
-                        Expired
-                      </span>
-                    )}
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(notice.priority)}`}
+                    >
+                      {notice.priority.toLowerCase()}
+                    </span>
+                    <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700'>
+                      {notice.recipientType.toLowerCase()}
+                    </span>
                   </div>
 
                   <h3 className='text-lg font-semibold text-gray-900 mb-2'>
                     {notice.title}
                   </h3>
-
-                  <p className='text-gray-600 line-clamp-2 mb-3'>
+                  <p className='text-gray-600 mb-4 line-clamp-2'>
                     {notice.content}
                   </p>
 
-                  <div className='flex items-center gap-6 text-sm text-gray-600'>
+                  <div className='flex items-center gap-6 text-sm text-gray-600 mb-4'>
                     <div className='flex items-center gap-2'>
                       <Bell className='w-4 h-4' />
                       <span>By {notice.createdBy?.fullName || 'Admin'}</span>
@@ -502,9 +463,8 @@ export default function StudentNoticesTab({
                         {new Date(notice.publishDate).toLocaleDateString()}
                       </span>
                     </div>
-                    {notice.attachments && notice.attachments.length > 0 && (
-                      <div className='flex items-center gap-1'>
-                        <FileText className='w-4 h-4' />
+                    {notice.attachments && (
+                      <div className='flex items-center gap-2'>
                         <span>{notice.attachments.length} attachment(s)</span>
                       </div>
                     )}
@@ -513,12 +473,12 @@ export default function StudentNoticesTab({
 
                 <div className='flex gap-3'>
                   <Button
-                    label='View Details'
+                    label='View'
                     onClick={() => handleViewNotice(notice)}
                     className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2'
                   >
                     <Eye className='w-4 h-4' />
-                    <span>View Details</span>
+                    <span>View</span>
                   </Button>
                 </div>
               </div>
@@ -552,13 +512,13 @@ export default function StudentNoticesTab({
 
       {/* Empty State */}
       {!loading && notices.length === 0 && (
-        <div className='flex items-center justify-center py-12'>
-          <div className='text-center'>
-            <AlertCircle className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-            <p className='text-gray-600'>No notices found</p>
-            <p className='text-gray-400 text-sm mt-1'>
-              Try adjusting your search or filter criteria
-            </p>
+        <div className='text-center py-12'>
+          <div className='w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+            <Bell className='w-8 h-8 text-gray-400' />
+          </div>
+          <div className='text-gray-500 text-lg'>No notices found</div>
+          <div className='text-gray-400'>
+            Try adjusting your search or filter criteria
           </div>
         </div>
       )}
