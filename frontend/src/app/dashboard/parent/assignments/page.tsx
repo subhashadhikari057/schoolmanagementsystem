@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
+import { FiSearch } from 'react-icons/fi';
 
 const assignmentStatuses = [
   { label: 'All Status', value: 'All Status' },
@@ -49,6 +50,7 @@ export default function ParentAssignmentsPage() {
   );
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedChild, setSelectedChild] = useState(childrenList[0].id);
+  const [showSearch, setShowSearch] = useState(false);
 
   const filteredAssignments = assignmentsData.filter(
     assignment =>
@@ -65,12 +67,36 @@ export default function ParentAssignmentsPage() {
         <div className='flex gap-2'></div>
       </div>
       <div className='flex items-center gap-4 mb-6'>
-        <LabeledInputField
-          placeholder='Search assignments...'
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          className='min-w-[300px] bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm'
-        />
+        {/* Mobile search icon and input */}
+        <div className='block md:hidden'>
+          {!showSearch ? (
+            <button
+              aria-label='Open search'
+              className='p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500'
+              onClick={() => setShowSearch(true)}
+            >
+              <FiSearch size={24} />
+            </button>
+          ) : (
+            <LabeledInputField
+              placeholder='Search assignments...'
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className='min-w-[180px] bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm'
+              // autoFocus
+              // onBlur={() => setShowSearch(false)}
+            />
+          )}
+        </div>
+        {/* Desktop search input */}
+        <div className='hidden md:block'>
+          <LabeledInputField
+            placeholder='Search assignments...'
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className='min-w-[300px] bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm'
+          />
+        </div>
         <Dropdown
           options={assignmentStatuses}
           selectedValue={selectedStatus}
@@ -100,7 +126,7 @@ export default function ParentAssignmentsPage() {
             >
               <div className='flex items-center justify-between mb-2'>
                 <div>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-1'>
+                  <h3 className='text-lg font-bold text-gray-900 mb-1'>
                     {a.title}
                   </h3>
                 </div>

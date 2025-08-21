@@ -169,7 +169,8 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
   const legend = [
     { color: 'bg-green-500', label: 'Present (उपस्थित)' },
     { color: 'bg-red-500', label: 'Absent (अनुपस्थित)' },
-    { color: 'bg-gray-200', label: 'Not Recorded (रिकॉर्ड छैन)' },
+    // Removed 'Not Recorded' from legend
+    // { color: 'bg-gray-200', label: 'Not Recorded (रिकॉर्ड छैन)' },
   ];
 
   // Toggle calendar type
@@ -179,9 +180,9 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
 
   // Render
   return (
-    <ChartCard className='p-4 w-full bg-white shadow-lg rounded-xl border-0'>
+    <ChartCard className='p-2 sm:p-4 w-full bg-white shadow-lg rounded-xl border-0'>
       <div className='mb-4'>
-        <div className='flex items-center justify-between mb-2'>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2'>
           <h2 className='text-lg font-semibold text-gray-900'></h2>
           <button
             onClick={handleToggleCalendarType}
@@ -191,7 +192,7 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
           </button>
         </div>
         {/* Legend */}
-        <div className='flex gap-4 mb-2'>
+        <div className='flex flex-wrap gap-2 sm:gap-4 mb-2'>
           {legend.map((item, idx) => (
             <div key={idx} className='flex items-center gap-2'>
               <span
@@ -202,13 +203,14 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
           ))}
         </div>
         <div
-          className={`flex items-center justify-between ${calendarType === 'BS' ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-gradient-to-r from-emerald-600 to-teal-600'} text-white rounded-lg p-4 shadow-lg mt-4`}
+          className={`flex items-center justify-between ${calendarType === 'BS' ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-gradient-to-r from-emerald-600 to-teal-600'} text-white rounded-lg p-2 sm:p-4 shadow-lg mt-4`}
         >
           <button
             onClick={goToPreviousMonth}
-            className='p-2 hover:bg-white/20 rounded-full transition-all duration-200 hover:scale-110'
+            className='p-2 sm:p-3 hover:bg-white/20 rounded-full transition-all duration-200 hover:scale-110'
+            aria-label='Previous month'
           >
-            <ChevronLeft className='w-5 h-5' />
+            <ChevronLeft className='w-6 h-6 sm:w-5 sm:h-5' />
           </button>
           <div className='text-center'>
             <h3 className='text-lg font-semibold mb-1'>
@@ -219,15 +221,16 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
           </div>
           <button
             onClick={goToNextMonth}
-            className='p-2 hover:bg-white/20 rounded-full transition-all duration-200 hover:scale-110'
+            className='p-2 sm:p-3 hover:bg-white/20 rounded-full transition-all duration-200 hover:scale-110'
+            aria-label='Next month'
           >
-            <ChevronRight className='w-5 h-5' />
+            <ChevronRight className='w-6 h-6 sm:w-5 sm:h-5' />
           </button>
         </div>
       </div>
-      <div className='bg-gray-50 rounded-lg p-4 shadow-inner'>
+      <div className='bg-gray-50 rounded-lg p-2 sm:p-4 shadow-inner'>
         {/* Weekday Headers */}
-        <div className='grid grid-cols-7 gap-2 mb-3'>
+        <div className='grid grid-cols-7 gap-1 sm:gap-2 mb-2 sm:mb-3'>
           {(calendarType === 'BS'
             ? nepaliWeekdays
             : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -250,7 +253,7 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
           ))}
         </div>
         {/* Calendar Days */}
-        <div className='grid grid-cols-7 gap-2'>
+        <div className='grid grid-cols-7 gap-1 sm:gap-2'>
           {(calendarType === 'BS'
             ? generateBSCalendarDays()
             : generateADCalendarDays()
@@ -273,30 +276,34 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
               <button
                 key={index}
                 onClick={() => onDateSelect?.(adDateString)}
-                className={`h-16 min-h-16 rounded-lg font-semibold text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden ${bgColor} ${isTodayDate ? 'ring-2 ring-blue-500' : ''} ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}
+                className={`h-12 sm:h-16 min-h-12 sm:min-h-16 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-200 transform hover:scale-105 shadow-sm relative overflow-hidden ${bgColor} ${isTodayDate ? 'ring-2 ring-blue-500' : ''} ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}
+                style={{ minWidth: '2.2rem' }}
               >
                 <div className='flex flex-col h-full relative'>
                   <div className='flex-shrink-0 text-center py-1'>
                     <div className='flex flex-col items-center'>
-                      <span className='text-sm font-bold'>{day}</span>
+                      <span className='text-xs sm:text-sm font-bold'>
+                        {day}
+                      </span>
                       {isTodayDate && (
-                        <span className='text-xs text-blue-100 leading-none'>
+                        <span className='text-[10px] sm:text-xs text-blue-100 leading-none'>
                           {isBS ? 'आज' : 'Today'}
                         </span>
                       )}
-                      <span className='text-xs leading-none'>
-                        {attendanceStatus === 'present'
-                          ? isBS
-                            ? 'उपस्थित'
-                            : 'Present'
-                          : attendanceStatus === 'absent'
+                      {(attendanceStatus === 'present' ||
+                        attendanceStatus === 'absent') && (
+                        <span className='text-[10px] sm:text-xs leading-none'>
+                          {attendanceStatus === 'present'
                             ? isBS
-                              ? 'अनुपस्थित'
-                              : 'Absent'
-                            : isBS
-                              ? 'रिकॉर्ड छैन'
-                              : 'Not Recorded'}
-                      </span>
+                              ? 'उपस्थित'
+                              : 'Present'
+                            : attendanceStatus === 'absent'
+                              ? isBS
+                                ? 'अनुपस्थित'
+                                : 'Absent'
+                              : ''}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

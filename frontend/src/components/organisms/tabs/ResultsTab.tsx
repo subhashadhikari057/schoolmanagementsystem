@@ -85,18 +85,18 @@ export default function ResultsTab() {
   return (
     <div className='space-y-6'>
       {/* Header */}
-      <div className='flex items-center justify-between'>
+      <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
         <div>
           <SectionTitle
             text='Recent Results'
             level={3}
-            className='text-xl font-semibold text-gray-900'
+            className='text-lg sm:text-xl font-semibold text-gray-900'
           />
-          <Label className='text-gray-600'>
+          <Label className='text-gray-600 text-sm sm:text-base'>
             Latest student examination results
           </Label>
         </div>
-        <div className='flex items-center gap-2 text-sm text-gray-600'>
+        <div className='flex items-center gap-2 text-xs sm:text-sm text-gray-600'>
           <Users className='w-4 h-4' />
           <span>{studentResults.length} results</span>
         </div>
@@ -104,46 +104,46 @@ export default function ResultsTab() {
 
       {/* Results List */}
       <div className='bg-white rounded-xl border border-gray-200 shadow-sm'>
-        <div className='p-6'>
+        <div className='p-3 sm:p-6'>
           <div className='space-y-4'>
             {studentResults.map(result => (
               <div
                 key={result.id}
-                className='flex items-center justify-between py-4 border-b border-gray-100 last:border-b-0'
+                className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between py-4 border-b border-gray-100 last:border-b-0'
               >
-                <div className='flex items-center gap-4'>
-                  <div className='w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center'>
-                    <span className='text-blue-600 font-semibold text-sm'>
+                <div className='flex items-center gap-3 sm:gap-4 min-w-0'>
+                  <div className='w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0'>
+                    <span className='text-blue-600 font-semibold text-xs sm:text-sm'>
                       {result.studentName
                         .split(' ')
                         .map(n => n[0])
                         .join('')}
                     </span>
                   </div>
-                  <div>
-                    <div className='flex items-center gap-3 mb-1'>
-                      <span className='font-medium text-gray-900'>
+                  <div className='min-w-0'>
+                    <div className='flex flex-wrap items-center gap-2 sm:gap-3 mb-1'>
+                      <span className='font-medium text-gray-900 truncate max-w-[120px] sm:max-w-none'>
                         {result.studentName}
                       </span>
                       <span className='inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full'>
                         {result.class}
                       </span>
                     </div>
-                    <div className='text-sm text-gray-600'>
+                    <div className='text-xs sm:text-sm text-gray-600'>
                       Roll No: {result.rollNo}
                     </div>
                   </div>
                 </div>
 
-                <div className='flex items-center gap-6'>
-                  <div className='flex items-center gap-4 text-sm text-gray-600'>
-                    <div className='text-center'>
+                <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6'>
+                  <div className='flex flex-row gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 overflow-x-auto'>
+                    <div className='text-center min-w-[70px]'>
                       <span className='text-gray-500'>Marks:</span>
                       <div className='font-medium text-gray-900'>
                         {result.marks}
                       </div>
                     </div>
-                    <div className='text-center'>
+                    <div className='text-center min-w-[90px]'>
                       <span className='text-gray-500'>Percentage:</span>
                       <div className='font-medium text-gray-900'>
                         {result.percentage}%
@@ -151,15 +151,15 @@ export default function ResultsTab() {
                     </div>
                   </div>
 
-                  <div className='flex items-center gap-3'>
+                  <div className='flex items-center gap-2 sm:gap-3 mt-2 sm:mt-0'>
                     <span
-                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getGradeColor(result.grade)}`}
+                      className={`inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${getGradeColor(result.grade)}`}
                     >
                       {result.grade}
                     </span>
                     <Button
                       label='View Details'
-                      className='bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200'
+                      className='bg-gray-100 text-gray-700 px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-200 w-full sm:w-auto'
                     />
                   </div>
                 </div>

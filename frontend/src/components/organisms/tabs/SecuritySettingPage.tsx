@@ -449,40 +449,43 @@ export default function SecuritySettings() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className='flex items-center justify-between mt-6 pt-4 border-t border-gray-200'>
-                <div className='text-sm text-gray-600'>
+              <div className='mt-6 pt-4 border-t border-gray-200'>
+                <div className='text-sm text-gray-600 mb-2'>
                   Showing {startIndex + 1}-
                   {Math.min(endIndex, activities.length)} of {activities.length}{' '}
                   activities
                 </div>
-                <div className='flex items-center gap-2'>
+                <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full'>
                   <ReusableButton
                     label='Previous'
                     onClick={() =>
                       currentPage > 1 && handlePageChange(currentPage - 1)
                     }
-                    className={`${baseButtonClass} px-3 py-1 text-sm ${
+                    className={`${baseButtonClass} px-3 py-1 text-xs sm:text-sm ${
                       currentPage === 1
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : 'bg-white border border-gray-200 hover:bg-gray-50'
                     }`}
                   />
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    page => (
-                      <button
-                        key={page}
-                        onClick={() => handlePageChange(page)}
-                        className={`px-3 py-1 text-sm rounded-md ${
-                          currentPage === page
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-white border border-gray-200 hover:bg-gray-50 text-gray-700'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ),
-                  )}
+                  <div className='flex gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent py-1'>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      page => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-2 py-1 text-xs sm:px-3 sm:py-1 sm:text-sm rounded-md ${
+                            currentPage === page
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-white border border-gray-200 hover:bg-gray-50 text-gray-700'
+                          }`}
+                          style={{ minWidth: 32 }}
+                        >
+                          {page}
+                        </button>
+                      ),
+                    )}
+                  </div>
 
                   <ReusableButton
                     label='Next'
@@ -490,7 +493,7 @@ export default function SecuritySettings() {
                       currentPage < totalPages &&
                       handlePageChange(currentPage + 1)
                     }
-                    className={`${baseButtonClass} px-3 py-1 text-sm ${
+                    className={`${baseButtonClass} px-3 py-1 text-xs sm:text-sm ${
                       currentPage === totalPages
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : 'bg-white border border-gray-200 hover:bg-gray-50'

@@ -134,7 +134,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
   return (
     <div className='bg-white rounded-xl sm:p-4'>
       {!hideHeading && (
-        <div className='flex items-center justify-between mb-3'>
+        <div className='flex items-center p-2 justify-between mb-3'>
           <div className='flex items-center gap-2'>
             <SectionTitle
               text='Notifications'
