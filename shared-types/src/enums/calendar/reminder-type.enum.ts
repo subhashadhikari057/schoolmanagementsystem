@@ -7,24 +7,24 @@
  */
 
 export enum ReminderType {
-  EXAM = 'EXAM',
-  FEE_DEADLINE = 'FEE_DEADLINE',
-  ASSIGNMENT = 'ASSIGNMENT',
-  MEETING = 'MEETING',
-  ADMISSION = 'ADMISSION',
-  OTHER = 'OTHER',
+  EXAM = "EXAM",
+  FEE_DEADLINE = "FEE_DEADLINE",
+  ASSIGNMENT = "ASSIGNMENT",
+  MEETING = "MEETING",
+  ADMISSION = "ADMISSION",
+  OTHER = "OTHER",
 }
 
 /**
  * Display labels for reminder types
  */
 export const ReminderTypeLabels: Record<ReminderType, string> = {
-  [ReminderType.EXAM]: 'Exam',
-  [ReminderType.FEE_DEADLINE]: 'Fee Deadline',
-  [ReminderType.ASSIGNMENT]: 'Assignment Due',
-  [ReminderType.MEETING]: 'Meeting',
-  [ReminderType.ADMISSION]: 'Admission',
-  [ReminderType.OTHER]: 'Other',
+  [ReminderType.EXAM]: "Exam",
+  [ReminderType.FEE_DEADLINE]: "Fee Deadline",
+  [ReminderType.ASSIGNMENT]: "Assignment Due",
+  [ReminderType.MEETING]: "Meeting",
+  [ReminderType.ADMISSION]: "Admission",
+  [ReminderType.OTHER]: "Other",
 };
 
 /**

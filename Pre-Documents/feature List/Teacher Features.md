@@ -1,15 +1,13 @@
-
-
 ## 🏠 Dashboard Overview
 
 Teacher's daily academic control panel
 
 - Welcome message with name & photo
 - Summary cards:
-    o Today’s classes
-    o Assigned subjects
-    o Pending assignments to grade
-    o Student attendance status
+  o Today’s classes
+  o Assigned subjects
+  o Pending assignments to grade
+  o Student attendance status
 - Calendar preview (exams, assignments, events)
 - Notices snapshot
 
@@ -18,13 +16,13 @@ Teacher's daily academic control panel
 View all subjects this teacher is assigned to
 
 - Subject list grouped by:
-    o Class
-    o Section
+  o Class
+  o Section
 - Click on subject to:
-    o Access syllabus/notes
-    o Post assignments
-    o View student list by section
-    o See exam schedule and results entry (subject-wise)
+  o Access syllabus/notes
+  o Post assignments
+  o View student list by section
+  o See exam schedule and results entry (subject-wise)
 
 ## 📖 My Classes
 
@@ -32,19 +30,20 @@ View all sections where teacher is class teacher
 
 - List of sections where teacher is assigned as **Class Teacher**
 - Click a section to:
-	o View enrolled students
+  o View enrolled students
 
 o Mark or edit daily attendance
 o Post section-wide notices
 o View class schedule
 o Monitor overall performance
+
 ## 🕒 Class Routine
 
 View personalized teaching schedule
 
 - Weekly timetable:
-    o Period-wise layout (Mon–Fri/Sat)
-    o Subjects + Section + Time
+  o Period-wise layout (Mon–Fri/Sat)
+  o Subjects + Section + Time
 - Print/download option
 - Auto-highlight current class
 
@@ -64,23 +63,22 @@ Mark and manage student attendance
 
 - View past attendance
 - Filter by:
-    o Date
-    o Student
-    o Section
+  o Date
+  o Student
+  o Section
 
 ## 📝 Assignments
 
 Create and track student assignments
 
-
 ### 🔹 Create Assignment
 
 - Select:
-    o Class / Section
-    o Subject
-    o Title, Instructions
-    o Attach files (PDF, Docs, etc.)
-    o Due Date
+  o Class / Section
+  o Subject
+  o Title, Instructions
+  o Attach files (PDF, Docs, etc.)
+  o Due Date
 - Submit for student view
 
 ### 🔹 View Submissions
@@ -115,15 +113,14 @@ View and optionally post notices (if permitted)
 - Attach files or links
 - Mark as read
 
-
 ## 📥 Leave Requests
 
 Submit personal leave requests
 
 - Apply for leave: Reason, From–To dates
 - View:
-    o Approval status (Pending / Approved / Rejected)
-    o Leave history
+  o Approval status (Pending / Approved / Rejected)
+  o Leave history
 
 ## 😠 Student Complaints (Class Teacher Role Only)
 
@@ -149,11 +146,8 @@ Manage teacher account details
 
 ### 🔍 Global Search (Top Bar or Floating)
 
-
 - Search:
-    o Students (by name, roll)
-    o Subjects
-    o Assignment titles
-    o Exam names
-
-
+  o Students (by name, roll)
+  o Subjects
+  o Assignment titles
+  o Exam names

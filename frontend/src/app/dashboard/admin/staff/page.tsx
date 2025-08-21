@@ -2,16 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import GenericTable from '@/components/templates/GenericTable';
-import {
-  StaffMember,
-  getStaffColumns,
-} from '@/components/templates/StaffColumns';
+import { Staff } from '@/components/templates/listConfigurations';
+import { getStaffColumns } from '@/components/templates/StaffColumns';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import {
   Users,
-  UserCheck,
-  Clock,
+  Briefcase,
+  Calendar,
   Building,
   AlertCircle,
   Loader2,
@@ -28,458 +26,590 @@ import StaffEditModal from '@/components/organisms/modals/StaffEditModal';
 import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
 
 // Minimal mock data for dev mode
-const mockStaff: StaffMember[] = [
+const mockStaff = [
   {
-    id: '1',
-    email: 'john.wilson@school.edu',
-    fullName: 'John Wilson',
+    id: 1,
+    name: 'John Smith',
+    department: 'Administration',
+    designation: 'Office Manager',
+    status: 'Active' as const,
+    email: 'john.smith@example.com',
     phone: '+1234567890',
-    firstName: 'John',
-    lastName: 'Wilson',
-    designation: 'Administrative Officer',
-    department: 'administration',
-    basicSalary: 55000,
-    allowances: 5000,
-    totalSalary: 60000,
-    employmentDate: '2023-01-15',
-    experienceYears: 8,
-    employmentStatus: 'active',
-    createdAt: '2023-01-15T00:00:00Z',
-    createdById: 'system',
-
-    // Bank account details
-    bankName: 'First National Bank',
-    bankAccountNumber: '1234567890123456',
-    bankBranch: 'Springfield Downtown Branch',
-    panNumber: 'ABCDE1234F',
-    citizenshipNumber: '12345678901',
-
-    profile: {
-      bio: 'Experienced administrator with focus on educational institutions.',
-    },
+    employeeId: 'S-2025-001',
+    joinedDate: '2025-05-01',
   },
 ];
 
 // Define filter options
+const designationOptions = [
+  { value: 'office-manager', label: 'Office Manager' },
+  { value: 'accountant', label: 'Accountant' },
+  { value: 'receptionist', label: 'Receptionist' },
+  { value: 'security-officer', label: 'Security Officer' },
+  { value: 'it-support', label: 'IT Support' },
+];
+
 const departmentOptions = [
   { value: 'administration', label: 'Administration' },
   { value: 'finance', label: 'Finance' },
-  { value: 'hr', label: 'Human Resources' },
+  { value: 'hr', label: 'HR' },
   { value: 'maintenance', label: 'Maintenance' },
   { value: 'security', label: 'Security' },
-  { value: 'library', label: 'Library' },
-  { value: 'canteen', label: 'Canteen' },
-  { value: 'transport', label: 'Transport' },
   { value: 'it_support', label: 'IT Support' },
-  { value: 'academic_support', label: 'Academic Support' },
-];
-
-const employmentStatusOptions = [
-  { value: 'active', label: 'Active' },
-  { value: 'on_leave', label: 'On Leave' },
-  { value: 'resigned', label: 'Resigned' },
-  { value: 'terminated', label: 'Terminated' },
 ];
 
 const StaffPage = () => {
-  // State management
-  const [staffData, setStaffData] = useState<StaffMember[]>([]);
+  // State for managing real data
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [filteredStaff, setFilteredStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage] = useState(10);
-
-  // Filter state
   const [filters, setFilters] = useState<StaffFilters>({
     search: '',
-    department: '',
-    employmentStatus: '',
     designation: '',
-    experienceRange: '',
-    salaryRange: '',
+    department: '',
   });
 
-  // Modal state
+  // State for modals
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Stats state
-  const [stats, setStats] = useState([
-    {
-      icon: Users,
-      bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      value: '0',
-      label: 'Total Staff',
-      change: '0%',
-      isPositive: true,
-    },
-    {
-      icon: UserCheck,
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
-      value: '0',
-      label: 'Active Staff',
-      change: '0%',
-      isPositive: true,
-    },
-    {
-      icon: Clock,
-      bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600',
-      value: '0',
-      label: 'On Leave',
-      change: '0%',
-      isPositive: false,
-    },
-    {
-      icon: Building,
-      bgColor: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-      value: '0',
-      label: 'Departments',
-      change: '0%',
-      isPositive: true,
-    },
-  ]);
+  const itemsPerPage = 10;
 
-  // Load staff data
-  const loadStaffData = async (page = 1, searchFilters = filters) => {
-    setIsLoading(true);
-    setError(null);
+  // Calculate stats from real data
+  const calculateStats = (staffData: Staff[]) => {
+    const total = staffData.length;
+    const active = staffData.filter(s => s.status === 'Active').length;
+    const onLeave = staffData.filter(s => s.status === 'On Leave').length;
+    const newHires = staffData.filter(s => {
+      if (!s.joinedDate) return false;
+      const joinDate = new Date(s.joinedDate);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      return joinDate >= threeMonthsAgo;
+    }).length;
 
-    try {
-      // Use mock data in development mode
-      if (isDevMockEnabled()) {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
-        setStaffData(mockStaff);
-        setTotalItems(mockStaff.length);
-        setTotalPages(Math.ceil(mockStaff.length / itemsPerPage));
-        updateStats(mockStaff);
-        return;
-      }
-
-      const params = {
-        page,
-        limit: itemsPerPage,
-        search: searchFilters.search || undefined,
-        department: searchFilters.department || undefined,
-        employmentStatus: searchFilters.employmentStatus || undefined,
-        sortBy: 'fullName',
-        sortOrder: 'asc' as const,
-      };
-
-      const response = await staffService.getAllStaff(params);
-
-      if (response?.success && response.data) {
-        // Handle the response data structure
-        let staffArray = [];
-        if (Array.isArray(response.data)) {
-          staffArray = response.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          staffArray = response.data.data;
-        }
-
-        setStaffData(staffArray);
-        setTotalItems(response.data.pagination?.total || staffArray.length);
-        setTotalPages(
-          response.data.pagination?.totalPages ||
-            Math.ceil(staffArray.length / itemsPerPage),
-        );
-        updateStats(staffArray);
-      } else {
-        throw new Error(response?.message || 'Failed to load staff data');
-      }
-    } catch (err: any) {
-      const errorMessage =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Failed to load staff data';
-      setError(errorMessage);
-      console.error('Error loading staff:', err);
-
-      // Fallback to mock data on error in development
-      if (isDevMockEnabled()) {
-        setStaffData(mockStaff);
-        setTotalItems(mockStaff.length);
-        setTotalPages(Math.ceil(mockStaff.length / itemsPerPage));
-        updateStats(mockStaff);
-        toast.warning('Using mock data', {
-          description: 'API connection failed, using sample data',
-        });
-      } else {
-        toast.error('Failed to load staff', {
-          description: errorMessage,
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Update stats based on staff data
-  const updateStats = (data: StaffMember[]) => {
-    const totalStaff = data.length;
-    const activeStaff = data.filter(
-      s => s.employmentStatus === 'active' || !s.employmentStatus,
-    ).length;
-    const onLeaveStaff = data.filter(
-      s => s.employmentStatus === 'on_leave',
-    ).length;
-    const departments = new Set(data.map(s => s.department)).size;
-
-    setStats([
+    return [
       {
         icon: Users,
         bgColor: 'bg-blue-50',
         iconColor: 'text-blue-600',
-        value: totalStaff.toString(),
+        value: total.toString(),
         label: 'Total Staff',
-        change: '1.5%',
+        change: '2.5%',
         isPositive: true,
       },
       {
-        icon: UserCheck,
+        icon: Briefcase,
         bgColor: 'bg-green-50',
         iconColor: 'text-green-600',
-        value: activeStaff.toString(),
+        value: active.toString(),
         label: 'Active Staff',
-        change: '2.1%',
+        change: '1.2%',
         isPositive: true,
       },
       {
-        icon: Clock,
+        icon: Calendar,
         bgColor: 'bg-yellow-50',
         iconColor: 'text-yellow-600',
-        value: onLeaveStaff.toString(),
+        value: onLeave.toString(),
         label: 'On Leave',
-        change: '0.5%',
+        change: '3.8%',
         isPositive: false,
       },
       {
         icon: Building,
         bgColor: 'bg-purple-50',
         iconColor: 'text-purple-600',
-        value: departments.toString(),
-        label: 'Departments',
-        change: '0.3%',
+        value: newHires.toString(),
+        label: 'New Hires',
+        change: '12.7%',
         isPositive: true,
       },
-    ]);
+    ];
   };
 
-  // Handle filter changes
-  const handleFiltersChange = (newFilters: StaffFilters) => {
-    setFilters(newFilters);
-    setCurrentPage(1);
-    loadStaffData(1, newFilters);
-  };
+  const staffStats = calculateStats(staff);
 
-  // Handle filter clear
-  const handleClearFilters = () => {
-    const clearedFilters: StaffFilters = {
-      search: '',
-      department: '',
-      employmentStatus: '',
-      designation: '',
-      experienceRange: '',
-      salaryRange: '',
-    };
-    setFilters(clearedFilters);
-    setCurrentPage(1);
-    loadStaffData(1, clearedFilters);
-  };
+  // Load staff from backend or use mock in dev mode
+  const loadStaff = async () => {
+    setIsLoading(true);
+    setError(null);
 
-  // Handle pagination
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    loadStaffData(page, filters);
-  };
+    // Close all modals and clear selected staff to prevent stale state
+    setViewModalOpen(false);
+    setEditModalOpen(false);
+    setDeleteModalOpen(false);
+    setSelectedStaff(null);
 
-  // Modal handlers
-  const handleViewStaff = (staff: StaffMember) => {
-    setSelectedStaff(staff);
-    setViewModalOpen(true);
-  };
-
-  const handleEditStaff = (staff: StaffMember) => {
-    setSelectedStaff(staff);
-    setEditModalOpen(true);
-  };
-
-  const handleDeleteStaff = (staff: StaffMember) => {
-    setSelectedStaff(staff);
-    setDeleteModalOpen(true);
-  };
-
-  // Handle staff deletion
-  const handleConfirmDelete = async () => {
-    if (!selectedStaff) return;
+    if (isDevMockEnabled()) {
+      // Use mock data
+      setTimeout(() => {
+        setStaff(mockStaff);
+        setFilteredStaff(mockStaff);
+        setIsLoading(false);
+      }, 500); // Simulate network delay
+      return;
+    }
 
     try {
-      const response = await staffService.deleteStaff(selectedStaff.id);
-
-      if (response?.success) {
-        toast.success('Staff Deleted', {
-          description: `${selectedStaff.fullName} has been removed from the system.`,
-        });
-        loadStaffData(currentPage, filters);
+      const response = await staffService.getAllStaff();
+      if (response.success && response.data) {
+        const mappedStaff: Staff[] = response.data.map(
+          (staff, index) =>
+            ({
+              id: staff.id || index + 1,
+              name: staff.fullName,
+              department: staff.department || 'General',
+              designation: staff.designation || 'Staff',
+              status:
+                staff.employmentStatus === 'active'
+                  ? 'Active'
+                  : staff.employmentStatus === 'on_leave'
+                    ? 'On Leave'
+                    : 'Inactive',
+              email: staff.email,
+              phone: staff.phone,
+              employeeId: staff.employeeId || '',
+              joinedDate: staff.employmentDate
+                ? staff.employmentDate.split('T')[0]
+                : undefined,
+              experienceYears: staff.experienceYears,
+              qualification: staff.qualification,
+              address: staff.address,
+              basicSalary: staff.basicSalary,
+              allowances: staff.allowances,
+              totalSalary: staff.totalSalary,
+              hasLoginAccount: !!staff.userId,
+              // Add more fields as needed for filtering
+            }) as Staff,
+        );
+        setStaff(mappedStaff);
+        setFilteredStaff(mappedStaff);
       } else {
-        throw new Error(response?.message || 'Failed to delete staff');
+        throw new Error(response.message || 'Failed to load staff');
       }
-    } catch (err: any) {
-      const errorMessage =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Failed to delete staff';
-      toast.error('Delete Failed', {
-        description: errorMessage,
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error loading staff:', error);
+      setError(error.message || 'Failed to load staff');
+      toast.error('Failed to load staff', {
+        description: 'Unable to fetch staff data. Please try again.',
       });
     } finally {
-      setDeleteModalOpen(false);
-      setSelectedStaff(null);
+      setIsLoading(false);
     }
   };
 
-  // Handle successful edit/add
-  const handleStaffSuccess = () => {
-    loadStaffData(currentPage, filters);
-  };
-
-  // Load initial data
+  // Load data on component mount
   useEffect(() => {
-    loadStaffData();
+    loadStaff();
   }, []);
 
-  // Get columns configuration
-  const columns = getStaffColumns({
-    onView: handleViewStaff,
-    onEdit: handleEditStaff,
-    onDelete: handleDeleteStaff,
-  });
+  // Apply filters to staff
+  const applyFilters = (filters: StaffFilters) => {
+    setFilters(filters);
+    setCurrentPage(1); // Reset to first page when filters change
+
+    let result = [...staff];
+
+    // Apply search filter
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      result = result.filter(
+        staff =>
+          staff.name?.toLowerCase().includes(searchTerm) ||
+          staff.email?.toLowerCase().includes(searchTerm) ||
+          staff.department?.toLowerCase().includes(searchTerm) ||
+          staff.designation?.toLowerCase().includes(searchTerm) ||
+          // Add search by employee ID - use non-strict comparison to handle both string and number types
+          (staff.employeeId &&
+            staff.employeeId.toString().toLowerCase().includes(searchTerm)),
+      );
+    }
+
+    // Apply designation filter
+    if (filters.designation) {
+      result = result.filter(staff => {
+        if (!staff.designation) return false;
+        // Check if the designation value matches the option value or label
+        return designationOptions.some(
+          option =>
+            (option.value === filters.designation &&
+              staff.designation?.toLowerCase() ===
+                option.label.toLowerCase()) ||
+            staff.designation?.toLowerCase() ===
+              filters.designation.toLowerCase(),
+        );
+      });
+    }
+
+    // Apply department filter
+    if (filters.department) {
+      result = result.filter(staff => {
+        if (!staff.department) return false;
+        return departmentOptions.some(
+          option =>
+            (option.value === filters.department &&
+              staff.department?.toLowerCase() === option.label.toLowerCase()) ||
+            staff.department?.toLowerCase() ===
+              filters.department.toLowerCase(),
+        );
+      });
+    }
+
+    setFilteredStaff(result);
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (newFilters: StaffFilters) => {
+    applyFilters(newFilters);
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Handle staff actions
+  const handleStaffAction = async (action: string, staff: Staff) => {
+    // View action
+    if (action === 'view') {
+      setSelectedStaff(staff);
+      setViewModalOpen(true);
+      return;
+    }
+
+    // Edit action
+    if (action === 'edit') {
+      setSelectedStaff(staff);
+      setEditModalOpen(true);
+      return;
+    }
+
+    // Toggle status action
+    if (action === 'toggle-status') {
+      try {
+        const newStatus = staff.status === 'Active' ? 'Inactive' : 'Active';
+
+        // Optimistically update UI first for better UX
+        const updatedStaff = {
+          ...staff,
+          status: newStatus as
+            | 'Active'
+            | 'Inactive'
+            | 'On Leave'
+            | 'Suspended'
+            | 'Transferred',
+        };
+        const updatedStaffList = staff.map(s =>
+          s.id === staff.id ? updatedStaff : s,
+        );
+        setStaff(updatedStaffList);
+
+        // Also update filtered staff to reflect change immediately
+        const updatedFilteredStaff = filteredStaff.map(s =>
+          s.id === staff.id ? updatedStaff : s,
+        );
+        setFilteredStaff(updatedFilteredStaff);
+
+        // Call API to update status
+        const response = await staffService.updateEmploymentStatus(
+          String(staff.id),
+          newStatus.toLowerCase(),
+        );
+
+        if (response.success) {
+          toast.success(`Staff ${newStatus.toLowerCase()}`, {
+            description: `${staff.name} has been ${newStatus.toLowerCase()}.`,
+          });
+        } else {
+          // Revert changes if API call fails
+          const revertedStaffList = staff.map(s =>
+            s.id === staff.id ? staff : s,
+          );
+          setStaff(revertedStaffList);
+          applyFilters(filters); // Re-apply filters
+          throw new Error(response.message || 'Failed to update status');
+        }
+      } catch (err) {
+        const error = err as Error;
+        console.error('Error updating staff status:', error);
+        toast.error('Status update failed', {
+          description:
+            error.message || 'There was a problem updating the staff status.',
+        });
+      }
+      return;
+    }
+
+    // Delete action
+    if (action === 'delete') {
+      setSelectedStaff(staff);
+      setDeleteModalOpen(true);
+      return;
+    }
+
+    // Default case
+    console.log('Unhandled action:', action, 'for staff:', staff.id);
+  };
+
+  // Handle successful edit
+  const handleEditSuccess = (updatedStaff: any) => {
+    // Update the staff in the local state
+    const updatedStaffList = staff.map(s => {
+      if (s.id === updatedStaff.id) {
+        // Create updated staff object with new data
+        return {
+          ...s,
+          name: `${updatedStaff.firstName} ${updatedStaff.middleName ? updatedStaff.middleName + ' ' : ''}${updatedStaff.lastName}`,
+          email: updatedStaff.email,
+          phone: updatedStaff.phone,
+          designation: updatedStaff.designation,
+          department: updatedStaff.department,
+          qualification: updatedStaff.qualification,
+          experienceYears: updatedStaff.experienceYears,
+          joinedDate: updatedStaff.joinedDate,
+          status: updatedStaff.status,
+          // Add address fields for display
+          street: updatedStaff.street,
+          city: updatedStaff.city,
+          state: updatedStaff.state,
+          pinCode: updatedStaff.pinCode,
+          gender: updatedStaff.gender,
+          bloodGroup: updatedStaff.bloodGroup,
+          maritalStatus: updatedStaff.maritalStatus,
+          hasLoginAccount: updatedStaff.hasLoginAccount,
+        };
+      }
+      return s;
+    });
+
+    setStaff(updatedStaffList);
+
+    // Also update filtered staff
+    const updatedFilteredStaffList = filteredStaff.map(s => {
+      if (s.id === updatedStaff.id) {
+        // Create updated staff object with new data
+        return {
+          ...s,
+          name: `${updatedStaff.firstName} ${updatedStaff.middleName ? updatedStaff.middleName + ' ' : ''}${updatedStaff.lastName}`,
+          email: updatedStaff.email,
+          phone: updatedStaff.phone,
+          designation: updatedStaff.designation,
+          department: updatedStaff.department,
+          qualification: updatedStaff.qualification,
+          experienceYears: updatedStaff.experienceYears,
+          joinedDate: updatedStaff.joinedDate,
+          status: updatedStaff.status,
+          // Add address fields for display
+          street: updatedStaff.street,
+          city: updatedStaff.city,
+          state: updatedStaff.state,
+          pinCode: updatedStaff.pinCode,
+          gender: updatedStaff.gender,
+          bloodGroup: updatedStaff.bloodGroup,
+          maritalStatus: updatedStaff.maritalStatus,
+          hasLoginAccount: updatedStaff.hasLoginAccount,
+        };
+      }
+      return s;
+    });
+
+    setFilteredStaff(updatedFilteredStaffList);
+
+    // Don't reload from server to avoid flickering
+    // The local state update is sufficient
+  };
+
+  // Handle staff deletion
+  const handleDeleteStaff = async () => {
+    if (!selectedStaff) return;
+
+    setIsDeleting(true);
+    try {
+      // Call API to delete staff
+      const response = await staffService.deleteStaff(String(selectedStaff.id));
+
+      if (response.success) {
+        // Update local state immediately
+        const remainingStaff = staff.filter(s => s.id !== selectedStaff.id);
+        setStaff(remainingStaff);
+
+        // Also update filtered staff to reflect change immediately
+        const updatedFilteredStaff = filteredStaff.filter(
+          s => s.id !== selectedStaff.id,
+        );
+        setFilteredStaff(updatedFilteredStaff);
+
+        toast.success('Staff deleted', {
+          description: `${selectedStaff.name} has been removed from the system.`,
+        });
+        setDeleteModalOpen(false);
+      } else {
+        throw new Error(response.message || 'Failed to delete staff');
+      }
+    } catch (err) {
+      const error = err as Error;
+      console.error('Error deleting staff:', error);
+      toast.error('Delete failed', {
+        description: error.message || 'There was a problem deleting the staff.',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentStaffList = filteredStaff.slice(startIndex, endIndex);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className='min-h-screen bg-background'>
+        <div className='px-1 sm:px-2 lg:px-4 pt-3 sm:pt-4 lg:pt-6'>
+          <div className='max-w-7xl mx-auto'>
+            <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
+              Staff Management
+            </h1>
+            <p className='text-sm sm:text-base lg:text-lg text-gray-600 mt-1 sm:mt-2'>
+              Manage All Staff Related Info Here
+            </p>
+          </div>
+        </div>
+        <div className='flex items-center justify-center min-h-[400px]'>
+          <div className='text-center'>
+            <Loader2 className='h-8 w-8 animate-spin text-blue-600 mx-auto mb-4' />
+            <p className='text-gray-600'>Loading staff...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error && staff.length === 0) {
+    return (
+      <div className='min-h-screen bg-background'>
+        <div className='px-1 sm:px-2 lg:px-4 pt-3 sm:pt-4 lg:pt-6'>
+          <div className='max-w-7xl mx-auto'>
+            <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
+              Staff Management
+            </h1>
+            <p className='text-sm sm:text-base lg:text-lg text-gray-600 mt-1 sm:mt-2'>
+              Manage All Staff Related Info Here
+            </p>
+          </div>
+        </div>
+        <div className='flex items-center justify-center min-h-[400px]'>
+          <div className='text-center'>
+            <AlertCircle className='h-8 w-8 text-red-500 mx-auto mb-4' />
+            <p className='text-gray-900 font-semibold mb-2'>
+              Failed to load staff
+            </p>
+            <p className='text-gray-600 mb-4'>{error}</p>
+            <button
+              onClick={loadStaff}
+              className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen bg-background'>
       {/* Header */}
       <div className='px-1 sm:px-2 lg:px-4 pt-3 sm:pt-4 lg:pt-6'>
         <div className='max-w-7xl mx-auto'>
-          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
-            <div>
-              <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
-                Staff Management
-              </h1>
-              <p className='text-sm sm:text-base lg:text-lg text-gray-600 mt-1 sm:mt-2'>
-                Manage all staff members and their information
-              </p>
-            </div>
-            <div className='mt-3 sm:mt-0'>
-              <ActionButtons pageType='staff' />
-            </div>
-          </div>
+          <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
+            Staff Management
+          </h1>
+          <p className='text-sm sm:text-base lg:text-lg text-gray-600 mt-1 sm:mt-2'>
+            Manage All Staff Related Info Here
+          </p>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className='px-1 sm:px-2 lg:px-4 mt-3 sm:mt-4 lg:mt-6'>
         <div className='max-w-7xl mx-auto'>
-          <Statsgrid stats={stats} />
+          <Statsgrid stats={staffStats} />
         </div>
       </div>
 
       {/* Main Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
-        <div className='max-w-7xl mx-auto space-y-6'>
-          {/* Search and Filters */}
+        <div className='max-w-7xl mx-auto'>
+          {/* Action Buttons */}
+          <div className='flex justify-end mb-4'>
+            <ActionButtons pageType='staff' onRefresh={loadStaff} />
+          </div>
+
+          {/* Enhanced Search & Filter Component */}
           <StaffSearchFilter
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            onClearFilters={handleClearFilters}
-            isLoading={isLoading}
+            onFilterChange={handleFilterChange}
+            designations={designationOptions}
+            departments={departmentOptions}
+            initialFilters={filters}
+            className='mb-6'
           />
 
-          {/* Error State */}
-          {error && !isLoading && (
-            <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
-              <div className='flex items-center'>
-                <AlertCircle className='h-5 w-5 text-red-600 mr-2' />
-                <div>
-                  <h3 className='text-sm font-medium text-red-800'>
-                    Error Loading Staff Data
-                  </h3>
-                  <p className='text-sm text-red-700 mt-1'>{error}</p>
-                  <button
-                    onClick={() => loadStaffData(currentPage, filters)}
-                    className='text-sm text-red-800 underline hover:text-red-900 mt-2'
-                  >
-                    Try again
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Loading State */}
-          {isLoading && (
-            <div className='bg-white rounded-lg border border-gray-200 p-8'>
-              <div className='flex items-center justify-center'>
-                <Loader2 className='h-6 w-6 animate-spin text-blue-600 mr-2' />
-                <span className='text-gray-600'>Loading staff data...</span>
-              </div>
-            </div>
-          )}
-
-          {/* Staff Table */}
-          {!isLoading && !error && (
-            <GenericTable<StaffMember>
-              data={staffData}
-              columns={columns}
+          {/* Staff Directory */}
+          <div className='bg-white p-4 rounded-lg shadow'>
+            <h2 className='text-lg font-semibold text-gray-800 mb-4'>
+              Staff Directory
+            </h2>
+            <GenericTable
+              data={currentStaffList}
+              columns={getStaffColumns((action, staff) =>
+                handleStaffAction(action, staff),
+              )}
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={totalItems}
+              totalItems={filteredStaff.length}
               itemsPerPage={itemsPerPage}
+              emptyMessage='No staff found matching your criteria'
               onPageChange={handlePageChange}
-              emptyMessage='No staff members found. Try adjusting your search criteria or add new staff members.'
             />
-          )}
+          </div>
         </div>
       </div>
 
-      {/* Modals */}
+      {/* View Modal */}
       <StaffViewModal
-        staff={selectedStaff}
         isOpen={viewModalOpen}
-        onClose={() => {
-          setViewModalOpen(false);
-          setSelectedStaff(null);
-        }}
-      />
-
-      <StaffEditModal
+        onClose={() => setViewModalOpen(false)}
         staff={selectedStaff}
-        isOpen={editModalOpen}
-        onClose={() => {
-          setEditModalOpen(false);
-          setSelectedStaff(null);
-        }}
-        onSuccess={handleStaffSuccess}
       />
 
+      {/* Edit Modal */}
+      <StaffEditModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        onSuccess={handleEditSuccess}
+        staff={selectedStaff}
+      />
+
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setSelectedStaff(null);
-        }}
-        onConfirm={handleConfirmDelete}
-        title='Delete Staff Member'
-        message={`Are you sure you want to delete this staff member? This action cannot be undone.`}
-        itemName={selectedStaff?.fullName || 'Staff Member'}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteStaff}
+        title='Delete Staff'
+        message='Are you sure you want to delete this staff member?'
+        itemName={selectedStaff?.name || ''}
+        isLoading={isDeleting}
       />
     </div>
   );

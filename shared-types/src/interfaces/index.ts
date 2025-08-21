@@ -7,12 +7,12 @@
  */
 
 // API Response Interfaces
-export * from './api/response.interface';
-export * from './api/pagination.interface';
+export * from "./api/response.interface";
+export * from "./api/pagination.interface";
 
 // Common Interfaces
-export * from './common/audit.interface';
-export * from './common/metadata.interface';
+export * from "./common/audit.interface";
+export * from "./common/metadata.interface";
 
 // Calendar Interfaces
-export * from './calendar/calendar.interface';
+export * from "./calendar/calendar.interface";

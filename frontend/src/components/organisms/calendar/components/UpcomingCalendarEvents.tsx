@@ -26,7 +26,11 @@ import {
 } from 'lucide-react';
 import { calendarService } from '@/api/services/calendar.service';
 import { CalendarEvent } from '@/components/organisms/calendar/types/calendar.types';
-import { CalendarEntryType } from '@sms/shared-types';
+import {
+  CalendarEntryType,
+  HolidayType,
+  HolidayTypeLabels,
+} from '@sms/shared-types';
 import { ad2bs } from 'hamro-nepali-patro';
 
 interface UpcomingCalendarEventsProps {
@@ -116,6 +120,7 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
     const colors = {
       holiday: 'bg-red-100 text-red-700',
       event: 'bg-blue-100 text-blue-700',
+      exam: 'bg-purple-100 text-purple-700',
       reminder: 'bg-yellow-100 text-yellow-700',
     };
     return (
@@ -127,6 +132,43 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
   // Get status color
   const getStatusColor = (): string => {
     return 'bg-green-100 text-green-700'; // All events are active in simplified schema
+  };
+
+  // Get holiday type label
+  const getHolidayTypeLabel = (holidayType: string): string => {
+    return HolidayTypeLabels[holidayType as HolidayType] || holidayType;
+  };
+
+  // Convert 24-hour time to 12-hour format
+  const convertTo12HourFormat = (time: string): string => {
+    if (!time) return '';
+
+    try {
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      return `${displayHour}:${minutes} ${ampm}`;
+    } catch (error) {
+      return time; // Return original if conversion fails
+    }
+  };
+
+  // Format date range for display
+  const formatDateRange = (startDate: string, endDate?: string): string => {
+    if (!endDate || startDate === endDate) {
+      return (
+        formatDateBadge(startDate).fullMonth +
+        ' ' +
+        formatDateBadge(startDate).day
+      );
+    }
+
+    const startInfo = formatDateBadge(startDate);
+    const endInfo = formatDateBadge(endDate);
+
+    // Always show full month names for both start and end dates
+    return `${startInfo.fullMonth} ${startInfo.day} - ${endInfo.fullMonth} ${endInfo.day}`;
   };
 
   // Check if event date is today (in BS)
@@ -336,46 +378,29 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
         {!loading && !error && displayedEvents.length > 0 && (
           <div className='space-y-4 max-h-96 overflow-y-auto modal-scrollbar'>
             {displayedEvents.map((event, index) => {
-              const dateInfo = formatDateBadge(event.date);
-              const { day, month } = dateInfo;
+              const startDateInfo = formatDateBadge(event.date);
+              const endDateInfo = event.endDate
+                ? formatDateBadge(event.endDate)
+                : null;
               const isToday = isTodayBS(event.date);
+              const isMultiDay = event.endDate && event.date !== event.endDate;
 
               return (
                 <div
                   key={`${event.id}-${index}`}
-                  className={`flex items-start gap-4 p-3 rounded-lg transition-colors cursor-pointer hover:bg-gray-50 ${
+                  className={`flex items-start gap-4 p-3 rounded-lg border transition-colors cursor-pointer ${
                     isToday
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'border border-transparent'
+                      ? 'bg-blue-50 border-blue-200 hover:border-blue-300 hover:bg-blue-100'
+                      : event.type === 'event'
+                        ? 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                        : event.type === 'exam'
+                          ? 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                          : event.type === 'holiday'
+                            ? 'border-gray-200 hover:border-red-300 hover:bg-red-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                   onClick={() => onEventClick?.(event)}
                 >
-                  {/* Date Badge */}
-                  <div
-                    className='flex-shrink-0 text-center'
-                    title={`${dateInfo.fullMonth} ${dateInfo.day}, ${dateInfo.year} बि.सं.`}
-                  >
-                    <div
-                      className={`text-2xl font-bold ${
-                        isToday ? 'text-blue-600' : 'text-gray-600'
-                      }`}
-                    >
-                      {day}
-                    </div>
-                    <div
-                      className={`text-xs font-medium ${
-                        isToday ? 'text-blue-500' : 'text-gray-500'
-                      }`}
-                    >
-                      {month}
-                    </div>
-                    {isToday && (
-                      <div className='text-xs text-blue-600 font-semibold mt-1'>
-                        आज
-                      </div>
-                    )}
-                  </div>
-
                   {/* Event Details */}
                   <div className='flex-1 min-w-0'>
                     <div className='flex items-start justify-between gap-2 mb-2'>
@@ -383,11 +408,21 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
                         {event.name || event.title || 'Untitled Event'}
                       </h4>
                       <div className='flex gap-1 flex-shrink-0'>
-                        {event.type && (
+                        {isToday && (
+                          <span className='text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700 border border-green-200'>
+                            Today
+                          </span>
+                        )}
+                        {event.type && event.type !== 'holiday' && (
                           <span
                             className={`text-xs px-2 py-1 rounded-full font-medium ${getEventTypeColor(event.type)}`}
                           >
                             {event.type}
+                          </span>
+                        )}
+                        {event.type === 'holiday' && event.holidayType && (
+                          <span className='text-[10px] px-2 py-1 rounded-full font-medium bg-red-100 text-red-700 border border-red-200'>
+                            {getHolidayTypeLabel(event.holidayType)}
                           </span>
                         )}
                         {/* <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor()}`}>
@@ -397,19 +432,55 @@ const UpcomingCalendarEvents: React.FC<UpcomingCalendarEventsProps> = ({
                     </div>
 
                     <div className='space-y-1'>
-                      {event.time && event.time.trim() !== '' && (
+                      {/* Date display for all events */}
+                      <div className='flex items-center gap-1 text-xs text-gray-600'>
+                        <Calendar className='w-3 h-3 flex-shrink-0' />
+                        <span>
+                          {isMultiDay
+                            ? formatDateRange(event.date, event.endDate)
+                            : formatDateRange(event.date)}
+                        </span>
+                      </div>
+
+                      {/* Time display for events and exams */}
+                      {(event.startTime || event.endTime) && (
                         <div className='flex items-center gap-1 text-xs text-gray-600'>
                           <Clock className='w-3 h-3 flex-shrink-0' />
-                          <span>{event.time}</span>
+                          <span>
+                            {convertTo12HourFormat(event.startTime || '')}
+                            {event.endTime &&
+                              event.startTime !== event.endTime &&
+                              ` - ${convertTo12HourFormat(event.endTime)}`}
+                          </span>
                         </div>
                       )}
 
+                      {/* Fallback to old time field for backward compatibility */}
+                      {!event.startTime &&
+                        !event.endTime &&
+                        event.time &&
+                        event.time.trim() !== '' && (
+                          <div className='flex items-center gap-1 text-xs text-gray-600'>
+                            <Clock className='w-3 h-3 flex-shrink-0' />
+                            <span>{convertTo12HourFormat(event.time)}</span>
+                          </div>
+                        )}
+
+                      {/* Venue/Location */}
                       {(event.venue || event.location) && (
                         <div className='flex items-center gap-1 text-xs text-gray-600'>
                           <MapPin className='w-3 h-3 flex-shrink-0' />
                           <span className='line-clamp-1'>
                             {event.venue || event.location}
                           </span>
+                        </div>
+                      )}
+
+                      {/* Exam details */}
+                      {event.examDetails && (
+                        <div className='text-xs text-gray-600 line-clamp-2'>
+                          <span className='font-medium'>Details:</span>{' '}
+                          {event.examDetails}
                         </div>
                       )}
                     </div>

@@ -8,28 +8,31 @@ datasource db {
 }
 
 model User {
-  id                 String        @id @default(uuid())
-  email              String        @unique
-  phone              String?       @unique
+  id                 String                @id @default(uuid())
+  email              String                @unique
+  phone              String?               @unique
   passwordHash       String
   fullName           String
-  isActive           Boolean       @default(true)
+  isActive           Boolean               @default(true)
   lastLoginAt        DateTime?
   lastPasswordChange DateTime?
-  needPasswordChange Boolean       @default(false)
-  createdAt          DateTime      @default(now())
+  needPasswordChange Boolean               @default(false)
+  createdAt          DateTime              @default(now())
   updatedAt          DateTime?
   deletedAt          DateTime?
-  createdById        String?       @db.Uuid
-  updatedById        String?       @db.Uuid
-  deletedById        String?       @db.Uuid
+  createdById        String?               @db.Uuid
+  updatedById        String?               @db.Uuid
+  deletedById        String?               @db.Uuid
   auditLogs          AuditLog[]
   idCards            IDCard[]
   parent             Parent?
   student            Student?
   teacher            Teacher?
+  staff              Staff?
   roles              UserRole[]
   sessions           UserSession[]
+  teacherSalaryApprovals TeacherSalaryHistory[] @relation("SalaryApprover")
+  staffSalaryApprovals   StaffSalaryHistory[]   @relation("StaffSalaryApprover")
 
   @@index([createdById])
   @@index([updatedById])
@@ -293,9 +296,9 @@ model ParentStudentLink {
 }
 
 model Teacher {
-  id                 String           @id @default(uuid())
-  userId             String           @unique
-  employeeId         String?          @unique
+  id                 String                @id @default(uuid())
+  userId             String                @unique
+  employeeId         String?               @unique
   joiningDate        DateTime
   experienceYears    Int?
   qualification      String?
@@ -307,35 +310,36 @@ model Teacher {
   imageUrl           String?
   department         String?
   specialization     String?
-  employmentStatus   String?          @default("active")
+  employmentStatus   String?               @default("active")
   employmentDate     DateTime?
   dateOfBirth        DateTime?
   address            String?
-  basicSalary        Decimal          @db.Decimal(10, 2)
-  allowances         Decimal          @db.Decimal(10, 2)
-  totalSalary        Decimal          @db.Decimal(10, 2)
-  isClassTeacher     Boolean          @default(false)
-  languagesKnown     Json?            @default("[]")
+  basicSalary        Decimal               @db.Decimal(10, 2)
+  allowances         Decimal               @db.Decimal(10, 2)
+  totalSalary        Decimal               @db.Decimal(10, 2)
+  isClassTeacher     Boolean               @default(false)
+  languagesKnown     Json?                 @default("[]")
   certifications     String?
   previousExperience String?
-  createdAt          DateTime         @default(now())
+  createdAt          DateTime              @default(now())
   updatedAt          DateTime?
   deletedAt          DateTime?
-  createdById        String?          @db.Uuid
-  updatedById        String?          @db.Uuid
-  deletedById        String?          @db.Uuid
+  createdById        String?               @db.Uuid
+  updatedById        String?               @db.Uuid
+  deletedById        String?               @db.Uuid
   bankAccountNumber  String?
   bankBranch         String?
   bankName           String?
   citizenshipNumber  String?
   panNumber          String?
   assignments        Assignment[]
-  classesAsTeacher   Class[]          @relation("ClassTeacher")
-  classSubjects      ClassSubject[]   @relation("TeacherClassSubjects")
-  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  classAssignments   TeacherClass[]   @relation("TeacherClassAssignments")
+  classesAsTeacher   Class[]               @relation("ClassTeacher")
+  classSubjects      ClassSubject[]        @relation("TeacherClassSubjects")
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classAssignments   TeacherClass[]        @relation("TeacherClassAssignments")
   profile            TeacherProfile?
-  subjectAssignments TeacherSubject[] @relation("TeacherSubjectAssignments")
+  salaryHistory      TeacherSalaryHistory[]
+  subjectAssignments TeacherSubject[]      @relation("TeacherSubjectAssignments")
 
   @@index([createdById])
   @@index([updatedById])
@@ -393,12 +397,14 @@ model TeacherClass {
 }
 
 model Staff {
-  id                String        @id @default(uuid())
+  id                String               @id @default(uuid())
+  userId            String?              @unique
   email             String
   fullName          String
   firstName         String
   middleName        String?
   lastName          String
+  employeeId        String?              @unique
   dob               DateTime
   gender            String
   bloodGroup        String?
@@ -408,24 +414,27 @@ model Staff {
   designation       String?
   department        String?
   employmentDate    DateTime?
-  basicSalary       Decimal       @db.Decimal(10, 2)
-  allowances        Decimal       @db.Decimal(10, 2)
-  totalSalary       Decimal       @db.Decimal(10, 2)
+  joiningDate       DateTime?
+  basicSalary       Decimal              @db.Decimal(10, 2)
+  allowances        Decimal              @db.Decimal(10, 2)
+  totalSalary       Decimal              @db.Decimal(10, 2)
   permissions       String[]
-  createdAt         DateTime      @default(now())
+  createdAt         DateTime             @default(now())
   updatedAt         DateTime?
   deletedAt         DateTime?
-  createdById       String?       @db.Uuid
-  updatedById       String?       @db.Uuid
-  deletedById       String?       @db.Uuid
+  createdById       String?              @db.Uuid
+  updatedById       String?              @db.Uuid
+  deletedById       String?              @db.Uuid
   bankAccountNumber String?
   bankBranch        String?
   bankName          String?
   citizenshipNumber String?
   panNumber         String?
-  employmentStatus  String?       @default("active")
+  employmentStatus  String?              @default("active")
   experienceYears   Int?
   profile           StaffProfile?
+  user              User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  salaryHistory     StaffSalaryHistory[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -537,6 +546,10 @@ model CalendarEntry {
   endDate     DateTime
   venue       String?
   holidayType HolidayType?
+  startTime   String?
+  endTime     String?
+  examType    ExamType?
+  examDetails String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime?
   deletedAt   DateTime?
@@ -611,6 +624,7 @@ model Submission {
 enum CalendarEntryType {
   HOLIDAY
   EVENT
+  EXAM
 }
 
 enum HolidayType {
@@ -618,7 +632,79 @@ enum HolidayType {
   SCHOOL
 }
 
+enum ExamType {
+  FIRST_TERM
+  SECOND_TERM
+  THIRD_TERM
+  FINAL
+  UNIT_TEST
+  OTHER
+}
+
 enum ClassShift {
   MORNING
   DAY
+}
+
+enum SalaryChangeType {
+  INITIAL
+  PROMOTION
+  DEMOTION
+  ADJUSTMENT
+}
+
+model TeacherSalaryHistory {
+  id             String          @id @default(uuid())
+  teacherId      String
+  effectiveMonth DateTime        @db.Date
+  basicSalary    Decimal         @db.Decimal(10, 2)
+  allowances     Decimal         @db.Decimal(10, 2)
+  totalSalary    Decimal         @db.Decimal(10, 2)
+  changeType     SalaryChangeType @default(INITIAL)
+  changeReason   String?
+  approvedById   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime?
+  deletedAt      DateTime?
+  createdById    String?         @db.Uuid
+  updatedById    String?         @db.Uuid
+  deletedById    String?         @db.Uuid
+  
+  teacher        Teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  approvedBy     User?           @relation("SalaryApprover", fields: [approvedById], references: [id])
+
+  @@index([teacherId])
+  @@index([effectiveMonth])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([approvedById])
+}
+
+model StaffSalaryHistory {
+  id             String          @id @default(uuid())
+  staffId        String
+  effectiveMonth DateTime        @db.Date
+  basicSalary    Decimal         @db.Decimal(10, 2)
+  allowances     Decimal         @db.Decimal(10, 2)
+  totalSalary    Decimal         @db.Decimal(10, 2)
+  changeType     SalaryChangeType @default(INITIAL)
+  changeReason   String?
+  approvedById   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime?
+  deletedAt      DateTime?
+  createdById    String?         @db.Uuid
+  updatedById    String?         @db.Uuid
+  deletedById    String?         @db.Uuid
+  
+  staff          Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  approvedBy     User?           @relation("StaffSalaryApprover", fields: [approvedById], references: [id])
+
+  @@index([staffId])
+  @@index([effectiveMonth])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@index([approvedById])
 }

@@ -1,5 +1,5 @@
-import { LeaveStatus } from '../../enums/attendance/leave-status.enum';
-import { LeaveType } from '../../enums/attendance/leave-type.enum';
+import { LeaveStatus } from "../../enums/attendance/leave-status.enum";
+import { LeaveType } from "../../enums/attendance/leave-type.enum";
 
 export interface LeaveRequestDto {
   id: string;

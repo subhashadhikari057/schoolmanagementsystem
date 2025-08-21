@@ -1,4 +1,4 @@
-import { ComplaintStatus } from '../../enums/communication/complaint-status.enum';
+import { ComplaintStatus } from "../../enums/communication/complaint-status.enum";
 
 export interface ComplaintDto {
   id: string;

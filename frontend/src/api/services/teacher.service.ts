@@ -39,11 +39,61 @@ const TEACHER_ENDPOINTS = {
   ASSIGN_CLASSES: (id: string) => `api/v1/teachers/${id}/classes`,
   NEXT_EMPLOYEE_ID: 'api/v1/teachers/next-employee-id',
   CALCULATE_SALARY: 'api/v1/teachers/calculate-salary',
+  // Salary history endpoints
+  GET_SALARY_HISTORY: (id: string) => `api/v1/teachers/${id}/salary-history`,
+  UPDATE_SALARY: (id: string) => `api/v1/teachers/${id}/salary`,
+  GET_CURRENT_SALARY: (id: string) => `api/v1/teachers/${id}/salary`,
+  GET_SALARY_FOR_MONTH: (id: string, month: string) =>
+    `api/v1/teachers/${id}/salary-for-month?month=${month}`,
 } as const;
 
 // ============================================================================
 // Teacher Service
 // ============================================================================
+
+// Salary history types
+export interface TeacherSalaryHistory {
+  id: string;
+  teacherId: string;
+  effectiveMonth: string;
+  basicSalary: number;
+  allowances: number;
+  totalSalary: number;
+  changeType: 'INITIAL' | 'PROMOTION' | 'DEMOTION' | 'ADJUSTMENT';
+  changeReason?: string;
+  approvedBy?: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+  createdAt: string;
+}
+
+export interface UpdateTeacherSalaryRequest {
+  basicSalary: number;
+  allowances: number;
+  changeType?: 'INITIAL' | 'PROMOTION' | 'DEMOTION' | 'ADJUSTMENT';
+  changeReason?: string;
+  effectiveMonth?: string;
+}
+
+export interface UpdateTeacherSalaryResponse {
+  message: string;
+  data: {
+    teacher: {
+      id: string;
+      basicSalary: number;
+      allowances: number;
+      totalSalary: number;
+    };
+    salaryHistory: TeacherSalaryHistory;
+  };
+}
+
+export interface TeacherSalaryHistoryResponse {
+  message: string;
+  data: TeacherSalaryHistory[];
+}
 
 export class TeacherService {
   private httpClient: HttpClient;
@@ -55,6 +105,57 @@ export class TeacherService {
   // ========================================================================
   // Teacher Operations
   // ========================================================================
+
+  // ========================================================================
+  // Salary History Operations
+  // ========================================================================
+
+  /**
+   * Get a teacher's salary history
+   */
+  async getTeacherSalaryHistory(
+    teacherId: string,
+  ): Promise<ApiResponse<TeacherSalaryHistoryResponse>> {
+    return this.httpClient.get<TeacherSalaryHistoryResponse>(
+      TEACHER_ENDPOINTS.GET_SALARY_HISTORY(teacherId),
+    );
+  }
+
+  /**
+   * Update a teacher's salary
+   */
+  async updateTeacherSalary(
+    teacherId: string,
+    data: UpdateTeacherSalaryRequest,
+  ): Promise<ApiResponse<UpdateTeacherSalaryResponse>> {
+    return this.httpClient.post<UpdateTeacherSalaryResponse>(
+      TEACHER_ENDPOINTS.UPDATE_SALARY(teacherId),
+      data,
+    );
+  }
+
+  /**
+   * Get a teacher's current salary
+   */
+  async getTeacherCurrentSalary(
+    teacherId: string,
+  ): Promise<ApiResponse<TeacherSalaryHistory>> {
+    return this.httpClient.get<TeacherSalaryHistory>(
+      TEACHER_ENDPOINTS.GET_CURRENT_SALARY(teacherId),
+    );
+  }
+
+  /**
+   * Get a teacher's salary for a specific month
+   */
+  async getTeacherSalaryForMonth(
+    teacherId: string,
+    month: string,
+  ): Promise<ApiResponse<TeacherSalaryHistory>> {
+    return this.httpClient.get<TeacherSalaryHistory>(
+      TEACHER_ENDPOINTS.GET_SALARY_FOR_MONTH(teacherId, month),
+    );
+  }
 
   /**
    * Create a new teacher with profile picture

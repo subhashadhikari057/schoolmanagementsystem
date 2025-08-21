@@ -1,4 +1,4 @@
-import { FeatureFlagStatus } from '../../enums/platform/feature-flag-status.enum';
+import { FeatureFlagStatus } from "../../enums/platform/feature-flag-status.enum";
 
 export interface FeatureFlagDto {
   id: string;

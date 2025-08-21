@@ -102,11 +102,6 @@ export const sidebarItems = {
       title: 'REPORTS & ANALYTICS',
       items: [
         {
-          label: 'Events',
-          icon: 'CalendarEvent',
-          path: '/dashboard/admin/reports/events',
-        },
-        {
           label: 'Reports',
           icon: 'FileText',
           path: '/dashboard/admin/reports/report',

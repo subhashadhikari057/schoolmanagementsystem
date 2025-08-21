@@ -1,4 +1,3 @@
-
 ## 🏠 Dashboard
 
 - Overview (cards: students, fees, salaries)
@@ -32,7 +31,6 @@ Manage user logins and profiles across the school
 - View Parent Profiles (linked children, communication history)
 
 ### 👨💼 Admin/Staff
-
 
 - Add Admin / Support Staff
 - Role & Permission Manager
@@ -83,7 +81,6 @@ Manage everything related to class routine, academics, results
 
 ### 📆 Academic Calendar
 
-
 - Add/Edit Holidays & Events
 - View Calendar by Month/Year
 - Sync Notices & Exams
@@ -123,7 +120,6 @@ Full-featured school accounting system with tax, salary, and fee automation
 - Fee Summary by Class / Student
 
 ### 💸 Fee Payments
-
 
 - Record Manual Payments
 - Online Payment Integration (eSewa, Khalti, Fonepay)
@@ -168,7 +164,6 @@ Full-featured school accounting system with tax, salary, and fee automation
 
 Track academic and financial health of your institution
 
-
 - Student Reports (attendance, exam performance)
 - Teacher Reports (classes handled, performance)
 - Fee & Collection Reports (monthly/yearly)
@@ -187,9 +182,9 @@ Core configurations to control the ERP environment
 - 🛡 Role & Permission Manager
 - 🌐 Localization (Timezone, Currency, Nepali date toggle)
 - 🔁 Backup & Data Export
-    o Download backup (CSV/JSON)
-    o Import students, fees, expenses (via Excel)
-    o Sync storage to cloud
+  o Download backup (CSV/JSON)
+  o Import students, fees, expenses (via Excel)
+  o Sync storage to cloud
 - 🔒 Security Logs (Login history, IP tracking)
 
 ## 👤 My Account
@@ -197,5 +192,3 @@ Core configurations to control the ERP environment
 - Profile Settings
 - Change Password
 - Logout
-
-

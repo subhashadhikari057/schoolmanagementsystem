@@ -84,6 +84,7 @@ export class CalendarService {
     total: number;
     holidays: number;
     events: number;
+    exams: number;
     thisMonth: number;
   }> {
     try {
@@ -91,6 +92,7 @@ export class CalendarService {
         total: number;
         holidays: number;
         events: number;
+        exams: number;
         thisMonth: number;
       }>(`${this.baseUrl}/statistics`);
       return response.data;
@@ -171,7 +173,7 @@ export class CalendarService {
    * Convert API calendar entry to frontend CalendarEvent type
    */
   toCalendarEvent(entry: CalendarEntryResponseDto): CalendarEvent {
-    // For holidays, don't show time; for events, show proper time
+    // For holidays, don't show time; for events and exams, show proper time
     const isHoliday = entry.type.toUpperCase() === 'HOLIDAY';
     const eventTime = isHoliday
       ? '' // No time for holidays
@@ -192,6 +194,11 @@ export class CalendarService {
       holidayType: entry.holidayType || undefined,
       location: entry.venue || '', // For compatibility with Event interface
       status: 'Active', // Default to active for simplified schema
+      // New fields for enhanced calendar functionality
+      startTime: entry.startTime || undefined,
+      endTime: entry.endTime || undefined,
+      examType: entry.examType || undefined,
+      examDetails: entry.examDetails || undefined,
     };
   }
 
@@ -230,6 +237,7 @@ export class CalendarService {
     const colors = {
       [CalendarEntryType.HOLIDAY]: '#EF4444', // Red
       [CalendarEntryType.EVENT]: '#3B82F6', // Blue
+      [CalendarEntryType.EXAM]: '#8B5CF6', // Purple
     };
     return colors[type] || '#6B7280'; // Gray fallback
   }
@@ -241,6 +249,7 @@ export class CalendarService {
     const labels = {
       [CalendarEntryType.HOLIDAY]: 'Holiday',
       [CalendarEntryType.EVENT]: 'Event',
+      [CalendarEntryType.EXAM]: 'Exam',
     };
     return labels[type] || 'Unknown';
   }

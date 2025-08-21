@@ -30,24 +30,40 @@ export const StaffEmploymentStatusSchema = z.enum([
 // Subschema for user creation
 // ---------------------------
 export const CreateStaffUserSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, 'Last name is required'),
   fullName: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email format'),
   phone: z.string().optional(),
   password: z.string().optional(), // Will be auto-generated if not provided
+  createLoginAccount: z.boolean().default(false), // New field to control login account creation
 });
 
 // ---------------------------
 // Subschema for staff profile creation
 // ---------------------------
 export const CreateStaffProfileSchema = z.object({
+  employeeId: z.string().optional(),
   qualification: z.string().min(1, 'Qualification is required'),
   designation: z.string().optional(),
   department: z.string().optional(),
   experienceYears: z.number().min(0).optional(),
+  joiningDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   employmentDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
-  salary: z.number().positive('Salary must be positive').optional(),
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .optional(),
+  gender: z.enum(['Male', 'Female', 'Other']).optional(),
+  bloodGroup: z
+    .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+    .optional(),
+  maritalStatus: z.string().optional(),
   bio: z.string().optional(),
   emergencyContact: z
     .object({
@@ -72,7 +88,7 @@ export const CreateStaffProfileSchema = z.object({
       website: z.string().url().optional(),
     })
     .optional(),
-  profilePhotoUrl: z.string().url().optional(), // Not required, not stored for now
+  profilePhotoUrl: z.string().url().optional(),
 });
 
 // ---------------------------
@@ -87,12 +103,23 @@ export const CreateStaffBankSchema = z.object({
 });
 
 // ---------------------------
+// Subschema for salary information
+// ---------------------------
+export const CreateStaffSalarySchema = z.object({
+  basicSalary: z.number().min(0).optional(),
+  allowances: z.number().min(0).optional(),
+  totalSalary: z.number().min(0).optional(),
+});
+
+// ---------------------------
 // CreateStaff DTO
 // ---------------------------
 export const CreateStaffDto = z.object({
   user: CreateStaffUserSchema,
   profile: CreateStaffProfileSchema,
+  salary: CreateStaffSalarySchema.optional(),
   bankDetails: CreateStaffBankSchema.optional(),
+  permissions: z.array(z.string()).optional(),
 });
 
 export type CreateStaffDtoType = z.infer<typeof CreateStaffDto>;
@@ -103,6 +130,9 @@ export type CreateStaffDtoType = z.infer<typeof CreateStaffDto>;
 export const UpdateStaffByAdminDto = z.object({
   user: z
     .object({
+      firstName: z.string().min(1).optional(),
+      middleName: z.string().optional(),
+      lastName: z.string().min(1).optional(),
       fullName: z.string().min(1).optional(),
       email: z.string().email().optional(),
       phone: z.string().optional(),
@@ -119,7 +149,15 @@ export const UpdateStaffByAdminDto = z.object({
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/)
         .optional(),
-      salary: z.number().positive().optional(),
+      dateOfBirth: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+      gender: z.enum(['Male', 'Female', 'Other']).optional(),
+      bloodGroup: z
+        .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+        .optional(),
+      maritalStatus: z.string().optional(),
       employmentStatus: StaffEmploymentStatusSchema.optional(),
       bio: z.string().optional(),
       emergencyContact: z
@@ -147,6 +185,7 @@ export const UpdateStaffByAdminDto = z.object({
         .optional(),
     })
     .optional(),
+  salary: CreateStaffSalarySchema.partial().optional(),
   bankDetails: CreateStaffBankSchema.partial().optional(),
 });
 
@@ -165,6 +204,10 @@ export const UpdateStaffSelfDto = z.object({
   profile: z
     .object({
       bio: z.string().optional(),
+      bloodGroup: z
+        .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+        .optional(),
+      maritalStatus: z.string().optional(),
       emergencyContact: z
         .object({
           name: z.string().optional(),
@@ -190,6 +233,7 @@ export const UpdateStaffSelfDto = z.object({
         .optional(),
     })
     .optional(),
+  bankDetails: CreateStaffBankSchema.partial().optional(),
 });
 
 export type UpdateStaffSelfDtoType = z.infer<typeof UpdateStaffSelfDto>;

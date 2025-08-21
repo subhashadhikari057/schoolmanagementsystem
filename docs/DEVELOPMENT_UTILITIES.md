@@ -75,14 +75,14 @@ The Development Manager (`scripts/dev-manager.ps1`) is the central command-line 
 
 ### Available Commands
 
-| Command | Description | Examples |
-|---------|-------------|----------|
-| `db` | Database management | `db reset`, `db seed comprehensive` |
-| `logs` | Log management and analysis | `logs analyze`, `logs tail` |
-| `dev` | Development workflow | `dev start`, `dev status` |
-| `test` | Test execution | `test all`, `test integration` |
-| `lint` | Code quality | `lint fix`, `lint check` |
-| `clean` | System cleanup | `clean cache`, `clean all` |
+| Command | Description                 | Examples                            |
+| ------- | --------------------------- | ----------------------------------- |
+| `db`    | Database management         | `db reset`, `db seed comprehensive` |
+| `logs`  | Log management and analysis | `logs analyze`, `logs tail`         |
+| `dev`   | Development workflow        | `dev start`, `dev status`           |
+| `test`  | Test execution              | `test all`, `test integration`      |
+| `lint`  | Code quality                | `lint fix`, `lint check`            |
+| `clean` | System cleanup              | `clean cache`, `clean all`          |
 
 ### Getting Help
 
@@ -143,16 +143,16 @@ The Development Manager (`scripts/dev-manager.ps1`) is the central command-line 
 
 ```typescript
 // Using the DatabaseManager class directly
-import { DatabaseManager, DevLogger } from './scripts/dev-utils';
+import { DatabaseManager, DevLogger } from "./scripts/dev-utils";
 
 const logger = new DevLogger();
 const dbManager = new DatabaseManager(logger);
 
 // Reset and seed programmatically
-await dbManager.resetAndSeed('comprehensive');
+await dbManager.resetAndSeed("comprehensive");
 
 // Create backup
-const backupName = await dbManager.backup('feature-branch-backup');
+const backupName = await dbManager.backup("feature-branch-backup");
 ```
 
 ## 📊 Log Management
@@ -186,10 +186,10 @@ The log formatter provides advanced parsing and analysis:
 ### Using Log Formatter Programmatically
 
 ```typescript
-import { LogFormatter } from './src/shared/utils/log-formatter.util';
+import { LogFormatter } from "./src/shared/utils/log-formatter.util";
 
 // Parse log file
-const entries = LogFormatter.parseLogFile('logs/application.log');
+const entries = LogFormatter.parseLogFile("logs/application.log");
 
 // Analyze logs
 const analytics = LogFormatter.analyzeLog(entries);
@@ -200,15 +200,15 @@ console.log(report);
 
 // Filter logs
 const errorLogs = LogFormatter.filterLogs(entries, {
-  level: ['ERROR'],
+  level: ["ERROR"],
   timeRange: {
-    start: new Date('2023-01-01'),
-    end: new Date('2023-01-02')
-  }
+    start: new Date("2023-01-01"),
+    end: new Date("2023-01-02"),
+  },
 });
 
 // Export filtered logs
-LogFormatter.exportLogs(errorLogs, 'json', 'error-logs.json');
+LogFormatter.exportLogs(errorLogs, "json", "error-logs.json");
 ```
 
 ### Log Cleanup
@@ -293,13 +293,13 @@ cd frontend && npm run dev
 
 ### Test Categories
 
-| Test Type | Description | Command |
-|-----------|-------------|---------|
-| **Unit** | Individual component tests | `test backend unit` |
+| Test Type       | Description                 | Command                    |
+| --------------- | --------------------------- | -------------------------- |
+| **Unit**        | Individual component tests  | `test backend unit`        |
 | **Integration** | Component interaction tests | `test backend integration` |
-| **E2E** | End-to-end workflow tests | `test backend e2e` |
-| **Frontend** | React component tests | `test frontend` |
-| **Shared** | Shared types validation | `test shared` |
+| **E2E**         | End-to-end workflow tests   | `test backend e2e`         |
+| **Frontend**    | React component tests       | `test frontend`            |
+| **Shared**      | Shared types validation     | `test shared`              |
 
 ## ✨ Code Quality Tools
 
@@ -355,32 +355,39 @@ cd frontend && npm run dev
 ### Custom Log Analysis
 
 ```typescript
-import { LogFormatter, ParsedLogEntry } from './src/shared/utils/log-formatter.util';
+import {
+  LogFormatter,
+  ParsedLogEntry,
+} from "./src/shared/utils/log-formatter.util";
 
 // Custom log filtering
 const customFilter = (entries: ParsedLogEntry[]) => {
   return LogFormatter.filterLogs(entries, {
-    level: ['ERROR', 'WARN'],
-    searchTerm: 'database',
+    level: ["ERROR", "WARN"],
+    searchTerm: "database",
     timeRange: {
       start: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
-      end: new Date()
-    }
+      end: new Date(),
+    },
   });
 };
 
 // Performance analysis
 const performanceAnalysis = (entries: ParsedLogEntry[]) => {
   const analytics = LogFormatter.analyzeLog(entries);
-  
-  console.log(`Average Response Time: ${analytics.performanceMetrics.averageResponseTime}ms`);
+
+  console.log(
+    `Average Response Time: ${analytics.performanceMetrics.averageResponseTime}ms`,
+  );
   console.log(`Error Rate: ${analytics.performanceMetrics.errorRate}%`);
-  
+
   if (analytics.performanceMetrics.slowQueries.length > 0) {
-    console.log('Top 5 Slowest Operations:');
-    analytics.performanceMetrics.slowQueries.slice(0, 5).forEach((query, index) => {
-      console.log(`${index + 1}. ${query.duration}ms - ${query.message}`);
-    });
+    console.log("Top 5 Slowest Operations:");
+    analytics.performanceMetrics.slowQueries
+      .slice(0, 5)
+      .forEach((query, index) => {
+        console.log(`${index + 1}. ${query.duration}ms - ${query.message}`);
+      });
   }
 };
 ```
@@ -388,27 +395,27 @@ const performanceAnalysis = (entries: ParsedLogEntry[]) => {
 ### Programmatic Database Operations
 
 ```typescript
-import { DatabaseManager, DevLogger } from './scripts/dev-utils';
+import { DatabaseManager, DevLogger } from "./scripts/dev-utils";
 
-const logger = new DevLogger('custom.log');
+const logger = new DevLogger("custom.log");
 const dbManager = new DatabaseManager(logger);
 
 // Custom workflow
 async function customDatabaseWorkflow() {
   try {
     // Create backup before changes
-    const backupName = await dbManager.backup('before-feature-update');
-    logger.success('WORKFLOW', `Backup created: ${backupName}`);
-    
+    const backupName = await dbManager.backup("before-feature-update");
+    logger.success("WORKFLOW", `Backup created: ${backupName}`);
+
     // Reset and apply new schema
     await dbManager.reset();
-    
+
     // Seed with test data for development
-    await dbManager.seed('test');
-    
-    logger.success('WORKFLOW', 'Database workflow completed successfully');
+    await dbManager.seed("test");
+
+    logger.success("WORKFLOW", "Database workflow completed successfully");
   } catch (error) {
-    logger.error('WORKFLOW', `Workflow failed: ${error.message}`);
+    logger.error("WORKFLOW", `Workflow failed: ${error.message}`);
     throw error;
   }
 }
@@ -418,21 +425,21 @@ async function customDatabaseWorkflow() {
 
 ```typescript
 // Create custom development utilities
-import { DevLogger } from './scripts/dev-utils';
+import { DevLogger } from "./scripts/dev-utils";
 
-const logger = new DevLogger('custom-script.log');
+const logger = new DevLogger("custom-script.log");
 
 async function customTask() {
-  logger.section('Custom Development Task');
-  
+  logger.section("Custom Development Task");
+
   try {
-    logger.info('CUSTOM', 'Starting custom task...');
-    
+    logger.info("CUSTOM", "Starting custom task...");
+
     // Your custom logic here
-    
-    logger.success('CUSTOM', 'Custom task completed successfully');
+
+    logger.success("CUSTOM", "Custom task completed successfully");
   } catch (error) {
-    logger.error('CUSTOM', `Custom task failed: ${error.message}`);
+    logger.error("CUSTOM", `Custom task failed: ${error.message}`);
     throw error;
   }
 }
@@ -485,8 +492,8 @@ Enable debug logging for detailed output:
 
 ```typescript
 // In your custom scripts
-const logger = new DevLogger('debug.log', true);
-logger.debug('DEBUG', 'Detailed debug information');
+const logger = new DevLogger("debug.log", true);
+logger.debug("DEBUG", "Detailed debug information");
 ```
 
 ### Getting Help
@@ -526,7 +533,7 @@ npm run test:all
 - name: Run Tests
   run: |
     .\scripts\dev-manager.ps1 test all
-    
+
 - name: Check Code Quality
   run: |
     .\scripts\dev-manager.ps1 lint check

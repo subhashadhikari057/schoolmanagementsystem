@@ -12,6 +12,8 @@ import {
   Mail,
   Phone,
   Calendar,
+  GraduationCap,
+  MapPin,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { staffService } from '@/api/services/staff.service';
@@ -24,90 +26,76 @@ interface AddStaffFormModalProps {
 
 interface StaffFormData {
   // User Information
-  fullName: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   email: string;
   phone: string;
+  createLoginAccount: boolean;
 
-  // Profile Information
+  // Personal Information
+  dateOfBirth?: string;
+  gender?: string;
+  bloodGroup?: string;
+  maritalStatus?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  pinCode?: string;
+
+  // Professional Information
+  employeeId?: string;
+  joiningDate: string;
+  experienceYears?: number;
   qualification: string;
   designation?: string;
   department?: string;
-  experienceYears?: number;
-  employmentDate: string;
-  salary?: number;
-  bio?: string;
 
-  // Emergency Contact
-  emergencyContact?: {
-    name?: string;
-    phone?: string;
-    relationship?: string;
-  };
-
-  // Address Information
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    country?: string;
-  };
-
-  // Social Links
-  socialLinks?: {
-    linkedin?: string;
-    twitter?: string;
-    website?: string;
-  };
+  // Salary Information
+  basicSalary?: number;
+  allowances?: number;
+  totalSalary?: number;
 
   // Bank Details
-  bankDetails?: {
-    bankName?: string;
-    bankAccountNumber?: string;
-    bankBranch?: string;
-    panNumber?: string;
-    citizenshipNumber?: string;
-  };
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankBranch?: string;
+  panNumber?: string;
+  citizenshipNumber?: string;
 
   // Profile Photo
   photo?: File | null;
 }
 
 const initialFormData: StaffFormData = {
-  fullName: '',
+  firstName: '',
+  middleName: '',
+  lastName: '',
   email: '',
   phone: '',
+  createLoginAccount: false,
+  dateOfBirth: '',
+  gender: '',
+  bloodGroup: '',
+  maritalStatus: '',
+  street: '',
+  city: '',
+  state: '',
+  pinCode: '',
+  employeeId: '',
+  joiningDate: '',
+  experienceYears: 0,
   qualification: '',
   designation: '',
   department: '',
-  experienceYears: 0,
-  employmentDate: '',
-  salary: 0,
-  bio: '',
-  emergencyContact: {
-    name: '',
-    phone: '',
-    relationship: '',
-  },
-  address: {
-    street: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: '',
-  },
-  socialLinks: {
-    linkedin: '',
-    twitter: '',
-    website: '',
-  },
-  bankDetails: {
-    bankName: '',
-    bankAccountNumber: '',
-    bankBranch: '',
-    panNumber: '',
-    citizenshipNumber: '',
-  },
+  basicSalary: 0,
+  allowances: 0,
+  totalSalary: 0,
+  bankName: '',
+  bankAccountNumber: '',
+  bankBranch: '',
+  panNumber: '',
+  citizenshipNumber: '',
   photo: null,
 };
 
@@ -129,6 +117,7 @@ const LabeledInput: React.FC<{
   error?: string;
   min?: string | number;
   max?: string | number;
+  icon?: React.ReactNode;
 }> = ({
   label,
   name,
@@ -141,26 +130,34 @@ const LabeledInput: React.FC<{
   error,
   min,
   max,
+  icon,
 }) => (
   <div>
     <label className='text-sm font-medium leading-none mb-2 block'>
       {label}
       {required && <span className='text-red-500 ml-1'>*</span>}
     </label>
-    <input
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      disabled={disabled}
-      min={min}
-      max={max}
-      className={`flex h-10 w-full rounded-md border ${
-        error ? 'border-red-500' : 'border-gray-300'
-      } bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors duration-200`}
-      aria-invalid={error ? 'true' : 'false'}
-    />
+    <div className='relative'>
+      {icon && (
+        <div className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400'>
+          {icon}
+        </div>
+      )}
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        min={min}
+        max={max}
+        className={`flex h-10 w-full rounded-md border ${
+          error ? 'border-red-500' : 'border-gray-300'
+        } bg-white ${icon ? 'pl-10' : 'px-3'} py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200`}
+        aria-invalid={error ? 'true' : 'false'}
+      />
+    </div>
     {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
   </div>
 );
@@ -213,49 +210,6 @@ const LabeledSelect: React.FC<{
   </div>
 );
 
-// Textarea field component
-const LabeledTextarea: React.FC<{
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  placeholder?: string;
-  required?: boolean;
-  disabled?: boolean;
-  error?: string;
-  rows?: number;
-}> = ({
-  label,
-  name,
-  value,
-  onChange,
-  placeholder,
-  required,
-  disabled,
-  error,
-  rows = 3,
-}) => (
-  <div>
-    <label className='text-sm font-medium leading-none mb-2 block'>
-      {label}
-      {required && <span className='text-red-500 ml-1'>*</span>}
-    </label>
-    <textarea
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      disabled={disabled}
-      rows={rows}
-      className={`flex w-full rounded-md border ${
-        error ? 'border-red-500' : 'border-gray-300'
-      } bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors duration-200 resize-vertical`}
-      aria-invalid={error ? 'true' : 'false'}
-    />
-    {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
-  </div>
-);
-
 // Section wrapper component
 const FormSection: React.FC<{
   title: string;
@@ -298,13 +252,107 @@ export default function AddStaffFormModal({
     { value: 'academic_support', label: 'Academic Support' },
   ];
 
+  // Auto-generation states
+  const [autoEmployeeId, setAutoEmployeeId] = useState<string>('');
+  const [calculatedSalary, setCalculatedSalary] = useState<number>(0);
+  const [employeeIdLoading, setEmployeeIdLoading] = useState(false);
+
+  // Define loadNextEmployeeId function
+  const loadNextEmployeeId = useCallback(async () => {
+    try {
+      setEmployeeIdLoading(true);
+      const response = await staffService.getNextEmployeeId();
+      if (response.success) {
+        setAutoEmployeeId(response.data.employeeId);
+        // Set employee ID if not already filled
+        setFormData(prev => {
+          if (!prev.employeeId) {
+            return {
+              ...prev,
+              employeeId: response.data.employeeId,
+            };
+          }
+          return prev;
+        });
+      } else {
+        // Fallback: Generate a simple employee ID if API fails
+        const currentYear = new Date().getFullYear();
+        const randomNum = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+        const fallbackId = `S-${currentYear}-${randomNum}`;
+
+        setAutoEmployeeId(fallbackId);
+        setFormData(prev => {
+          if (!prev.employeeId) {
+            return {
+              ...prev,
+              employeeId: fallbackId,
+            };
+          }
+          return prev;
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load next employee ID:', error);
+
+      // Fallback: Generate a simple employee ID if API fails
+      const currentYear = new Date().getFullYear();
+      const randomNum = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+      const fallbackId = `S-${currentYear}-${randomNum}`;
+
+      setAutoEmployeeId(fallbackId);
+      setFormData(prev => {
+        if (!prev.employeeId) {
+          return {
+            ...prev,
+            employeeId: fallbackId,
+          };
+        }
+        return prev;
+      });
+    } finally {
+      setEmployeeIdLoading(false);
+    }
+  }, []);
+
+  // Load employee ID when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadNextEmployeeId();
+    }
+  }, [isOpen, loadNextEmployeeId]);
+
+  // Auto-calculate salary when basic salary or allowances change
+  useEffect(() => {
+    const calculateSalary = () => {
+      if (
+        (formData.basicSalary && formData.basicSalary > 0) ||
+        (formData.allowances && formData.allowances > 0)
+      ) {
+        const basic = Number(formData.basicSalary) || 0;
+        const allowances = Number(formData.allowances) || 0;
+        const total = basic + allowances;
+
+        setCalculatedSalary(total);
+        setFormData(prev => ({
+          ...prev,
+          totalSalary: total,
+        }));
+      } else {
+        setCalculatedSalary(0);
+        setFormData(prev => ({
+          ...prev,
+          totalSalary: 0,
+        }));
+      }
+    };
+
+    const timeoutId = setTimeout(calculateSalary, 300); // Debounce
+    return () => clearTimeout(timeoutId);
+  }, [formData.basicSalary, formData.allowances]);
+
   // Handle input changes
   const handleInputChange = useCallback(
-    (
-      e: React.ChangeEvent<
-        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-      >,
-    ) => {
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const { name, value, type } = e.target;
 
       // Handle nested object properties
@@ -369,12 +417,15 @@ export default function AddStaffFormModal({
     const newErrors: FormErrors = {};
 
     // Required fields
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!formData.firstName.trim())
+      newErrors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
     if (!formData.qualification.trim())
       newErrors.qualification = 'Qualification is required';
-    if (!formData.employmentDate)
-      newErrors.employmentDate = 'Employment date is required';
+    if (!formData.joiningDate)
+      newErrors.joiningDate = 'Joining date is required';
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -390,32 +441,11 @@ export default function AddStaffFormModal({
       }
     }
 
-    // URL validation for social links
-    const urlRegex = /^https?:\/\/.+/;
-    if (
-      formData.socialLinks?.linkedin &&
-      !urlRegex.test(formData.socialLinks.linkedin)
-    ) {
-      newErrors['socialLinks.linkedin'] = 'Please enter a valid LinkedIn URL';
-    }
-    if (
-      formData.socialLinks?.twitter &&
-      !urlRegex.test(formData.socialLinks.twitter)
-    ) {
-      newErrors['socialLinks.twitter'] = 'Please enter a valid Twitter URL';
-    }
-    if (
-      formData.socialLinks?.website &&
-      !urlRegex.test(formData.socialLinks.website)
-    ) {
-      newErrors['socialLinks.website'] = 'Please enter a valid website URL';
-    }
-
     // Date validation
     const today = new Date();
-    const employmentDate = new Date(formData.employmentDate);
-    if (employmentDate > today) {
-      newErrors.employmentDate = 'Employment date cannot be in the future';
+    const joiningDate = new Date(formData.joiningDate);
+    if (joiningDate > today) {
+      newErrors.joiningDate = 'Joining date cannot be in the future';
     }
 
     setErrors(newErrors);
@@ -437,25 +467,62 @@ export default function AddStaffFormModal({
       // Transform form data to match backend DTO
       const staffData = {
         user: {
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
+          firstName: formData.firstName.trim(),
+          middleName: formData.middleName?.trim() || undefined,
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          createLoginAccount: formData.createLoginAccount,
         },
         profile: {
-          qualification: formData.qualification,
-          designation: formData.designation,
-          department: formData.department,
-          experienceYears: formData.experienceYears,
-          employmentDate: formData.employmentDate,
-          salary: formData.salary,
-          bio: formData.bio,
-          emergencyContact: formData.emergencyContact,
-          address: formData.address,
-          socialLinks: formData.socialLinks,
+          dateOfBirth: formData.dateOfBirth || undefined,
+          gender:
+            (formData.gender?.trim() as 'Male' | 'Female' | 'Other') ||
+            undefined,
+          bloodGroup:
+            (formData.bloodGroup as
+              | 'A+'
+              | 'A-'
+              | 'B+'
+              | 'B-'
+              | 'AB+'
+              | 'AB-'
+              | 'O+'
+              | 'O-') || undefined,
+          maritalStatus: formData.maritalStatus || undefined,
+          street: formData.street?.trim() || undefined,
+          city: formData.city?.trim() || undefined,
+          state: formData.state?.trim() || undefined,
+          pinCode: formData.pinCode?.trim() || undefined,
+          employeeId: formData.employeeId?.trim() || undefined,
+          joiningDate:
+            formData.joiningDate || new Date().toISOString().split('T')[0],
+          employmentDate:
+            formData.joiningDate || new Date().toISOString().split('T')[0],
+          experienceYears:
+            formData.experienceYears && formData.experienceYears > 0
+              ? Number(formData.experienceYears)
+              : undefined,
+          qualification: formData.qualification.trim(),
+          designation: formData.designation?.trim() || 'Staff',
+          department: (formData.department?.trim() as any) || 'administration',
         },
-        bankDetails: formData.bankDetails,
+        bankDetails: {
+          bankName: formData.bankName?.trim() || undefined,
+          bankAccountNumber: formData.bankAccountNumber?.trim() || undefined,
+          bankBranch: formData.bankBranch?.trim() || undefined,
+          panNumber: formData.panNumber?.trim() || undefined,
+          citizenshipNumber: formData.citizenshipNumber?.trim() || undefined,
+        },
+        salary: {
+          basicSalary: formData.basicSalary || undefined,
+          allowances: formData.allowances || undefined,
+          totalSalary: formData.totalSalary || undefined,
+        },
+        photo: formData.photo || undefined,
       };
 
+      // Directly pass structured data; the service will build FormData
       const response = await staffService.createStaff(staffData);
 
       if (response.success) {
@@ -465,10 +532,12 @@ export default function AddStaffFormModal({
           console.table({
             Email: response.data.staff?.email || formData.email,
             'Generated Password': response.data.temporaryPassword,
-            'Staff Name': response.data.staff?.fullName || formData.fullName,
+            'Staff Name': `${formData.firstName} ${formData.lastName}`,
             'Staff ID': response.data.staff?.id || 'Not available',
+            'Employee ID': response.data.staff?.employeeId || 'Not available',
             Department: formData.department,
             Designation: formData.designation,
+            'Has Login Account': formData.createLoginAccount ? 'Yes' : 'No',
           });
           console.log('💡 Use these credentials to test login functionality');
           console.log(
@@ -487,7 +556,51 @@ export default function AddStaffFormModal({
       }
     } catch (error: any) {
       console.error('Error creating staff:', error);
-      toast.error(error.message || 'Failed to create staff member');
+
+      // Handle validation errors with user-friendly messages
+      if (error.statusCode === 400 && error.details) {
+        const fieldErrors: { [key: string]: string } = {};
+        const friendlyMessages: string[] = [];
+
+        error.details.forEach((detail: any) => {
+          const field = detail.field;
+          let friendlyMessage = detail.message;
+
+          // Convert technical field names to user-friendly names
+          const fieldNames: { [key: string]: string } = {
+            'user.firstName': 'First Name',
+            'user.lastName': 'Last Name',
+            'user.email': 'Email Address',
+            'user.phone': 'Phone Number',
+            'profile.joiningDate': 'Joining Date',
+            'profile.qualification': 'Qualification',
+            'profile.dateOfBirth': 'Date of Birth',
+            'profile.gender': 'Gender',
+            'salary.basicSalary': 'Basic Salary',
+            'salary.allowances': 'Allowances',
+          };
+
+          const displayField = fieldNames[field] || field;
+          friendlyMessage = friendlyMessage.replace(field, displayField);
+
+          fieldErrors[field] = friendlyMessage;
+          friendlyMessages.push(`${displayField}: ${friendlyMessage}`);
+        });
+
+        setErrors(fieldErrors);
+
+        // Show user-friendly toast with specific issues
+        if (friendlyMessages.length <= 3) {
+          friendlyMessages.forEach(msg => toast.error(msg, { duration: 5000 }));
+        } else {
+          toast.error(
+            `Please check the following fields: ${friendlyMessages.slice(0, 3).join(', ')} and ${friendlyMessages.length - 3} more`,
+            { duration: 6000 },
+          );
+        }
+      } else {
+        toast.error(error.message || 'Failed to create staff member');
+      }
     } finally {
       setLoading(false);
     }
@@ -534,13 +647,13 @@ export default function AddStaffFormModal({
       {/* Modal */}
       <div className='relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden'>
         {/* Header */}
-        <div className='bg-gradient-to-br from-purple-500 to-violet-600 px-6 py-4 flex items-center justify-between text-white'>
+        <div className='bg-gradient-to-br from-blue-500 to-indigo-600 px-6 py-4 flex items-center justify-between text-white'>
           <div className='flex items-center'>
             <Briefcase size={24} className='mr-3' />
             <div>
               <h2 className='text-xl font-bold'>Add New Staff</h2>
-              <p className='text-purple-100 text-sm'>
-                Enter staff member information and role details
+              <p className='text-blue-100 text-sm'>
+                Enter staff information and professional details
               </p>
             </div>
           </div>
@@ -556,18 +669,37 @@ export default function AddStaffFormModal({
         {/* Content */}
         <div className='p-6 overflow-y-auto max-h-[calc(90vh-80px)]'>
           <form onSubmit={handleSubmit} className='space-y-6'>
-            {/* Basic Information */}
+            {/* User Information */}
             <FormSection title='Basic Information' icon={User}>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                 <LabeledInput
-                  label='Full Name'
-                  name='fullName'
-                  value={formData.fullName}
+                  label='First Name'
+                  name='firstName'
+                  value={formData.firstName}
                   onChange={handleInputChange}
-                  placeholder='Enter full name'
+                  placeholder='Enter first name'
                   required
-                  error={errors.fullName}
+                  error={errors.firstName}
                 />
+                <LabeledInput
+                  label='Middle Name'
+                  name='middleName'
+                  value={formData.middleName || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter middle name'
+                />
+                <LabeledInput
+                  label='Last Name'
+                  name='lastName'
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  placeholder='Enter last name'
+                  required
+                  error={errors.lastName}
+                />
+              </div>
+
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
                 <LabeledInput
                   label='Email Address'
                   name='email'
@@ -577,18 +709,44 @@ export default function AddStaffFormModal({
                   placeholder='Enter email address'
                   required
                   error={errors.email}
+                  icon={<Mail className='h-4 w-4' />}
                 />
-              </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
                 <LabeledInput
                   label='Phone Number'
                   name='phone'
                   value={formData.phone}
                   onChange={handleInputChange}
                   placeholder='Enter phone number'
+                  required
                   error={errors.phone}
+                  icon={<Phone className='h-4 w-4' />}
                 />
+              </div>
+
+              {/* Create Login Account Checkbox */}
+              <div className='mt-4'>
+                <label className='flex items-center'>
+                  <input
+                    type='checkbox'
+                    name='createLoginAccount'
+                    checked={formData.createLoginAccount}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        createLoginAccount: e.target.checked,
+                      }))
+                    }
+                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2'
+                  />
+                  <span className='text-sm font-medium text-gray-700'>
+                    Create Login Account
+                  </span>
+                </label>
+                <p className='text-xs text-gray-500 mt-1'>
+                  {formData.createLoginAccount
+                    ? 'A user account will be created with a temporary password'
+                    : 'Staff will not have access to the system'}
+                </p>
               </div>
 
               {/* Profile Photo */}
@@ -606,10 +764,16 @@ export default function AddStaffFormModal({
                     />
                     <div className='w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors'>
                       {imagePreview ? (
-                        <img
-                          src={imagePreview}
-                          alt='Preview'
-                          className='w-full h-full object-cover rounded-lg'
+                        <div
+                          style={{
+                            backgroundImage: `url(${imagePreview})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '0.5rem',
+                          }}
+                          aria-label='Profile photo preview'
                         />
                       ) : (
                         <Camera size={24} className='text-gray-400' />
@@ -626,35 +790,133 @@ export default function AddStaffFormModal({
               </div>
             </FormSection>
 
-            {/* Professional Information */}
-            <FormSection title='Professional Information' icon={Briefcase}>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            {/* Personal Information */}
+            <FormSection title='Personal Information' icon={User}>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                 <LabeledInput
-                  label='Qualification'
-                  name='qualification'
-                  value={formData.qualification}
+                  label='Date of Birth'
+                  name='dateOfBirth'
+                  type='date'
+                  value={formData.dateOfBirth || ''}
                   onChange={handleInputChange}
-                  placeholder='Enter qualification'
-                  required
-                  error={errors.qualification}
+                  icon={<Calendar className='h-4 w-4' />}
                 />
-                <LabeledInput
-                  label='Designation'
-                  name='designation'
-                  value={formData.designation || ''}
+                <LabeledSelect
+                  label='Gender'
+                  name='gender'
+                  value={formData.gender || ''}
                   onChange={handleInputChange}
-                  placeholder='Enter designation'
+                  options={[
+                    { value: 'Male', label: 'Male' },
+                    { value: 'Female', label: 'Female' },
+                    { value: 'Other', label: 'Other' },
+                  ]}
+                  placeholder='Select gender'
+                />
+                <LabeledSelect
+                  label='Blood Group'
+                  name='bloodGroup'
+                  value={formData.bloodGroup || ''}
+                  onChange={handleInputChange}
+                  options={[
+                    { value: 'A+', label: 'A+' },
+                    { value: 'A-', label: 'A-' },
+                    { value: 'B+', label: 'B+' },
+                    { value: 'B-', label: 'B-' },
+                    { value: 'AB+', label: 'AB+' },
+                    { value: 'AB-', label: 'AB-' },
+                    { value: 'O+', label: 'O+' },
+                    { value: 'O-', label: 'O-' },
+                  ]}
+                  placeholder='Select blood group'
                 />
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-4'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
                 <LabeledSelect
-                  label='Department'
-                  name='department'
-                  value={formData.department || ''}
+                  label='Marital Status'
+                  name='maritalStatus'
+                  value={formData.maritalStatus || ''}
                   onChange={handleInputChange}
-                  options={departmentOptions}
-                  placeholder='Select department'
+                  options={[
+                    { value: 'Single', label: 'Single' },
+                    { value: 'Married', label: 'Married' },
+                    { value: 'Divorced', label: 'Divorced' },
+                    { value: 'Widowed', label: 'Widowed' },
+                  ]}
+                  placeholder='Select marital status'
+                />
+              </div>
+
+              <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mt-4'>
+                <LabeledInput
+                  label='Street'
+                  name='street'
+                  value={formData.street || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter street'
+                  icon={<MapPin className='h-4 w-4' />}
+                />
+                <LabeledInput
+                  label='City'
+                  name='city'
+                  value={formData.city || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter city'
+                />
+                <LabeledInput
+                  label='State'
+                  name='state'
+                  value={formData.state || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter state'
+                />
+                <LabeledInput
+                  label='PIN Code'
+                  name='pinCode'
+                  value={formData.pinCode || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter PIN code'
+                />
+              </div>
+            </FormSection>
+
+            {/* Professional Information */}
+            <FormSection title='Professional Information' icon={Briefcase}>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <div className='relative'>
+                  <LabeledInput
+                    label='Employee ID'
+                    name='employeeId'
+                    value={formData.employeeId || ''}
+                    onChange={handleInputChange}
+                    placeholder={
+                      autoEmployeeId
+                        ? `Auto: ${autoEmployeeId}`
+                        : 'Auto-generated'
+                    }
+                  />
+                  {autoEmployeeId && (
+                    <div className='flex items-center mt-1'>
+                      <span className='text-xs text-green-600 flex items-center'>
+                        ✨ Auto-generated:{' '}
+                        <strong className='ml-1'>{autoEmployeeId}</strong>
+                      </span>
+                      {employeeIdLoading && (
+                        <div className='ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-green-600'></div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <LabeledInput
+                  label='Joining Date'
+                  name='joiningDate'
+                  type='date'
+                  value={formData.joiningDate}
+                  onChange={handleInputChange}
+                  required
+                  error={errors.joiningDate}
+                  icon={<Calendar className='h-4 w-4' />}
                 />
                 <LabeledInput
                   label='Experience (Years)'
@@ -665,138 +927,87 @@ export default function AddStaffFormModal({
                   placeholder='Enter years of experience'
                   min='0'
                 />
-                <LabeledInput
-                  label='Employment Date'
-                  name='employmentDate'
-                  type='date'
-                  value={formData.employmentDate}
-                  onChange={handleInputChange}
-                  required
-                  error={errors.employmentDate}
-                />
               </div>
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
                 <LabeledInput
-                  label='Salary'
-                  name='salary'
-                  type='number'
-                  value={formData.salary || ''}
+                  label='Qualification'
+                  name='qualification'
+                  value={formData.qualification}
                   onChange={handleInputChange}
-                  placeholder='Enter salary amount'
+                  placeholder='Enter qualification'
+                  required
+                  error={errors.qualification}
+                  icon={<GraduationCap className='h-4 w-4' />}
+                />
+                <LabeledInput
+                  label='Designation'
+                  name='designation'
+                  value={formData.designation || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter designation'
+                />
+              </div>
+
+              <div className='grid grid-cols-1 md:grid-cols-1 gap-4 mt-4'>
+                <LabeledSelect
+                  label='Department'
+                  name='department'
+                  value={formData.department || ''}
+                  onChange={handleInputChange}
+                  options={departmentOptions}
+                  placeholder='Select department'
+                />
+              </div>
+            </FormSection>
+
+            {/* Salary Information */}
+            <FormSection title='Salary Information' icon={DollarSign}>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <LabeledInput
+                  label='Basic Salary'
+                  name='basicSalary'
+                  type='number'
+                  value={formData.basicSalary || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter basic salary'
                   min='0'
                 />
-              </div>
-
-              <div className='mt-4'>
-                <LabeledTextarea
-                  label='Bio'
-                  name='bio'
-                  value={formData.bio || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter a brief bio'
-                  rows={3}
-                />
-              </div>
-            </FormSection>
-
-            {/* Emergency Contact */}
-            <FormSection title='Emergency Contact' icon={Phone}>
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                 <LabeledInput
-                  label='Contact Name'
-                  name='emergencyContact.name'
-                  value={formData.emergencyContact?.name || ''}
+                  label='Allowances'
+                  name='allowances'
+                  type='number'
+                  value={formData.allowances || ''}
                   onChange={handleInputChange}
-                  placeholder='Enter contact name'
+                  placeholder='Enter allowances'
+                  min='0'
                 />
-                <LabeledInput
-                  label='Contact Phone'
-                  name='emergencyContact.phone'
-                  value={formData.emergencyContact?.phone || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter contact phone'
-                />
-                <LabeledInput
-                  label='Relationship'
-                  name='emergencyContact.relationship'
-                  value={formData.emergencyContact?.relationship || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter relationship'
-                />
-              </div>
-            </FormSection>
-
-            {/* Address Information */}
-            <FormSection title='Address Information' icon={Mail}>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <LabeledInput
-                  label='Street'
-                  name='address.street'
-                  value={formData.address?.street || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter street address'
-                />
-                <LabeledInput
-                  label='City'
-                  name='address.city'
-                  value={formData.address?.city || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter city'
-                />
-              </div>
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-4'>
-                <LabeledInput
-                  label='State'
-                  name='address.state'
-                  value={formData.address?.state || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter state'
-                />
-                <LabeledInput
-                  label='ZIP Code'
-                  name='address.zipCode'
-                  value={formData.address?.zipCode || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter ZIP code'
-                />
-                <LabeledInput
-                  label='Country'
-                  name='address.country'
-                  value={formData.address?.country || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter country'
-                />
-              </div>
-            </FormSection>
-
-            {/* Social Links */}
-            <FormSection title='Social Links' icon={Plus}>
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                <LabeledInput
-                  label='LinkedIn'
-                  name='socialLinks.linkedin'
-                  value={formData.socialLinks?.linkedin || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter LinkedIn URL'
-                  error={errors['socialLinks.linkedin']}
-                />
-                <LabeledInput
-                  label='Twitter'
-                  name='socialLinks.twitter'
-                  value={formData.socialLinks?.twitter || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter Twitter URL'
-                  error={errors['socialLinks.twitter']}
-                />
-                <LabeledInput
-                  label='Website'
-                  name='socialLinks.website'
-                  value={formData.socialLinks?.website || ''}
-                  onChange={handleInputChange}
-                  placeholder='Enter website URL'
-                  error={errors['socialLinks.website']}
-                />
+                <div className='relative'>
+                  <LabeledInput
+                    label='Total Salary'
+                    name='totalSalary'
+                    type='number'
+                    value={formData.totalSalary || ''}
+                    onChange={handleInputChange}
+                    placeholder='Auto-calculated'
+                    min='0'
+                    disabled
+                  />
+                  <div className='flex items-center justify-between mt-1'>
+                    <span className='text-xs text-blue-600 flex items-center'>
+                      🧮 Auto-calculated:{' '}
+                      <strong className='ml-1'>
+                        ₹{calculatedSalary.toLocaleString()}
+                      </strong>
+                    </span>
+                    {(formData.basicSalary || formData.allowances) && (
+                      <span className='text-xs text-gray-500'>
+                        ({(formData.basicSalary || 0).toLocaleString()} +{' '}
+                        {(formData.allowances || 0).toLocaleString()})
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </FormSection>
 
@@ -805,15 +1016,15 @@ export default function AddStaffFormModal({
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <LabeledInput
                   label='Bank Name'
-                  name='bankDetails.bankName'
-                  value={formData.bankDetails?.bankName || ''}
+                  name='bankName'
+                  value={formData.bankName || ''}
                   onChange={handleInputChange}
                   placeholder='Enter bank name'
                 />
                 <LabeledInput
                   label='Account Number'
-                  name='bankDetails.bankAccountNumber'
-                  value={formData.bankDetails?.bankAccountNumber || ''}
+                  name='bankAccountNumber'
+                  value={formData.bankAccountNumber || ''}
                   onChange={handleInputChange}
                   placeholder='Enter account number'
                 />
@@ -822,22 +1033,22 @@ export default function AddStaffFormModal({
               <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-4'>
                 <LabeledInput
                   label='Branch'
-                  name='bankDetails.bankBranch'
-                  value={formData.bankDetails?.bankBranch || ''}
+                  name='bankBranch'
+                  value={formData.bankBranch || ''}
                   onChange={handleInputChange}
                   placeholder='Enter branch'
                 />
                 <LabeledInput
                   label='PAN Number'
-                  name='bankDetails.panNumber'
-                  value={formData.bankDetails?.panNumber || ''}
+                  name='panNumber'
+                  value={formData.panNumber || ''}
                   onChange={handleInputChange}
                   placeholder='Enter PAN number'
                 />
                 <LabeledInput
                   label='Citizenship Number'
-                  name='bankDetails.citizenshipNumber'
-                  value={formData.bankDetails?.citizenshipNumber || ''}
+                  name='citizenshipNumber'
+                  value={formData.citizenshipNumber || ''}
                   onChange={handleInputChange}
                   placeholder='Enter citizenship number'
                 />
@@ -857,7 +1068,7 @@ export default function AddStaffFormModal({
               <button
                 type='submit'
                 disabled={loading}
-                className='px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center'
+                className='px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center'
               >
                 {loading ? (
                   <>

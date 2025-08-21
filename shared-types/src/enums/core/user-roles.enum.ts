@@ -13,25 +13,25 @@
  */
 export enum UserRole {
   /** System super administrator with full access */
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  
+  SUPER_ADMIN = "SUPER_ADMIN",
+
   /** School administrator with management access */
-  ADMIN = 'ADMIN',
-  
+  ADMIN = "ADMIN",
+
   /** School accountant with financial access */
-  ACCOUNTANT = 'ACCOUNTANT',
-  
+  ACCOUNTANT = "ACCOUNTANT",
+
   /** Teacher with class and subject management access */
-  TEACHER = 'TEACHER',
-  
+  TEACHER = "TEACHER",
+
   /** Student with limited access to their own data */
-  STUDENT = 'STUDENT',
-  
+  STUDENT = "STUDENT",
+
   /** Parent with access to their children's data */
-  PARENT = 'PARENT',
-  
+  PARENT = "PARENT",
+
   /** Staff member with limited administrative access */
-  STAFF = 'STAFF',
+  STAFF = "STAFF",
 }
 
 /**
@@ -63,7 +63,10 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
  * @param requiredRole - The required role level
  * @returns True if user has sufficient permissions
  */
-export function hasRolePermission(userRole: UserRole, requiredRole: UserRole): boolean {
+export function hasRolePermission(
+  userRole: UserRole,
+  requiredRole: UserRole,
+): boolean {
   return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole];
 }
 
@@ -74,7 +77,7 @@ export function hasRolePermission(userRole: UserRole, requiredRole: UserRole): b
  */
 export function getLowerRoles(role: UserRole): UserRole[] {
   const roleLevel = ROLE_HIERARCHY[role];
-  return USER_ROLES.filter(r => ROLE_HIERARCHY[r] < roleLevel);
+  return USER_ROLES.filter((r) => ROLE_HIERARCHY[r] < roleLevel);
 }
 
 /**
@@ -84,5 +87,5 @@ export function getLowerRoles(role: UserRole): UserRole[] {
  */
 export function getHigherRoles(role: UserRole): UserRole[] {
   const roleLevel = ROLE_HIERARCHY[role];
-  return USER_ROLES.filter(r => ROLE_HIERARCHY[r] > roleLevel);
+  return USER_ROLES.filter((r) => ROLE_HIERARCHY[r] > roleLevel);
 }

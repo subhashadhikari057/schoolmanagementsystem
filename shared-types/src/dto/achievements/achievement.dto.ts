@@ -1,4 +1,4 @@
-import { AchievementType } from '../../enums/achievements/achievement-type.enum';
+import { AchievementType } from "../../enums/achievements/achievement-type.enum";
 
 export interface AchievementDto {
   id: string;

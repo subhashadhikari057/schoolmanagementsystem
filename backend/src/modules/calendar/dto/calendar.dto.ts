@@ -24,4 +24,4 @@ export {
   CalendarImportSchema,
 } from '@sms/shared-types';
 
-export { CalendarEntryType, HolidayType } from '@sms/shared-types';
+export { CalendarEntryType, HolidayType, ExamType } from '@sms/shared-types';

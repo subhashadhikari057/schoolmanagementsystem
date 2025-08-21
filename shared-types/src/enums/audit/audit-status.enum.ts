@@ -4,30 +4,30 @@
  */
 export enum AuditStatus {
   // Successful operations
-  SUCCESS = 'SUCCESS',
-  COMPLETED = 'COMPLETED',
-  
+  SUCCESS = "SUCCESS",
+  COMPLETED = "COMPLETED",
+
   // Failed operations
-  FAILURE = 'FAILURE',
-  ERROR = 'ERROR',
-  
+  FAILURE = "FAILURE",
+  ERROR = "ERROR",
+
   // Security-related statuses
-  BLOCKED = 'BLOCKED',
-  DENIED = 'DENIED',
-  UNAUTHORIZED = 'UNAUTHORIZED',
-  
+  BLOCKED = "BLOCKED",
+  DENIED = "DENIED",
+  UNAUTHORIZED = "UNAUTHORIZED",
+
   // Process statuses
-  PENDING = 'PENDING',
-  IN_PROGRESS = 'IN_PROGRESS',
-  CANCELLED = 'CANCELLED',
-  
+  PENDING = "PENDING",
+  IN_PROGRESS = "IN_PROGRESS",
+  CANCELLED = "CANCELLED",
+
   // Alert statuses
-  WARNING = 'WARNING',
-  CRITICAL = 'CRITICAL',
-  SUSPICIOUS = 'SUSPICIOUS',
-  
+  WARNING = "WARNING",
+  CRITICAL = "CRITICAL",
+  SUSPICIOUS = "SUSPICIOUS",
+
   // System statuses
-  TIMEOUT = 'TIMEOUT',
-  RETRY = 'RETRY',
-  SKIPPED = 'SKIPPED',
+  TIMEOUT = "TIMEOUT",
+  RETRY = "RETRY",
+  SKIPPED = "SKIPPED",
 }

@@ -6,7 +6,7 @@
  * =============================================================================
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Pagination request parameters
@@ -14,15 +14,15 @@ import { z } from 'zod';
 export interface PaginationRequestDto {
   /** Page number (1-based) */
   page?: number;
-  
+
   /** Number of items per page */
   limit?: number;
-  
+
   /** Sort field */
   sortBy?: string;
-  
+
   /** Sort direction */
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 /**
@@ -31,19 +31,19 @@ export interface PaginationRequestDto {
 export interface PaginationMetaDto {
   /** Current page number */
   page: number;
-  
+
   /** Items per page */
   limit: number;
-  
+
   /** Total number of items */
   total: number;
-  
+
   /** Total number of pages */
   totalPages: number;
-  
+
   /** Whether there is a next page */
   hasNext: boolean;
-  
+
   /** Whether there is a previous page */
   hasPrev: boolean;
 }
@@ -54,7 +54,7 @@ export interface PaginationMetaDto {
 export interface PaginatedResponseDto<T> {
   /** Array of items */
   data: T[];
-  
+
   /** Pagination metadata */
   meta: PaginationMetaDto;
 }
@@ -66,7 +66,7 @@ export const PaginationRequestSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
   sortBy: z.string().optional(),
-  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+  sortOrder: z.enum(["asc", "desc"]).default("asc"),
 });
 
 /**

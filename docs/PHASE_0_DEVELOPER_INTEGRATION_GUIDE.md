@@ -3,7 +3,9 @@
 ## 🎯 Quick Start for New Developers
 
 ### **What Phase 0 Provides**
+
 Phase 0 creates a **production-ready foundation** with:
+
 - ✅ **Centralized Type System**: Shared DTOs, enums, and validation schemas
 - ✅ **Authentication & Authorization**: JWT + Role-based access control
 - ✅ **Database Foundation**: Prisma ORM with seeded data
@@ -19,17 +21,13 @@ Phase 0 creates a **production-ready foundation** with:
 
 ```typescript
 // ✅ Import types from centralized package
-import { 
-  LoginRequestDto, 
-  CreateStudentDto, 
-  UserRole 
-} from '@sms/shared-types';
+import { LoginRequestDto, CreateStudentDto, UserRole } from "@sms/shared-types";
 
 // ✅ Import validation schemas
-import { 
+import {
   LoginRequestSchema,
-  CreateStudentSchema 
-} from '@sms/shared-types/schemas';
+  CreateStudentSchema,
+} from "@sms/shared-types/schemas";
 
 // ✅ Validate data consistently
 const validateLogin = (data: unknown) => {
@@ -41,15 +39,14 @@ const validateLogin = (data: unknown) => {
 
 ```typescript
 // ✅ Controller with automatic validation & auth
-@Controller('students')
+@Controller("students")
 @UseGuards(JwtAuthGuard) // Automatic JWT validation
 export class StudentController {
-  
   @Post()
   @Roles(UserRole.ADMIN, UserRole.TEACHER) // Role-based access
   async createStudent(
     @Body() data: CreateStudentDto, // Auto-validated by global pipe
-    @User() user: AuthenticatedUser  // Auto-injected authenticated user
+    @User() user: AuthenticatedUser, // Auto-injected authenticated user
   ) {
     // ✅ Business logic with automatic error handling
     return this.studentService.create(data, user);
@@ -61,13 +58,13 @@ export class StudentController {
 export class StudentService {
   constructor(
     private prisma: PrismaService,
-    private auditService: AuditService // Auto-injected audit logging
+    private auditService: AuditService, // Auto-injected audit logging
   ) {}
-  
+
   async create(data: CreateStudentDto, user: AuthenticatedUser) {
     // ✅ Database operations automatically audited
     const student = await this.prisma.student.create({ data });
-    
+
     // ✅ Automatic audit trail created by middleware
     return student;
   }
@@ -80,12 +77,12 @@ export class StudentService {
 // ✅ Use centralized auth context
 const StudentForm = () => {
   const { user, hasRole } = useAuth();
-  
+
   // ✅ Type-safe form with validation
   const form = useForm<CreateStudentDto>({
     resolver: zodResolver(CreateStudentSchema)
   });
-  
+
   const handleSubmit = async (data: CreateStudentDto) => {
     try {
       // ✅ API client with automatic error handling
@@ -97,12 +94,12 @@ const StudentForm = () => {
       toast.error(apiError.message);
     }
   };
-  
+
   // ✅ Role-based UI rendering
   if (!hasRole(UserRole.ADMIN, UserRole.TEACHER)) {
     return <AccessDenied />;
   }
-  
+
   return <form onSubmit={form.handleSubmit(handleSubmit)}>...</form>;
 };
 ```
@@ -111,9 +108,9 @@ const StudentForm = () => {
 
 ```typescript
 // ✅ Backend: Throw standardized exceptions
-throw new ValidationException('Invalid email format');
-throw new AuthorizationException('Insufficient permissions');
-throw new BusinessLogicException('Student already exists');
+throw new ValidationException("Invalid email format");
+throw new AuthorizationException("Insufficient permissions");
+throw new BusinessLogicException("Student already exists");
 
 // ✅ Frontend: Handle standardized error responses
 interface ApiError {
@@ -126,10 +123,10 @@ interface ApiError {
 // ✅ Global error handling
 const handleApiError = (error: ApiError) => {
   switch (error.code) {
-    case 'VALIDATION_ERROR':
+    case "VALIDATION_ERROR":
       showValidationErrors(error.details);
       break;
-    case 'AUTHORIZATION_ERROR':
+    case "AUTHORIZATION_ERROR":
       redirectToLogin();
       break;
     default:
@@ -148,14 +145,14 @@ const handleApiError = (error: ApiError) => {
 // ✅ All database operations automatically audited
 const student = await prisma.student.create({
   data: {
-    name: 'John Doe',
-    email: 'john@example.com'
-  }
+    name: "John Doe",
+    email: "john@example.com",
+  },
 });
 
 // ✅ Audit log automatically created:
 // - Action: CREATE
-// - Module: STUDENT  
+// - Module: STUDENT
 // - User: Current authenticated user
 // - Timestamp: Automatic
 // - Trace ID: Request trace ID
@@ -194,7 +191,7 @@ POST /api/auth/login
 // ✅ Response with standardized format
 {
   "access_token": "jwt-token-here",
-  "refresh_token": "refresh-token-here", 
+  "refresh_token": "refresh-token-here",
   "expires_in": 3600,
   "user": {
     "id": "uuid",
@@ -220,10 +217,10 @@ async getUsers() {
 // ✅ Frontend route protection
 const ProtectedRoute = ({ children, requiredRoles }) => {
   const { user, hasRole } = useAuth();
-  
+
   if (!user) return <LoginRedirect />;
   if (!hasRole(...requiredRoles)) return <AccessDenied />;
-  
+
   return children;
 };
 ```
@@ -241,13 +238,13 @@ describe('Student API', () => {
     // ✅ Test database automatically seeded
     await testDb.seed();
   });
-  
+
   it('should create student with proper audit', async () => {
     const response = await request(app)
       .post('/students')
       .set('Authorization', `Bearer ${adminToken}`)
       .send(validStudentData);
-      
+
     expect(response.status).toBe(201);
     // ✅ Audit log automatically verified
   });
@@ -256,7 +253,7 @@ describe('Student API', () => {
 // ✅ Frontend component tests
 test('StudentForm validates input correctly', () => {
   render(<StudentForm />);
-  
+
   // ✅ Validation schemas automatically tested
   fireEvent.submit(screen.getByRole('button'));
   expect(screen.getByText(/email is required/i)).toBeInTheDocument();
@@ -290,6 +287,7 @@ test('StudentForm validates input correctly', () => {
 ### **Adding New Features**
 
 1. **Define Types**
+
    ```bash
    # Add DTOs to shared-types
    cd shared-types/src/dto/
@@ -297,6 +295,7 @@ test('StudentForm validates input correctly', () => {
    ```
 
 2. **Create Schemas**
+
    ```bash
    # Add validation schemas
    cd shared-types/src/schemas/
@@ -304,6 +303,7 @@ test('StudentForm validates input correctly', () => {
    ```
 
 3. **Backend Implementation**
+
    ```bash
    # Create module structure
    cd backend/src/modules/
@@ -312,6 +312,7 @@ test('StudentForm validates input correctly', () => {
    ```
 
 4. **Frontend Integration**
+
    ```bash
    # Use shared types and schemas
    import { YourFeatureDto } from '@sms/shared-types';
@@ -322,7 +323,7 @@ test('StudentForm validates input correctly', () => {
    ```bash
    # Tests automatically use shared infrastructure
    npm test # Backend
-   npm test # Frontend  
+   npm test # Frontend
    npm test # Shared-types
    ```
 
@@ -380,10 +381,11 @@ const user = req.body; // Use schema validation
 await prisma.user.create(); // Use service layer
 
 // ❌ Don't handle auth manually
-if (req.headers.authorization) {} // Use @UseGuards()
+if (req.headers.authorization) {
+} // Use @UseGuards()
 
 // ❌ Don't create custom error formats
-res.status(400).json({ error: 'Bad' }); // Use exceptions
+res.status(400).json({ error: "Bad" }); // Use exceptions
 ```
 
 ---

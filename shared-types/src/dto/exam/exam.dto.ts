@@ -1,4 +1,4 @@
-import { ExamStatus } from '../../enums/exam/exam-status.enum';
+import { ExamStatus } from "../../enums/exam/exam-status.enum";
 
 export interface ExamDto {
   id: string;

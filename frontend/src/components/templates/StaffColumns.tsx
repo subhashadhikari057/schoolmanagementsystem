@@ -1,144 +1,117 @@
-/**
- * =============================================================================
- * Staff Table Columns Configuration
- * =============================================================================
- * Column definitions for staff data tables with actions
- * =============================================================================
- */
-
 import React from 'react';
-import { TableColumn } from '@/components/templates/GenericTable';
-import { UserInfoCell } from '@/components/molecules/display/UserInfoCell';
-import { RoleDepartmentCell } from '@/components/molecules/display/RoleDepartmentCell';
-import { ExperienceSalaryCell } from '@/components/molecules/display/ExperienceSalaryCell';
-import { StatusActivityCell } from '@/components/molecules/display/StatusActivityCell';
-import { ActionsCell } from '@/components/molecules/display/ActionsCell';
+import { TableColumn } from './GenericList';
+import { Staff } from './listConfigurations';
+import UserInfoCell from '@/components/molecules/display/UserInfoCell';
+import RoleDepartmentCell from '@/components/molecules/display/RoleDepartmentCell';
+import ContactCell from '@/components/molecules/display/ContactCell';
+import QualificationCell from '@/components/molecules/display/QualificationCell';
+import ExperienceSalaryCell from '@/components/molecules/display/ExperienceSalaryCell';
+import StatusActivityCell from '@/components/molecules/display/StatusActivityCell';
+import ActionsCell from '@/components/molecules/display/ActionsCell';
 
-export interface StaffMember {
-  id: string;
-  [key: string]: any; // Index signature for BaseItem compatibility
-  email: string;
-  fullName: string;
-  phone: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  designation?: string;
-  department?: string;
-  basicSalary: number;
-  allowances: number;
-  totalSalary: number;
-  employmentDate?: string;
-  experienceYears?: number;
-  employmentStatus?: string;
+// Action handler type
+type ActionHandler = (action: string, staff: Staff) => void;
 
-  // Bank account details
-  bankName?: string;
-  bankAccountNumber?: string;
-  bankBranch?: string;
-  panNumber?: string;
-  citizenshipNumber?: string;
-
-  createdAt: string;
-  updatedAt?: string;
-  deletedAt?: string;
-  createdById: string;
-  updatedById?: string;
-  deletedById?: string;
-  profile?: {
-    bio?: string;
-    profilePhotoUrl?: string;
-    contactInfo?: any;
-    additionalData?: any;
-  };
-}
-
-interface StaffColumnsProps {
-  onView: (staff: StaffMember) => void;
-  onEdit: (staff: StaffMember) => void;
-  onDelete: (staff: StaffMember) => void;
-}
-
-export const getStaffColumns = ({
-  onView,
-  onEdit,
-  onDelete,
-}: StaffColumnsProps): TableColumn<StaffMember>[] => [
+/**
+ * Get staff columns for the table
+ * @param onAction Callback for action buttons
+ * @returns Array of table columns
+ */
+export const getStaffColumns = (
+  onAction?: (action: string, staff: Staff) => void,
+): TableColumn<Staff>[] => [
   {
-    key: 'user',
-    header: 'Staff Member',
-    render: (record: StaffMember) => (
+    key: 'name',
+    header: 'Staff Details',
+    mobileLabel: 'Staff',
+    render: (item: Staff) => (
       <UserInfoCell
-        name={record.fullName}
-        id={record.id}
-        avatar={record.profile?.profilePhotoUrl}
-        idLabel='STF'
+        name={item.name}
+        id={(item.employeeId as string) || 'N/A'}
+        avatar={item.avatar}
+        idLabel='ID:'
       />
     ),
-    className: 'w-1/4',
   },
   {
-    key: 'email',
-    header: 'Contact Info',
-    render: (record: StaffMember) => (
-      <div className='space-y-1'>
-        <div className='text-sm font-medium text-gray-900'>{record.email}</div>
-        {record.phone && (
-          <div className='text-xs text-gray-500'>{record.phone}</div>
-        )}
-      </div>
-    ),
-    className: 'w-1/6',
-  },
-  {
-    key: 'role',
-    header: 'Role & Department',
-    render: (record: StaffMember) => (
+    key: 'designation',
+    header: 'Designation & Department',
+    mobileLabel: 'Designation',
+    render: (item: Staff) => (
       <RoleDepartmentCell
-        position={record.designation || 'Staff Member'}
-        department={record.department || 'General'}
+        position={(item.designation as string) || 'Staff'}
+        department={(item.department as string) || 'General'}
       />
     ),
-    className: 'w-1/5',
+  },
+  {
+    key: 'contact',
+    header: 'Contact Information',
+    mobileLabel: 'Contact',
+    render: (item: Staff) => (
+      <ContactCell
+        email={(item.contactInfo as any)?.email || (item as any).email}
+        phone={(item.contactInfo as any)?.phone || (item as any).phone}
+        address={(item.contactInfo as any)?.address || (item as any).address}
+      />
+    ),
+  },
+  {
+    key: 'qualification',
+    header: 'Qualification & Experience',
+    mobileLabel: 'Qualification',
+    render: (item: Staff) => (
+      <QualificationCell
+        qualification={item.qualification as string}
+        specialization={undefined}
+        experienceYears={item.experienceYears as number}
+      />
+    ),
   },
   {
     key: 'experience',
     header: 'Experience & Salary',
-    render: (record: StaffMember) => (
+    mobileLabel: 'Experience',
+    render: (item: Staff) => (
       <ExperienceSalaryCell
-        experience={`${record.experienceYears || 0} years`}
-        salary={record.basicSalary}
-        joinedDate={record.employmentDate}
+        experience={
+          item.experienceYears ? `${item.experienceYears} years` : 'N/A'
+        }
+        joinedDate={item.joinedDate as string}
+        salary={item.totalSalary as number}
       />
     ),
-    className: 'w-1/5',
   },
   {
     key: 'status',
-    header: 'Status & Activity',
-    render: (record: StaffMember) => (
+    header: 'Status',
+    mobileLabel: 'Status',
+    render: (item: Staff) => (
       <StatusActivityCell
-        status={record.employmentStatus || 'active'}
-        lastActivity={record.employmentDate}
+        status={item.status}
+        isOnline={item.isActive as boolean}
+        lastActivity={item.lastLoginAt as string}
       />
     ),
-    className: 'w-1/6',
   },
   {
     key: 'actions',
     header: 'Actions',
-    render: (record: StaffMember) => (
+    mobileLabel: 'Actions',
+    render: (item: Staff) => (
       <ActionsCell
-        onView={() => onView(record)}
-        onEdit={() => onEdit(record)}
-        onDelete={() => onDelete(record)}
         entityType='staff'
-        status={record.employmentStatus === 'active' ? 'Active' : 'Inactive'}
-        viewLabel='View Staff'
-        editLabel='Edit Staff'
-        deleteLabel='Delete Staff'
+        status={item.status}
+        onAction={(action: string) => {
+          if (onAction) {
+            onAction(action, item);
+          } else {
+            console.log('Action:', action, 'for staff:', item.id);
+          }
+        }}
       />
     ),
-    className: 'w-1/5 text-center',
   },
 ];
+
+export default getStaffColumns;

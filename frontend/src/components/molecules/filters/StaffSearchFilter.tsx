@@ -1,224 +1,147 @@
-/**
- * =============================================================================
- * Staff Search Filter Component
- * =============================================================================
- * Advanced search and filtering for staff members
- * =============================================================================
- */
+'use client';
 
-import React, { useState, useCallback } from 'react';
-import { Search, Filter, X, ChevronDown } from 'lucide-react';
-import { debounce } from 'lodash';
+import React, { useState, useEffect } from 'react';
+import { Search, X, Filter } from 'lucide-react';
 
 export interface StaffFilters {
   search: string;
-  department: string;
-  employmentStatus: string;
   designation: string;
-  experienceRange: string;
-  salaryRange: string;
+  department: string;
 }
 
 interface StaffSearchFilterProps {
-  filters: StaffFilters;
-  onFiltersChange: (filters: StaffFilters) => void;
-  onClearFilters: () => void;
-  isLoading?: boolean;
+  onFilterChange: (filters: StaffFilters) => void;
+  designations: { value: string; label: string }[];
+  departments: { value: string; label: string }[];
+  initialFilters?: StaffFilters;
+  className?: string;
 }
 
-const DEPARTMENT_OPTIONS = [
-  { value: '', label: 'All Departments' },
-  { value: 'administration', label: 'Administration' },
-  { value: 'finance', label: 'Finance' },
-  { value: 'hr', label: 'Human Resources' },
-  { value: 'maintenance', label: 'Maintenance' },
-  { value: 'security', label: 'Security' },
-  { value: 'library', label: 'Library' },
-  { value: 'canteen', label: 'Canteen' },
-  { value: 'transport', label: 'Transport' },
-  { value: 'it_support', label: 'IT Support' },
-  { value: 'academic_support', label: 'Academic Support' },
-];
-
-const EMPLOYMENT_STATUS_OPTIONS = [
-  { value: '', label: 'All Status' },
-  { value: 'active', label: 'Active' },
-  { value: 'on_leave', label: 'On Leave' },
-  { value: 'resigned', label: 'Resigned' },
-  { value: 'terminated', label: 'Terminated' },
-];
-
-const DESIGNATION_OPTIONS = [
-  { value: '', label: 'All Designations' },
-  { value: 'Administrative Officer', label: 'Administrative Officer' },
-  { value: 'Finance Manager', label: 'Finance Manager' },
-  { value: 'HR Manager', label: 'HR Manager' },
-  { value: 'Accountant', label: 'Accountant' },
-  { value: 'Librarian', label: 'Librarian' },
-  { value: 'Lab Assistant', label: 'Lab Assistant' },
-  { value: 'Security Guard', label: 'Security Guard' },
-  { value: 'Maintenance Staff', label: 'Maintenance Staff' },
-  { value: 'Canteen Manager', label: 'Canteen Manager' },
-  { value: 'Transport Coordinator', label: 'Transport Coordinator' },
-  { value: 'IT Support', label: 'IT Support' },
-  { value: 'Academic Coordinator', label: 'Academic Coordinator' },
-];
-
-const EXPERIENCE_RANGES = [
-  { value: '', label: 'Any Experience' },
-  { value: '0-2', label: '0-2 years' },
-  { value: '3-5', label: '3-5 years' },
-  { value: '6-10', label: '6-10 years' },
-  { value: '11-15', label: '11-15 years' },
-  { value: '16+', label: '16+ years' },
-];
-
-const SALARY_RANGES = [
-  { value: '', label: 'Any Salary' },
-  { value: '0-30000', label: '$0 - $30,000' },
-  { value: '30001-50000', label: '$30,001 - $50,000' },
-  { value: '50001-70000', label: '$50,001 - $70,000' },
-  { value: '70001-100000', label: '$70,001 - $100,000' },
-  { value: '100001+', label: '$100,001+' },
-];
-
 const StaffSearchFilter: React.FC<StaffSearchFilterProps> = ({
-  filters,
-  onFiltersChange,
-  onClearFilters,
-  isLoading = false,
+  onFilterChange,
+  designations,
+  departments,
+  initialFilters = { search: '', designation: '', department: '' },
+  className = '',
 }) => {
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [filters, setFilters] = useState<StaffFilters>(initialFilters);
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Debounced search handler
-  const debouncedSearch = useCallback(
-    debounce((searchTerm: string) => {
-      onFiltersChange({ ...filters, search: searchTerm });
-    }, 300),
-    [filters, onFiltersChange],
-  );
+  // Update local state when initialFilters change
+  useEffect(() => {
+    setFilters(initialFilters);
+  }, [initialFilters]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    debouncedSearch(value);
+  // Handle input changes
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFilterChange = (key: keyof StaffFilters, value: string) => {
-    onFiltersChange({ ...filters, [key]: value });
+  // Handle search submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onFilterChange(filters);
   };
 
-  const hasActiveFilters = Object.entries(filters).some(
-    ([key, value]) => key !== 'search' && value !== '',
-  );
+  // Clear all filters
+  const handleClearFilters = () => {
+    const clearedFilters = {
+      search: '',
+      designation: '',
+      department: '',
+    };
+    setFilters(clearedFilters);
+    onFilterChange(clearedFilters);
+  };
 
-  const hasAnyFilters = Object.values(filters).some(value => value !== '');
+  // Toggle filter visibility
+  const toggleFilters = () => {
+    setShowFilters(prev => !prev);
+  };
 
   return (
-    <div className='bg-white rounded-lg border border-gray-200 p-4 space-y-4'>
-      {/* Search Bar */}
-      <div className='flex flex-col sm:flex-row gap-3'>
-        <div className='flex-1 relative'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+    <div className={`bg-white p-4 rounded-lg shadow ${className}`}>
+      <form onSubmit={handleSubmit} className='space-y-4'>
+        {/* Search Bar */}
+        <div className='relative'>
+          <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+            <Search className='h-5 w-5 text-gray-400' />
+          </div>
           <input
             type='text'
-            placeholder='Search staff by name, email, or designation...'
-            defaultValue={filters.search}
-            onChange={handleSearchChange}
-            disabled={isLoading}
-            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+            name='search'
+            value={filters.search}
+            onChange={handleInputChange}
+            placeholder='Search by name, email, employee ID...'
+            className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
           />
-        </div>
-
-        <div className='flex gap-2'>
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`inline-flex items-center px-4 py-2 border rounded-md font-medium text-sm transition-colors duration-200 ${
-              showAdvanced || hasActiveFilters
-                ? 'border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100'
-                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-            disabled={isLoading}
-          >
-            <Filter className='h-4 w-4 mr-2' />
-            Filters
-            <ChevronDown
-              className={`h-4 w-4 ml-1 transition-transform duration-200 ${
-                showAdvanced ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-
-          {hasAnyFilters && (
+          {filters.search && (
             <button
-              onClick={onClearFilters}
-              className='inline-flex items-center px-4 py-2 border border-gray-300 rounded-md font-medium text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
-              disabled={isLoading}
+              type='button'
+              onClick={() => {
+                setFilters(prev => ({ ...prev, search: '' }));
+                onFilterChange({ ...filters, search: '' });
+              }}
+              className='absolute inset-y-0 right-0 pr-3 flex items-center'
             >
-              <X className='h-4 w-4 mr-2' />
-              Clear
+              <X className='h-4 w-4 text-gray-400 hover:text-gray-600' />
             </button>
           )}
         </div>
-      </div>
 
-      {/* Advanced Filters */}
-      {showAdvanced && (
-        <div className='border-t border-gray-200 pt-4 space-y-4'>
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-            {/* Department Filter */}
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                Department
-              </label>
-              <select
-                value={filters.department}
-                onChange={e => handleFilterChange('department', e.target.value)}
-                disabled={isLoading}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+        {/* Filter Toggle Button */}
+        <div className='flex justify-between items-center'>
+          <button
+            type='button'
+            onClick={toggleFilters}
+            className='flex items-center text-sm text-gray-600 hover:text-gray-900'
+          >
+            <Filter className='h-4 w-4 mr-1' />
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
+
+          <div className='flex space-x-2'>
+            {(filters.search || filters.designation || filters.department) && (
+              <button
+                type='button'
+                onClick={handleClearFilters}
+                className='px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50'
               >
-                {DEPARTMENT_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+                Clear Filters
+              </button>
+            )}
+            <button
+              type='submit'
+              className='px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700'
+            >
+              Search
+            </button>
+          </div>
+        </div>
 
-            {/* Employment Status Filter */}
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                Employment Status
-              </label>
-              <select
-                value={filters.employmentStatus}
-                onChange={e =>
-                  handleFilterChange('employmentStatus', e.target.value)
-                }
-                disabled={isLoading}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                {EMPLOYMENT_STATUS_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
+        {/* Advanced Filters */}
+        {showFilters && (
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 mt-4'>
             {/* Designation Filter */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label
+                htmlFor='designation'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
                 Designation
               </label>
               <select
+                id='designation'
+                name='designation'
                 value={filters.designation}
-                onChange={e =>
-                  handleFilterChange('designation', e.target.value)
-                }
-                disabled={isLoading}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                onChange={handleInputChange}
+                className='block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md'
               >
-                {DESIGNATION_OPTIONS.map(option => (
+                <option value=''>All Designations</option>
+                {designations.map(option => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -226,41 +149,23 @@ const StaffSearchFilter: React.FC<StaffSearchFilterProps> = ({
               </select>
             </div>
 
-            {/* Experience Range Filter */}
+            {/* Department Filter */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                Experience
+              <label
+                htmlFor='department'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Department
               </label>
               <select
-                value={filters.experienceRange}
-                onChange={e =>
-                  handleFilterChange('experienceRange', e.target.value)
-                }
-                disabled={isLoading}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                id='department'
+                name='department'
+                value={filters.department}
+                onChange={handleInputChange}
+                className='block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md'
               >
-                {EXPERIENCE_RANGES.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Salary Range Filter */}
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                Salary Range
-              </label>
-              <select
-                value={filters.salaryRange}
-                onChange={e =>
-                  handleFilterChange('salaryRange', e.target.value)
-                }
-                disabled={isLoading}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                {SALARY_RANGES.map(option => (
+                <option value=''>All Departments</option>
+                {departments.map(option => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -268,70 +173,8 @@ const StaffSearchFilter: React.FC<StaffSearchFilterProps> = ({
               </select>
             </div>
           </div>
-
-          {/* Filter Summary */}
-          {hasActiveFilters && (
-            <div className='flex flex-wrap gap-2 pt-2 border-t border-gray-100'>
-              <span className='text-xs font-medium text-gray-500'>
-                Active filters:
-              </span>
-              {Object.entries(filters).map(([key, value]) => {
-                if (key === 'search' || !value) return null;
-
-                const getFilterLabel = () => {
-                  switch (key) {
-                    case 'department':
-                      return (
-                        DEPARTMENT_OPTIONS.find(opt => opt.value === value)
-                          ?.label || value
-                      );
-                    case 'employmentStatus':
-                      return (
-                        EMPLOYMENT_STATUS_OPTIONS.find(
-                          opt => opt.value === value,
-                        )?.label || value
-                      );
-                    case 'designation':
-                      return (
-                        DESIGNATION_OPTIONS.find(opt => opt.value === value)
-                          ?.label || value
-                      );
-                    case 'experienceRange':
-                      return (
-                        EXPERIENCE_RANGES.find(opt => opt.value === value)
-                          ?.label || value
-                      );
-                    case 'salaryRange':
-                      return (
-                        SALARY_RANGES.find(opt => opt.value === value)?.label ||
-                        value
-                      );
-                    default:
-                      return value;
-                  }
-                };
-
-                return (
-                  <span
-                    key={key}
-                    className='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800'
-                  >
-                    {getFilterLabel()}
-                    <button
-                      onClick={() =>
-                        handleFilterChange(key as keyof StaffFilters, '')
-                      }
-                      className='ml-1 h-3 w-3 rounded-full inline-flex items-center justify-center hover:bg-blue-200 transition-colors duration-200'
-                    >
-                      <X className='h-2 w-2' />
-                    </button>
-                  </span>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </form>
     </div>
   );
 };
