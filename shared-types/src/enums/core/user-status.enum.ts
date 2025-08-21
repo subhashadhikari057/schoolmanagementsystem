@@ -13,16 +13,16 @@
  */
 export enum UserStatus {
   /** User account is active and can access the system */
-  ACTIVE = 'active',
-  
+  ACTIVE = "active",
+
   /** User account is inactive (temporarily disabled) */
-  INACTIVE = 'inactive',
-  
+  INACTIVE = "inactive",
+
   /** User account is suspended (disciplinary action) */
-  SUSPENDED = 'suspended',
-  
+  SUSPENDED = "suspended",
+
   /** User account is pending email/phone verification */
-  PENDING_VERIFICATION = 'pending_verification',
+  PENDING_VERIFICATION = "pending_verification",
 }
 
 /**
@@ -51,7 +51,10 @@ export const USER_STATUS_TRANSITIONS: Record<UserStatus, UserStatus[]> = {
  * @param toStatus - Target status
  * @returns True if transition is allowed
  */
-export function isValidStatusTransition(fromStatus: UserStatus, toStatus: UserStatus): boolean {
+export function isValidStatusTransition(
+  fromStatus: UserStatus,
+  toStatus: UserStatus,
+): boolean {
   return USER_STATUS_TRANSITIONS[fromStatus].includes(toStatus);
 }
 

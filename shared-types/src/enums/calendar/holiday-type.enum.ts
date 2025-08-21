@@ -7,16 +7,16 @@
  */
 
 export enum HolidayType {
-  NATIONAL = 'NATIONAL',
-  SCHOOL = 'SCHOOL',
+  NATIONAL = "NATIONAL",
+  SCHOOL = "SCHOOL",
 }
 
 /**
  * Display labels for holiday types
  */
 export const HolidayTypeLabels: Record<HolidayType, string> = {
-  [HolidayType.NATIONAL]: 'National Holiday',
-  [HolidayType.SCHOOL]: 'School Holiday',
+  [HolidayType.NATIONAL]: "National Holiday",
+  [HolidayType.SCHOOL]: "School Holiday",
 };
 
 /**

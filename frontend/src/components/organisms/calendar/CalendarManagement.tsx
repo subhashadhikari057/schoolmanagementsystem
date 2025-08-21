@@ -31,6 +31,7 @@ import {
   CalendarEvent,
   CalendarEntryType,
   HolidayType,
+  ExamType,
   CalendarManagementProps,
 } from './types/calendar.types';
 import {
@@ -57,6 +58,21 @@ export default function CalendarManagement({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Convert 24-hour time to 12-hour format
+  const convertTo12HourFormat = (time: string): string => {
+    if (!time) return '';
+
+    try {
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      return `${displayHour}:${minutes} ${ampm}`;
+    } catch (error) {
+      return time; // Return original if conversion fails
+    }
+  };
+
   // Form state
   const [formData, setFormData] = useState<Partial<CreateCalendarEntryDto>>({
     name: '',
@@ -65,6 +81,10 @@ export default function CalendarManagement({
     endDate: '',
     venue: '',
     holidayType: undefined,
+    examType: undefined,
+    examDetails: '',
+    startTime: '',
+    endTime: '',
   });
 
   // Fetch calendar entries
@@ -161,6 +181,10 @@ export default function CalendarManagement({
       endDate: '',
       venue: '',
       holidayType: undefined,
+      examType: undefined,
+      examDetails: '',
+      startTime: '',
+      endTime: '',
     });
   };
 
@@ -174,6 +198,10 @@ export default function CalendarManagement({
       endDate: entry.endDate ? entry.endDate.split('T')[0] : '',
       venue: entry.venue,
       holidayType: entry.holidayType,
+      examType: entry.examType,
+      examDetails: entry.examDetails,
+      startTime: entry.startTime,
+      endTime: entry.endTime,
     });
     setShowForm(true);
   };
@@ -347,7 +375,9 @@ export default function CalendarManagement({
                               className={`w-3 h-3 rounded-full mr-3 ${
                                 entry.type === CalendarEntryType.HOLIDAY
                                   ? 'bg-red-500'
-                                  : 'bg-blue-500'
+                                  : entry.type === CalendarEntryType.EXAM
+                                    ? 'bg-purple-500'
+                                    : 'bg-blue-500'
                               }`}
                             />
                             <div>
@@ -362,12 +392,16 @@ export default function CalendarManagement({
                             className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                               entry.type === CalendarEntryType.HOLIDAY
                                 ? 'bg-red-100 text-red-800'
-                                : 'bg-blue-100 text-blue-800'
+                                : entry.type === CalendarEntryType.EXAM
+                                  ? 'bg-purple-100 text-purple-800'
+                                  : 'bg-blue-100 text-blue-800'
                             }`}
                           >
                             {entry.type === CalendarEntryType.HOLIDAY
                               ? 'Holiday'
-                              : 'Event'}
+                              : entry.type === CalendarEntryType.EXAM
+                                ? 'Exam'
+                                : 'Event'}
                           </span>
                         </td>
                         <td className='px-4 py-3'>
@@ -390,8 +424,47 @@ export default function CalendarManagement({
                                   {entry.holidayType.toLowerCase()} Holiday
                                 </span>
                               )}
-                            {entry.type === CalendarEntryType.EVENT &&
-                              entry.venue && <span>📍 {entry.venue}</span>}
+                            {entry.type === CalendarEntryType.EVENT && (
+                              <div className='space-y-1'>
+                                {entry.venue && <span>📍 {entry.venue}</span>}
+                                {(entry.startTime || entry.endTime) && (
+                                  <span className='block text-xs'>
+                                    🕐{' '}
+                                    {convertTo12HourFormat(
+                                      entry.startTime || '',
+                                    )}
+                                    {entry.endTime &&
+                                      entry.startTime !== entry.endTime &&
+                                      ` - ${convertTo12HourFormat(entry.endTime)}`}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {entry.type === CalendarEntryType.EXAM && (
+                              <div className='space-y-1'>
+                                {entry.examType && (
+                                  <span className='block font-medium'>
+                                    {entry.examType.replace('_', ' ')}
+                                  </span>
+                                )}
+                                {entry.examDetails && (
+                                  <span className='block text-xs text-gray-500 line-clamp-1'>
+                                    {entry.examDetails}
+                                  </span>
+                                )}
+                                {(entry.startTime || entry.endTime) && (
+                                  <span className='block text-xs'>
+                                    🕐{' '}
+                                    {convertTo12HourFormat(
+                                      entry.startTime || '',
+                                    )}
+                                    {entry.endTime &&
+                                      entry.startTime !== entry.endTime &&
+                                      ` - ${convertTo12HourFormat(entry.endTime)}`}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className='px-4 py-3'>
@@ -494,6 +567,7 @@ export default function CalendarManagement({
                 >
                   <option value={CalendarEntryType.EVENT}>Event</option>
                   <option value={CalendarEntryType.HOLIDAY}>Holiday</option>
+                  <option value={CalendarEntryType.EXAM}>Exam</option>
                 </select>
               </div>
 
@@ -534,6 +608,45 @@ export default function CalendarManagement({
                   />
                 </div>
               </div>
+
+              {/* Time Fields (for Events and Exams) */}
+              {(formData.type === CalendarEntryType.EVENT ||
+                formData.type === CalendarEntryType.EXAM) && (
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-1'>
+                      Start Time
+                    </label>
+                    <input
+                      type='time'
+                      value={formData.startTime || ''}
+                      onChange={e =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          startTime: e.target.value,
+                        }))
+                      }
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-1'>
+                      End Time
+                    </label>
+                    <input
+                      type='time'
+                      value={formData.endTime || ''}
+                      onChange={e =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          endTime: e.target.value,
+                        }))
+                      }
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Venue (for Events) */}
               {formData.type === CalendarEntryType.EVENT && (
@@ -578,6 +691,54 @@ export default function CalendarManagement({
                     <option value={HolidayType.SCHOOL}>School Holiday</option>
                   </select>
                 </div>
+              )}
+
+              {/* Exam-specific fields */}
+              {formData.type === CalendarEntryType.EXAM && (
+                <>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-1'>
+                      Exam Type *
+                    </label>
+                    <select
+                      value={formData.examType || ''}
+                      onChange={e =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          examType: e.target.value as ExamType,
+                        }))
+                      }
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                      required
+                    >
+                      <option value=''>Select exam type</option>
+                      <option value={ExamType.FIRST_TERM}>First Term</option>
+                      <option value={ExamType.SECOND_TERM}>Second Term</option>
+                      <option value={ExamType.THIRD_TERM}>Third Term</option>
+                      <option value={ExamType.FINAL}>Final</option>
+                      <option value={ExamType.UNIT_TEST}>Unit Test</option>
+                      <option value={ExamType.OTHER}>Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-1'>
+                      Exam Details (Optional)
+                    </label>
+                    <textarea
+                      value={formData.examDetails || ''}
+                      onChange={e =>
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          examDetails: e.target.value,
+                        }))
+                      }
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                      placeholder='Enter additional exam details, subjects, or instructions...'
+                      rows={3}
+                    />
+                  </div>
+                </>
               )}
             </div>
 

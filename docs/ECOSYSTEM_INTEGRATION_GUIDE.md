@@ -42,10 +42,11 @@ The shared types package ensures type consistency across frontend and backend:
 **Location**: `shared-types/`
 
 **Usage in Backend**:
-```typescript
-import { UserRole, CreateStudentDto, AuditAction } from '@sms/shared-types';
 
-@Controller('students')
+```typescript
+import { UserRole, CreateStudentDto, AuditAction } from "@sms/shared-types";
+
+@Controller("students")
 export class StudentsController {
   @Post()
   async create(@Body() dto: CreateStudentDto): Promise<Student> {
@@ -55,22 +56,25 @@ export class StudentsController {
 ```
 
 **Usage in Frontend**:
+
 ```typescript
-import { UserRole, CreateStudentDto } from '@sms/shared-types';
+import { UserRole, CreateStudentDto } from "@sms/shared-types";
 
 const createStudent = async (data: CreateStudentDto) => {
-  return apiClient.post<Student>('/students', data);
+  return apiClient.post<Student>("/students", data);
 };
 ```
 
 ### 🔄 API Contract Synchronization
 
 **Backend Implementation**:
+
 - All endpoints must match contracts in `Pre-Documents/Dev docs/5. API Contract Documentation`
 - Use exact endpoint paths, HTTP methods, and response formats
 - Implement standardized error handling
 
 **Frontend Integration**:
+
 - Use predefined endpoints from `@/constants/api.ts`
 - Follow established patterns for API calls
 - Handle errors using provided utilities
@@ -80,6 +84,7 @@ const createStudent = async (data: CreateStudentDto) => {
 ### 🔐 Backend Authentication
 
 **JWT Implementation**:
+
 ```typescript
 // Use existing JWT utilities
 import { signAccessToken, verifyToken } from '@/shared/auth/jwt.util';
@@ -94,6 +99,7 @@ async getAssignments(@User() user: AuthenticatedUser) {
 ```
 
 **Role-Based Access Control**:
+
 ```typescript
 // Use role decorators
 @MinRole(UserRole.TEACHER)
@@ -106,6 +112,7 @@ async getDashboard(@User() user: AuthenticatedUser) {
 ### 🔒 Frontend Authentication
 
 **Authentication Context**:
+
 ```typescript
 // Use authentication hooks
 const { user, hasRole, hasPermission } = useAuth();
@@ -128,6 +135,7 @@ const { user, hasRole, hasPermission } = useAuth();
 **Reference**: `Schemas/*.md` files in Pre-Documents
 
 **Backend Usage**:
+
 ```typescript
 // Use Prisma models as defined in schemas
 const student = await this.prisma.student.create({
@@ -150,6 +158,7 @@ const student = await this.prisma.student.create({
 ### 🔍 Audit Logging
 
 **Automatic Audit Trails**:
+
 ```typescript
 // Backend - Audit middleware automatically logs actions
 @Post('students')
@@ -164,6 +173,7 @@ async createStudent(@Body() dto: CreateStudentDto, @User() user: AuthenticatedUs
 ### 📤 Backend to Frontend Flow
 
 1. **API Endpoint Creation**:
+
    ```typescript
    // Backend Controller
    @Get('students')
@@ -173,25 +183,27 @@ async createStudent(@Body() dto: CreateStudentDto, @User() user: AuthenticatedUs
    ```
 
 2. **Frontend API Integration**:
+
    ```typescript
    // Frontend Service
    const { data, isLoading } = useQuery({
-     queryKey: ['students', filters],
-     queryFn: () => apiClient.get<PaginatedResponse<Student>>(
-       API_ENDPOINTS.STUDENTS.LIST,
-       { params: filters }
-     ),
+     queryKey: ["students", filters],
+     queryFn: () =>
+       apiClient.get<PaginatedResponse<Student>>(API_ENDPOINTS.STUDENTS.LIST, {
+         params: filters,
+       }),
    });
    ```
 
 3. **Component Usage**:
+
    ```typescript
    // Frontend Component
    function StudentsList() {
      const { data: students, isLoading } = useStudents();
-     
+
      if (isLoading) return <LoadingSpinner />;
-     
+
      return (
        <div>
          {students?.data.map(student => (
@@ -205,24 +217,26 @@ async createStudent(@Body() dto: CreateStudentDto, @User() user: AuthenticatedUs
 ### 🔄 Error Handling Flow
 
 **Backend Error Handling**:
+
 ```typescript
 // Global exception filter handles all errors
 throw new BadRequestException({
-  code: 'VALIDATION_ERROR',
-  message: 'Invalid student data',
+  code: "VALIDATION_ERROR",
+  message: "Invalid student data",
   details: validationErrors,
 });
 ```
 
 **Frontend Error Handling**:
+
 ```typescript
 // API client transforms errors automatically
 try {
-  await apiClient.post('/students', studentData);
+  await apiClient.post("/students", studentData);
 } catch (error) {
   if (isApiError(error)) {
     toast.error(error.message);
-    if (error.code === 'VALIDATION_ERROR') {
+    if (error.code === "VALIDATION_ERROR") {
       handleValidationErrors(error.details);
     }
   }
@@ -234,22 +248,23 @@ try {
 ### 🔬 Backend Testing
 
 **Use Existing Test Infrastructure**:
+
 ```typescript
 // Integration tests
-describe('Students API', () => {
-  it('should create student with valid data', async () => {
+describe("Students API", () => {
+  it("should create student with valid data", async () => {
     const studentData: CreateStudentDto = {
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@school.edu',
+      firstName: "John",
+      lastName: "Doe",
+      email: "john.doe@school.edu",
     };
-    
+
     const response = await request(app.getHttpServer())
-      .post('/api/v1/students')
-      .set('Authorization', `Bearer ${adminToken}`)
+      .post("/api/v1/students")
+      .set("Authorization", `Bearer ${adminToken}`)
       .send(studentData)
       .expect(201);
-      
+
     expect(response.body.data).toMatchObject(studentData);
   });
 });
@@ -258,23 +273,24 @@ describe('Students API', () => {
 ### 🧪 Frontend Testing
 
 **Component Testing**:
+
 ```typescript
 // Test with authentication context
 test('StudentsList shows students for authenticated user', async () => {
   const mockStudents = [
     { id: '1', firstName: 'John', lastName: 'Doe' },
   ];
-  
+
   vi.mocked(apiClient.get).mockResolvedValue({
     data: { data: mockStudents },
   });
-  
+
   render(
     <QueryClientProvider client={queryClient}>
       <StudentsList />
     </QueryClientProvider>
   );
-  
+
   expect(await screen.findByText('John Doe')).toBeInTheDocument();
 });
 ```
@@ -306,6 +322,7 @@ test('StudentsList shows students for authenticated user', async () => {
 ### 🛠️ Development Commands
 
 **Backend**:
+
 ```bash
 # Development
 npm run dev
@@ -322,6 +339,7 @@ npm run seed
 ```
 
 **Frontend**:
+
 ```bash
 # Development
 npm run dev
@@ -340,12 +358,13 @@ npm run build
 ### 🎯 Backend Patterns
 
 1. **Controller Pattern**:
+
    ```typescript
-   @Controller('api/v1/students')
+   @Controller("api/v1/students")
    @UseGuards(JwtAuthGuard)
    export class StudentsController {
      constructor(private studentsService: StudentsService) {}
-     
+
      @Get()
      @Roles(UserRole.ADMIN, UserRole.TEACHER)
      async findAll(@Query() query: GetStudentsDto) {
@@ -355,11 +374,12 @@ npm run build
    ```
 
 2. **Service Pattern**:
+
    ```typescript
    @Injectable()
    export class StudentsService {
      constructor(private prisma: PrismaService) {}
-     
+
      async create(dto: CreateStudentDto): Promise<Student> {
        return this.prisma.student.create({
          data: dto,
@@ -371,15 +391,16 @@ npm run build
 ### 🎨 Frontend Patterns
 
 1. **Component Pattern**:
+
    ```typescript
    interface StudentCardProps {
      student: Student;
      onEdit?: (student: Student) => void;
    }
-   
+
    export function StudentCard({ student, onEdit }: StudentCardProps) {
      const { hasPermission } = useAuth();
-     
+
      return (
        <Card>
          <CardContent>
@@ -397,11 +418,12 @@ npm run build
    ```typescript
    export function useStudents(filters?: StudentFilters) {
      return useQuery({
-       queryKey: ['students', filters],
-       queryFn: () => apiClient.get<PaginatedResponse<Student>>(
-         API_ENDPOINTS.STUDENTS.LIST,
-         { params: filters }
-       ),
+       queryKey: ["students", filters],
+       queryFn: () =>
+         apiClient.get<PaginatedResponse<Student>>(
+           API_ENDPOINTS.STUDENTS.LIST,
+           { params: filters },
+         ),
      });
    }
    ```
@@ -427,6 +449,7 @@ npm run build
 ### 🌍 Environment Variables
 
 **Backend** (`.env.example`):
+
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/schoolmanagement"
 JWT_ACCESS_SECRET="your-jwt-access-secret"
@@ -434,6 +457,7 @@ JWT_REFRESH_SECRET="your-jwt-refresh-secret"
 ```
 
 **Frontend** (`.env.local`):
+
 ```env
 NEXT_PUBLIC_API_URL="http://localhost:3001/api/v1"
 NEXT_PUBLIC_APP_ENV="development"
@@ -451,26 +475,31 @@ NEXT_PUBLIC_APP_ENV="development"
 ### ✅ Solutions
 
 1. **Always Import from Shared Types**:
+
    ```typescript
-   import { UserRole, CreateStudentDto } from '@sms/shared-types';
+   import { UserRole, CreateStudentDto } from "@sms/shared-types";
    ```
 
 2. **Use Provided Authentication**:
+
    ```typescript
    // Backend
    @UseGuards(JwtAuthGuard, RolesGuard)
-   
+
    // Frontend
    const { hasRole } = useAuth();
    ```
 
 3. **Follow Error Patterns**:
+
    ```typescript
    // Backend
-   throw new BadRequestException({ code: 'VALIDATION_ERROR', message: '...' });
-   
+   throw new BadRequestException({ code: "VALIDATION_ERROR", message: "..." });
+
    // Frontend
-   if (isApiError(error)) { /* handle */ }
+   if (isApiError(error)) {
+     /* handle */
+   }
    ```
 
 ## 🎯 Success Metrics

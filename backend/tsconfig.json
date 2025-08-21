@@ -21,5 +21,6 @@
     // ✅ ADD THESE TWO LINES BELOW
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "types": ["node", "express"]
-  }
+  },
+  "exclude": ["node_modules", "dist", "generate-jwt-keys.js"]
 }

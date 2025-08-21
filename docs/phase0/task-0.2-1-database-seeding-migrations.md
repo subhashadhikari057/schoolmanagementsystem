@@ -1,11 +1,13 @@
 # 📋 Task 0.2-1: Database Seeding & Migrations
 
 ## 🎯 **Task Overview**
+
 Enhance existing Prisma setup with comprehensive seed data, migration rollback scripts, and robust database management utilities for the School Management System hosted on VPS infrastructure.
 
 ## 📋 **Requirements Checklist**
 
 ### ✅ **Core Components**
+
 - [x] **Enhanced Seeding System** - Comprehensive seed data for all modules with environment-specific configurations
 - [x] **Migration Rollback Scripts** - Individual rollback scripts for each migration with dependency management
 - [x] **Migration Utilities** - Command-line tools for migration management, backup, and rollback operations
@@ -13,6 +15,7 @@ Enhance existing Prisma setup with comprehensive seed data, migration rollback s
 - [x] **VPS Integration** - Full compatibility with remote PostgreSQL database (95.216.235.115:5432)
 
 ### ✅ **Enhanced Features**
+
 - [x] **Backup & Restore** - Automated backup creation before migrations and rollbacks
 - [x] **Environment Awareness** - Different seed data for development, testing, and production
 - [x] **Performance Monitoring** - Database response time and concurrent operation testing
@@ -61,6 +64,7 @@ backend/
 **Location:** `backend/prisma/seeds/comprehensive-seed.ts`
 
 **Key Features:**
+
 - Environment-aware seeding (development, testing, production)
 - Comprehensive role-based access control setup
 - System and test user creation
@@ -69,6 +73,7 @@ backend/
 - Performance logging and monitoring
 
 **Seed Data Includes:**
+
 ```typescript
 // System Roles
 SUPERADMIN, ADMIN, TEACHER, STUDENT, PARENT
@@ -78,7 +83,7 @@ USER_*, ROLE_*, STUDENT_*, TEACHER_*, ACADEMIC_*, SYSTEM_*, AUDIT_*, BACKUP_*
 
 // System Users
 - superadmin@school.edu (SUPERADMIN)
-- admin@school.edu (ADMIN) 
+- admin@school.edu (ADMIN)
 - principal@school.edu (ADMIN)
 
 // Test Users (development/testing only)
@@ -88,6 +93,7 @@ USER_*, ROLE_*, STUDENT_*, TEACHER_*, ACADEMIC_*, SYSTEM_*, AUDIT_*, BACKUP_*
 ```
 
 **Usage:**
+
 ```bash
 # Run comprehensive seeding
 npm run seed:comprehensive
@@ -104,17 +110,20 @@ SKIP_EXISTING=true npm run seed:comprehensive
 **Individual rollback scripts for each migration:**
 
 **20250726083043_init_phase1/rollback.sql:**
+
 - Drops all indexes and constraints
 - Removes foreign key relationships
 - Drops tables in reverse dependency order
 - Logs rollback completion
 
 **20250726083556_add_audit_fields/rollback.sql:**
+
 - Removes AuditLog table and related indexes
 - Cleans up audit field relationships
 - Logs rollback completion
 
 **Features:**
+
 - Dependency-aware rollback order
 - Comprehensive cleanup of indexes and constraints
 - Error handling and logging
@@ -125,6 +134,7 @@ SKIP_EXISTING=true npm run seed:comprehensive
 **Location:** `backend/prisma/migrations/migration-utils.ts`
 
 **Command-Line Interface:**
+
 ```bash
 # Migration status
 npm run migration:utils status
@@ -150,6 +160,7 @@ npm run migration:utils clean-backups [keep-count]
 ```
 
 **Key Features:**
+
 - Automated backup creation before rollbacks
 - Dry-run mode for safe testing
 - Migration integrity validation
@@ -162,6 +173,7 @@ npm run migration:utils clean-backups [keep-count]
 **Location:** `backend/src/database/__tests__/database-operations.integration.spec.ts`
 
 **Test Coverage:**
+
 - ✅ **VPS Connectivity** (5 tests) - Connection, configuration, permissions, response time, concurrency
 - ✅ **Schema Validation** (3 tests) - Tables, indexes, migrations
 - ✅ **Seeding Operations** (5 tests) - Roles, permissions, role-permissions, users, audit logs
@@ -174,6 +186,7 @@ npm run migration:utils clean-backups [keep-count]
 ## 🌐 **VPS Integration**
 
 ### **Database Configuration**
+
 ```typescript
 // VPS PostgreSQL Configuration
 Host: 95.216.235.115
@@ -184,6 +197,7 @@ Connection: SSL-enabled, high-performance connection pool
 ```
 
 ### **VPS-Specific Features**
+
 - **Remote Backup Operations** - pg_dump/psql with VPS connectivity
 - **Network Optimization** - Connection pooling and timeout handling
 - **Security Compliance** - SSL connections and credential management
@@ -191,6 +205,7 @@ Connection: SSL-enabled, high-performance connection pool
 - **Concurrent Operation Support** - Multi-user database access testing
 
 ### **Environment Variables**
+
 ```bash
 # VPS Database Connection
 DATABASE_URL="postgresql://schooladmin:StrongPass123!@95.216.235.115:5432/schoolmanagement?schema=public"
@@ -203,6 +218,7 @@ TEST_TIMEOUT=30000    # Extended timeout for remote operations
 ## 🧪 **Testing Strategy**
 
 ### **Integration Tests**
+
 ```bash
 # Run all database tests
 npm test -- --testPathPattern="database-operations"
@@ -216,6 +232,7 @@ npm test -- --testNamePattern="Database Seeding Operations"
 ```
 
 ### **Test Results Verification**
+
 - **VPS Connectivity**: Response time < 5 seconds, concurrent operations supported
 - **Schema Validation**: All tables, indexes, and migrations verified
 - **Seeding Operations**: Complete RBAC setup with audit trails
@@ -224,17 +241,20 @@ npm test -- --testNamePattern="Database Seeding Operations"
 ## 📊 **Performance Metrics**
 
 ### **Seeding Performance**
+
 - **System Roles**: 5 roles created in ~100ms
 - **System Permissions**: 25 permissions created in ~200ms
 - **Role Assignments**: 50+ permission assignments in ~300ms
 - **System Users**: 3-12 users created in ~500ms (depending on environment)
 
 ### **Migration Performance**
+
 - **Backup Creation**: ~2-5 seconds for typical database size
 - **Rollback Execution**: ~1-3 seconds per migration
 - **Validation Checks**: ~500ms for integrity verification
 
 ### **VPS Performance**
+
 - **Connection Time**: < 500ms to VPS database
 - **Query Response**: < 100ms for simple queries
 - **Backup Operations**: ~10-30 seconds depending on data size
@@ -242,17 +262,20 @@ npm test -- --testNamePattern="Database Seeding Operations"
 ## 🔒 **Security Considerations**
 
 ### **Data Protection**
+
 - ✅ Secure credential handling via environment variables
 - ✅ SSL-encrypted connections to VPS database
 - ✅ Backup encryption and secure storage
 - ✅ Audit trail for all database operations
 
 ### **Access Control**
+
 - ✅ Role-based permission system fully seeded
 - ✅ System users with appropriate privilege levels
 - ✅ Database user permissions validated during testing
 
 ### **Backup Security**
+
 - ✅ Backup files stored with restricted permissions
 - ✅ Checksum verification for backup integrity
 - ✅ Automated cleanup of old backups
@@ -262,6 +285,7 @@ npm test -- --testNamePattern="Database Seeding Operations"
 ### **Daily Operations**
 
 **1. Run Database Seeding:**
+
 ```bash
 # Initial setup or refresh
 npm run seed:comprehensive
@@ -271,6 +295,7 @@ NODE_ENV=production npm run seed:comprehensive
 ```
 
 **2. Create Backup Before Changes:**
+
 ```bash
 # Create named backup
 npm run migration:utils backup "pre-deployment-$(date +%Y%m%d)"
@@ -280,6 +305,7 @@ npm run migration:utils list-backups
 ```
 
 **3. Execute Migration Rollback:**
+
 ```bash
 # Rollback last migration (with backup)
 npm run migration:utils rollback --steps=1 --force
@@ -292,6 +318,7 @@ npm run migration:utils rollback --steps=1 --dry-run
 ```
 
 **4. Validate Database State:**
+
 ```bash
 # Check migration integrity
 npm run migration:utils validate
@@ -303,6 +330,7 @@ npm test -- --testPathPattern="database-operations"
 ### **Development Workflow**
 
 **1. New Migration Created:**
+
 ```bash
 # Create rollback script
 echo "-- Rollback for new migration" > prisma/migrations/[migration-name]/rollback.sql
@@ -315,6 +343,7 @@ npm run migration:utils backup "pre-new-migration"
 ```
 
 **2. Testing Database Changes:**
+
 ```bash
 # Run seeding with test data
 NODE_ENV=development npm run seed:comprehensive
@@ -329,6 +358,7 @@ npm test -- --testNamePattern="Database Performance"
 ## 📋 **Maintenance Commands**
 
 ### **Regular Maintenance**
+
 ```bash
 # Weekly backup cleanup (keep 10 most recent)
 npm run migration:utils clean-backups 10
@@ -341,6 +371,7 @@ npm test -- --testNamePattern="Database Performance"
 ```
 
 ### **Emergency Procedures**
+
 ```bash
 # Emergency rollback (last migration)
 npm run migration:utils rollback --steps=1 --force
@@ -356,6 +387,7 @@ npm run seed:comprehensive
 ## ✅ **Verification Commands**
 
 ### **Test All Components**
+
 ```bash
 # Complete database operations test
 npm test -- --testPathPattern="database-operations"
@@ -371,6 +403,7 @@ npm test -- --testNamePattern="Migration Management"
 ```
 
 ### **Manual Verification**
+
 ```bash
 # Check database status
 npm run migration:utils status
@@ -388,6 +421,7 @@ npm test -- --testNamePattern="should connect to VPS PostgreSQL"
 ## 🎯 **Success Criteria**
 
 ### ✅ **All Requirements Met**
+
 - [x] Enhanced Prisma setup with comprehensive seeding
 - [x] Migration rollback scripts for all existing migrations
 - [x] Command-line migration management utilities
@@ -400,6 +434,7 @@ npm test -- --testNamePattern="should connect to VPS PostgreSQL"
 - [x] Documentation and usage examples provided
 
 ### ✅ **Test Results**
+
 - **Database Integration Tests**: 20/20 passing (100%)
 - **VPS Connectivity**: Verified with response time < 500ms
 - **Seeding Operations**: Complete RBAC system with audit trails

@@ -10,29 +10,29 @@
 // =============================================================================
 // COMMON SCHEMAS
 // =============================================================================
-export * from './common/base.schemas';
-export * from './common/error.schemas';
+export * from "./common/base.schemas";
+export * from "./common/error.schemas";
 
 // =============================================================================
 // MODULE SCHEMAS
 // =============================================================================
-export * from './auth/auth.schemas';
-export * from './student/student.schemas';
+export * from "./auth/auth.schemas";
+export * from "./student/student.schemas";
 
 // =============================================================================
 // SCHEMA UTILITIES
 // =============================================================================
 
-import { z } from 'zod';
-import { 
-  formatValidationErrors, 
+import { z } from "zod";
+import {
+  formatValidationErrors,
   validateWithFormattedErrors,
   SchemaUtils,
   CommonValidation,
   createSuccessResponseSchema,
   createPaginatedResponseSchema,
-  ErrorResponseSchema
-} from './common/base.schemas';
+  ErrorResponseSchema,
+} from "./common/base.schemas";
 
 /**
  * =============================================================================
@@ -49,27 +49,37 @@ export class DTOGenerator {
    */
   static createCRUDSchemas<T extends z.ZodRawShape>(
     entityName: string,
-    baseSchema: z.ZodObject<T>
+    baseSchema: z.ZodObject<T>,
   ) {
     return {
       // Create schema (omit id, timestamps)
-      create: SchemaUtils.omit(baseSchema, ['id', 'created_at', 'updated_at', 'deleted_at']),
-      
+      create: SchemaUtils.omit(baseSchema, [
+        "id",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+      ]),
+
       // Update schema (all fields optional, omit id, timestamps)
-      update: SchemaUtils.omit(baseSchema, ['id', 'created_at', 'updated_at', 'deleted_at']).partial(),
-      
+      update: SchemaUtils.omit(baseSchema, [
+        "id",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+      ]).partial(),
+
       // Response schema (full entity)
       response: baseSchema,
-      
+
       // List response schema (paginated)
       list: createPaginatedResponseSchema(baseSchema),
-      
+
       // Search/filter schema
       search: z.object({
         page: z.number().int().min(1).default(1),
         limit: z.number().int().min(1).max(200).default(10),
         sortBy: z.string().optional(),
-        sortOrder: z.enum(['asc', 'desc']).default('asc'),
+        sortOrder: z.enum(["asc", "desc"]).default("asc"),
         // Add common search fields
         search: z.string().optional(),
         status: z.string().optional(),
@@ -86,7 +96,9 @@ export class DTOGenerator {
     return {
       success: createSuccessResponseSchema(dataSchema),
       error: ErrorResponseSchema,
-      paginated: createSuccessResponseSchema(createPaginatedResponseSchema(dataSchema)),
+      paginated: createSuccessResponseSchema(
+        createPaginatedResponseSchema(dataSchema),
+      ),
     };
   }
 
@@ -138,7 +150,7 @@ export const SchemaPatterns = {
    * Approval workflow schema
    */
   approvalWorkflow: z.object({
-    status: z.enum(['pending', 'approved', 'rejected', 'cancelled']),
+    status: z.enum(["pending", "approved", "rejected", "cancelled"]),
     approved_by: CommonValidation.uuid.optional(),
     approved_at: z.date().optional(),
     rejection_reason: z.string().max(500).optional(),
@@ -178,11 +190,13 @@ export const SchemaPatterns = {
     email: CommonValidation.email.optional(),
     phone: CommonValidation.phone.optional(),
     alternate_phone: CommonValidation.phone.optional(),
-    emergency_contact: z.object({
-      name: CommonValidation.name,
-      phone: CommonValidation.phone,
-      relationship: z.string().max(50),
-    }).optional(),
+    emergency_contact: z
+      .object({
+        name: CommonValidation.name,
+        phone: CommonValidation.phone,
+        relationship: z.string().max(50),
+      })
+      .optional(),
   }),
 
   /**
@@ -214,17 +228,17 @@ export const ValidationMiddleware = {
   express: <T extends z.ZodType>(schema: T) => {
     return (req: any, res: any, next: any) => {
       const result = validateWithFormattedErrors(schema, req.body);
-      
+
       if (!result.success) {
         return res.status(400).json({
           success: false,
           statusCode: 400,
-          error: 'Validation Error',
-          message: 'Request validation failed',
+          error: "Validation Error",
+          message: "Request validation failed",
           errors: result.errors,
         });
       }
-      
+
       req.validatedData = result.data;
       next();
     };
@@ -249,10 +263,12 @@ export const ValidationMiddleware = {
    * Create generic validation function
    */
   generic: <T extends z.ZodType>(schema: T) => {
-    return (data: unknown): T['_output'] => {
+    return (data: unknown): T["_output"] => {
       const result = schema.safeParse(data);
       if (!result.success) {
-        throw new Error(`Validation failed: ${JSON.stringify(formatValidationErrors(result.error))}`);
+        throw new Error(
+          `Validation failed: ${JSON.stringify(formatValidationErrors(result.error))}`,
+        );
       }
       return result.data;
     };
@@ -327,10 +343,10 @@ export const SchemaTestUtils = {
   /**
    * Generate test data that matches a schema
    */
-  generateTestData: <T extends z.ZodType>(schema: T): Partial<T['_output']> => {
+  generateTestData: <T extends z.ZodType>(schema: T): Partial<T["_output"]> => {
     // This is a basic implementation - in practice, you might want to use a library like faker.js
     const shape = (schema as any)._def?.shape?.();
-    if (!shape) return {} as Partial<T['_output']>;
+    if (!shape) return {} as Partial<T["_output"]>;
 
     const testData: any = {};
     for (const [key, fieldSchema] of Object.entries(shape)) {
@@ -352,12 +368,12 @@ export const SchemaTestUtils = {
    */
   testSchemaValidation: <T extends z.ZodType>(
     schema: T,
-    validData: T['_input'],
-    invalidCases: Array<{ data: any; expectedError: string }>
+    validData: T["_input"],
+    invalidCases: Array<{ data: any; expectedError: string }>,
   ) => {
     const results = {
       validCase: schema.safeParse(validData),
-      invalidCases: invalidCases.map(testCase => ({
+      invalidCases: invalidCases.map((testCase) => ({
         data: testCase.data,
         result: schema.safeParse(testCase.data),
         expectedError: testCase.expectedError,
@@ -383,12 +399,16 @@ export {
 };
 
 // Export types for TypeScript
-export type ValidationResult<T> = 
+export type ValidationResult<T> =
   | { success: true; data: T }
   | { success: false; errors: Record<string, string[]> };
 
 export type SchemaType<T extends z.ZodType> = z.infer<T>;
 
-export type CRUDSchemas<T extends z.ZodRawShape> = ReturnType<typeof DTOGenerator.createCRUDSchemas<T>>;
+export type CRUDSchemas<T extends z.ZodRawShape> = ReturnType<
+  typeof DTOGenerator.createCRUDSchemas<T>
+>;
 
-export type APIResponseSchemas<T extends z.ZodType> = ReturnType<typeof DTOGenerator.createAPIResponseSchemas<T>>;
+export type APIResponseSchemas<T extends z.ZodType> = ReturnType<
+  typeof DTOGenerator.createAPIResponseSchemas<T>
+>;

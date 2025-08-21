@@ -19,12 +19,12 @@ copy backend\.env.example backend\.env
 
 ## 🌐 SERVICE URLS & PORTS
 
-| Service | URL | Credentials | Purpose |
-|---------|-----|-------------|---------|
-| **Backend** | http://localhost:8080 | None | API server |
-| **Frontend** | http://localhost:3000 | None | Web app |
-| **MailHog** | http://localhost:8025 | None | Email testing |
-| **VPS pgAdmin** | http://95.216.235.115:80/ | admin@school.com / StrongPass123! | DB admin |
+| Service         | URL                       | Credentials                       | Purpose       |
+| --------------- | ------------------------- | --------------------------------- | ------------- |
+| **Backend**     | http://localhost:8080     | None                              | API server    |
+| **Frontend**    | http://localhost:3000     | None                              | Web app       |
+| **MailHog**     | http://localhost:8025     | None                              | Email testing |
+| **VPS pgAdmin** | http://95.216.235.115:80/ | admin@school.com / StrongPass123! | DB admin      |
 
 ---
 
@@ -43,6 +43,7 @@ DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/schoolmanagement?
 ## 🎯 DAILY COMMANDS
 
 ### Start Development
+
 ```powershell
 # Start all services
 .\scripts\docker-dev-start.ps1
@@ -55,6 +56,7 @@ cd frontend && npm run dev
 ```
 
 ### Stop Development
+
 ```powershell
 # Stop servers: Ctrl+C in terminals
 # Stop Docker services
@@ -62,9 +64,10 @@ cd frontend && npm run dev
 ```
 
 ### Docker Management
+
 ```powershell
 .\scripts\docker-dev-start.ps1    # Start services
-.\scripts\docker-dev-stop.ps1     # Stop services  
+.\scripts\docker-dev-stop.ps1     # Stop services
 .\scripts\docker-dev-reset.ps1    # Reset all data
 .\scripts\test-docker-services.ps1 # Test services
 ```
@@ -83,7 +86,7 @@ cd frontend && npm run dev
 # Backend tests
 cd backend && npm test
 
-# Frontend tests  
+# Frontend tests
 cd frontend && npm test
 ```
 
@@ -132,6 +135,7 @@ npx prisma db push --force-reset
 ## 🐛 TROUBLESHOOTING
 
 ### Services Won't Start
+
 ```powershell
 # Check Docker is running
 docker info
@@ -146,6 +150,7 @@ netstat -an | findstr :5432
 ```
 
 ### Backend Issues
+
 ```powershell
 # Check .env file exists
 dir backend\.env
@@ -157,6 +162,7 @@ npm install
 ```
 
 ### Database Issues
+
 ```powershell
 # Test VPS connection
 telnet 95.216.235.115 5432
@@ -187,6 +193,7 @@ schoolmanagementsystem/
 ## 🔐 ENVIRONMENT VARIABLES
 
 **Required in `backend/.env`:**
+
 - `DATABASE_URL` - Database connection
 - `PORT` - Backend port (8080)
 - `NODE_ENV` - Environment (development)
@@ -194,6 +201,7 @@ schoolmanagementsystem/
 - `JWT_PUBLIC_KEY_BASE64` - JWT verification key
 
 **Optional:**
+
 - `REDIS_URL` - Redis cache connection
 - `CORS_ORIGIN` - Frontend URL (http://localhost:3000)
 
@@ -202,13 +210,14 @@ schoolmanagementsystem/
 ## 🎉 SUCCESS INDICATORS
 
 ✅ **Setup Complete When:**
+
 - `.\scripts\test-phase0-final.ps1` shows "Tests Passed: 27/27 (100%)"
 - Backend tests pass: `cd backend && npm test` shows "60 passed, 60 total"
 - Shared-types tests pass: `cd shared-types && npm test` shows "167 passed, 167 total"
 - Error handling tests pass: All error scenarios return standardized responses
 - Database operations tests pass: `cd backend && npm run db:test` shows "20 passed, 20 total"
 - Backend starts at http://localhost:8080
-- Frontend loads at http://localhost:3000  
+- Frontend loads at http://localhost:3000
 - MailHog accessible at http://localhost:8025
 - Git hooks run on commit
 
@@ -237,4 +246,4 @@ schoolmanagementsystem/
 
 ---
 
-**💡 TIP: Bookmark this file - it has everything you need for daily development!** 
+**💡 TIP: Bookmark this file - it has everything you need for daily development!**

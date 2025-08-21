@@ -11,8 +11,8 @@ import {
   HolidayType,
   ReminderType,
   Priority,
-} from '../../enums';
-import { AuditInfo } from '../common/audit.interface';
+} from "../../enums";
+import { AuditInfo } from "../common/audit.interface";
 
 /**
  * Base calendar entry interface
@@ -22,36 +22,36 @@ export interface CalendarEntry extends AuditInfo {
   title: string;
   description?: string;
   type: CalendarEntryType;
-  
+
   // Date and time information
   startDate: Date;
   endDate?: Date;
   isAllDay: boolean;
-  
+
   // Event-specific fields
   venue?: string;
   timing?: string;
-  
+
   // Holiday-specific fields
   holidayType?: HolidayType;
-  
+
   // Reminder-specific fields
   reminderType?: ReminderType;
   priority: Priority;
-  
+
   // Visibility and status
   isPublished: boolean;
   status: string;
-  
+
   // Bikram Sambat date support
   bsYear?: number;
   bsMonth?: number;
   bsDay?: number;
-  
+
   // Recurrence support
   isRecurring: boolean;
   recurrencePattern?: Record<string, any>;
-  
+
   // Additional metadata
   metadata?: Record<string, any>;
   color?: string;
@@ -87,11 +87,11 @@ export interface CalendarStatistics {
  * Calendar view configuration
  */
 export interface CalendarViewConfig {
-  defaultView: 'month' | 'week' | 'day' | 'agenda';
-  calendarSystem: 'AD' | 'BS';
+  defaultView: "month" | "week" | "day" | "agenda";
+  calendarSystem: "AD" | "BS";
   showWeekends: boolean;
-  startWeek: 'sunday' | 'monday';
-  timeFormat: '12h' | '24h';
+  startWeek: "sunday" | "monday";
+  timeFormat: "12h" | "24h";
   showHolidays: boolean;
   showEvents: boolean;
   showReminders: boolean;
@@ -117,7 +117,7 @@ export interface CalendarFilter {
  * Recurrence pattern interface
  */
 export interface RecurrencePattern {
-  type: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  type: "daily" | "weekly" | "monthly" | "yearly";
   interval: number; // Every N days/weeks/months/years
   daysOfWeek?: number[]; // For weekly recurrence (0=Sunday, 6=Saturday)
   dayOfMonth?: number; // For monthly recurrence
@@ -161,6 +161,6 @@ export interface CalendarImportResult {
     line?: number;
     entry?: string;
     error?: string;
-    status: 'imported' | 'skipped' | 'error';
+    status: "imported" | "skipped" | "error";
   }>;
 }

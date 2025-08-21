@@ -6,11 +6,15 @@
  * =============================================================================
  */
 
-import { z } from 'zod';
-import { CommonValidation, BaseEntitySchema, MetadataSchema } from '../common/base.schemas';
-import { UserRole } from '../../enums/core/user-roles.enum';
-import { SessionStatus } from '../../enums/auth/session-status.enum';
-import { UserStatus } from '../../enums/core/user-status.enum';
+import { z } from "zod";
+import {
+  CommonValidation,
+  BaseEntitySchema,
+  MetadataSchema,
+} from "../common/base.schemas";
+import { UserRole } from "../../enums/core/user-roles.enum";
+import { SessionStatus } from "../../enums/auth/session-status.enum";
+import { UserStatus } from "../../enums/core/user-status.enum";
 
 /**
  * =============================================================================
@@ -21,25 +25,23 @@ import { UserStatus } from '../../enums/core/user-status.enum';
 /**
  * Email or phone identifier validation
  */
-const identifierSchema = z.string()
-  .min(1, 'Email or phone is required')
-  .refine(
-    (value) => {
-      // Check if it's a valid email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      // Check if it's a valid phone number (must be at least 10 digits total)
-      const phoneRegex = /^\+?[1-9]\d{9,14}$/;
-      return emailRegex.test(value) || phoneRegex.test(value);
-    },
-    'Must be a valid email address or phone number'
-  );
+const identifierSchema = z
+  .string()
+  .min(1, "Email or phone is required")
+  .refine((value) => {
+    // Check if it's a valid email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Check if it's a valid phone number (must be at least 10 digits total)
+    const phoneRegex = /^\+?[1-9]\d{9,14}$/;
+    return emailRegex.test(value) || phoneRegex.test(value);
+  }, "Must be a valid email address or phone number");
 
 /**
  * Login request schema
  */
 export const LoginRequestSchema = z.object({
   identifier: identifierSchema,
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().min(1, "Password is required"),
   remember_me: z.boolean().optional().default(false),
 });
 
@@ -60,10 +62,10 @@ export const LoginUserSchema = z.object({
  * Login response schema
  */
 export const LoginResponseSchema = z.object({
-  access_token: z.string().min(1, 'Access token is required'),
-  refresh_token: z.string().min(1, 'Refresh token is required'),
-  expires_in: z.number().int().positive('Expires in must be positive'),
-  token_type: z.string().default('Bearer'),
+  access_token: z.string().min(1, "Access token is required"),
+  refresh_token: z.string().min(1, "Refresh token is required"),
+  expires_in: z.number().int().positive("Expires in must be positive"),
+  token_type: z.string().default("Bearer"),
   user: LoginUserSchema,
 });
 
@@ -89,11 +91,17 @@ export const RegisterUserSchema = z.object({
 export const RegisterRequestSchema = z.object({
   user: RegisterUserSchema,
   role: z.enum([UserRole.STUDENT, UserRole.PARENT], {
-    errorMap: () => ({ message: 'Only student and parent roles can self-register' }),
+    errorMap: () => ({
+      message: "Only student and parent roles can self-register",
+    }),
   }),
   metadata: MetadataSchema,
-  terms_accepted: z.boolean().refine(val => val === true, 'Terms and conditions must be accepted'),
-  privacy_accepted: z.boolean().refine(val => val === true, 'Privacy policy must be accepted'),
+  terms_accepted: z
+    .boolean()
+    .refine((val) => val === true, "Terms and conditions must be accepted"),
+  privacy_accepted: z
+    .boolean()
+    .refine((val) => val === true, "Privacy policy must be accepted"),
 });
 
 /**
@@ -127,38 +135,34 @@ export const RequestPasswordResetSchema = z.object({
 /**
  * Password reset confirmation schema
  */
-export const PasswordResetSchema = z.object({
-  token: z.string().min(1, 'Reset token is required'),
-  new_password: CommonValidation.password,
-  confirm_password: z.string().min(1, 'Password confirmation is required'),
-}).refine(
-  (data) => data.new_password === data.confirm_password,
-  {
-    message: 'Passwords do not match',
-    path: ['confirm_password'],
-  }
-);
+export const PasswordResetSchema = z
+  .object({
+    token: z.string().min(1, "Reset token is required"),
+    new_password: CommonValidation.password,
+    confirm_password: z.string().min(1, "Password confirmation is required"),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: "Passwords do not match",
+    path: ["confirm_password"],
+  });
 
 /**
  * Change password schema (for authenticated users)
  */
-export const ChangePasswordSchema = z.object({
-  current_password: z.string().min(1, 'Current password is required'),
-  new_password: CommonValidation.password,
-  confirm_password: z.string().min(1, 'Password confirmation is required'),
-}).refine(
-  (data) => data.new_password === data.confirm_password,
-  {
-    message: 'Passwords do not match',
-    path: ['confirm_password'],
-  }
-).refine(
-  (data) => data.current_password !== data.new_password,
-  {
-    message: 'New password must be different from current password',
-    path: ['new_password'],
-  }
-);
+export const ChangePasswordSchema = z
+  .object({
+    current_password: z.string().min(1, "Current password is required"),
+    new_password: CommonValidation.password,
+    confirm_password: z.string().min(1, "Password confirmation is required"),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: "Passwords do not match",
+    path: ["confirm_password"],
+  })
+  .refine((data) => data.current_password !== data.new_password, {
+    message: "New password must be different from current password",
+    path: ["new_password"],
+  });
 
 /**
  * =============================================================================
@@ -170,16 +174,16 @@ export const ChangePasswordSchema = z.object({
  * Refresh token request schema
  */
 export const RefreshTokenRequestSchema = z.object({
-  refresh_token: z.string().min(1, 'Refresh token is required'),
+  refresh_token: z.string().min(1, "Refresh token is required"),
 });
 
 /**
  * Refresh token response schema
  */
 export const RefreshTokenResponseSchema = z.object({
-  access_token: z.string().min(1, 'Access token is required'),
-  expires_in: z.number().int().positive('Expires in must be positive'),
-  token_type: z.string().default('Bearer'),
+  access_token: z.string().min(1, "Access token is required"),
+  expires_in: z.number().int().positive("Expires in must be positive"),
+  token_type: z.string().default("Bearer"),
 });
 
 /**
@@ -203,8 +207,8 @@ export const MeResponseSchema = z.object({
 export const SessionSchema = BaseEntitySchema.extend({
   user_id: CommonValidation.uuid,
   status: z.nativeEnum(SessionStatus),
-  ip_address: z.string().ip('Invalid IP address'),
-  user_agent: z.string().max(500, 'User agent too long'),
+  ip_address: z.string().ip("Invalid IP address"),
+  user_agent: z.string().max(500, "User agent too long"),
   last_activity: z.date(),
   expires_at: z.date(),
   refresh_token_hash: z.string().optional(),
@@ -220,7 +224,7 @@ export const SessionSchema = BaseEntitySchema.extend({
  * Email verification schema
  */
 export const EmailVerificationSchema = z.object({
-  token: z.string().min(1, 'Verification token is required'),
+  token: z.string().min(1, "Verification token is required"),
   email: CommonValidation.email,
 });
 
@@ -228,7 +232,7 @@ export const EmailVerificationSchema = z.object({
  * Phone verification schema
  */
 export const PhoneVerificationSchema = z.object({
-  token: z.string().length(6, 'Verification code must be 6 digits'),
+  token: z.string().length(6, "Verification code must be 6 digits"),
   phone: CommonValidation.phone,
 });
 
@@ -237,7 +241,7 @@ export const PhoneVerificationSchema = z.object({
  */
 export const ResendVerificationSchema = z.object({
   identifier: identifierSchema,
-  type: z.enum(['email', 'phone']),
+  type: z.enum(["email", "phone"]),
 });
 
 /**
@@ -271,17 +275,16 @@ export const LogoutResponseSchema = z.object({
 /**
  * Force password change schema (when user must change password)
  */
-export const ForceChangePasswordSchema = z.object({
-  temp_token: z.string().min(1, 'Temporary token is required'),
-  new_password: CommonValidation.password,
-  confirm_password: z.string().min(1, 'Password confirmation is required'),
-}).refine(
-  (data) => data.new_password === data.confirm_password,
-  {
-    message: 'Passwords do not match',
-    path: ['confirm_password'],
-  }
-);
+export const ForceChangePasswordSchema = z
+  .object({
+    temp_token: z.string().min(1, "Temporary token is required"),
+    new_password: CommonValidation.password,
+    confirm_password: z.string().min(1, "Password confirmation is required"),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: "Passwords do not match",
+    path: ["confirm_password"],
+  });
 
 /**
  * =============================================================================
@@ -293,7 +296,7 @@ export const ForceChangePasswordSchema = z.object({
  * Enable 2FA schema
  */
 export const Enable2FASchema = z.object({
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().min(1, "Password is required"),
   backup_codes: z.array(z.string()).optional(),
 });
 
@@ -301,7 +304,7 @@ export const Enable2FASchema = z.object({
  * Verify 2FA schema
  */
 export const Verify2FASchema = z.object({
-  code: z.string().length(6, '2FA code must be 6 digits'),
+  code: z.string().length(6, "2FA code must be 6 digits"),
   backup_code: z.string().optional(),
 });
 
@@ -309,8 +312,8 @@ export const Verify2FASchema = z.object({
  * Disable 2FA schema
  */
 export const Disable2FASchema = z.object({
-  password: z.string().min(1, 'Password is required'),
-  code: z.string().length(6, '2FA code must be 6 digits').optional(),
+  password: z.string().min(1, "Password is required"),
+  code: z.string().length(6, "2FA code must be 6 digits").optional(),
   backup_code: z.string().optional(),
 });
 

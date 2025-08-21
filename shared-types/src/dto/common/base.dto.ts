@@ -7,7 +7,7 @@
  * =============================================================================
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Base fields present in all entities
@@ -15,13 +15,13 @@ import { z } from 'zod';
 export interface BaseEntity {
   /** Unique identifier (UUID) */
   id: string;
-  
+
   /** Creation timestamp */
   created_at: Date;
-  
+
   /** Last update timestamp */
   updated_at: Date;
-  
+
   /** Soft delete timestamp (null if not deleted) */
   deleted_at: Date | null;
 }
@@ -44,7 +44,7 @@ export interface BaseUpdateDto {
 /**
  * Zod schema for UUID validation
  */
-export const UuidSchema = z.string().uuid('Invalid UUID format');
+export const UuidSchema = z.string().uuid("Invalid UUID format");
 
 /**
  * Zod schema for date validation
@@ -95,36 +95,44 @@ export type UpdateDto<T> = PartialDto<OmitBaseFields<T>> & {
  */
 export const CommonValidation = {
   /** Email validation */
-  email: z.string().email('Invalid email format').toLowerCase(),
-  
+  email: z.string().email("Invalid email format").toLowerCase(),
+
   /** Phone validation (international format) */
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format'),
-  
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format"),
+
   /** Password validation */
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one lowercase letter, one uppercase letter, and one number'),
-  
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Password must contain at least one lowercase letter, one uppercase letter, and one number",
+    ),
+
   /** Name validation */
-  name: z.string()
-    .min(1, 'Name is required')
-    .max(100, 'Name must be less than 100 characters')
-    .regex(/^[a-zA-Z\s\-'\.]+$/, 'Name can only contain letters, spaces, hyphens, apostrophes, and periods'),
-  
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(100, "Name must be less than 100 characters")
+    .regex(
+      /^[a-zA-Z\s\-'\.]+$/,
+      "Name can only contain letters, spaces, hyphens, apostrophes, and periods",
+    ),
+
   /** Text content validation */
-  text: z.string().min(1, 'Text content is required'),
-  
+  text: z.string().min(1, "Text content is required"),
+
   /** Optional text validation */
   optionalText: z.string().optional().nullable(),
-  
+
   /** URL validation */
-  url: z.string().url('Invalid URL format'),
-  
+  url: z.string().url("Invalid URL format"),
+
   /** Positive number validation */
-  positiveNumber: z.number().positive('Must be a positive number'),
-  
+  positiveNumber: z.number().positive("Must be a positive number"),
+
   /** Non-negative number validation */
-  nonNegativeNumber: z.number().min(0, 'Must be zero or positive'),
+  nonNegativeNumber: z.number().min(0, "Must be zero or positive"),
 } as const;
 
 /**

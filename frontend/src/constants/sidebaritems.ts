@@ -102,11 +102,6 @@ export const sidebarItems = {
       title: 'REPORTS & ANALYTICS',
       items: [
         {
-          label: 'Events',
-          icon: 'CalendarEvent',
-          path: '/dashboard/admin/reports/events',
-        },
-        {
           label: 'Reports',
           icon: 'FileText',
           path: '/dashboard/admin/reports/report',
@@ -167,6 +162,11 @@ export const sidebarItems = {
           icon: 'ClipboardCheck',
           path: '/dashboard/teacher/academics/results',
         },
+        {
+          label: 'Academic Calendar',
+          icon: 'Calendar',
+          path: '/dashboard/teacher/academics/calendar',
+        },
       ],
     },
     {
@@ -211,6 +211,11 @@ export const sidebarItems = {
           path: '/dashboard/student/exams',
         },
         {
+          label: 'Academic Calendar',
+          icon: 'Calendar',
+          path: '/dashboard/student/academics/calendar',
+        },
+        {
           label: 'Notices',
           icon: 'Megaphone',
           path: '/dashboard/student/notices',
@@ -247,6 +252,11 @@ export const sidebarItems = {
           label: 'Exams',
           icon: 'ClipboardList',
           path: '/dashboard/parent/exams',
+        },
+        {
+          label: 'Academic Calendar',
+          icon: 'Calendar',
+          path: '/dashboard/parent/academics/calendar',
         },
         {
           label: 'Notices',
