@@ -21,7 +21,7 @@ import ClassEditModal from '@/components/organisms/modals/ClassEditModal';
 import ClassDeleteModal from '@/components/organisms/modals/ClassDeleteModal';
 import ClassSearchFilter from '@/components/molecules/filters/ClassSearchFilter';
 import ClassViewModal from '@/components/organisms/modals/ClassViewModal';
-import SimpleTabs from '@/components/molecules/navigation/SimpleTabs';
+import GenericTabs from '@/components/organisms/tabs/GenericTabs';
 
 // Define the Class type for the component
 interface Class extends BaseItem {
@@ -539,17 +539,69 @@ const ClassesPage = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentClasses = filteredClasses.slice(startIndex, endIndex);
 
-  // Tab configuration
+  // Tab configuration for GenericTabs
   const tabs = [
     {
-      id: 'classes',
-      label: 'Classes',
+      name: 'Classes',
       icon: <School className='h-4 w-4 mr-2' />,
+      content: (
+        <>
+          {/* Action Buttons */}
+          <div className='flex justify-end mb-4'>
+            <ActionButtons
+              pageType='classes'
+              onRefresh={loadClasses}
+              onAddNew={() => setIsFormModalOpen(true)}
+            />
+          </div>
+
+          {/* Search & Filter Component */}
+          <ClassSearchFilter
+            onFilterChange={handleFilterChange}
+            initialFilters={filters}
+            className='mb-6'
+          />
+
+          {/* Class Directory */}
+          <div className='bg-white p-4 rounded-lg shadow'>
+            <h2 className='text-lg font-semibold text-gray-800 mb-4'>
+              Class Directory
+            </h2>
+            <GenericTable
+              data={currentClasses}
+              columns={classColumns}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredClasses.length}
+              itemsPerPage={itemsPerPage}
+              emptyMessage='No classes found matching your criteria'
+              onPageChange={handlePageChange}
+              onItemAction={handleClassAction}
+            />
+          </div>
+        </>
+      ),
     },
     {
-      id: 'schedule-builder',
-      label: 'Schedule Builder',
+      name: 'Schedule Builder',
       icon: <Clock className='h-4 w-4 mr-2' />,
+      content: (
+        <div>
+          {/* Integrated Schedule Builder */}
+          <div className='bg-white rounded-lg shadow'>
+            <div className='p-0'>
+              {/* We're using the custom schedule builder component */}
+              <div className='w-full'>
+                {/* Using dynamic import to avoid server-side rendering issues with Zustand store */}
+                {(() => {
+                  const { ScheduleBuilder } = require('@/components/schedule');
+                  return <ScheduleBuilder />;
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
     },
   ];
 
@@ -631,77 +683,10 @@ const ClassesPage = () => {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs & Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8'>
         <div className='max-w-7xl mx-auto'>
-          <SimpleTabs
-            tabs={tabs}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-          />
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
-        <div className='max-w-7xl mx-auto'>
-          {activeTab === 0 && (
-            <>
-              {/* Action Buttons */}
-              <div className='flex justify-end mb-4'>
-                <ActionButtons
-                  pageType='classes'
-                  onRefresh={loadClasses}
-                  onAddNew={() => setIsFormModalOpen(true)}
-                />
-              </div>
-
-              {/* Search & Filter Component */}
-              <ClassSearchFilter
-                onFilterChange={handleFilterChange}
-                initialFilters={filters}
-                className='mb-6'
-              />
-
-              {/* Class Directory */}
-              <div className='bg-white p-4 rounded-lg shadow'>
-                <h2 className='text-lg font-semibold text-gray-800 mb-4'>
-                  Class Directory
-                </h2>
-                <GenericTable
-                  data={currentClasses}
-                  columns={classColumns}
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalItems={filteredClasses.length}
-                  itemsPerPage={itemsPerPage}
-                  emptyMessage='No classes found matching your criteria'
-                  onPageChange={handlePageChange}
-                  onItemAction={handleClassAction}
-                />
-              </div>
-            </>
-          )}
-
-          {activeTab === 1 && (
-            <div>
-              {/* Integrated Schedule Builder */}
-              <div className='bg-white rounded-lg shadow'>
-                <div className='p-0'>
-                  {/* We're using the custom schedule builder component */}
-                  <div className='w-full'>
-                    {/* Using dynamic import to avoid server-side rendering issues with Zustand store */}
-                    {(() => {
-                      const {
-                        ScheduleBuilder,
-                      } = require('@/components/schedule');
-                      return <ScheduleBuilder />;
-                    })()}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <GenericTabs tabs={tabs} defaultIndex={activeTab} />
         </div>
       </div>
 

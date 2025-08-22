@@ -565,11 +565,6 @@ const TeachersPage = () => {
       {/* Main Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
         <div className='max-w-7xl mx-auto'>
-          {/* Action Buttons */}
-          <div className='flex justify-end mb-4'>
-            <ActionButtons pageType='teachers' onRefresh={loadTeachers} />
-          </div>
-
           {/* Enhanced Search & Filter Component */}
           <TeacherSearchFilter
             onFilterChange={handleFilterChange}
@@ -581,9 +576,17 @@ const TeachersPage = () => {
 
           {/* Teacher Directory */}
           <div className='bg-white p-4 rounded-lg shadow'>
-            <h2 className='text-lg font-semibold text-gray-800 mb-4'>
-              Teacher Directory
-            </h2>
+            <div className='flex justify-between items-center mb-4'>
+              <h2 className='text-lg font-semibold text-gray-800 mb-4'>
+                Teacher Directory
+              </h2>
+
+              {/* Action Buttons */}
+              <div className='flex justify-end mb-4'>
+                <ActionButtons pageType='teachers' onRefresh={loadTeachers} />
+              </div>
+            </div>
+
             <GenericTable
               data={currentTeachers}
               columns={getTeacherColumns((action, teacher) =>

@@ -18,6 +18,7 @@ import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { PageLoader } from '@/components/atoms/loading';
 
 interface TeacherSubject {
   subject: {
@@ -49,6 +50,16 @@ export default function TeacherDashboard() {
   const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [classes, setClasses] = useState<TeacherClass[]>([]);
   const [classesLoading, setClassesLoading] = useState(true);
+  const [mainLoading, setMainLoading] = useState(true);
+
+  // Main page loading effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMainLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const loadSubjects = useCallback(async () => {
     if (!user?.id) {
@@ -152,6 +163,10 @@ export default function TeacherDashboard() {
         ? Calculator
         : BookOpen,
   }));
+
+  if (mainLoading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='min-h-screen bg-background'>

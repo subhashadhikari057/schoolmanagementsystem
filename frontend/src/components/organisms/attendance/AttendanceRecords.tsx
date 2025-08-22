@@ -10,6 +10,7 @@ interface AttendanceRecord {
   total: number;
   date: string;
   isToday?: boolean;
+  routeDate?: string;
 }
 
 interface AttendanceRecordsProps {
@@ -22,9 +23,9 @@ export default function AttendanceRecords({
   className,
 }: AttendanceRecordsProps) {
   // Helper function to create URL-friendly date strings
-  const getDateSlug = (date: string) => {
-    if (date === 'Today') return 'today';
-    return date
+  const getDateSlug = (record: AttendanceRecord) => {
+    if (record.isToday && record.routeDate) return record.routeDate;
+    return record.date
       .toLowerCase()
       .replace(/[,\s]/g, '-')
       .replace(/[st|nd|rd|th]/g, '');
@@ -47,7 +48,7 @@ export default function AttendanceRecords({
         {records.map(record => (
           <Link
             key={record.id}
-            href={`/dashboard/teacher/academics/attendance/${getDateSlug(record.date)}`}
+            href={`/dashboard/teacher/academics/attendance/${getDateSlug(record)}`}
             className='block'
           >
             <div className='bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer'>

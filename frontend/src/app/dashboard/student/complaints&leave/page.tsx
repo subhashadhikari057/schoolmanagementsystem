@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Tabs from '@/components/organisms/tabs/GenericTabs';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import {
@@ -15,6 +15,7 @@ import Button from '@/components/atoms/form-controls/Button';
 import StatusBadge from '@/components/atoms/data/StatusBadge';
 // Removed Panel import
 import { useRouter } from 'next/navigation';
+import { PageLoader } from '@/components/atoms/loading';
 
 // Mock data for complaints
 const mockComplaints = [
@@ -253,7 +254,17 @@ export const ComplaintsAndLeavePage = () => {
   const [modalType, setModalType] = useState<'complaint' | 'leave'>('leave');
   const [complaints, setComplaints] = useState(mockComplaints);
   const [leaveRequests, setLeaveRequests] = useState(mockLeaveRequests);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1300);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Tab content with approved/unapproved sections
   // Custom card list for complaints and leave requests
@@ -401,6 +412,10 @@ export const ComplaintsAndLeavePage = () => {
     }
   };
 
+  if (loading) {
+    return <PageLoader />;
+  }
+
   return (
     <div className='p-4 sm:p-6'>
       <Modal
@@ -410,7 +425,7 @@ export const ComplaintsAndLeavePage = () => {
         onSubmit={handleSubmit}
       />
       <div className='mb-6'>
-        <SectionTitle text='Requests' className='mb-1' />
+        <SectionTitle text='Requests' className='mb-1 text-2xl font-bold' />
         <p className='text-gray-500'>Manage complaints and leave requests</p>
       </div>
       {/* Stats Overview */}
@@ -430,7 +445,7 @@ export const ComplaintsAndLeavePage = () => {
       </div>
       {/* Quick Actions */}
       <div className='mb-6'>
-        <h2 className='text-lg font-medium mb-4'>Quick Actions</h2>
+        <h2 className='text-2xl font-bold mb-4'>Quick Actions</h2>
         <div className='flex flex-col sm:flex-row gap-4'>
           <div className='rounded-lg p-2 sm:p-4 w-full'>
             <button
@@ -479,7 +494,7 @@ export const ComplaintsAndLeavePage = () => {
         </div>
         {/* Overview */}
         <div className='mb-6'>
-          <h2 className='text-lg font-medium mb-4'>Overview</h2>
+          <h2 className='text-xl font-semibold mb-4'>Overview</h2>
           <Tabs tabs={tabs} defaultIndex={activeTab} />
         </div>
       </div>

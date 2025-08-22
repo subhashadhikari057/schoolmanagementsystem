@@ -108,7 +108,7 @@ export const ComplaintsAndLeavePage = () => {
   return (
     <div className='p-4 sm:p-6'>
       <div className='mb-6'>
-        <SectionTitle text='Requests' className='mb-1' />
+        <SectionTitle text='Requests' className='mb-1 text-3xl font-bold' />
         <p className='text-gray-500'>Manage complaints and leave requests</p>
       </div>
 
@@ -126,7 +126,7 @@ export const ComplaintsAndLeavePage = () => {
 
       {/* Quick Actions */}
       <div className='mb-6'>
-        <h2 className='text-lg font-medium mb-4'>Quick Actions</h2>
+        <h2 className='text-2xl font-bold mb-4'>Quick Actions</h2>
         <div className='rounded-lg p-4 w-full'>
           <button
             type='button'
@@ -152,7 +152,7 @@ export const ComplaintsAndLeavePage = () => {
 
         {/* Overview */}
         <div className='mb-6'>
-          <h2 className='text-lg font-medium mb-4'>Overview</h2>
+          <h2 className='text-xl font-semibold mb-4'>Overview</h2>
           <Tabs tabs={tabs} defaultIndex={activeTab} />
         </div>
       </div>

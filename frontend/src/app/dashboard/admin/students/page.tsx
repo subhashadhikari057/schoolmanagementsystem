@@ -447,11 +447,14 @@ const StudentsPage = () => {
 
           {/* Student List */}
           <div className='bg-white p-4 rounded-lg shadow'>
-            <div className='flex justify-between items-center mb-4'>
+            <div className='flex items-center mb-4'>
               <h2 className='text-lg font-semibold text-gray-800'>
                 Student Directory
               </h2>
-              <ActionButtons pageType='students' onRefresh={loadStudents} />
+              <div className='flex-1'></div>
+              <div className='flex items-center gap-2'>
+                <ActionButtons pageType='students' onRefresh={loadStudents} />
+              </div>
             </div>
 
             {isLoading ? (

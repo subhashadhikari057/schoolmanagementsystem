@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Avatar from '@/components/atoms/display/Avatar';
 import { useAuth } from '@/hooks/useAuth';
 import ChildSwitcher from '../../../components/atoms/display/ChildSwitcher';
@@ -8,6 +8,7 @@ import ChildSummaryCards from '../../../components/atoms/display/ChildSummaryCar
 import NoticesList from '../../../components/atoms/display/NoticesList';
 import NotificationPanel from '@/components/organisms/dashboard/NotificationPanel';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
+import { PageLoader } from '@/components/atoms/loading';
 
 // Mock children data
 const children = [
@@ -50,10 +51,25 @@ const notices = [
 
 export default function ParentDashboard() {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const parentName = user?.full_name || user?.email || 'Parent';
   const parentEmail = user?.email || 'parent@email.com';
   const numChildren = children.length;
   const unreadNotices = notices.length;
+
+  if (loading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='min-h-screen bg-background'>

@@ -1,12 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import StudentExamsTab from '@/components/organisms/tabs/StudentExamsTab';
+import { PageLoader } from '@/components/atoms/loading';
 
 export default function StudentExamsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
   return (
     <div className='p-6'>
       <SectionTitle text='My Exams' className='mb-2 text-2xl font-bold' />

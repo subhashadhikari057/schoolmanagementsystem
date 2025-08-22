@@ -6,17 +6,28 @@ import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import ParentNoticesTab from '@/components/organisms/tabs/ParentNoticesTab';
 import { noticeService } from '@/api/services/notice.service';
+import { PageLoader } from '@/components/atoms/loading';
 
 export default function ParentNoticesPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [mainLoading, setMainLoading] = useState(true);
   const [stats, setStats] = useState({
     totalNotices: 0,
     unreadNotices: 0,
     thisWeekNotices: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  // Main page loading effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMainLoading(false);
+    }, 1300);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch notice statistics
   useEffect(() => {
@@ -83,6 +94,10 @@ export default function ParentNoticesPage() {
       };
     }
   }, []);
+
+  if (mainLoading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='min-h-screen bg-gray-50'>

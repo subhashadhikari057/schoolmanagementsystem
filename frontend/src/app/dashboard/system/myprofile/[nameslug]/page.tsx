@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Tabs from '@/components/organisms/tabs/GenericTabs';
 import ProfileSettings from '@/components/organisms/tabs/ProfileSettings';
@@ -9,11 +9,27 @@ import { UserProfileHeader } from '@/components/organisms/modals/UserProfileModa
 import NotificationPreferences from '@/components/organisms/tabs/NotificationPreferences';
 import AccountActivity from '@/components/organisms/tabs/AccountActivity';
 import { useAuth } from '@/hooks/useAuth';
+import { PageLoader } from '@/components/atoms/loading';
 
 const MyAccountPage = () => {
   const params = useParams();
   const { user } = useAuth();
   const userId = params?.nameslug as string;
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time for profile data
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show loading state first, then verify access
+  if (loading) {
+    return <PageLoader />;
+  }
 
   // Verify that the user is accessing their own profile
   if (user && user.id !== userId) {
@@ -47,6 +63,10 @@ const MyAccountPage = () => {
       content: <AccountActivity />,
     },
   ];
+
+  if (loading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='min-h-screen bg-background'>

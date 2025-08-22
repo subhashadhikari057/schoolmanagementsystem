@@ -16,7 +16,9 @@ interface SubjectTeacher {
   teacher: string;
 }
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { PageLoader } from '@/components/atoms/loading';
+import { useRouter } from 'next/navigation';
 import Panel from '@/components/organisms/dashboard/UpcomingEventsPanel';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import Button from '@/components/atoms/form-controls/Button';
@@ -145,7 +147,9 @@ const assignedSubjects = subjects.map(subjectItem => ({
       ? Calculator
       : BookOpen,
 }));
-export default function page() {
+export default function Page() {
+  const [loading, setLoading] = useState(true);
+
   // Mock student info, replace with real user context if available
   const student = {
     name: 'Arjun Kumar Sharma',
@@ -153,6 +157,20 @@ export default function page() {
     section: 'A',
     rollNumber: '2024001',
   };
+  const router = useRouter();
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='min-h-screen bg-background'>
@@ -192,16 +210,15 @@ export default function page() {
               </Label>
             </div>
             <div className='px-3 pb-3'>
-              <div className='bg-blue-600/90 text-white rounded-md py-2 text-center shadow-sm hover:bg-blue-400'>
-                <div className='flex items-center justify-center px-3'>
-                  <Button
-                    className=' text-white  rounded-md text-xs cursor-pointer font-semibold'
-                    label='View Task'
-                    onClick={() =>
-                      alert('Attendance tracking not implemented yet')
-                    }
-                  />
-                </div>
+              <div
+                className='bg-blue-600/90 text-white rounded-md py-2 text-center shadow-sm hover:bg-blue-400 cursor-pointer flex items-center justify-center px-3'
+                onClick={() =>
+                  router.push('/dashboard/student/assignments?filter=pending')
+                }
+              >
+                <span className='w-full font-semibold text-white text-xs'>
+                  View Task
+                </span>
               </div>
             </div>
           </div>
@@ -214,9 +231,12 @@ export default function page() {
                 level={3}
                 className='text-sm font-semibold text-gray-700'
               />
-              <Label className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'>
+              <span
+                className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'
+                onClick={() => router.push('/dashboard/student/subjects')}
+              >
                 View All
-              </Label>
+              </span>
             </div>
             <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3'>
               {classes.map(item => {
@@ -263,13 +283,16 @@ export default function page() {
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
               <SectionTitle
-                text='Upcoming Assignments'
+                text='My Assignments'
                 level={3}
                 className='text-sm font-semibold text-gray-700'
               />
-              <Label className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'>
+              <span
+                className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'
+                onClick={() => router.push('/dashboard/student/assignments')}
+              >
                 View All
-              </Label>
+              </span>
             </div>
             <Statsgrid
               variant='assignments'

@@ -9,6 +9,7 @@ import ChildInfoCard from '@/components/atoms/display/ChildInfoCard';
 import ChildSummaryCards from '@/components/atoms/display/ChildSummaryCards';
 import NoticesList from '@/components/atoms/display/NoticesList';
 import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
+import { PageLoader } from '@/components/atoms/loading';
 
 // Mock children data
 const children = [
@@ -33,6 +34,8 @@ const children = [
 const DEFAULT_CHILD_KEY = 'parent_default_child';
 
 export default function MyChildrenPage() {
+  const [loading, setLoading] = useState(true);
+
   // Load default child from localStorage
   const [activeChildId, setActiveChildId] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -47,12 +50,25 @@ export default function MyChildrenPage() {
     }
   }, [activeChildId]);
 
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1400);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const setDefaultChild = (id: string) => {
     setActiveChildId(id);
     if (typeof window !== 'undefined') {
       localStorage.setItem(DEFAULT_CHILD_KEY, id);
     }
   };
+
+  if (loading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='p-6 space-y-6'>
