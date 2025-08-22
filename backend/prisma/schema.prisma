@@ -61,6 +61,7 @@ model Subject {
   assignments        Assignment[]
   assignedClasses    ClassSubject[]
   teacherAssignments TeacherSubject[] @relation("SubjectTeacherAssignments")
+  scheduleSlots      ScheduleSlot[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -69,28 +70,31 @@ model Subject {
 }
 
 model Class {
-  id                 String         @id @default(uuid())
+  id                 String          @id @default(uuid())
   name               String?
   grade              Int
   section            String
   capacity           Int
-  currentEnrollment  Int            @default(0)
-  shift              ClassShift     @default(MORNING)
-  status             String         @default("active")
+  currentEnrollment  Int             @default(0)
+  shift              ClassShift      @default(MORNING)
+  status             String          @default("active")
   roomId             String
   classTeacherId     String
-  createdAt          DateTime       @default(now())
+  createdAt          DateTime        @default(now())
   updatedAt          DateTime?
   deletedAt          DateTime?
-  createdById        String?        @db.Uuid
-  updatedById        String?        @db.Uuid
-  deletedById        String?        @db.Uuid
+  createdById        String?         @db.Uuid
+  updatedById        String?         @db.Uuid
+  deletedById        String?         @db.Uuid
   assignments        Assignment[]
-  classTeacher       Teacher?       @relation("ClassTeacher", fields: [classTeacherId], references: [id])
-  room               Classroom      @relation(fields: [roomId], references: [id])
+  classTeacher       Teacher?        @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  room               Classroom       @relation(fields: [roomId], references: [id])
   assignedSubjects   ClassSubject[]
   students           Student[]
-  teacherAssignments TeacherClass[] @relation("ClassTeacherAssignments")
+
+  teacherAssignments TeacherClass[]  @relation("ClassTeacherAssignments")
+  timeslots          ClassTimeslot[]
+  schedules          ClassSchedule[]
   notices            Notice[] @relation("NoticeClass")
 
   @@index([createdById])
@@ -102,22 +106,23 @@ model Class {
 }
 
 model Classroom {
-  id          String    @id @default(uuid())
-  roomNo      String    @unique
+  id          String         @id @default(uuid())
+  roomNo      String         @unique
   name        String?
-  capacity    Int       @default(30)
-  floor       Int       @default(1)
+  capacity    Int            @default(30)
+  floor       Int            @default(1)
   building    String?
   note        String?
-  status      String    @default("active")
-  isAvailable Boolean   @default(true)
-  createdAt   DateTime  @default(now())
+  status      String         @default("active")
+  isAvailable Boolean        @default(true)
+  createdAt   DateTime       @default(now())
   updatedAt   DateTime?
   deletedAt   DateTime?
-  createdById String?   @db.Uuid
-  updatedById String?   @db.Uuid
-  deletedById String?   @db.Uuid
+  createdById String?        @db.Uuid
+  updatedById String?        @db.Uuid
+  deletedById String?        @db.Uuid
   classes     Class[]
+  scheduleSlots ScheduleSlot[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -344,6 +349,7 @@ model Teacher {
   profile            TeacherProfile?
   salaryHistory      TeacherSalaryHistory[]
   subjectAssignments TeacherSubject[]      @relation("TeacherSubjectAssignments")
+  scheduleSlots      ScheduleSlot[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -655,6 +661,101 @@ enum SalaryChangeType {
   PROMOTION
   DEMOTION
   ADJUSTMENT
+}
+
+enum TimeslotType {
+  REGULAR
+  BREAK
+  LUNCH
+  ACTIVITY
+  STUDY_HALL
+  FREE_PERIOD
+}
+
+model ClassTimeslot {
+  id          String        @id @default(uuid())
+  classId     String
+  day         String
+  startTime   String
+  endTime     String
+  type        TimeslotType  @default(REGULAR)
+  label       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime?
+  deletedAt   DateTime?
+  createdById String?       @db.Uuid
+  updatedById String?       @db.Uuid
+  deletedById String?       @db.Uuid
+  class       Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  scheduleSlots ScheduleSlot[]
+
+  @@index([classId])
+  @@index([day])
+  @@index([type])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  // Removed unique constraint to allow multiple timeslots per day for the same class
+}
+
+model ClassSchedule {
+  id            String        @id @default(uuid())
+  classId       String
+  name          String
+  academicYear  String
+  startDate     DateTime
+  endDate       DateTime
+  effectiveFrom DateTime
+  status        String        @default("draft")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdById   String?       @db.Uuid
+  updatedById   String?       @db.Uuid
+  deletedById   String?       @db.Uuid
+  class         Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  scheduleSlots ScheduleSlot[]
+
+  @@index([classId])
+  @@index([academicYear])
+  @@index([status])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+  @@unique([classId, status], name: "unique_active_schedule_per_class", map: "ClassSchedule_classId_status_key")
+}
+
+model ScheduleSlot {
+  id          String       @id @default(uuid())
+  scheduleId  String
+  timeslotId  String
+  day         String
+  subjectId   String?
+  teacherId   String?
+  roomId      String?
+  type        TimeslotType @default(REGULAR)
+  hasConflict Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime?
+  deletedAt   DateTime?
+  createdById String?      @db.Uuid
+  updatedById String?      @db.Uuid
+  deletedById String?      @db.Uuid
+  schedule    ClassSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  timeslot    ClassTimeslot @relation(fields: [timeslotId], references: [id], onDelete: Cascade)
+  subject     Subject?     @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  teacher     Teacher?     @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  room        Classroom?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  @@index([scheduleId])
+  @@index([timeslotId])
+  @@index([day])
+  @@index([subjectId])
+  @@index([teacherId])
+  @@index([roomId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
 }
 
 model TeacherSalaryHistory {

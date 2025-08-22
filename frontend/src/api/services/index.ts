@@ -18,3 +18,4 @@ export * from './student.service';
 export * from './submission.service';
 export * from './subject.service';
 export * from './teacher.service';
+export * from './schedule.service';
