@@ -191,6 +191,11 @@ export class NoticeService {
    * Get a single notice by ID
    */
   async findOne(id: string) {
+    // Guard against invalid IDs early
+    if (!id) {
+      throw new BadRequestException('Notice ID is required');
+    }
+
     const notice = await this.prisma.notice.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -221,12 +226,16 @@ export class NoticeService {
     });
 
     if (!notice) {
-      throw new NotFoundException('Notice not found');
+      throw new NotFoundException(`Notice with id ${id} not found`);
     }
+
+    // Ensure attachments is always an array (even if null)
+    const safeAttachments = notice.attachments || [];
 
     return {
       ...notice,
-      recipientCount: notice._count.recipients,
+      attachments: safeAttachments,
+      recipientCount: notice._count?.recipients || 0,
       _count: undefined,
     };
   }

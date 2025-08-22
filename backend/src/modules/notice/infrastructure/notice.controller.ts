@@ -117,11 +117,15 @@ export class NoticeController {
     // For non-admin users, check if they are a recipient
     if (
       ![UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER].includes(
-        (user.roles as UserRole[])[0],
+        (user.roles as UserRole[])?.[0],
       )
     ) {
-      const isRecipient = notice.recipients.some(
-        recipient => recipient.userId === user.id,
+      // Ensure recipients array exists before accessing it
+      const recipients = Array.isArray(notice.recipients)
+        ? notice.recipients
+        : [];
+      const isRecipient = recipients.some(
+        recipient => recipient && recipient.userId === user.id,
       );
       if (!isRecipient) {
         throw new Error('Access denied');
