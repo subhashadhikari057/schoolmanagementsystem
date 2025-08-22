@@ -107,32 +107,9 @@ export class NoticeController {
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: Record<string, unknown>,
-  ) {
-    // Check if user has access to this notice
-    const notice = await this.noticeService.findOne(id);
-
-    // For non-admin users, check if they are a recipient
-    if (
-      ![UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER].includes(
-        (user.roles as UserRole[])?.[0],
-      )
-    ) {
-      // Ensure recipients array exists before accessing it
-      const recipients = Array.isArray(notice.recipients)
-        ? notice.recipients
-        : [];
-      const isRecipient = recipients.some(
-        recipient => recipient && recipient.userId === user.id,
-      );
-      if (!isRecipient) {
-        throw new Error('Access denied');
-      }
-    }
-
-    return notice;
+  async findOne(@Param('id') id: string) {
+    // No role checks here - simply retrieve the notice by ID
+    return await this.noticeService.findOne(id);
   }
 
   @Patch(':id')

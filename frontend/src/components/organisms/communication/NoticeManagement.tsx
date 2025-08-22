@@ -165,7 +165,7 @@ const NoticeManagement: React.FC = () => {
         params.priority = priorityFilter;
       }
 
-      const res = await noticeService.getMyNotices(params);
+      const res = await noticeService.getAllNotices(params);
       if (res.success && res.data) {
         setTotalItems(res.data.pagination.total);
         setTotalPages(res.data.pagination.pages);
@@ -305,7 +305,7 @@ const NoticeManagement: React.FC = () => {
           render: (item: Row) => (
             <div>
               <div className='font-semibold'>{item.title}</div>
-              <div className='text-gray-500 text-xs line-clamp-2'>
+              <div className='text-gray-500 text-xs truncate max-w-xs'>
                 {item.content}
               </div>
               <div className='text-xs text-gray-400 mt-1'>
@@ -316,20 +316,12 @@ const NoticeManagement: React.FC = () => {
         },
         {
           key: 'recipients',
-          header: 'Recipients & Reach',
+          header: 'Recipients ',
           render: (item: Row) => (
             <div className='text-xs'>
               <div className='uppercase'>{item.recipients}</div>
               <div className='text-green-600 font-semibold'>
-                {item.read} / {item.total} read
-              </div>
-              <div className='w-28 bg-gray-200 rounded-full h-2 mt-1'>
-                <div
-                  className='bg-green-500 h-2 rounded-full'
-                  style={{
-                    width: `${item.total ? Math.min(100, (item.read / item.total) * 100) : 0}%`,
-                  }}
-                ></div>
+                {item.total} recipients
               </div>
             </div>
           ),
@@ -586,11 +578,17 @@ function NoticeViewModal({
             attachments: n.attachments,
           };
           setDetail(mapped);
+        } else if (!ignore) {
+          // If we get an error response, display an error message
+          toast.error(res.message || 'Failed to load notice details');
+          onClose(); // Close the modal if we can't load the details
         }
       } catch (e) {
         console.error('Failed to load notice details:', e);
+        toast.error('Failed to load notice details. Please try again.');
+        if (!ignore) onClose(); // Close the modal on error
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     };
     load();
