@@ -250,25 +250,25 @@ export default function ChangePasswordModal({
 
   return (
     <div
-      className='fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4'
+      className='fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4'
       onMouseDown={onBackdropClick}
     >
       <div
-        className='bg-white rounded-2xl w-full max-w-md my-8 shadow-2xl animate-in slide-in-from-bottom-4'
+        className='bg-white rounded-2xl w-full max-w-md sm:max-w-md my-8 shadow-2xl animate-in slide-in-from-bottom-4'
         onMouseDown={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className='relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-6 border-b border-gray-100'>
-          <div className='relative flex items-center justify-between'>
-            <div className='flex items-center space-x-3'>
+        <div className='relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-4 sm:p-6 border-b border-gray-100'>
+          <div className='relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'>
+            <div className='flex items-center space-x-3 w-full'>
               <div className='p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg'>
                 <Key size={24} className='text-white' />
               </div>
               <div>
-                <h2 className='text-xl font-bold text-gray-900'>
+                <h2 className='text-lg sm:text-xl font-bold text-gray-900'>
                   Change Password
                 </h2>
-                <p className='text-sm text-gray-600 mt-1'>
+                <p className='text-xs sm:text-sm text-gray-600 mt-1'>
                   Update your password for better security.
                 </p>
               </div>
@@ -276,7 +276,7 @@ export default function ChangePasswordModal({
             <button
               onClick={() => !isSubmitting && onClose()}
               disabled={isSubmitting}
-              className='p-2 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all duration-200 disabled:opacity-50'
+              className='p-2 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all duration-200 disabled:opacity-50 self-end sm:self-auto'
             >
               <X size={20} />
             </button>
@@ -284,8 +284,11 @@ export default function ChangePasswordModal({
         </div>
 
         {/* Content */}
-        <div className='p-6'>
-          <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
+        <div className='p-4 sm:p-6'>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className='space-y-4 sm:space-y-6'
+          >
             <LabeledInput
               label='Current Password'
               type='password'
@@ -319,14 +322,14 @@ export default function ChangePasswordModal({
 
             {/* Live Password Validation */}
             <div
-              className={`mt-4 p-4 rounded-md border ${
+              className={`mt-4 p-3 sm:p-4 rounded-md border ${
                 passwordValidation.isValid
                   ? 'bg-green-50 border-green-200'
                   : 'bg-blue-50 border-blue-200'
               }`}
             >
               <p
-                className={`text-sm font-medium mb-3 ${
+                className={`text-xs sm:text-sm font-medium mb-2 sm:mb-3 ${
                   passwordValidation.isValid
                     ? 'text-green-800'
                     : 'text-blue-800'
@@ -336,7 +339,7 @@ export default function ChangePasswordModal({
                   ? '✅ Password meets all requirements'
                   : 'Password Requirements:'}
               </p>
-              <ul className='list-none space-y-2 text-sm'>
+              <ul className='list-none space-y-1 sm:space-y-2 text-xs sm:text-sm'>
                 {renderValidationItem(
                   passwordValidation.hasMinLength,
                   'At least 8 characters long',
@@ -361,13 +364,13 @@ export default function ChangePasswordModal({
             </div>
 
             {error && (
-              <div className='bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg p-3 text-center'>
+              <div className='bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm rounded-lg p-2 sm:p-3 text-center'>
                 {error}
               </div>
             )}
 
             {/* Actions */}
-            <div className='flex items-center justify-end gap-3 pt-4 border-t border-gray-200'>
+            <div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200'>
               <Btn
                 type='button'
                 variant='outline'

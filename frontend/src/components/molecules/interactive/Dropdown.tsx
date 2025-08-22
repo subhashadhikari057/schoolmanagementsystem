@@ -61,7 +61,7 @@ const getUserRole = (role: string) => {
   if (!role) return 'guest';
 
   const roleMap: Record<string, string> = {
-    SUPER_ADMIN: 'Super Admin',
+    superadmin: 'Super Admin',
     admin: 'Admin',
     teacher: 'Teacher',
     student: 'Student',
@@ -129,12 +129,16 @@ export default function Dropdown({
         onClick: logout,
       },
     ];
-    opts.push({
-      value: 'toggle-analytics',
-      label: showAnalytics ? 'Hide Analytics' : 'Show Analytics',
-      icon: <BarChart2 size={12} />,
-      onClick: toggleAnalytics,
-    });
+    // Normalize role to handle all superadmin variants
+    const normalizedRole = displayUser?.role?.toLowerCase().replace(/_/g, '');
+    if (normalizedRole === 'superadmin') {
+      opts.push({
+        value: 'toggle-analytics',
+        label: showAnalytics ? 'Hide Analytics' : 'Show Analytics',
+        icon: <BarChart2 size={12} />,
+        onClick: toggleAnalytics,
+      });
+    }
     return opts;
   }, [router, displayUser, showAnalytics, toggleAnalytics, logout]);
 
@@ -190,89 +194,93 @@ export default function Dropdown({
   if (type === 'profile') {
     return (
       <>
-        <Menu
+        <div
           className={`relative inline-block text-left w-full ${className || ''}`}
         >
-          {({ open }: { open: boolean }) => (
-            <div className='w-full'>
-              {/* Profile Button */}
-              <Menu.Button
-                className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full min-w-[200px] bg-white border border-gray-200 rounded-lg transition-all ${
-                  open ? 'rounded-b-none shadow-sm' : 'shadow-sm'
-                }`}
-              >
-                <Avatar
-                  name={
-                    displayUser?.full_name || displayUser?.email || 'Guest User'
-                  }
-                  className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
-                  showInitials={true}
-                />
-                <div className='text-left flex-1 min-w-0 hidden sm:block'>
-                  <p className='text-sm font-semibold text-foreground truncate'>
-                    {getUserDisplayName(displayUser)}
-                  </p>
-                  <p className='text-xs text-secondary truncate capitalize'>
-                    {getUserRole(displayUser?.role || '')}
-                  </p>
-                </div>
-                {open ? (
-                  <ChevronUp
-                    size={16}
-                    className='text-secondary ml-auto flex-shrink-0'
+          <Menu>
+            {({ open }: { open: boolean }) => (
+              <div className='w-full'>
+                {/* Profile Button */}
+                <Menu.Button
+                  className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full min-w-[200px] bg-white border border-gray-200 rounded-lg transition-all ${
+                    open ? 'rounded-b-none shadow-sm' : 'shadow-sm'
+                  }`}
+                >
+                  <Avatar
+                    name={
+                      displayUser?.full_name ||
+                      displayUser?.email ||
+                      'Guest User'
+                    }
+                    className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
+                    showInitials={true}
                   />
-                ) : (
-                  <ChevronDown
-                    size={16}
-                    className='text-secondary ml-auto flex-shrink-0'
-                  />
-                )}
-              </Menu.Button>
-
-              {/* Dropdown Menu */}
-              <Transition
-                enter='transition ease-out duration-100'
-                enterFrom='transform opacity-0 -translate-y-1'
-                enterTo='transform opacity-100 translate-y-0'
-                leave='transition ease-in duration-75'
-                leaveFrom='transform opacity-100 translate-y-0'
-                leaveTo='transform opacity-0 -translate-y-1'
-              >
-                <Menu.Items className='absolute top-full left-0 mt-1 w-full min-w-[200px] bg-white border border-gray-200 rounded-b-lg shadow-lg z-50'>
-                  <div className='p-2 space-y-1'>
-                    {currentOptions.map(option => (
-                      <Menu.Item key={option.value}>
-                        {({ active }: { active: boolean }) => (
-                          <button
-                            onClick={option.onClick}
-                            className={`flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-colors ${
-                              active
-                                ? 'bg-gray-100 text-primary font-bold'
-                                : 'text-gray-700 font-normal'
-                            }`}
-                          >
-                            {option.icon && (
-                              <span
-                                className={
-                                  active ? 'text-primary' : 'text-gray-500'
-                                }
-                              >
-                                {option.icon}
-                              </span>
-                            )}
-                            <span className='flex-1 text-left'>
-                              {option.label}
-                            </span>
-                          </button>
-                        )}
-                      </Menu.Item>
-                    ))}
+                  <div className='text-left flex-1 min-w-0'>
+                    <p className='text-sm font-semibold text-foreground truncate'>
+                      {getUserDisplayName(displayUser)}
+                    </p>
+                    <p className='text-xs text-secondary truncate capitalize'>
+                      {getUserRole(displayUser?.role || '')}
+                    </p>
                   </div>
-                </Menu.Items>
-              </Transition>
-            </div>
-          )}
-        </Menu>
+                  {open ? (
+                    <ChevronUp
+                      size={16}
+                      className='text-secondary ml-auto flex-shrink-0'
+                    />
+                  ) : (
+                    <ChevronDown
+                      size={16}
+                      className='text-secondary ml-auto flex-shrink-0'
+                    />
+                  )}
+                </Menu.Button>
+
+                {/* Dropdown Menu */}
+                <Transition
+                  enter='transition ease-out duration-100'
+                  enterFrom='transform opacity-0 -translate-y-1'
+                  enterTo='transform opacity-100 translate-y-0'
+                  leave='transition ease-in duration-75'
+                  leaveFrom='transform opacity-100 translate-y-0'
+                  leaveTo='transform opacity-0 -translate-y-1'
+                >
+                  <Menu.Items className='absolute top-full left-0 mt-1 w-full min-w-[200px] bg-white border border-gray-200 rounded-b-lg shadow-lg z-50'>
+                    <div className='p-2 space-y-1'>
+                      {currentOptions.map(option => (
+                        <Menu.Item key={option.value}>
+                          {({ active }: { active: boolean }) => (
+                            <button
+                              onClick={option.onClick}
+                              className={`flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-colors ${
+                                active
+                                  ? 'bg-gray-100 text-primary font-bold'
+                                  : 'text-gray-700 font-normal'
+                              }`}
+                            >
+                              {option.icon && (
+                                <span
+                                  className={
+                                    active ? 'text-primary' : 'text-gray-500'
+                                  }
+                                >
+                                  {option.icon}
+                                </span>
+                              )}
+                              <span className='flex-1 text-left'>
+                                {option.label}
+                              </span>
+                            </button>
+                          )}
+                        </Menu.Item>
+                      ))}
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </div>
+            )}
+          </Menu>
+        </div>
         <ChangePasswordModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}

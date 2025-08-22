@@ -9,6 +9,7 @@ export const UPLOAD_PATHS = {
   STAFF_PROFILES: 'uploads/staff/profiles',
   PARENT_PROFILES: 'uploads/parents/profiles',
   DOCUMENTS: 'uploads/documents',
+  NOTICE_ATTACHMENTS: 'uploads/notices/attachments',
 } as const;
 
 // Ensure upload directories exist
@@ -18,7 +19,10 @@ Object.values(UPLOAD_PATHS).forEach(path => {
   }
 });
 
-export const createMulterConfig = (destinationPath: string) => ({
+export const createMulterConfig = (
+  destinationPath: string,
+  fileType: 'image' | 'document' = 'image',
+) => ({
   storage: diskStorage({
     destination: (req, file, cb) => {
       if (!existsSync(destinationPath)) {
@@ -29,30 +33,57 @@ export const createMulterConfig = (destinationPath: string) => ({
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
       const fileExtension = extname(file.originalname);
-      const filename = `profile-${uniqueSuffix}${fileExtension}`;
+      const prefix = fileType === 'image' ? 'profile' : 'attachment';
+      const filename = `${prefix}-${uniqueSuffix}${fileExtension}`;
       cb(null, filename);
     },
   }),
-  fileFilter: (req: any, file: any, cb: any) => {
-    // Accept only image files
-    if (file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
-      cb(null, true);
+  fileFilter: (
+    req: Record<string, unknown>,
+    file: Record<string, unknown>,
+    cb: (error: Error | null, acceptFile: boolean) => void,
+  ) => {
+    if (fileType === 'image') {
+      // Accept only image files
+      if ((file.mimetype as string).match(/\/(jpg|jpeg|png|gif|webp)$/)) {
+        cb(null, true);
+      } else {
+        cb(
+          new BadRequestException(
+            'Only image files (jpg, jpeg, png, gif, webp) are allowed!',
+          ),
+          false,
+        );
+      }
     } else {
-      cb(
-        new BadRequestException(
-          'Only image files (jpg, jpeg, png, gif, webp) are allowed!',
-        ),
-        false,
-      );
+      // Accept document and image files
+      if (
+        (file.mimetype as string).match(
+          /\/(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|rtf|jpg|jpeg|png|gif|webp)$/,
+        )
+      ) {
+        cb(null, true);
+      } else {
+        cb(
+          new BadRequestException(
+            'Only document and image files (pdf, doc, docx, xls, xlsx, ppt, pptx, txt, rtf, jpg, jpeg, png, gif, webp) are allowed!',
+          ),
+          false,
+        );
+      }
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: fileType === 'image' ? 5 * 1024 * 1024 : 10 * 1024 * 1024, // 5MB for images, 10MB for documents
   },
 });
 
 export const getFileUrl = (filename: string, folder: string): string => {
-  return `/api/v1/files/${folder}/${filename}`;
+  const base =
+    process.env.PUBLIC_BACKEND_URL ||
+    process.env.API_BASE_URL ||
+    'http://localhost:8080';
+  return `${base.replace(/\/$/, '')}/api/v1/files/${folder}/${filename}`;
 };
 
 export const deleteFile = async (filePath: string): Promise<void> => {
@@ -60,6 +91,7 @@ export const deleteFile = async (filePath: string): Promise<void> => {
   try {
     await fs.unlink(filePath);
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error deleting file:', error);
   }
 };

@@ -15,7 +15,7 @@ export default function QuickActionItems({
       <div className='p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors'>
         <Icon className='w-6 h-6 text-blue-600'>{quickActions.icon}</Icon>
       </div>
-      <span className='text-sm font-medium text-gray-700 text-center'>
+      <span className='text-sm font-medium text-gray-700 text-center hidden xs:block sm:block md:block'>
         {quickActions.title}
       </span>
     </button>

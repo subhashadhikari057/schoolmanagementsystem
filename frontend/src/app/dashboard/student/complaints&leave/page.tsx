@@ -431,42 +431,46 @@ export const ComplaintsAndLeavePage = () => {
       {/* Quick Actions */}
       <div className='mb-6'>
         <h2 className='text-lg font-medium mb-4'>Quick Actions</h2>
-        <div className='flex gap-4'>
-          <div className='rounded-lg p-4 w-full'>
+        <div className='flex flex-col sm:flex-row gap-4'>
+          <div className='rounded-lg p-2 sm:p-4 w-full'>
             <button
               type='button'
               onClick={() => {
                 setModalType('leave');
                 setModalOpen(true);
               }}
-              className='flex w-full items-center gap-4 rounded-lg bg-white p-4 text-left shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+              className='flex w-full items-center gap-3 sm:gap-4 rounded-lg bg-white p-3 sm:p-4 text-left shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
             >
-              <div className='rounded-full bg-blue-100 p-3'>
+              <div className='rounded-full bg-blue-100 p-2 sm:p-3'>
                 <CalendarDays className='h-6 w-6 text-blue-600' />
               </div>
               <div>
-                <h3 className='font-medium'>Request Leave</h3>
-                <p className='text-sm text-gray-500'>
+                <h3 className='font-medium text-base sm:text-lg'>
+                  Request Leave
+                </h3>
+                <p className='text-xs sm:text-sm text-gray-500'>
                   Apply for personal leave
                 </p>
               </div>
             </button>
           </div>
-          <div className='rounded-lg p-4 w-full'>
+          <div className='rounded-lg p-2 sm:p-4 w-full'>
             <button
               type='button'
               onClick={() => {
                 setModalType('complaint');
                 setModalOpen(true);
               }}
-              className='flex w-full items-center gap-4 rounded-lg bg-white p-4 text-left shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+              className='flex w-full items-center gap-3 sm:gap-4 rounded-lg bg-white p-3 sm:p-4 text-left shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
             >
-              <div className='rounded-full bg-yellow-100 p-3'>
+              <div className='rounded-full bg-yellow-100 p-2 sm:p-3'>
                 <AlertCircle className='h-6 w-6 text-yellow-600' />
               </div>
               <div>
-                <h3 className='font-medium'>Submit a Complaint</h3>
-                <p className='text-sm text-gray-500'>
+                <h3 className='font-medium text-base sm:text-lg'>
+                  Submit a Complaint
+                </h3>
+                <p className='text-xs sm:text-sm text-gray-500'>
                   Raise a concern or issue
                 </p>
               </div>

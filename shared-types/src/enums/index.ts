@@ -35,6 +35,9 @@ export * from "./finance/payment-method.enum";
 
 // Communication Module Enums
 export * from "./communication/notice-status.enum";
+export * from "./communication/notice-priority.enum";
+export * from "./communication/notice-recipient-type.enum";
+export * from "./communication/notice-category.enum";
 export * from "./communication/message-status.enum";
 export * from "./communication/complaint-status.enum";
 
@@ -58,10 +61,11 @@ export * from "./achievements/achievement-type.enum";
 export * from "./achievements/certificate-status.enum";
 
 // Calendar Module Enums
-export * from "./calendar/calendar-entry-type.enum";
-export * from "./calendar/holiday-type.enum";
-export * from "./calendar/reminder-type.enum";
-export * from "./calendar/priority.enum";
+export * from './calendar/calendar-entry-type.enum';
+export * from './calendar/holiday-type.enum';
+export * from './calendar/exam-type.enum';
+export * from './calendar/reminder-type.enum';
+export * from './calendar/priority.enum';
 
 // Utility Types and Helpers
 export * from "./utils/status-helpers";

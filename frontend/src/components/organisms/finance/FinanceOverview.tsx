@@ -161,14 +161,6 @@ const tabs = [
     name: 'Transactions',
     content: <TransactionsTab />,
   },
-  {
-    name: 'Analytics',
-    content: <div>Dues content coming soon</div>,
-  },
-  {
-    name: 'Reports',
-    content: <div>Dues content coming soon</div>,
-  },
 ];
 
 const FinanceOverview = () => {

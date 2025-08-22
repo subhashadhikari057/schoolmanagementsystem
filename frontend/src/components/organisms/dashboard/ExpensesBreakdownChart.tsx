@@ -14,16 +14,19 @@ const data = [
 const COLORS = ['#3b82f6', '#22c55e', '#facc15', '#ef4444'];
 export default function ExpensesBreakdownChart() {
   return (
-    <ChartCard className='p-12'>
+    <ChartCard className='p-4 sm:p-8 md:p-12'>
       <ChartHeader title='Expenses Breakdown' toggleLabel='Annual' />
-      <ResponsiveContainer width='100%' height={200}>
+      <ResponsiveContainer
+        width='100%'
+        height={140}
+        className='sm:h-[180px] md:h-[200px]'
+      >
         <PieChart>
-          {/* @ts-expect-error - Recharts compatibility */}
           <Pie
             data={data}
             labelLine={false}
             nameKey='name'
-            outerRadius={100}
+            outerRadius={60}
             label={false}
           >
             {data.map((_, index) => (
@@ -33,13 +36,19 @@ export default function ExpensesBreakdownChart() {
           <Tooltip />
         </PieChart>
       </ResponsiveContainer>
-      <div className='mt-5'>
-        <BarLegend
-          items={data.map((item, i) => ({
-            label: `${item.name} (${item.value}%)`,
-            color: COLORS[i],
-          }))}
-        />
+      <div className='mt-5 grid grid-cols-2 grid-rows-2 gap-2 sm:grid-cols-4 sm:grid-rows-1 sm:gap-4'>
+        {data.map((item, i) => (
+          <div key={item.name} className='flex items-center'>
+            <BarLegend
+              items={[
+                {
+                  label: `${item.name} (${item.value}%)`,
+                  color: COLORS[i],
+                },
+              ]}
+            />
+          </div>
+        ))}
       </div>
     </ChartCard>
   );

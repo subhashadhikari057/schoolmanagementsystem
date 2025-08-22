@@ -93,7 +93,7 @@ export default function AllAssignmentsTab({
           const submissionCount = assignment._count?.submissions || 0;
           const gradedCount =
             assignment.submissions?.filter(sub => sub.isCompleted).length || 0;
-          const totalStudents = assignment.class.students?.length || 0;
+          const totalStudents = assignment?.class?.students?.length || 0;
 
           // Determine status
           let status: 'active' | 'completed' | 'overdue' = 'active';
@@ -101,7 +101,8 @@ export default function AllAssignmentsTab({
             status = 'overdue';
           } else if (
             submissionCount === totalStudents &&
-            gradedCount === submissionCount
+            gradedCount === submissionCount &&
+            totalStudents > 0
           ) {
             status = 'completed';
           }
@@ -248,20 +249,28 @@ export default function AllAssignmentsTab({
     }
   };
 
+  // Helpers for safe percentages
+  const pct = (num: number, den: number) =>
+    den > 0 ? Math.round((num / den) * 100) : 0;
+  const pctRaw = (num: number, den: number) =>
+    den > 0 ? (num / den) * 100 : 0;
+
   return (
-    <div className='space-y-6'>
+    <div className='space-y-6 px-3 sm:px-0'>
       {/* Search and Filters */}
-      <div className='flex flex-col sm:flex-row gap-4'>
-        <div className='flex-1'>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4'>
+        <div className='w-full sm:flex-1'>
           <LabeledInputField
             label=''
             placeholder='Search by title, class, or subject...'
             value={query}
             onChange={e => setQuery(e.target.value)}
-            className='bg-white border border-gray-200 rounded-lg px-4 py-2'
+            className='bg-white border border-gray-200 rounded-lg px-4 py-2 w-full'
           />
         </div>
-        <div className='flex gap-3'>
+
+        {/* Filters: stack on mobile, inline on larger screens */}
+        <div className='grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 w-full sm:w-auto'>
           <Dropdown
             type='filter'
             title='Filter Status'
@@ -274,7 +283,7 @@ export default function AllAssignmentsTab({
             onSelect={value =>
               setStatusFilter(value as 'all' | 'incomplete' | 'completed')
             }
-            className='max-w-xs'
+            className='w-full'
           />
           <Dropdown
             type='filter'
@@ -288,7 +297,7 @@ export default function AllAssignmentsTab({
             ]}
             selectedValue={subjectFilter}
             onSelect={value => setSubjectFilter(value)}
-            className='max-w-xs'
+            className='w-full'
           />
           <Dropdown
             type='filter'
@@ -302,7 +311,7 @@ export default function AllAssignmentsTab({
             ]}
             selectedValue={classFilter}
             onSelect={value => setClassFilter(value)}
-            className='max-w-xs'
+            className='w-full sm:max-w-xs'
           />
         </div>
       </div>
@@ -310,20 +319,22 @@ export default function AllAssignmentsTab({
       {/* Assignments List */}
       <div className='space-y-4'>
         {loading ? (
-          <div className='flex items-center justify-center py-12'>
+          <div className='flex items-center justify-center py-16 sm:py-12'>
             <div className='text-center'>
-              <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
-              <p className='text-gray-600'>Loading assignments...</p>
+              <div className='animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
+              <p className='text-gray-600 text-sm sm:text-base'>
+                Loading assignments...
+              </p>
             </div>
           </div>
         ) : error ? (
           <div className='flex items-center justify-center py-12'>
-            <div className='text-center'>
-              <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-4' />
-              <p className='text-red-600 mb-4'>{error}</p>
+            <div className='text-center max-w-md px-4'>
+              <AlertCircle className='h-10 w-10 sm:h-12 sm:w-12 text-red-500 mx-auto mb-4' />
+              <p className='text-red-600 mb-4 text-sm sm:text-base'>{error}</p>
               <Button
                 onClick={loadAssignments}
-                className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2 mx-auto'
+                className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 inline-flex items-center gap-2'
               >
                 <RefreshCw className='w-4 h-4' />
                 Try Again
@@ -332,9 +343,9 @@ export default function AllAssignmentsTab({
           </div>
         ) : filteredAssignments.length === 0 ? (
           <div className='flex items-center justify-center py-12'>
-            <div className='text-center'>
-              <Calendar className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-              <p className='text-gray-600'>
+            <div className='text-center px-4'>
+              <Calendar className='h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4' />
+              <p className='text-gray-600 text-sm sm:text-base'>
                 {assignments.length === 0
                   ? 'No assignments found. Create your first assignment to get started!'
                   : 'No assignments match your current filters.'}
@@ -345,65 +356,72 @@ export default function AllAssignmentsTab({
           filteredAssignments.map(assignment => (
             <div
               key={assignment.id}
-              className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'
+              className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm'
             >
-              <div className='flex items-start justify-between mb-4'>
-                <div className='flex-1'>
-                  <div className='flex items-center gap-3 mb-3'>
+              <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4'>
+                <div className='flex-1 min-w-0'>
+                  <div className='flex flex-wrap items-center gap-2 sm:gap-3 mb-2'>
                     <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}
+                      className={`inline-block px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium ${getStatusColor(
+                        assignment.status,
+                      )}`}
                     >
                       {assignment.status}
                     </span>
                     <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(assignment.priority)}`}
+                      className={`inline-block px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium ${getPriorityColor(
+                        assignment.priority,
+                      )}`}
                     >
                       {assignment.priority} priority
                     </span>
-                    <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700'>
+                    <span className='inline-block px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-gray-100 text-gray-700'>
                       {assignment.subject}
                     </span>
                   </div>
 
-                  <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+                  <h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-2 line-clamp-2'>
                     {assignment.title}
                   </h3>
 
-                  <div className='flex items-center gap-6 text-sm text-gray-600'>
-                    <div className='flex items-center gap-2'>
-                      <Users className='w-4 h-4' />
-                      <span>{assignment.class}</span>
+                  <div className='flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-gray-600'>
+                    <div className='flex items-center gap-1.5'>
+                      <Users className='w-4 h-4 shrink-0' />
+                      <span className='truncate'>{assignment.class}</span>
                     </div>
-                    <div className='flex items-center gap-2'>
-                      <Calendar className='w-4 h-4' />
+                    <div className='flex items-center gap-1.5'>
+                      <Calendar className='w-4 h-4 shrink-0' />
                       <span>Due: {assignment.dueDate}</span>
                     </div>
-                    <div className='flex items-center gap-2'>
-                      <Users className='w-4 h-4' />
+                    <div className='flex items-center gap-1.5'>
+                      <Users className='w-4 h-4 shrink-0' />
                       <span>{assignment.totalStudents} students</span>
                     </div>
                   </div>
                 </div>
 
-                <div className='flex gap-2'>
+                <div className='flex gap-1.5 sm:gap-2'>
                   <button
                     onClick={() => handleViewClick(assignment)}
-                    className='p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors'
+                    className='p-2 sm:p-2.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors'
                     title='View Details'
+                    aria-label='View details'
                   >
                     <Eye className='w-4 h-4' />
                   </button>
                   <button
                     onClick={() => handleEditClick(assignment)}
-                    className='p-2 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 rounded-lg transition-colors'
+                    className='p-2 sm:p-2.5 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 rounded-lg transition-colors'
                     title='Edit Assignment'
+                    aria-label='Edit assignment'
                   >
                     <Edit2 className='w-4 h-4' />
                   </button>
                   <button
                     onClick={() => handleDeleteClick(assignment)}
-                    className='p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors'
+                    className='p-2 sm:p-2.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors'
                     title='Delete Assignment'
+                    aria-label='Delete assignment'
                   >
                     <Trash2 className='w-4 h-4' />
                   </button>
@@ -413,14 +431,11 @@ export default function AllAssignmentsTab({
               {/* Progress Bars */}
               <div className='space-y-3'>
                 <div>
-                  <div className='flex justify-between text-sm mb-1'>
+                  <div className='flex justify-between text-xs sm:text-sm mb-1'>
                     <span className='text-gray-600'>Submissions</span>
                     <span className='text-gray-900'>
                       {assignment.submissions}/{assignment.totalStudents} (
-                      {Math.round(
-                        (assignment.submissions / assignment.totalStudents) *
-                          100,
-                      )}
+                      {pct(assignment.submissions, assignment.totalStudents)}
                       %)
                     </span>
                   </div>
@@ -428,32 +443,33 @@ export default function AllAssignmentsTab({
                     <div
                       className='bg-blue-600 h-2 rounded-full transition-all duration-300'
                       style={{
-                        width: `${(assignment.submissions / assignment.totalStudents) * 100}%`,
+                        width: `${pctRaw(
+                          assignment.submissions,
+                          assignment.totalStudents,
+                        )}%`,
                       }}
-                    ></div>
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <div className='flex justify-between text-sm mb-1'>
+                  <div className='flex justify-between text-xs sm:text-sm mb-1'>
                     <span className='text-gray-600'>Graded</span>
                     <span className='text-gray-900'>
                       {assignment.graded}/{assignment.submissions} (
-                      {assignment.submissions > 0
-                        ? Math.round(
-                            (assignment.graded / assignment.submissions) * 100,
-                          )
-                        : 0}
-                      %)
+                      {pct(assignment.graded, assignment.submissions)}%)
                     </span>
                   </div>
                   <div className='w-full bg-gray-200 rounded-full h-2'>
                     <div
                       className='bg-green-600 h-2 rounded-full transition-all duration-300'
                       style={{
-                        width: `${assignment.submissions > 0 ? (assignment.graded / assignment.submissions) * 100 : 0}%`,
+                        width: `${pctRaw(
+                          assignment.graded,
+                          assignment.submissions,
+                        )}%`,
                       }}
-                    ></div>
+                    />
                   </div>
                 </div>
               </div>
@@ -461,8 +477,8 @@ export default function AllAssignmentsTab({
               {/* Pending Review */}
               {assignment.status === 'active' &&
                 assignment.submissions > assignment.graded && (
-                  <div className='mt-4 pt-4 border-t border-gray-200'>
-                    <span className='text-orange-600 text-sm font-medium'>
+                  <div className='mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200'>
+                    <span className='text-orange-600 text-xs sm:text-sm font-medium'>
                       {assignment.submissions - assignment.graded} pending
                       review
                     </span>

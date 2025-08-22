@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 const MyAccountPage = () => {
   const params = useParams();
   const { user } = useAuth();
-  const userId = params.nameslug as string;
+  const userId = params?.nameslug as string;
 
   // Verify that the user is accessing their own profile
   if (user && user.id !== userId) {

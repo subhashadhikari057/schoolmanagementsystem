@@ -237,10 +237,10 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
   }
 
   return (
-    <div className={`bg-white rounded-xl sm:p-4 ${className}`}>
+    <div className={`bg-white rounded-xl py-2 sm:p-4 ${className}`}>
       <ChartHeader title='Upcoming Events' toggleLabel='All' />
 
-      <div className='space-y-4 max-h-80 overflow-y-auto modal-scrollbar'>
+      <div className='space-y-4 px-2 max-h-80 overflow-y-auto modal-scrollbar'>
         {upcomingEvents.length === 0 ? (
           <div className='text-center py-8 text-gray-500'>
             <Calendar className='w-12 h-12 mx-auto mb-3 opacity-30' />

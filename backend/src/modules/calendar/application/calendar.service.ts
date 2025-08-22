@@ -44,6 +44,10 @@ export class CalendarService {
         endDate: new Date(dto.endDate),
         venue: dto.venue,
         holidayType: dto.holidayType,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        examType: dto.examType,
+        examDetails: dto.examDetails,
         createdById: userId,
       };
 
@@ -67,6 +71,7 @@ export class CalendarService {
       page = 1,
       limit = 20,
       type,
+      examType,
       startDate,
       endDate,
       month,
@@ -83,6 +88,10 @@ export class CalendarService {
 
     if (type) {
       where.type = type;
+    }
+
+    if (examType) {
+      where.examType = examType;
     }
 
     if (startDate && endDate) {
@@ -109,6 +118,7 @@ export class CalendarService {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { venue: { contains: search, mode: 'insensitive' } },
+        { examDetails: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -194,6 +204,11 @@ export class CalendarService {
       if (dto.venue !== undefined) updateData.venue = dto.venue;
       if (dto.holidayType !== undefined)
         updateData.holidayType = dto.holidayType;
+      if (dto.startTime !== undefined) updateData.startTime = dto.startTime;
+      if (dto.endTime !== undefined) updateData.endTime = dto.endTime;
+      if (dto.examType !== undefined) updateData.examType = dto.examType;
+      if (dto.examDetails !== undefined)
+        updateData.examDetails = dto.examDetails;
 
       const updatedEntry = await this.prisma.calendarEntry.update({
         where: { id },
@@ -302,6 +317,7 @@ export class CalendarService {
     total: number;
     holidays: number;
     events: number;
+    exams: number;
     thisMonth: number;
   }> {
     const now = new Date();
@@ -315,7 +331,7 @@ export class CalendarService {
       59,
     );
 
-    const [total, holidays, events, thisMonth] = await Promise.all([
+    const [total, holidays, events, exams, thisMonth] = await Promise.all([
       this.prisma.calendarEntry.count({
         where: { deletedAt: null },
       }),
@@ -324,6 +340,9 @@ export class CalendarService {
       }),
       this.prisma.calendarEntry.count({
         where: { deletedAt: null, type: CalendarEntryType.EVENT },
+      }),
+      this.prisma.calendarEntry.count({
+        where: { deletedAt: null, type: CalendarEntryType.EXAM },
       }),
       this.prisma.calendarEntry.count({
         where: {
@@ -340,6 +359,7 @@ export class CalendarService {
       total,
       holidays,
       events,
+      exams,
       thisMonth,
     };
   }
@@ -356,6 +376,10 @@ export class CalendarService {
       endDate: entry.endDate.toISOString(),
       venue: entry.venue || undefined,
       holidayType: entry.holidayType as any,
+      startTime: entry.startTime || undefined,
+      endTime: entry.endTime || undefined,
+      examType: entry.examType as any,
+      examDetails: entry.examDetails || undefined,
       createdAt: entry.createdAt.toISOString(),
       updatedAt: entry.updatedAt?.toISOString(),
       deletedAt: entry.deletedAt?.toISOString(),

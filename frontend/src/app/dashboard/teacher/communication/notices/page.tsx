@@ -1,16 +1,88 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Button from '@/components/atoms/form-controls/Button';
 import { Plus } from 'lucide-react';
-import Tabs from '@/components/organisms/tabs/GenericTabs';
-import ActivityTab from '@/components/organisms/tabs/ActivityTab';
-import AllNoticesTab from '@/components/organisms/tabs/AllNoticesTab';
-import PinnedTab from '@/components/organisms/tabs/PinnedTab';
+import TeacherNoticesTab from '@/components/organisms/tabs/TeacherNoticesTab';
+import CreateNoticeModal from '@/components/organisms/modals/CreateNoticeModal';
+import { noticeService } from '@/api/services/notice.service';
 
 export default function NoticesPage() {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [stats, setStats] = useState({
+    totalNotices: 0,
+    activeNotices: 0,
+    thisMonthNotices: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Fetch notice statistics
+  useEffect(() => {
+    const fetchNoticeStats = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch all notices for this teacher
+        const response = await noticeService.getMyNotices({
+          limit: 100, // Get a large number to calculate stats
+          page: 1,
+        });
+
+        if (response.success && response.data) {
+          const notices = response.data.notices;
+
+          // Calculate total notices (only count notices for teachers or all)
+          const totalNotices = notices.length;
+
+          // Calculate active notices (not expired and published)
+          const now = new Date();
+          const activeNotices = notices.filter(
+            notice =>
+              new Date(notice.expiryDate) > now &&
+              notice.status === 'PUBLISHED',
+          ).length;
+
+          // Calculate notices created this month
+          const currentMonth = new Date().getMonth();
+          const currentYear = new Date().getFullYear();
+          const thisMonthNotices = notices.filter(notice => {
+            const noticeDate = new Date(notice.publishDate);
+            return (
+              noticeDate.getMonth() === currentMonth &&
+              noticeDate.getFullYear() === currentYear
+            );
+          }).length;
+
+          setStats({
+            totalNotices,
+            activeNotices,
+            thisMonthNotices,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching notice stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNoticeStats();
+
+    // Listen for refresh events
+    const handleRefresh = () => {
+      fetchNoticeStats();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('notices:refresh', handleRefresh);
+      return () => {
+        window.removeEventListener('notices:refresh', handleRefresh);
+      };
+    }
+  }, []);
+
   return (
     <div className='min-h-screen bg-gray-50'>
       <div className='max-w-7xl mx-auto p-6'>
@@ -28,6 +100,7 @@ export default function NoticesPage() {
           </div>
           <Button
             label='Create Notice'
+            onClick={() => setIsCreateModalOpen(true)}
             className='bg-blue-600 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2'
           >
             <Plus className='w-4 h-4' />
@@ -36,14 +109,16 @@ export default function NoticesPage() {
         </div>
 
         {/* Statistics Cards */}
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8'>
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8'>
           <div className='bg-white rounded-xl p-6 shadow-sm border border-gray-200'>
             <div className='flex items-center justify-between'>
               <div>
                 <Label className='text-sm text-gray-600 mb-1'>
                   Total Notices
                 </Label>
-                <div className='text-2xl font-bold text-gray-900'>6</div>
+                <div className='text-2xl font-bold text-gray-900'>
+                  {loading ? '...' : stats.totalNotices}
+                </div>
               </div>
               <div className='w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center'>
                 <svg
@@ -73,7 +148,9 @@ export default function NoticesPage() {
             <div className='flex items-center justify-between'>
               <div>
                 <Label className='text-sm text-gray-600 mb-1'>Active</Label>
-                <div className='text-2xl font-bold text-gray-900'>5</div>
+                <div className='text-2xl font-bold text-gray-900'>
+                  {loading ? '...' : stats.activeNotices}
+                </div>
               </div>
               <div className='w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center'>
                 <svg
@@ -96,64 +173,10 @@ export default function NoticesPage() {
           <div className='bg-white rounded-xl p-6 shadow-sm border border-gray-200'>
             <div className='flex items-center justify-between'>
               <div>
-                <Label className='text-sm text-gray-600 mb-1'>Pinned</Label>
-                <div className='text-2xl font-bold text-gray-900'>2</div>
-              </div>
-              <div className='w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center'>
-                <svg
-                  className='w-6 h-6 text-purple-600'
-                  fill='none'
-                  stroke='currentColor'
-                  viewBox='0 0 24 24'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M5.5 5.5L19 19M19 5.5L5.5 19'
-                  />
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className='bg-white rounded-xl p-6 shadow-sm border border-gray-200'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <Label className='text-sm text-gray-600 mb-1'>
-                  Total Views
-                </Label>
-                <div className='text-2xl font-bold text-gray-900'>1189</div>
-              </div>
-              <div className='w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center'>
-                <svg
-                  className='w-6 h-6 text-orange-600'
-                  fill='none'
-                  stroke='currentColor'
-                  viewBox='0 0 24 24'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className='bg-white rounded-xl p-6 shadow-sm border border-gray-200'>
-            <div className='flex items-center justify-between'>
-              <div>
                 <Label className='text-sm text-gray-600 mb-1'>This Month</Label>
-                <div className='text-2xl font-bold text-gray-900'>4</div>
+                <div className='text-2xl font-bold text-gray-900'>
+                  {loading ? '...' : stats.thisMonthNotices}
+                </div>
               </div>
               <div className='w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center'>
                 <svg
@@ -174,14 +197,25 @@ export default function NoticesPage() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs
-          tabs={[
-            { name: 'All Notices', content: <AllNoticesTab /> },
-            { name: 'Pinned', content: <PinnedTab /> },
-            { name: 'Activity', content: <ActivityTab /> },
-          ]}
-        />
+        {/* All Notices */}
+        <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
+          <h2 className='text-xl font-semibold mb-6'>All Notices</h2>
+          <TeacherNoticesTab />
+        </div>
+
+        {/* Create Notice Modal */}
+        {isCreateModalOpen && (
+          <CreateNoticeModal
+            open={isCreateModalOpen}
+            onClose={() => {
+              setIsCreateModalOpen(false);
+              // Trigger a refresh event that our component listens to
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('notices:refresh'));
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );

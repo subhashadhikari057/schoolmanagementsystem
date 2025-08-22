@@ -1,5 +1,5 @@
 // components/organisms/Tabs.tsx
-
+'use client';
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/react';
 import ReusableButton from '@/components/atoms/form-controls/Button';
 

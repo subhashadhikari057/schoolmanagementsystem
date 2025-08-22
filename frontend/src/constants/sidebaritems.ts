@@ -92,25 +92,9 @@ export const sidebarItems = {
           path: '/dashboard/admin/finance/fee-management',
         },
         {
-          label: 'Dues & Fines',
-          icon: 'AlertCircle',
-          path: '/dashboard/admin/finance/dues-fines',
-        },
-        {
-          label: 'Salaries',
-          icon: 'DollarSign',
-          path: '/dashboard/admin/finance/salaries',
-        },
-
-        {
           label: 'Expenses',
           icon: 'TrendingUp',
           path: '/dashboard/admin/finance/expenses',
-        },
-        {
-          label: 'Scholarships',
-          icon: 'Award',
-          path: '/dashboard/admin/finance/scholarships',
         },
       ],
     },
@@ -178,6 +162,11 @@ export const sidebarItems = {
           icon: 'ClipboardCheck',
           path: '/dashboard/teacher/academics/results',
         },
+        {
+          label: 'Academic Calendar',
+          icon: 'Calendar',
+          path: '/dashboard/teacher/academics/calendar',
+        },
       ],
     },
     {
@@ -204,7 +193,7 @@ export const sidebarItems = {
         {
           label: 'My Subjects',
           icon: 'Layers',
-          path: '/dashboard/student/classes',
+          path: '/dashboard/student/subjects',
         },
         {
           label: 'Assignments',
@@ -220,6 +209,11 @@ export const sidebarItems = {
           label: 'Exams',
           icon: 'ClipboardList',
           path: '/dashboard/student/exams',
+        },
+        {
+          label: 'Academic Calendar',
+          icon: 'Calendar',
+          path: '/dashboard/student/academics/calendar',
         },
         {
           label: 'Notices',
@@ -258,6 +252,11 @@ export const sidebarItems = {
           label: 'Exams',
           icon: 'ClipboardList',
           path: '/dashboard/parent/exams',
+        },
+        {
+          label: 'Academic Calendar',
+          icon: 'Calendar',
+          path: '/dashboard/parent/academics/calendar',
         },
         {
           label: 'Notices',

@@ -62,49 +62,53 @@ export default function GradingTab() {
     }, 0) / gradingAssignments.length;
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-6 px-2 sm:px-0'>
       {/* Header */}
-      <div className='flex items-center justify-between'>
+      <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0'>
         <div>
           <SectionTitle
             text='Assignments Requiring Attention'
             level={3}
-            className='text-xl font-semibold text-gray-900'
+            className='text-lg sm:text-xl font-semibold text-gray-900'
           />
-          <Label className='text-gray-600'>
+          <Label className='text-gray-600 text-sm sm:text-base'>
             Focus on these assignments that need grading
           </Label>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6'>
         {/* Primary Attention Card */}
-        <div className='md:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm'>
-          <div className='flex items-center gap-4'>
-            <div className='w-16 h-16 bg-red-100 rounded-full flex items-center justify-center'>
-              <AlertTriangle className='w-8 h-8 text-red-600' />
+        <div className='sm:col-span-1 md:col-span-2 bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm'>
+          <div className='flex items-center gap-3 sm:gap-4'>
+            <div className='w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center'>
+              <AlertTriangle className='w-6 h-6 sm:w-8 sm:h-8 text-red-600' />
             </div>
             <div>
-              <div className='text-3xl font-bold text-red-600'>
+              <div className='text-2xl sm:text-3xl font-bold text-red-600'>
                 {totalUngraded}
               </div>
-              <Label className='text-gray-600'>Pending Grading</Label>
+              <Label className='text-gray-600 text-sm sm:text-base'>
+                Pending Grading
+              </Label>
             </div>
           </div>
         </div>
 
         {/* Average Grading Time */}
-        <div className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'>
-          <div className='flex items-center gap-4'>
-            <div className='w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center'>
-              <Clock className='w-8 h-8 text-yellow-600' />
+        <div className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm'>
+          <div className='flex items-center gap-3 sm:gap-4'>
+            <div className='w-12 h-12 sm:w-16 sm:h-16 bg-yellow-100 rounded-full flex items-center justify-center'>
+              <Clock className='w-6 h-6 sm:w-8 sm:h-8 text-yellow-600' />
             </div>
             <div>
-              <div className='text-3xl font-bold text-yellow-600'>
+              <div className='text-2xl sm:text-3xl font-bold text-yellow-600'>
                 {avgGradingTime.toFixed(1)} hrs
               </div>
-              <Label className='text-gray-600'>Avg Grading Time</Label>
+              <Label className='text-gray-600 text-sm sm:text-base'>
+                Avg Grading Time
+              </Label>
             </div>
           </div>
         </div>
@@ -115,20 +119,20 @@ export default function GradingTab() {
         {gradingAssignments.map(assignment => (
           <div
             key={assignment.id}
-            className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'
+            className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm'
           >
-            <div className='flex items-start justify-between'>
-              <div className='flex-1'>
-                <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+            <div className='flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4 sm:gap-0'>
+              <div className='flex-1 w-full'>
+                <h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-2'>
                   {assignment.title}
                 </h3>
-                <div className='flex items-center gap-6 text-sm text-gray-600 mb-3'>
+                <div className='flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-600 mb-3'>
                   <span>{assignment.class}</span>
                   <span className='text-orange-600 font-medium'>
                     {assignment.ungradedCount} ungraded
                   </span>
                 </div>
-                <div className='flex items-center gap-4 text-sm text-gray-500'>
+                <div className='flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500'>
                   <div className='flex items-center gap-2'>
                     <BarChart3 className='w-4 h-4' />
                     <span>{assignment.totalSubmissions} total submissions</span>
@@ -140,10 +144,12 @@ export default function GradingTab() {
                 </div>
               </div>
 
-              <Button
-                label='Grade Now'
-                className='bg-blue-600 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-blue-700'
-              />
+              <div className='w-full sm:w-auto mt-4 sm:mt-0'>
+                <Button
+                  label='Grade Now'
+                  className='bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 w-full sm:w-auto'
+                />
+              </div>
             </div>
           </div>
         ))}
@@ -155,8 +161,10 @@ export default function GradingTab() {
           <div className='w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4'>
             <CheckCircle className='w-8 h-8 text-green-600' />
           </div>
-          <Label className='text-gray-500 text-lg'>All caught up!</Label>
-          <Label className='text-gray-400'>
+          <Label className='text-gray-500 text-base sm:text-lg'>
+            All caught up!
+          </Label>
+          <Label className='text-gray-400 text-sm sm:text-base'>
             No assignments require grading at the moment
           </Label>
         </div>

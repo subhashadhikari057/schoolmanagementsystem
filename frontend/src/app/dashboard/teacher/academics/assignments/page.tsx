@@ -119,28 +119,28 @@ export default function AssignmentsPage() {
 
   return (
     <div className='min-h-screen bg-background'>
-      <div className='px-3 sm:px-4 lg:px-6 pt-2 sm:pt-3 lg:pt-4'>
-        <div className='flex items-center justify-between mb-4'>
-          <div>
+      <div className='px-2 sm:px-4 lg:px-6 pt-2 sm:pt-3 lg:pt-4'>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4'>
+          <div className='flex-1'>
             <SectionTitle
               text='Assignments'
               level={1}
               className='text-lg sm:text-xl lg:text-2xl font-bold text-gray-900'
             />
-            <Label className='text-xs cursor-pointer sm:text-sm lg:text-base text-gray-600 mt-1'>
+            <Label className='text-xs sm:text-sm lg:text-base text-gray-600 mt-1'>
               Manage school assignments and communicate with students here!
             </Label>
           </div>
           <Button
             onClick={() => setIsModalOpen(true)}
-            className='bg-blue-600 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2'
+            className='bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 flex items-center gap-2 w-full sm:w-auto justify-center'
           >
             <Plus className='w-4 h-4' />
             <span>New Assignment</span>
           </Button>
         </div>
       </div>
-      <div className='px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
+      <div className='px-2 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
         <div className='max-w-7xl mx-auto space-y-4 sm:space-y-5 lg:space-y-6 mt-4 sm:mt-5 lg:mt-6'>
           {/* Loading State */}
           {loading ? (
@@ -184,7 +184,10 @@ export default function AssignmentsPage() {
                   {
                     name: 'All',
                     content: (
-                      <AllAssignmentsTab refreshTrigger={refreshTrigger} />
+                      <AllAssignmentsTab
+                        refreshTrigger={refreshTrigger}
+                        statusFilter='all'
+                      />
                     ),
                   },
                   { name: 'Submissions', content: <SubmissionsTab /> },

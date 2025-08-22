@@ -119,7 +119,9 @@ export const UserProfileHeader = () => {
               : 'Role'}
           </Label>
           <div className='flex flex-wrap items-center gap-2 text-gray-500 text-sm mt-1'>
-            <Label>ID: {profileUser?.id || 'EMP001'}</Label>
+            <Label>
+              ID: {profileUser?.id.replace(/\D/g, '').slice(0, 3) || 'EMP001'}
+            </Label>
             <span className='mx-1'>•</span>
             <Label>Administration</Label>
             <span className='mx-1'>•</span>

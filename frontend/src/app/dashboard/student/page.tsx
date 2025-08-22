@@ -92,19 +92,16 @@ const classes: Array<
     subject: 'Mathematics',
     teacher: 'Ram Bahadur',
     status: 'completed',
-    info: 'Completed',
   },
   {
     subject: 'Science',
     teacher: 'Hari Prasang',
     status: 'completed',
-    info: 'Completed',
   },
   {
     subject: 'English',
     teacher: 'Sita Devi',
     status: 'upcoming',
-    info: 'in 10 min',
   },
   { subject: 'Social Studies', teacher: 'Krishna Sharma', status: 'pending' },
   { subject: 'Nepali', teacher: 'Maya Gurung', status: 'pending' },
@@ -209,7 +206,7 @@ export default function page() {
             </div>
           </div>
 
-          {/* Your Classes */}
+          {/* Today Classes */}
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
               <SectionTitle

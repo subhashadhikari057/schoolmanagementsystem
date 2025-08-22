@@ -50,22 +50,6 @@ const stats = [
 
 const FeeManagement = () => {
   const listConfig = getListConfig('fee-management');
-
-  const tabs = [
-    {
-      name: 'Fee Structure',
-      content: <FeeTable />,
-    },
-    {
-      name: 'Security',
-      content: <div>coming soon</div>,
-    },
-    {
-      name: 'Notifications',
-      content: <div>coming soon</div>,
-    },
-  ]; // You will need to add this config in listConfigurations
-
   // Mock data for demonstration
   const mockData = [
     {
@@ -119,7 +103,7 @@ const FeeManagement = () => {
           <StatCard key={stat.label} {...stat} />
         ))}
       </div>
-      <Tabs tabs={tabs} />
+      <FeeTable />
     </div>
   );
 };

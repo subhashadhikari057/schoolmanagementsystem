@@ -49,7 +49,9 @@ export default function Statsgrid({
 }) {
   const containerGrid =
     className ||
-    'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6';
+    'grid grid-cols-2 grid-rows-2 sm:grid-cols-2 sm:grid-rows-2 md:grid-cols-3 md:grid-rows-1 lg:grid-cols-4 lg:grid-rows-1 gap-3 sm:gap-4 lg:gap-6'
+      .replace('md:grid-rows-1', 'md:grid-rows-none')
+      .replace('lg:grid-rows-1', 'lg:grid-rows-none');
   if (variant === 'classes') {
     const classItems = items as ClassItem[];
     const cardPadding = classesSize === 'lg' ? 'px-6 py-5' : 'px-2 py-3';

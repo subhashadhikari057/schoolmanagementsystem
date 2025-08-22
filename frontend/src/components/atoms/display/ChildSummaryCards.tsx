@@ -21,24 +21,28 @@ const ChildSummaryCards: React.FC<ChildSummaryCardsProps> = ({ child }) => {
         value={`${child.attendance}%`}
         change={0}
         isPositive={true}
+        className='[&_*:is(.stat-label)]:block'
       />
       <StatCard
         label='Due Fees'
         value={`₹${child.dueFees}`}
         change={0}
         isPositive={child.dueFees === 0}
+        className='[&_*:is(.stat-label)]:block'
       />
       <StatCard
         label='Upcoming Assignments'
         value={child.upcomingAssignments}
         change={0}
         isPositive={true}
+        className='[&_*:is(.stat-label)]:block'
       />
       <StatCard
         label='Next Exam'
         value={child.nextExam}
         change={0}
         isPositive={true}
+        className='[&_*:is(.stat-label)]:block'
       />
     </div>
   );

@@ -52,12 +52,12 @@ export class HttpClient {
   private isLoggingOut: boolean = false;
   private refreshPromise: Promise<boolean> | null = null;
   private failedQueue: Array<{
-    resolve: (value: any) => void;
-    reject: (error: any) => void;
+    resolve: (value: unknown) => void;
+    reject: (error: unknown) => void;
     config: {
       method: HttpMethod;
       url: string;
-      data?: any;
+      data?: unknown;
       requestConfig?: RequestConfig;
     };
   }> = [];
@@ -99,7 +99,7 @@ export class HttpClient {
   }
 
   // Build query string from parameters
-  private buildQueryString(params: Record<string, any>): string {
+  private buildQueryString(params: Record<string, unknown>): string {
     const searchParams = new URLSearchParams();
 
     Object.entries(params).forEach(([key, value]) => {
@@ -120,7 +120,7 @@ export class HttpClient {
   private async makeRequest<T>(
     method: HttpMethod,
     url: string,
-    data?: any,
+    data?: unknown,
     config: RequestConfig = {},
   ): Promise<ApiResponse<T>> {
     // Prevent new requests during logout
@@ -215,7 +215,7 @@ export class HttpClient {
         const response = await fetch(fullUrl, requestOptions);
 
         // Parse response
-        let responseData: any;
+        let responseData: unknown;
         const contentType = response.headers.get('content-type');
 
         if (contentType && contentType.includes('application/json')) {
@@ -241,17 +241,18 @@ export class HttpClient {
           }
 
           // Extract validation errors if available
-          let validationErrors = {};
+          let validationErrors: Record<string, string> = {};
           let errorMessage =
-            responseData?.message ||
+            (responseData as { message?: string })?.message ||
             `HTTP ${response.status}: ${response.statusText}`;
 
           // Handle 409 Conflict errors with user-friendly messages
           if (response.status === 409) {
-            if (responseData?.message?.includes('already exists')) {
-              errorMessage = responseData.message;
-            } else if (responseData?.message?.includes('conflict')) {
-              errorMessage = responseData.message;
+            const responseDataTyped = responseData as { message?: string };
+            if (responseDataTyped?.message?.includes('already exists')) {
+              errorMessage = responseDataTyped.message;
+            } else if (responseDataTyped?.message?.includes('conflict')) {
+              errorMessage = responseDataTyped.message;
             } else {
               errorMessage =
                 'A conflict occurred. The requested resource may already exist.';
@@ -259,10 +260,32 @@ export class HttpClient {
           }
 
           // Handle NestJS validation errors format
-          if (responseData?.message && Array.isArray(responseData.message)) {
+          const responseDataTyped = responseData as {
+            message?: unknown;
+            errors?: unknown;
+            code?: string;
+            details?: unknown;
+            context?: unknown;
+            data?: unknown;
+          };
+          if (
+            responseDataTyped?.message &&
+            Array.isArray(responseDataTyped.message)
+          ) {
             // This is likely a validation error array from class-validator
-            validationErrors = responseData.message.reduce(
-              (acc: any, error: any) => {
+            validationErrors = (
+              responseDataTyped.message as Array<{
+                property: string;
+                constraints?: Record<string, string>;
+              }>
+            ).reduce(
+              (
+                acc: Record<string, string>,
+                error: {
+                  property: string;
+                  constraints?: Record<string, string>;
+                },
+              ) => {
                 // Extract the property and constraints
                 const property = error.property;
                 const constraints =
@@ -279,17 +302,48 @@ export class HttpClient {
           }
 
           // Handle other common error formats
-          if (responseData?.errors && typeof responseData.errors === 'object') {
-            validationErrors = responseData.errors;
+          if (responseDataTyped?.errors) {
+            // Zod style: errors is an array of issues
+            if (Array.isArray(responseDataTyped.errors)) {
+              validationErrors = (
+                responseDataTyped.errors as Array<{
+                  path?: string[] | string;
+                  message?: string;
+                }>
+              ).reduce(
+                (
+                  acc: Record<string, string>,
+                  issue: { path?: string[] | string; message?: string },
+                ) => {
+                  const path = Array.isArray(issue.path)
+                    ? issue.path.join('.')
+                    : issue.path || 'field';
+                  acc[path] = issue.message || 'Invalid value';
+                  return acc;
+                },
+                {},
+              );
+              // Provide a friendlier message
+              errorMessage = 'Validation failed. Please check your inputs.';
+            } else if (typeof responseDataTyped.errors === 'object') {
+              // Already an object map
+              validationErrors = responseDataTyped.errors as Record<
+                string,
+                string
+              >;
+            }
           }
-
           const apiError: ApiError = {
             statusCode: response.status,
             error: response.statusText,
             message: errorMessage,
-            code: responseData?.code,
-            details: responseData?.details,
-            context: responseData?.context,
+            code: responseDataTyped?.code,
+            details: responseDataTyped?.details as
+              | Record<string, unknown>
+              | undefined,
+            context: responseDataTyped?.context as
+              | Record<string, unknown>
+              | undefined,
             validationErrors:
               Object.keys(validationErrors).length > 0
                 ? validationErrors
@@ -346,10 +400,14 @@ export class HttpClient {
         this.activeRequests.delete(controller);
 
         // Return successful response
+        const responseDataTyped = responseData as {
+          data?: unknown;
+          message?: string;
+        };
         return {
           success: true,
-          data: responseData?.data || responseData,
-          message: responseData?.message,
+          data: (responseDataTyped?.data || responseData) as T,
+          message: responseDataTyped?.message,
           timestamp: new Date().toISOString(),
           traceId,
         };
@@ -409,7 +467,7 @@ export class HttpClient {
   private async handleUnauthorized<T>(
     method: HttpMethod,
     url: string,
-    data?: any,
+    data?: unknown,
     config: RequestConfig = {},
   ): Promise<ApiResponse<T>> {
     // Prevent refresh during logout
@@ -514,7 +572,7 @@ export class HttpClient {
   // HTTP method helpers
   async get<T>(
     url: string,
-    params?: Record<string, any>,
+    params?: Record<string, unknown>,
     config?: RequestConfig,
   ): Promise<ApiResponse<T>> {
     const queryString = params ? this.buildQueryString(params) : '';
@@ -528,7 +586,7 @@ export class HttpClient {
 
   async post<T>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: RequestConfig,
   ): Promise<ApiResponse<T>> {
     return this.makeRequest<T>('POST', url, data, config);
@@ -536,7 +594,7 @@ export class HttpClient {
 
   async put<T>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: RequestConfig,
   ): Promise<ApiResponse<T>> {
     return this.makeRequest<T>('PUT', url, data, config);
@@ -544,7 +602,7 @@ export class HttpClient {
 
   async patch<T>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: RequestConfig,
   ): Promise<ApiResponse<T>> {
     return this.makeRequest<T>('PATCH', url, data, config);

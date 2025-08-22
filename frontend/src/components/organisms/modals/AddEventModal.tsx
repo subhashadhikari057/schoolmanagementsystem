@@ -8,6 +8,7 @@ import Button from '@/components/atoms/form-controls/Button';
 import Input from '@/components/atoms/form-controls/Input';
 import Checkbox from '@/components/atoms/form-controls/Checkbox';
 import Icon from '@/components/atoms/display/Icon';
+import { toast } from 'sonner';
 
 export default function AddEventModal({
   open,

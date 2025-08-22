@@ -18,6 +18,7 @@
     "@headlessui/react": "^2.2.7",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.2.0",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@sms/shared-types": "file:../shared-types",
     "@tailwindcss/forms": "^0.5.10",
     "@tanstack/react-query": "^5.83.0",
