@@ -220,6 +220,7 @@ export default function TimeslotManager() {
     // Group by day
     const timeslotsByDay = days.reduce(
       (acc, day) => {
+        // @ts-ignore - local TimeSlot interface omits persistence metadata not needed here
         acc[day] = allTimeSlots
           .filter(slot => slot.day === day)
           .sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -336,8 +337,15 @@ export default function TimeslotManager() {
           label: '',
         });
 
-        // Show success message
-        toast.success('Timeslot saved successfully');
+        // Show success message with auto-schedule creation info
+        toast.success(
+          'Timeslot saved successfully and schedule slots created for all active schedules!',
+          {
+            description:
+              'The new timeslot is now available as a droppable zone in the Timetable Builder.',
+            duration: 5000,
+          },
+        );
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
       } else {
@@ -421,96 +429,104 @@ export default function TimeslotManager() {
                 </>
               )}
             </button>
+            <button
+              className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center mr-2'
+              onClick={handleAutoSort}
+              disabled={isSaving || timeSlots.length === 0}
+            >
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                className='h-4 w-4 mr-2'
+                viewBox='0 0 20 20'
+                fill='currentColor'
+              >
+                <path d='M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h7a1 1 0 100-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z' />
+              </svg>
+              Auto Sort
+            </button>
             {!isViewMode && (
               <button
-                className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center mr-2'
-                onClick={handleAutoSort}
-                disabled={isSaving || timeSlots.length === 0}
-              >
-                <svg
-                  xmlns='http://www.w3.org/2000/svg'
-                  className='h-4 w-4 mr-2'
-                  viewBox='0 0 20 20'
-                  fill='currentColor'
-                >
-                  <path d='M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h7a1 1 0 100-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z' />
-                </svg>
-                Auto Sort
-              </button>
-            )}
-            <button
-              className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center'
-              onClick={async () => {
-                if (!selectedClassId) {
-                  toast.error('No class selected');
-                  return;
-                }
-
-                setIsSaving(true);
-
-                try {
-                  // Check if there are any timeslots to save
-                  if (timeSlots.length === 0) {
-                    toast.error('No timeslots to save');
+                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center'
+                onClick={async () => {
+                  if (!selectedClassId) {
+                    toast.error('No class selected');
                     return;
                   }
 
-                  // Check if any schedules use these timeslots
-                  const schedulesResponse =
-                    await scheduleService.getSchedulesByClass(selectedClassId);
-                  const hasSchedules =
-                    schedulesResponse.success &&
-                    schedulesResponse.data &&
-                    schedulesResponse.data.length > 0;
+                  setIsSaving(true);
 
-                  // If schedules exist, show warning
-                  if (hasSchedules) {
-                    if (
-                      !window.confirm(
-                        'Warning: Updating timeslots will affect existing schedules. Continue?',
-                      )
-                    ) {
+                  try {
+                    // Check if there are any timeslots to save
+                    if (timeSlots.length === 0) {
+                      toast.error('No timeslots to save');
                       return;
                     }
+
+                    // Check if any schedules use these timeslots
+                    const schedulesResponse =
+                      await scheduleService.getSchedulesByClass(
+                        selectedClassId,
+                      );
+                    const hasSchedules =
+                      schedulesResponse.success &&
+                      schedulesResponse.data &&
+                      schedulesResponse.data.length > 0;
+
+                    // If schedules exist, show warning
+                    if (hasSchedules) {
+                      if (
+                        !window.confirm(
+                          'Warning: Updating timeslots will affect existing schedules. Continue?',
+                        )
+                      ) {
+                        return;
+                      }
+                    }
+
+                    // Use bulk create endpoint
+                    const response = await timeslotService.bulkCreateTimeslots({
+                      classId: selectedClassId,
+                      timeslots: timeSlots.map(slot => ({
+                        day: slot.day,
+                        startTime: slot.startTime,
+                        endTime: slot.endTime,
+                        type: slot.type as TimeslotType,
+                        label: slot.label,
+                      })),
+                    });
+
+                    if (response.success) {
+                      toast.success(
+                        'All timeslots saved successfully and schedule slots created!',
+                        {
+                          description:
+                            'Complete timetable framework is now ready for subject assignments.',
+                          duration: 5000,
+                        },
+                      );
+                      setShowSuccess(true);
+                      setTimeout(() => setShowSuccess(false), 3000);
+
+                      // Reload timeslots to get updated data
+                      await loadTimeslots();
+                    } else {
+                      toast.error(
+                        response.message || 'Failed to save timeslots',
+                      );
+                    }
+                  } catch (error) {
+                    console.error('Error saving timeslots:', error);
+                    toast.error('Failed to save timeslots');
+                  } finally {
+                    setIsSaving(false);
                   }
-
-                  // Prepare timeslots for bulk creation
-                  // We don't need to group them since the API handles that
-
-                  // Use bulk create endpoint
-                  const response = await timeslotService.bulkCreateTimeslots({
-                    classId: selectedClassId,
-                    timeslots: timeSlots.map(slot => ({
-                      day: slot.day,
-                      startTime: slot.startTime,
-                      endTime: slot.endTime,
-                      type: slot.type as TimeslotType,
-                      label: slot.label,
-                    })),
-                  });
-
-                  if (response.success) {
-                    toast.success('All timeslots saved successfully');
-                    setShowSuccess(true);
-                    setTimeout(() => setShowSuccess(false), 3000);
-
-                    // Reload timeslots to get updated data
-                    await loadTimeslots();
-                  } else {
-                    toast.error(response.message || 'Failed to save timeslots');
-                  }
-                } catch (error) {
-                  console.error('Error saving timeslots:', error);
-                  toast.error('Failed to save timeslots');
-                } finally {
-                  setIsSaving(false);
-                }
-              }}
-              disabled={isSaving}
-            >
-              <Save className='w-4 h-4 mr-2' />
-              {isSaving ? 'Saving...' : 'Save All Timeslots'}
-            </button>
+                }}
+                disabled={isSaving}
+              >
+                <Save className='w-4 h-4 mr-2' />
+                {isSaving ? 'Saving...' : 'Save All Timeslots'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -742,123 +758,22 @@ export default function TimeslotManager() {
                         {!isViewMode && (
                           <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
                             <div className='flex space-x-2 justify-end'>
-                              {index > 0 && (
-                                <button
-                                  onClick={() => {
-                                    // Move timeslot up in the list
-                                    const newTimeSlots = [...timeSlots];
-                                    const currentSlotIndex =
-                                      newTimeSlots.findIndex(
-                                        ts => ts.id === slot.id,
-                                      );
-                                    if (currentSlotIndex > 0) {
-                                      // Find the previous slot with the same day
-                                      const sameDaySlots = newTimeSlots.filter(
-                                        ts => ts.day === slot.day,
-                                      );
-                                      const currentIndexInDay =
-                                        sameDaySlots.findIndex(
-                                          ts => ts.id === slot.id,
-                                        );
-                                      if (currentIndexInDay > 0) {
-                                        // Swap with the previous slot of the same day
-                                        const prevSlot =
-                                          sameDaySlots[currentIndexInDay - 1];
-                                        const prevSlotIndex =
-                                          newTimeSlots.findIndex(
-                                            ts => ts.id === prevSlot.id,
-                                          );
-                                        [
-                                          newTimeSlots[currentSlotIndex],
-                                          newTimeSlots[prevSlotIndex],
-                                        ] = [
-                                          newTimeSlots[prevSlotIndex],
-                                          newTimeSlots[currentSlotIndex],
-                                        ];
-                                        setTimeSlots(newTimeSlots);
-                                      }
-                                    }
-                                  }}
-                                  className='text-blue-600 hover:text-blue-900'
-                                  title='Move Up'
-                                >
-                                  <svg
-                                    xmlns='http://www.w3.org/2000/svg'
-                                    className='h-4 w-4'
-                                    viewBox='0 0 20 20'
-                                    fill='currentColor'
-                                  >
-                                    <path
-                                      fillRule='evenodd'
-                                      d='M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z'
-                                      clipRule='evenodd'
-                                    />
-                                  </svg>
-                                </button>
-                              )}
-                              {index < sortedTimeSlots.length - 1 && (
-                                <button
-                                  onClick={() => {
-                                    // Move timeslot down in the list
-                                    const newTimeSlots = [...timeSlots];
-                                    const currentSlotIndex =
-                                      newTimeSlots.findIndex(
-                                        ts => ts.id === slot.id,
-                                      );
-                                    if (
-                                      currentSlotIndex <
-                                      newTimeSlots.length - 1
-                                    ) {
-                                      // Find the next slot with the same day
-                                      const sameDaySlots = newTimeSlots.filter(
-                                        ts => ts.day === slot.day,
-                                      );
-                                      const currentIndexInDay =
-                                        sameDaySlots.findIndex(
-                                          ts => ts.id === slot.id,
-                                        );
-                                      if (
-                                        currentIndexInDay <
-                                        sameDaySlots.length - 1
-                                      ) {
-                                        // Swap with the next slot of the same day
-                                        const nextSlot =
-                                          sameDaySlots[currentIndexInDay + 1];
-                                        const nextSlotIndex =
-                                          newTimeSlots.findIndex(
-                                            ts => ts.id === nextSlot.id,
-                                          );
-                                        [
-                                          newTimeSlots[currentSlotIndex],
-                                          newTimeSlots[nextSlotIndex],
-                                        ] = [
-                                          newTimeSlots[nextSlotIndex],
-                                          newTimeSlots[currentSlotIndex],
-                                        ];
-                                        setTimeSlots(newTimeSlots);
-                                      }
-                                    }
-                                  }}
-                                  className='text-blue-600 hover:text-blue-900'
-                                  title='Move Down'
-                                >
-                                  <svg
-                                    xmlns='http://www.w3.org/2000/svg'
-                                    className='h-4 w-4'
-                                    viewBox='0 0 20 20'
-                                    fill='currentColor'
-                                  >
-                                    <path
-                                      fillRule='evenodd'
-                                      d='M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z'
-                                      clipRule='evenodd'
-                                    />
-                                  </svg>
-                                </button>
-                              )}
+                              {/* Up/down arrows removed as they're not needed with auto-sort */}
                               <button
                                 onClick={async () => {
                                   if (!slot.id) return;
+
+                                  // Show warning about schedule impact
+                                  const confirmed = window.confirm(
+                                    `⚠️ Delete Timeslot Warning\n\n` +
+                                      `Deleting this timeslot (${slot.startTime} - ${slot.endTime}) will:\n` +
+                                      `• Remove all schedule slots for this time period\n` +
+                                      `• Delete any subject assignments in this slot (assigned slot will be deleted from schedule too)\n` +
+                                      `• Affect all active schedules for this class\n\n` +
+                                      `This action cannot be undone. Are you sure you want to continue?`,
+                                  );
+
+                                  if (!confirmed) return;
 
                                   try {
                                     // Delete from backend
@@ -871,7 +786,12 @@ export default function TimeslotManager() {
                                       // Remove from local state
                                       removeTimeSlot(slot.id);
                                       toast.success(
-                                        'Timeslot deleted successfully',
+                                        'Timeslot and all related schedule slots deleted successfully',
+                                        {
+                                          description:
+                                            'All subject assignments in this time slot have been removed.',
+                                          duration: 5000,
+                                        },
                                       );
                                     } else {
                                       toast.error(

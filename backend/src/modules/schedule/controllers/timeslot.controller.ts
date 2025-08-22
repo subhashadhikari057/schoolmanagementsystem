@@ -58,8 +58,26 @@ export class TimeslotController {
   @RoleAccess.Authenticated()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get timeslots by class ID' })
-  async getTimeslotsByClass(@Query() query: GetTimeslotsByClassDto) {
-    return this.timeslotService.getTimeslotsByClass(query.classId);
+  async getTimeslotsByClass(@Query() query: Record<string, unknown>) {
+    // Handle both direct query params and nested params object
+    let params: GetTimeslotsByClassDto;
+
+    if (query.params) {
+      // If params are nested (coming from axios serialization)
+      try {
+        params =
+          typeof query.params === 'string'
+            ? JSON.parse(query.params)
+            : (query.params as GetTimeslotsByClassDto);
+      } catch {
+        params = query as GetTimeslotsByClassDto;
+      }
+    } else {
+      // Direct query parameters
+      params = query as GetTimeslotsByClassDto;
+    }
+
+    return this.timeslotService.getTimeslotsByClass(params.classId);
   }
 
   @Get(':id')

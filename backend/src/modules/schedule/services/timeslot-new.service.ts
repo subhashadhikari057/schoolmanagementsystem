@@ -379,7 +379,7 @@ export class TimeslotService {
     day: string,
     startTime: string,
     endTime: string,
-    _excludeId?: string,
+    excludeId?: string,
   ): Promise<void> {
     // Validate time format and order
     if (startTime >= endTime) {

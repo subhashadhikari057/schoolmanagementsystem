@@ -1,319 +1,412 @@
-'use client';
-
-import React, { useState, useMemo } from 'react';
-import { Search, Book, User, GraduationCap } from 'lucide-react';
-import { useScheduleStore } from '@/store/schedule';
-// Use real API data instead of mock data
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Filter, Book, User, Clock } from 'lucide-react';
+import { CSS } from '@dnd-kit/utilities';
 import { useDraggable } from '@dnd-kit/core';
+import { useScheduleStore } from '@/store/schedule';
+import { classSubjectService } from '@/api/services/class-subject.service';
 
 interface Subject {
   id: string;
   name: string;
   code: string;
-  color: string;
-  gradeLevel: number;
+  description?: string;
+  maxMarks: number;
+  passMarks: number;
 }
 
-interface SubjectCardProps {
+interface ClassSubject {
+  id: string;
+  classId: string;
+  subjectId: string;
+  teacherId?: string;
   subject: Subject;
+  teacher?: {
+    id: string;
+    userId: string;
+    employeeId?: string;
+    designation: string;
+    user: {
+      id: string;
+      fullName: string;
+      email: string;
+    };
+  };
 }
 
-function SubjectCard({ subject }: SubjectCardProps) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `subject-${subject.id}`,
-    data: {
-      type: 'subject',
-      subject,
-    },
-  });
+interface DraggableSubjectProps {
+  subject: Subject;
+  classSubject?: ClassSubject;
+  isAssigned: boolean;
+  isEditMode: boolean;
+}
+
+const DraggableSubject: React.FC<DraggableSubjectProps> = ({
+  subject,
+  classSubject,
+  isAssigned,
+  isEditMode,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: `subject-${subject.id}`,
+      disabled: !isEditMode, // Only allow dragging in edit mode
+      data: {
+        type: 'subject',
+        subject,
+        classSubject,
+      },
+    });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+  };
+
+  const assignedTeacher = classSubject?.teacher;
 
   return (
     <div
       ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      className={`p-3 rounded-md border mb-2 cursor-grab ${
-        isDragging ? 'opacity-50' : 'opacity-100'
-      }`}
-      style={{
-        backgroundColor: `${subject.color}15`, // Very light version of the color
-        borderColor: `${subject.color}40`,
-      }}
+      style={style}
+      {...(isEditMode ? listeners : {})}
+      {...(isEditMode ? attributes : {})}
+      className={`
+        p-3 rounded-lg border transition-all duration-200
+        ${isEditMode ? 'cursor-move' : 'cursor-default'}
+        ${isDragging ? 'opacity-50 shadow-lg transform rotate-2' : ''}
+        ${
+          isAssigned
+            ? 'bg-green-50 border-green-200 hover:bg-green-100'
+            : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+        }
+        ${isEditMode ? 'hover:shadow-md' : ''}
+      `}
     >
-      <div className='flex items-center justify-between'>
-        <div className='flex items-center'>
-          <div
-            className='w-3 h-3 rounded-full mr-2'
-            style={{ backgroundColor: subject.color }}
-          ></div>
-          <span className='font-medium text-sm'>{subject.name}</span>
+      <div className='flex items-start justify-between'>
+        <div className='flex-1'>
+          <div className='flex items-center space-x-2'>
+            <Book className='w-4 h-4 text-blue-600' />
+            <h4 className='font-semibold text-gray-900'>{subject.name}</h4>
+            <span className='text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded'>
+              {subject.code}
+            </span>
+          </div>
+
+          {subject.description && (
+            <p className='text-sm text-gray-600 mt-1 line-clamp-2'>
+              {subject.description}
+            </p>
+          )}
+
+          {assignedTeacher && (
+            <div className='mt-2 flex items-center text-xs text-gray-500'>
+              <User className='w-3 h-3 mr-1' />
+              {assignedTeacher.user.fullName} ({assignedTeacher.designation})
+            </div>
+          )}
         </div>
-        <span className='text-xs text-gray-500 font-mono'>{subject.code}</span>
+
+        <div className='flex flex-col items-end space-y-1'>
+          <span
+            className={`
+            text-xs px-2 py-1 rounded-full
+            ${
+              isAssigned
+                ? 'bg-green-100 text-green-700'
+                : 'bg-blue-100 text-blue-700'
+            }
+          `}
+          >
+            {isAssigned ? 'Assigned' : 'Available'}
+          </span>
+
+          <div className='text-xs text-gray-500'>{subject.maxMarks} marks</div>
+        </div>
       </div>
-      <div className='mt-1 text-xs text-gray-500'>
-        Grade {subject.gradeLevel}
-      </div>
-      <div className='mt-1 text-xs text-right italic'>Drag to assign</div>
+
+      {!isEditMode && (
+        <div className='mt-2 text-xs text-gray-400 italic'>
+          Switch to Edit Mode to drag subjects
+        </div>
+      )}
     </div>
   );
-}
+};
 
-export default function SubjectLibrary() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<
-    'all' | 'subject' | 'teacher' | 'class'
-  >('all');
-  const { selectedGrade } = useScheduleStore();
+export const SubjectLibrary: React.FC = () => {
+  const {
+    selectedClassId,
+    classSubjects,
+    availableSubjects,
+    isLoadingSubjects,
+    isEditMode,
+    subjectFilter,
+    teacherFilter,
+    timetableSlots,
+    setClassSubjects,
+    setAvailableSubjects,
+    setIsLoadingSubjects,
+    setSubjectFilter,
+    setTeacherFilter,
+  } = useScheduleStore();
 
-  // Use real data from API instead of mock data
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [teachers, setTeachers] = useState<any[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'all' | 'assigned' | 'unassigned'>(
+    'all',
+  );
 
-  // Load subjects from API
-  React.useEffect(() => {
-    const loadSubjects = async () => {
-      setIsLoading(true);
-      try {
-        // TODO: Replace with actual API call when available
-        // const response = await subjectService.getSubjects();
-        // if (response.success && response.data) {
-        //   setSubjects(response.data);
-        // }
+  // Load class subjects when class is selected
+  const loadClassSubjects = useCallback(async () => {
+    // Don't make API call if no class is selected
+    if (!selectedClassId || selectedClassId === null) {
+      setClassSubjects([]);
+      setAvailableSubjects([]);
+      setIsLoadingSubjects(false);
+      return;
+    }
 
-        // For now, use empty array until API is available
-        setSubjects([]);
-      } catch (error) {
-        console.error('Error loading subjects:', error);
-      } finally {
-        setIsLoading(false);
+    setIsLoadingSubjects(true);
+    try {
+      // Load class subjects from the backend
+      const response = await classSubjectService.getClassSubjects({
+        classId: selectedClassId,
+        includeTeacher: true,
+        includeSubjectDetails: true,
+      });
+
+      if (response.success && response.data) {
+        // Map the response data to match our interfaces
+        const mappedClassSubjects = response.data.map(cs => ({
+          ...cs,
+          teacherId: cs.teacherId || undefined, // Convert null to undefined
+          subject: {
+            ...cs.subject!,
+            description: cs.subject?.description || undefined, // Convert null to undefined
+          },
+          teacher: cs.teacher
+            ? {
+                ...cs.teacher,
+                employeeId: cs.teacher.employeeId || undefined,
+              }
+            : undefined,
+        }));
+
+        setClassSubjects(mappedClassSubjects);
+
+        // Extract unique subjects for the subject library
+        const subjects = mappedClassSubjects
+          .filter(cs => cs.subject) // Filter out entries without subjects
+          .map(cs => ({
+            ...cs.subject,
+            description: cs.subject.description || undefined,
+          }));
+
+        setAvailableSubjects(subjects);
+      } else {
+        console.error('Failed to load class subjects:', response.error);
+        setClassSubjects([]);
+        setAvailableSubjects([]);
       }
-    };
+    } catch (error) {
+      console.error('Error loading class subjects:', error);
+      setClassSubjects([]);
+      setAvailableSubjects([]);
+    } finally {
+      setIsLoadingSubjects(false);
+    }
+  }, [
+    selectedClassId,
+    setClassSubjects,
+    setAvailableSubjects,
+    setIsLoadingSubjects,
+  ]);
 
-    loadSubjects();
-  }, []);
+  useEffect(() => {
+    loadClassSubjects();
+  }, [selectedClassId, loadClassSubjects]);
 
-  // Filter subjects based on search term and selected grade
-  const filteredSubjects = useMemo(() => {
-    return subjects.filter(subject => {
-      // Filter by grade level
-      if (subject.gradeLevel !== selectedGrade) {
-        return false;
-      }
+  // Get assigned subject IDs from timetable
+  const assignedSubjectIds = new Set(
+    timetableSlots.filter(slot => slot.subjectId).map(slot => slot.subjectId!),
+  );
 
-      // Filter by search term
-      if (searchTerm) {
-        const search = searchTerm.toLowerCase();
-        return (
-          subject.name.toLowerCase().includes(search) ||
-          subject.code.toLowerCase().includes(search)
-        );
-      }
-
-      return true;
-    });
-  }, [searchTerm, selectedGrade, subjects]);
-
-  // Filter teachers based on search term
-  const filteredTeachers = useMemo(() => {
-    if (!searchTerm) return [];
-
-    const search = searchTerm.toLowerCase();
-    return teachers.filter(
-      teacher =>
-        teacher.fullName?.toLowerCase().includes(search) ||
-        teacher.employeeId?.toLowerCase().includes(search),
-    );
-  }, [searchTerm, teachers]);
-
-  // Filter classes based on search term
-  const filteredClasses = useMemo(() => {
-    if (!searchTerm) return [];
-
-    const search = searchTerm.toLowerCase();
-    return classes.filter(
-      cls =>
-        cls.name?.toLowerCase().includes(search) ||
-        `Grade ${cls.grade} Section ${cls.section}`
+  // Filter subjects based on search and view mode
+  const filteredSubjects = availableSubjects.filter(subject => {
+    // Search filter
+    const matchesSearch =
+      !subjectFilter ||
+      subject.name.toLowerCase().includes(subjectFilter.toLowerCase()) ||
+      subject.code.toLowerCase().includes(subjectFilter.toLowerCase()) ||
+      (subject.description &&
+        subject.description
           .toLowerCase()
-          .includes(search),
+          .includes(subjectFilter.toLowerCase()));
+
+    // View mode filter
+    const isAssigned = assignedSubjectIds.has(subject.id);
+    const matchesViewMode =
+      viewMode === 'all' ||
+      (viewMode === 'assigned' && isAssigned) ||
+      (viewMode === 'unassigned' && !isAssigned);
+
+    return matchesSearch && matchesViewMode;
+  });
+
+  // Filter by teacher if specified
+  const finalFilteredSubjects = filteredSubjects.filter(subject => {
+    if (!teacherFilter) return true;
+
+    const classSubject = classSubjects.find(cs => cs.subject.id === subject.id);
+    return (
+      classSubject?.teacher?.user.fullName
+        .toLowerCase()
+        .includes(teacherFilter.toLowerCase()) ||
+      classSubject?.teacher?.designation
+        .toLowerCase()
+        .includes(teacherFilter.toLowerCase())
     );
-  }, [searchTerm, classes]);
+  });
+
+  // Group subjects by assigned status for better organization
+  const assignedSubjects = finalFilteredSubjects.filter(subject =>
+    assignedSubjectIds.has(subject.id),
+  );
+  const unassignedSubjects = finalFilteredSubjects.filter(
+    subject => !assignedSubjectIds.has(subject.id),
+  );
+
+  if (!selectedClassId) {
+    return (
+      <div className='bg-white rounded-lg shadow p-6'>
+        <div className='text-center text-gray-500'>
+          <Book className='w-12 h-12 mx-auto mb-3 text-gray-300' />
+          <p>Please select a class to view subjects</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className='bg-white rounded-lg shadow h-full'>
-      <div className='p-4 border-b'>
-        <h3 className='text-lg font-medium text-gray-800 mb-2'>
-          Subject Library
-        </h3>
-        <p className='text-sm text-gray-600 mb-4'>
-          Drag subjects to the timetable to assign them to slots
-        </p>
+    <div className='bg-white rounded-lg shadow'>
+      <div className='p-4 border-b border-gray-200'>
+        <div className='flex items-center justify-between mb-4'>
+          <h3 className='text-lg font-semibold text-gray-900 flex items-center'>
+            <Book className='w-5 h-5 mr-2' />
+            Subject Library
+          </h3>
 
-        {/* Search */}
-        <div className='relative'>
-          <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-            <Search className='h-4 w-4 text-gray-400' />
-          </div>
-          <input
-            type='text'
-            placeholder='Search subjects, teachers...'
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className='pl-10 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-          />
+          {!isEditMode && (
+            <div className='text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200'>
+              View Mode - Switch to Edit Mode to drag subjects
+            </div>
+          )}
         </div>
 
-        {/* Filter buttons */}
-        <div className='flex mt-3 space-x-2'>
-          <button
-            onClick={() => setFilterType('all')}
-            className={`px-3 py-1 text-xs rounded-full flex items-center ${
-              filterType === 'all'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilterType('subject')}
-            className={`px-3 py-1 text-xs rounded-full flex items-center ${
-              filterType === 'subject'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Book className='h-3 w-3 mr-1' />
-            Subjects
-          </button>
-          <button
-            onClick={() => setFilterType('teacher')}
-            className={`px-3 py-1 text-xs rounded-full flex items-center ${
-              filterType === 'teacher'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <User className='h-3 w-3 mr-1' />
-            Teachers
-          </button>
-          <button
-            onClick={() => setFilterType('class')}
-            className={`px-3 py-1 text-xs rounded-full flex items-center ${
-              filterType === 'class'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <GraduationCap className='h-3 w-3 mr-1' />
-            Classes
-          </button>
+        {/* Search and Filters */}
+        <div className='space-y-3'>
+          <div className='relative'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
+            <input
+              type='text'
+              placeholder='Search subjects...'
+              value={subjectFilter}
+              onChange={e => setSubjectFilter(e.target.value)}
+              className='pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            />
+          </div>
+
+          <div className='flex '>
+            {/* <div className="relative flex-1">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Filter by teacher..."
+                value={teacherFilter}
+                onChange={(e) => setTeacherFilter(e.target.value)}
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div> */}
+
+            <select
+              value={viewMode}
+              onChange={e =>
+                setViewMode(e.target.value as 'all' | 'assigned' | 'unassigned')
+              }
+              className='px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            >
+              <option value='all'>All Subjects</option>
+              <option value='assigned'>Assigned</option>
+              <option value='unassigned'>Unassigned</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <div
-        className='p-4 overflow-y-auto'
-        style={{ maxHeight: 'calc(100vh - 300px)' }}
-      >
-        {/* Show filtered subjects */}
-        {(filterType === 'all' || filterType === 'subject') && (
-          <>
-            {filteredSubjects.length > 0 && (
-              <div className='mb-4'>
+      <div className='p-4'>
+        {isLoadingSubjects ? (
+          <div className='flex justify-center items-center py-8'>
+            <div className='animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500'></div>
+          </div>
+        ) : finalFilteredSubjects.length === 0 ? (
+          <div className='text-center text-gray-500 py-8'>
+            <Book className='w-12 h-12 mx-auto mb-3 text-gray-300' />
+            <p>No subjects found</p>
+            <p className='text-sm'>Try adjusting your search or filters</p>
+          </div>
+        ) : (
+          <div className='space-y-4'>
+            {/* Unassigned Subjects */}
+            {unassignedSubjects.length > 0 && (
+              <div>
                 <h4 className='text-sm font-medium text-gray-700 mb-2 flex items-center'>
-                  <Book className='h-4 w-4 mr-1' />
-                  Subjects ({filteredSubjects.length})
+                  <Clock className='w-4 h-4 mr-1' />
+                  Available Subjects ({unassignedSubjects.length})
                 </h4>
-                {filteredSubjects.map(subject => (
-                  <SubjectCard key={subject.id} subject={subject} />
-                ))}
+                <div className='grid grid-cols-1 gap-2'>
+                  {unassignedSubjects.map(subject => {
+                    const classSubject = classSubjects.find(
+                      cs => cs.subject.id === subject.id,
+                    );
+                    return (
+                      <DraggableSubject
+                        key={subject.id}
+                        subject={subject}
+                        classSubject={classSubject}
+                        isAssigned={false}
+                        isEditMode={isEditMode}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             )}
-          </>
-        )}
 
-        {/* Show filtered teachers */}
-        {(filterType === 'all' || filterType === 'teacher') &&
-          filteredTeachers.length > 0 && (
-            <div className='mb-4'>
-              <h4 className='text-sm font-medium text-gray-700 mb-2 flex items-center'>
-                <User className='h-4 w-4 mr-1' />
-                Teachers ({filteredTeachers.length})
-              </h4>
-              {filteredTeachers.map(teacher => (
-                <div
-                  key={teacher.id}
-                  className='p-3 rounded-md border border-gray-200 bg-gray-50 mb-2'
-                >
-                  <div className='font-medium text-sm'>{teacher.fullName}</div>
-                  <div className='text-xs text-gray-500'>
-                    ID: {teacher.employeeId}
-                  </div>
-                  <div className='text-xs text-gray-500 mt-1'>
-                    Subjects: {teacher.subjects.length}
-                  </div>
+            {/* Assigned Subjects */}
+            {assignedSubjects.length > 0 && (
+              <div>
+                <h4 className='text-sm font-medium text-gray-700 mb-2 flex items-center'>
+                  <Book className='w-4 h-4 mr-1' />
+                  Assigned Subjects ({assignedSubjects.length})
+                </h4>
+                <div className='grid grid-cols-1 gap-2'>
+                  {assignedSubjects.map(subject => {
+                    const classSubject = classSubjects.find(
+                      cs => cs.subject.id === subject.id,
+                    );
+                    return (
+                      <DraggableSubject
+                        key={subject.id}
+                        subject={subject}
+                        classSubject={classSubject}
+                        isAssigned={true}
+                        isEditMode={isEditMode}
+                      />
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          )}
-
-        {/* Show filtered classes */}
-        {(filterType === 'all' || filterType === 'class') &&
-          filteredClasses.length > 0 && (
-            <div className='mb-4'>
-              <h4 className='text-sm font-medium text-gray-700 mb-2 flex items-center'>
-                <GraduationCap className='h-4 w-4 mr-1' />
-                Classes ({filteredClasses.length})
-              </h4>
-              {filteredClasses.map(cls => (
-                <div
-                  key={cls.id}
-                  className='p-3 rounded-md border border-gray-200 bg-gray-50 mb-2'
-                >
-                  <div className='font-medium text-sm'>{cls.name}</div>
-                  <div className='text-xs text-gray-500'>
-                    Grade {cls.grade} Section {cls.section}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-        {/* Empty state */}
-        {((filterType === 'subject' && filteredSubjects.length === 0) ||
-          (filterType === 'teacher' && filteredTeachers.length === 0) ||
-          (filterType === 'class' && filteredClasses.length === 0) ||
-          (filterType === 'all' &&
-            filteredSubjects.length === 0 &&
-            filteredTeachers.length === 0 &&
-            filteredClasses.length === 0)) && (
-          <div className='text-center py-8'>
-            <Search className='mx-auto h-12 w-12 text-gray-400' />
-            <h3 className='mt-2 text-sm font-medium text-gray-900'>
-              No results found
-            </h3>
-            <p className='mt-1 text-sm text-gray-500'>
-              Try adjusting your search or filter to find what you're looking
-              for.
-            </p>
+              </div>
+            )}
           </div>
         )}
-      </div>
-
-      <div className='p-4 border-t bg-gray-50'>
-        <div className='text-xs text-gray-500'>
-          <p className='mb-1'>
-            <span className='font-medium'>Tip:</span> Drag subjects from the
-            library to the timetable.
-          </p>
-          <p>
-            <span className='font-medium'>Note:</span> Only subjects for Grade{' '}
-            {selectedGrade} are shown.
-          </p>
-        </div>
       </div>
     </div>
   );
-}
+};

@@ -21,19 +21,6 @@ import { Prisma } from '@prisma/client';
 export class ScheduleService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Fix linter errors by using proper type casting
-  private get classSchedule() {
-    return this.prisma['classSchedule'] as any;
-  }
-
-  private get scheduleSlot() {
-    return this.prisma['scheduleSlot'] as any;
-  }
-
-  private get classTimeslot() {
-    return this.prisma['classTimeslot'] as any;
-  }
-
   /**
    * Create a new schedule
    */
@@ -69,18 +56,30 @@ export class ScheduleService {
         );
       }
 
-      // Create the schedule
-      const schedule = await this.classSchedule.create({
-        data: {
-          ...createScheduleDto,
-          startDate,
-          endDate,
-          effectiveFrom,
-          createdById: userId,
-        },
+      // Use transaction to ensure atomicity
+      const result = await this.prisma.$transaction(async tx => {
+        // Create the schedule
+        const schedule = await tx.classSchedule.create({
+          data: {
+            ...createScheduleDto,
+            startDate,
+            endDate,
+            effectiveFrom,
+            createdById: userId,
+          },
+        });
+
+        // Auto-create schedule slots for all existing timeslots of this class
+        await this.createScheduleSlotsForExistingTimeslots(
+          tx,
+          schedule,
+          userId,
+        );
+
+        return schedule;
       });
 
-      return schedule as ScheduleResponseDto;
+      return result as ScheduleResponseDto;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -94,10 +93,79 @@ export class ScheduleService {
   }
 
   /**
+   * Auto-create schedule slots for all existing timeslots when creating a new schedule
+   */
+  private async createScheduleSlotsForExistingTimeslots(
+    tx: Prisma.TransactionClient,
+    schedule: { id: string; classId: string },
+    userId: string,
+  ): Promise<void> {
+    // Get all timeslots for this class
+    const timeslots = await tx.classTimeslot.findMany({
+      where: {
+        classId: schedule.classId,
+        deletedAt: null,
+      },
+    });
+
+    // Create schedule slots for each timeslot
+    for (const timeslot of timeslots) {
+      await tx.scheduleSlot.create({
+        data: {
+          scheduleId: schedule.id,
+          timeslotId: timeslot.id,
+          day: timeslot.day,
+          type: timeslot.type,
+          createdById: userId,
+        },
+      });
+    }
+  }
+
+  /**
+   * Auto-create default schedule for a class if none exists
+   */
+  async ensureDefaultScheduleExists(
+    classId: string,
+    userId: string,
+  ): Promise<ScheduleResponseDto> {
+    // Check if class already has an active schedule
+    const existingSchedule = await this.prisma.classSchedule.findFirst({
+      where: {
+        classId,
+        status: 'active',
+        deletedAt: null,
+      },
+    });
+
+    if (existingSchedule) {
+      return existingSchedule as ScheduleResponseDto;
+    }
+
+    // Create default schedule
+    const currentYear = new Date().getFullYear();
+    const startDate = new Date(`${currentYear}-01-01`);
+    const endDate = new Date(`${currentYear}-12-31`);
+    const effectiveFrom = new Date();
+
+    const defaultScheduleDto: CreateScheduleDto = {
+      classId,
+      name: `Default Schedule ${currentYear}`,
+      academicYear: currentYear.toString(),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      effectiveFrom: effectiveFrom.toISOString(),
+      status: 'active',
+    };
+
+    return this.createSchedule(defaultScheduleDto, userId);
+  }
+
+  /**
    * Get schedules by class ID
    */
   async getSchedulesByClass(classId: string): Promise<ScheduleResponseDto[]> {
-    const schedules = await this.classSchedule.findMany({
+    const schedules = await this.prisma.classSchedule.findMany({
       where: {
         classId,
         deletedAt: null,
@@ -117,7 +185,7 @@ export class ScheduleService {
   async getScheduleById(
     id: string,
   ): Promise<ScheduleResponseDto & { slots: ScheduleSlotResponseDto[] }> {
-    const schedule = await this.classSchedule.findUnique({
+    const schedule = await this.prisma.classSchedule.findUnique({
       where: { id },
       include: {
         scheduleSlots: {
@@ -174,7 +242,7 @@ export class ScheduleService {
   ): Promise<ScheduleResponseDto> {
     try {
       // Check if schedule exists
-      const existingSchedule = await this.classSchedule.findUnique({
+      const existingSchedule = await this.prisma.classSchedule.findUnique({
         where: { id },
       });
 
@@ -214,7 +282,7 @@ export class ScheduleService {
       }
 
       // Update the schedule
-      const updatedSchedule = await this.classSchedule.update({
+      const updatedSchedule = await this.prisma.classSchedule.update({
         where: { id },
         data: {
           ...data,
@@ -244,7 +312,7 @@ export class ScheduleService {
     userId: string,
   ): Promise<{ success: boolean; message: string }> {
     // Check if schedule exists
-    const existingSchedule = await this.classSchedule.findUnique({
+    const existingSchedule = await this.prisma.classSchedule.findUnique({
       where: { id },
       include: {
         scheduleSlots: {
@@ -265,7 +333,7 @@ export class ScheduleService {
     }
 
     // Delete all schedule slots first
-    await this.scheduleSlot.updateMany({
+    await this.prisma.scheduleSlot.updateMany({
       where: { scheduleId: id },
       data: {
         deletedAt: new Date(),
@@ -274,7 +342,7 @@ export class ScheduleService {
     });
 
     // Then delete the schedule
-    await this.classSchedule.update({
+    await this.prisma.classSchedule.update({
       where: { id },
       data: {
         deletedAt: new Date(),
@@ -296,7 +364,7 @@ export class ScheduleService {
     userId: string,
   ): Promise<{ success: boolean; message: string }> {
     // Check if schedule exists
-    const existingSchedule = await this.classSchedule.findUnique({
+    const existingSchedule = await this.prisma.classSchedule.findUnique({
       where: { id: activateDto.id },
       include: {
         scheduleSlots: {
@@ -329,7 +397,7 @@ export class ScheduleService {
     }
 
     // Deactivate any currently active schedule for this class
-    await this.classSchedule.updateMany({
+    await this.prisma.classSchedule.updateMany({
       where: {
         classId: existingSchedule.classId,
         status: 'active',
@@ -343,7 +411,7 @@ export class ScheduleService {
     });
 
     // Activate this schedule
-    await this.classSchedule.update({
+    await this.prisma.classSchedule.update({
       where: { id: activateDto.id },
       data: {
         status: 'active',
@@ -367,7 +435,7 @@ export class ScheduleService {
   ): Promise<ScheduleSlotResponseDto> {
     try {
       // Check if schedule exists
-      const scheduleExists = await this.classSchedule.findUnique({
+      const scheduleExists = await this.prisma.classSchedule.findUnique({
         where: { id: createSlotDto.scheduleId },
       });
 
@@ -378,7 +446,7 @@ export class ScheduleService {
       }
 
       // Check if timeslot exists
-      const timeslotExists = await this.classTimeslot.findUnique({
+      const timeslotExists = await this.prisma.classTimeslot.findUnique({
         where: { id: createSlotDto.timeslotId },
       });
 
@@ -448,7 +516,7 @@ export class ScheduleService {
       }
 
       // Create the schedule slot
-      const slot = await this.scheduleSlot.create({
+      const slot = await this.prisma.scheduleSlot.create({
         data: {
           ...createSlotDto,
           hasConflict,
@@ -502,7 +570,7 @@ export class ScheduleService {
   async getScheduleSlotsBySchedule(
     scheduleId: string,
   ): Promise<ScheduleSlotResponseDto[]> {
-    const slots = await this.scheduleSlot.findMany({
+    const slots = await this.prisma.scheduleSlot.findMany({
       where: {
         scheduleId,
         deletedAt: null,
@@ -549,7 +617,7 @@ export class ScheduleService {
     userId: string,
   ): Promise<ScheduleSlotResponseDto> {
     // Check if slot exists
-    const existingSlot = await this.scheduleSlot.findUnique({
+    const existingSlot = await this.prisma.scheduleSlot.findUnique({
       where: { id },
       include: {
         timeslot: true,
@@ -562,7 +630,7 @@ export class ScheduleService {
 
     // Check if timeslot exists if provided
     if (updateSlotDto.timeslotId) {
-      const timeslotExists = await this.classTimeslot.findUnique({
+      const timeslotExists = await this.prisma.classTimeslot.findUnique({
         where: { id: updateSlotDto.timeslotId },
       });
 
@@ -610,7 +678,7 @@ export class ScheduleService {
       // Get the timeslot to use for conflict checking
       let timeslotToUse = existingSlot.timeslot;
       if (updateSlotDto.timeslotId) {
-        const newTimeslot = await this.classTimeslot.findUnique({
+        const newTimeslot = await this.prisma.classTimeslot.findUnique({
           where: { id: updateSlotDto.timeslotId },
         });
 
@@ -648,7 +716,7 @@ export class ScheduleService {
     }
 
     // Update the schedule slot
-    const updatedSlot = await this.scheduleSlot.update({
+    const updatedSlot = await this.prisma.scheduleSlot.update({
       where: { id },
       data: {
         ...updateSlotDto,
@@ -696,7 +764,7 @@ export class ScheduleService {
     _userId: string,
   ): Promise<{ success: boolean; message: string }> {
     // Check if slot exists
-    const existingSlot = await this.scheduleSlot.findUnique({
+    const existingSlot = await this.prisma.scheduleSlot.findUnique({
       where: { id },
     });
 
@@ -725,7 +793,7 @@ export class ScheduleService {
     conflictingSlots?: Record<string, unknown>[];
   }> {
     // Find any slots where this teacher is assigned at the same time
-    const conflictingSlots = await this.scheduleSlot.findMany({
+    const conflictingSlots = await this.prisma.scheduleSlot.findMany({
       where: {
         teacherId: checkConflictDto.teacherId,
         day: checkConflictDto.day,
@@ -792,7 +860,7 @@ export class ScheduleService {
     hasConflicts: boolean;
     conflictCount: number;
   }> {
-    const conflictingSlots = await this.scheduleSlot.findMany({
+    const conflictingSlots = await this.prisma.scheduleSlot.findMany({
       where: {
         scheduleId,
         hasConflict: true,

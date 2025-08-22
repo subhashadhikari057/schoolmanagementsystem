@@ -38,10 +38,12 @@ export * from "./parent/parent.dto";
 // Academic Module DTOs
 export * from "./academic/assignment.dto";
 export * from "./academic/submission.dto";
+export * from "./academic/class-subject.dto";
 
 // Schedule Module DTOs
 export * from "./schedule/timeslot.dto";
 export * from "./schedule/schedule.dto";
+export * from "./schedule/timetable.dto";
 
 // Attendance Module DTOs
 export * from "./attendance/attendance.dto";

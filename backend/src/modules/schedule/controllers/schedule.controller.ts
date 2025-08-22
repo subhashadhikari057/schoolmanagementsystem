@@ -51,8 +51,26 @@ export class ScheduleController {
   @RoleAccess.Authenticated()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get schedules by class ID' })
-  async getSchedulesByClass(@Query() query: GetSchedulesByClassDto) {
-    return this.scheduleService.getSchedulesByClass(query.classId);
+  async getSchedulesByClass(@Query() query: Record<string, unknown>) {
+    // Handle both direct query params and nested params object
+    let params: GetSchedulesByClassDto;
+
+    if (query.params) {
+      // If params are nested (coming from axios serialization)
+      try {
+        params =
+          typeof query.params === 'string'
+            ? JSON.parse(query.params)
+            : (query.params as GetSchedulesByClassDto);
+      } catch {
+        params = query as GetSchedulesByClassDto;
+      }
+    } else {
+      // Direct query parameters
+      params = query as GetSchedulesByClassDto;
+    }
+
+    return this.scheduleService.getSchedulesByClass(params.classId);
   }
 
   @Get(':id')

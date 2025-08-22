@@ -5,9 +5,8 @@ import { Calendar, Clock, School } from 'lucide-react';
 import { useScheduleStore } from '@/store/schedule';
 import { classService } from '@/api/services/class.service';
 import TimeslotManager from './TimeslotManager';
-import TimetableBuilder from './TimetableBuilder';
-import SubjectLibrary from './SubjectLibrary';
-import TeacherAssignmentModal from './TeacherAssignmentModal';
+import { TimetableBuilder } from './TimetableBuilder';
+import { TeacherAssignmentModal } from './TeacherAssignmentModal';
 
 // Tab definition
 interface Tab {
@@ -49,18 +48,26 @@ export default function ScheduleBuilder() {
     setIsLoading(true);
     try {
       const response = await classService.getAllClasses();
-      if (response.success && response.data) {
-        setClasses(response.data);
-
-        // Don't automatically select the first class
-        // Let the user explicitly select a class
+      if (response && Array.isArray(response.data)) {
+        const classData = response.data.map(cls => ({
+          id: cls.id,
+          name: cls.name,
+          grade: cls.grade,
+          section: cls.section,
+          classTeacherId: cls.classTeacherId,
+        }));
+        setClasses(classData);
+        console.log('Classes loaded, selectedClassId:', selectedClassId);
+        // Don't reset selectedClassId here - it should persist
+      } else {
+        setClasses([]);
       }
     } catch (error) {
       console.error('Error loading classes:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedClassId, setSelectedClass]);
+  }, []); // Remove selectedClassId and setSelectedClass from dependencies
 
   // Handle client-side hydration
   useEffect(() => {
@@ -70,7 +77,12 @@ export default function ScheduleBuilder() {
 
   // Handle class selection
   const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedClass(e.target.value);
+    const newClassId = e.target.value;
+    console.log('Class selection changed to:', newClassId);
+
+    // Reset timetable loaded flag when changing class
+    useScheduleStore.getState().setHasLoadedTimetable(false);
+    setSelectedClass(newClassId);
   };
 
   // Get the selected class info and update store with full class data
@@ -79,7 +91,18 @@ export default function ScheduleBuilder() {
   // Update the store with the full class data when it changes
   useEffect(() => {
     if (selectedClass) {
-      useScheduleStore.getState().setSelectedClassData(selectedClass);
+      // Map the class data to match the store's Class interface
+      const classData = {
+        id: selectedClass.id,
+        classId: selectedClass.id, // Use id as classId
+        gradeLevel: selectedClass.grade,
+        section: selectedClass.section,
+        academicYearId: '2024-25', // Default academic year - should be dynamic
+        teacherId: selectedClass.classTeacherId,
+        // Add grade for backward compatibility
+        grade: selectedClass.grade,
+      };
+      useScheduleStore.getState().setSelectedClassData(classData);
     }
   }, [selectedClass]);
 
@@ -186,16 +209,9 @@ export default function ScheduleBuilder() {
         </div>
 
         {/* Main Content */}
-        <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
-          {/* Left column - Subject Library (only in timetable builder tab) */}
-          {activeTab === 1 && (
-            <div className='lg:col-span-1'>
-              <SubjectLibrary />
-            </div>
-          )}
-
-          {/* Right column - Main content */}
-          <div className={activeTab === 1 ? 'lg:col-span-3' : 'lg:col-span-4'}>
+        <div className='grid grid-cols-1 gap-6'>
+          {/* Main content - Full width */}
+          <div className='lg:col-span-4'>
             {activeTab === 0 && <TimeslotManager />}
             {activeTab === 1 && <TimetableBuilder />}
           </div>
