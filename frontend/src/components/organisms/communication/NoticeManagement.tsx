@@ -165,7 +165,7 @@ const NoticeManagement: React.FC = () => {
         params.priority = priorityFilter;
       }
 
-      const res = await noticeService.getAllNotices(params);
+      const res = await noticeService.getMyNotices(params);
       if (res.success && res.data) {
         setTotalItems(res.data.pagination.total);
         setTotalPages(res.data.pagination.pages);
@@ -790,9 +790,6 @@ function NoticeEditModal({
   const [priority, setPriority] = React.useState(
     notice.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT',
   );
-  const [status, setStatus] = React.useState(
-    notice.status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' | 'EXPIRED',
-  );
   const [saving, setSaving] = React.useState(false);
 
   const handleSaveDraft = async () => {
@@ -884,22 +881,6 @@ function NoticeEditModal({
             </select>
           </div>
 
-          {/* Status */}
-          <div className='space-y-2'>
-            <div className='text-xs font-medium text-gray-500 uppercase tracking-wide'>
-              Status
-            </div>
-            <select
-              className='w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-              value={status}
-              onChange={e => setStatus(e.target.value as any)}
-            >
-              <option value='DRAFT'>Draft</option>
-              <option value='PUBLISHED'>Published</option>
-              <option value='ARCHIVED'>Archived</option>
-            </select>
-          </div>
-
           {/* Content */}
           <div className='space-y-2'>
             <div className='text-xs font-medium text-gray-500 uppercase tracking-wide'>
@@ -918,14 +899,14 @@ function NoticeEditModal({
             Current Status:{' '}
             <span
               className={`font-medium ${
-                status === 'DRAFT'
+                notice.status === 'DRAFT'
                   ? 'text-yellow-600'
-                  : status === 'PUBLISHED'
+                  : notice.status === 'PUBLISHED'
                     ? 'text-green-600'
                     : 'text-gray-600'
               }`}
             >
-              {status}
+              {notice.status}
             </span>
           </div>
           <div className='flex gap-3'>
