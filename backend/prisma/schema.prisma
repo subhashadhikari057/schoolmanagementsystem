@@ -48,6 +48,12 @@ model User {
   complaintResponses    ComplaintResponse[]
   complaintAuditLogs    ComplaintAuditLog[]
 
+  // Leave Request relations
+  leaveRequestsCreated     LeaveRequest[] @relation("LeaveRequestCreator")
+  leaveRequestsUpdated     LeaveRequest[] @relation("LeaveRequestUpdater")
+  leaveRequestsDeleted     LeaveRequest[] @relation("LeaveRequestDeleter")
+  leaveRequestAuditLogs    LeaveRequestAuditLog[]
+
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
@@ -215,6 +221,7 @@ model Student {
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   profile           StudentProfile?
   submissions       Submission[]
+  leaveRequests     LeaveRequest[]
 
   @@index([userId])
   @@index([classId])
@@ -278,6 +285,7 @@ model Parent {
   user                         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   profile                      ParentProfile?
   children                     ParentStudentLink[] @relation("ParentChildren")
+  leaveRequestsApproved      LeaveRequest[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -360,6 +368,7 @@ model Teacher {
   salaryHistory      TeacherSalaryHistory[]
   subjectAssignments TeacherSubject[]      @relation("TeacherSubjectAssignments")
   scheduleSlots      ScheduleSlot[]
+  leaveRequestsApproved  LeaveRequest[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -1068,6 +1077,111 @@ model ComplaintAuditLog {
   performer   User?     @relation(fields: [performedBy], references: [id])
 
   @@index([complaintId])
+  @@index([action])
+  @@index([performedBy])
+  @@index([performedAt])
+}
+
+// =====================
+// Leave Request Management Models
+// =====================
+
+enum LeaveRequestStatus {
+  PENDING_PARENT_APPROVAL
+  PENDING_TEACHER_APPROVAL
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LeaveRequestType {
+  SICK
+  PERSONAL
+  VACATION
+  EMERGENCY
+  MEDICAL
+  FAMILY
+}
+
+model LeaveRequest {
+  id                String              @id @default(uuid())
+  title             String
+  description       String?
+  type              LeaveRequestType
+  status            LeaveRequestStatus  @default(PENDING_PARENT_APPROVAL)
+  startDate         DateTime
+  endDate           DateTime
+  days              Int                 // Calculated field for number of days
+  studentId         String
+  parentId          String?             // Parent who approved
+  teacherId         String?             // Class teacher who approved
+  parentApprovedAt  DateTime?
+  teacherApprovedAt DateTime?
+  parentRejectedAt  DateTime?
+  teacherRejectedAt DateTime?
+  parentRejectionReason String?
+  teacherRejectionReason String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime?
+  deletedAt         DateTime?
+  createdById       String?
+  updatedById       String?
+  deletedById       String?
+
+  // Relationships
+  student           Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent            Parent?             @relation(fields: [parentId], references: [id])
+  teacher           Teacher?            @relation(fields: [teacherId], references: [id])
+  createdBy         User?               @relation("LeaveRequestCreator", fields: [createdById], references: [id])
+  updatedBy         User?               @relation("LeaveRequestUpdater", fields: [updatedById], references: [id])
+  deletedBy         User?               @relation("LeaveRequestDeleter", fields: [deletedById], references: [id])
+  attachments       LeaveRequestAttachment[]
+  auditLogs         LeaveRequestAuditLog[]
+
+  @@index([studentId])
+  @@index([parentId])
+  @@index([teacherId])
+  @@index([type])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model LeaveRequestAttachment {
+  id           String   @id @default(uuid())
+  leaveRequestId String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int      // Size in bytes (max 5MB = 5,242,880 bytes)
+  url          String
+  uploadedAt   DateTime @default(now())
+
+  // Relationships
+  leaveRequest LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+
+  @@index([leaveRequestId])
+  @@index([mimeType])
+  @@index([size])
+}
+
+model LeaveRequestAuditLog {
+  id              String   @id @default(uuid())
+  leaveRequestId  String
+  action          String   // CREATED, PARENT_APPROVED, TEACHER_APPROVED, REJECTED, CANCELLED, etc.
+  details         Json?
+  performedBy     String?
+  performedAt     DateTime @default(now())
+
+  // Relationships
+  leaveRequest    LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  performer       User?        @relation(fields: [performedBy], references: [id])
+
+  @@index([leaveRequestId])
   @@index([action])
   @@index([performedBy])
   @@index([performedAt])
