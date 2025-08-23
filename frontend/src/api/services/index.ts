@@ -22,3 +22,4 @@ export * from './submission.service';
 export * from './subject.service';
 export * from './teacher.service';
 export * from './schedule.service';
+export * from './leave-request.service';

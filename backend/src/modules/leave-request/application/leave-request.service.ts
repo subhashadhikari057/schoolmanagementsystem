@@ -38,9 +38,39 @@ export class LeaveRequestService {
     const student = await this.prisma.student.findFirst({
       where: { userId, deletedAt: null },
       include: {
+        user: {
+          select: {
+            fullName: true,
+            email: true,
+          },
+        },
         class: {
           include: {
-            classTeacher: true,
+            classTeacher: {
+              include: {
+                user: {
+                  select: {
+                    fullName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        parents: {
+          where: { isPrimary: true, deletedAt: null },
+          include: {
+            parent: {
+              include: {
+                user: {
+                  select: {
+                    fullName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -48,6 +78,39 @@ export class LeaveRequestService {
 
     if (!student) {
       throw new NotFoundException('Student not found');
+    }
+
+    // Get the primary parent and class teacher
+    const primaryParent = student.parents.find(p => p.isPrimary);
+    const classTeacher = student.class.classTeacher;
+
+    console.log('Leave request creation - Found relationships:', {
+      studentId: student.id,
+      studentName: student.user?.fullName,
+      primaryParent: primaryParent
+        ? {
+            id: primaryParent.parent.id,
+            name: primaryParent.parent.user?.fullName,
+          }
+        : null,
+      classTeacher: classTeacher
+        ? {
+            id: classTeacher.id,
+            name: classTeacher.user?.fullName,
+          }
+        : null,
+    });
+
+    if (!primaryParent) {
+      throw new BadRequestException(
+        'Student must have a primary parent assigned. Please contact the administration to set up parent information.',
+      );
+    }
+
+    if (!classTeacher) {
+      throw new BadRequestException(
+        'Student must have a class teacher assigned. Please contact the administration to set up class teacher information.',
+      );
     }
 
     // Calculate days between start and end date
@@ -73,11 +136,15 @@ export class LeaveRequestService {
         endDate,
         days,
         studentId: student.id,
+        parentId: primaryParent.parent.id,
+        teacherId: classTeacher.id,
         createdById: userId,
       },
       include: {
         student: {
-          include: {
+          select: {
+            rollNumber: true,
+            classId: true,
             user: {
               select: {
                 fullName: true,
@@ -93,15 +160,67 @@ export class LeaveRequestService {
             },
           },
         },
+        parent: {
+          include: {
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        teacher: {
+          include: {
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
     });
+
+    // Process attachments if any
+    if (data.attachments && data.attachments.length > 0) {
+      try {
+        // Import the attachment service dynamically to avoid circular dependencies
+        const { LeaveRequestAttachmentService } = await import(
+          './leave-request-attachment.service'
+        );
+        const attachmentService = new LeaveRequestAttachmentService(
+          this.prisma,
+          this.auditService,
+        );
+
+        await attachmentService.uploadAttachments(
+          leaveRequest.id,
+          data.attachments,
+          userId,
+          userRole,
+          ipAddress,
+          userAgent,
+        );
+      } catch (attachmentError) {
+        console.error('Error uploading attachments:', attachmentError);
+        // Don't fail the leave request creation if attachments fail
+        // The leave request is still created successfully
+      }
+    }
 
     // Log the action
     await this.auditService.log({
       userId,
       action: 'LEAVE_REQUEST_CREATED',
       module: 'LEAVE_REQUEST',
-      details: { leaveRequestId: leaveRequest.id },
+      details: {
+        leaveRequestId: leaveRequest.id,
+        parentId: primaryParent.parent.id,
+        teacherId: classTeacher.id,
+        studentId: student.id,
+      },
       ipAddress,
       userAgent,
     });
@@ -186,7 +305,9 @@ export class LeaveRequestService {
         where: whereClause,
         include: {
           student: {
-            include: {
+            select: {
+              rollNumber: true,
+              classId: true,
               user: {
                 select: {
                   fullName: true,
@@ -248,7 +369,9 @@ export class LeaveRequestService {
       where: { id, deletedAt: null },
       include: {
         student: {
-          include: {
+          select: {
+            rollNumber: true,
+            classId: true,
             user: {
               select: {
                 fullName: true,

@@ -30,6 +30,9 @@ import type {
   ComplaintResponse,
 } from '@/api/services/complaint.service';
 import { toast } from 'sonner';
+import LeaveRequestModal from '@/components/organisms/modals/LeaveRequestModal';
+import LeaveRequestDetailModal from '@/components/organisms/modals/LeaveRequestDetailModal';
+import { useLeaveRequests } from '@/hooks/useLeaveRequests';
 
 // Mock data for leave requests (keeping unchanged)
 const mockLeaveRequests = [
@@ -739,18 +742,46 @@ export const ComplaintsAndLeavePage = () => {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(
     null,
   );
+  const [leaveRequestModalOpen, setLeaveRequestModalOpen] = useState(false);
+  const [leaveRequestDetailModalOpen, setLeaveRequestDetailModalOpen] =
+    useState(false);
+  const [selectedLeaveRequest, setSelectedLeaveRequest] = useState<any>(null);
+  const [cancelConfirmationModalOpen, setCancelConfirmationModalOpen] =
+    useState(false);
+  const [leaveRequestToCancel, setLeaveRequestToCancel] = useState<any>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [leaveRequests, setLeaveRequests] = useState(mockLeaveRequests);
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Use the leave requests hook
+  const {
+    leaveRequests: realLeaveRequests,
+    loading: leaveRequestsLoading,
+    fetchLeaveRequests,
+    cancelLeaveRequest,
+    approveByParent,
+    approveByTeacher,
+    rejectByParent,
+    rejectByTeacher,
+  } = useLeaveRequests();
 
   const { user } = useAuth();
   const router = useRouter();
 
-  // Load complaints on component mount
+  // Load complaints and leave requests on component mount
   useEffect(() => {
     loadComplaints();
+    loadLeaveRequests();
   }, []);
+
+  // Update local state when real leave requests change
+  useEffect(() => {
+    if (realLeaveRequests) {
+      setLeaveRequests(realLeaveRequests);
+    }
+  }, [realLeaveRequests]);
 
   const loadComplaints = async () => {
     try {
@@ -769,6 +800,70 @@ export const ComplaintsAndLeavePage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadLeaveRequests = async () => {
+    try {
+      await fetchLeaveRequests();
+    } catch (error) {
+      console.error('Error loading leave requests:', error);
+      toast.error('Failed to load leave requests');
+    }
+  };
+
+  const handleViewLeaveRequest = (leaveRequest: any) => {
+    setSelectedLeaveRequest(leaveRequest);
+    setLeaveRequestDetailModalOpen(true);
+  };
+
+  const handleApproveLeaveRequest = async (leaveRequestId: string) => {
+    try {
+      // Call the backend API to approve the leave request
+      await approveByParent(leaveRequestId);
+      toast.success('Leave request approved successfully');
+      // The hook will automatically update the local state
+    } catch (error) {
+      console.error('Error approving leave request:', error);
+      toast.error('Failed to approve leave request');
+    }
+  };
+
+  const handleRejectLeaveRequest = async (
+    leaveRequestId: string,
+    reason: string,
+  ) => {
+    try {
+      // Call the backend API to reject the leave request
+      await rejectByParent(leaveRequestId, reason);
+      toast.success('Leave request rejected successfully');
+      // The hook will automatically update the local state
+    } catch (error) {
+      console.error('Error rejecting leave request:', error);
+      toast.error('Failed to reject leave request');
+    }
+  };
+
+  const handleCancelLeaveRequest = async (leaveRequestId: string) => {
+    try {
+      // Call the backend API to cancel the leave request
+      await cancelLeaveRequest(leaveRequestId);
+      toast.success('Leave request cancelled successfully');
+      // The hook will automatically update the local state
+      // No need to manually refresh
+    } catch (error) {
+      console.error('Error cancelling leave request:', error);
+      toast.error('Failed to cancel leave request');
+    }
+  };
+
+  const refreshLeaveRequests = () => {
+    // Refresh leave requests from the API
+    loadLeaveRequests();
+  };
+
+  const handleLeaveRequestSuccess = () => {
+    // Refresh the page to show the new leave request
+    window.location.reload();
   };
 
   const handleSubmitComplaint = async (
@@ -1125,16 +1220,8 @@ export const ComplaintsAndLeavePage = () => {
                     {complaints.length}
                   </p>
                 </div>
-                <div className='w-px h-8 bg-slate-300'></div>
-                <div className='text-right'>
-                  <p className='text-sm text-slate-600'>Pending</p>
-                  <p className='text-2xl font-bold text-orange-600'>
-                    {
-                      complaints.filter(
-                        c => c.status === 'OPEN' || c.status === 'IN_PROGRESS',
-                      ).length
-                    }
-                  </p>
+                <div className='w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center'>
+                  <AlertCircle className='h-6 w-6 text-blue-600' />
                 </div>
               </div>
             </div>
@@ -1169,100 +1256,432 @@ export const ComplaintsAndLeavePage = () => {
       name: 'Leave Requests',
       content: (
         <>
-          <div className='mb-2 flex justify-between items-center'>
-            <span className='text-sm text-gray-500'>
-              Total: {leaveRequests.length}
-            </span>
-            <span className='bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded'>
-              {leaveRequests.filter(l => l.status === 'pending').length} pending
-            </span>
-          </div>
-          <div className='mb-6'>
-            <h4 className='font-semibold mb-2'>Approved Leave Requests</h4>
-            <div className='flex flex-col gap-4'>
-              {leaveRequests.filter(l => l.status === 'approved').length ===
-              0 ? (
-                <div className='text-gray-500 text-sm'>
-                  No approved leave requests found.
+          <div className='p-6 border-b border-slate-200 bg-slate-50'>
+            <div className='flex justify-between items-center'>
+              <div>
+                <h3 className='text-lg font-semibold text-slate-800'>
+                  Leave Requests Overview
+                </h3>
+                <p className='text-slate-600 text-sm mt-1'>
+                  Track and manage your submitted leave requests
+                </p>
+              </div>
+              <div className='flex items-center gap-3'>
+                <div className='text-right'>
+                  <p className='text-sm text-slate-600'>Total Requests</p>
+                  <p className='text-2xl font-bold text-slate-800'>
+                    {leaveRequests.filter(l => l.status !== 'CANCELLED').length}
+                  </p>
                 </div>
-              ) : (
-                leaveRequests
-                  .filter(l => l.status === 'approved')
-                  .map(event => (
-                    <div
-                      key={event.id}
-                      className='bg-white rounded-lg p-6 shadow border flex flex-col gap-2'
-                    >
-                      <div className='flex justify-between items-center mb-2'>
-                        <span className='font-medium'>{event.title}</span>
-                        <StatusBadge status={event.status} />
-                      </div>
-                      <div className='text-sm text-gray-500 mb-1'>
-                        Date: {event.date}{' '}
-                        {event.time !== 'N/A' && `• ${event.time}`} •{' '}
-                        {event.location}
-                      </div>
-                      <Button className='bg-gray-100 text-gray-700 px-4 py-2 rounded w-fit'>
-                        View Details
-                      </Button>
-                    </div>
-                  ))
-              )}
+                <div className='w-px h-8 bg-slate-300'></div>
+                <div className='text-right'>
+                  <p className='text-sm text-slate-600'>Pending</p>
+                  <p className='text-2xl font-bold text-orange-600'>
+                    {
+                      leaveRequests.filter(
+                        l =>
+                          l.status === 'PENDING_PARENT_APPROVAL' ||
+                          l.status === 'PENDING_TEACHER_APPROVAL',
+                      ).length
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-          <div className='mb-6'>
-            <h4 className='font-semibold mb-2'>
-              Unapproved (Pending) Leave Requests
-            </h4>
-            <div className='flex flex-col gap-4'>
-              {leaveRequests.filter(l => l.status === 'pending').length ===
-              0 ? (
-                <div className='text-gray-500 text-sm'>
-                  No pending leave requests found.
+          <div className='p-6'>
+            {leaveRequestsLoading ? (
+              <div className='text-center py-8'>Loading leave requests...</div>
+            ) : leaveRequests.length === 0 ? (
+              <div className='text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200'>
+                <div className='w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+                  <CalendarDays className='h-8 w-8 text-slate-400' />
                 </div>
-              ) : (
-                leaveRequests
-                  .filter(l => l.status === 'pending')
-                  .map(event => (
-                    <div
-                      key={event.id}
-                      className='bg-white rounded-lg p-6 shadow border flex flex-col gap-2'
-                    >
-                      <div className='flex justify-between items-center mb-2'>
-                        <span className='font-medium'>{event.title}</span>
-                        <StatusBadge status={event.status} />
+                <p className='text-slate-500 font-medium'>
+                  No leave requests found
+                </p>
+                <p className='text-slate-400 text-sm mt-1'>
+                  When you submit leave requests, they'll appear here
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className='mb-8'>
+                  <h4 className='text-xl font-semibold text-slate-800 mb-4'>
+                    Active Leave Requests
+                  </h4>
+                  <p className='text-slate-600 text-sm mb-4'>
+                    These are your pending leave requests. You can cancel them
+                    if they haven't been approved by your parent yet.
+                  </p>
+                  <div className='space-y-4'>
+                    {leaveRequests.filter(
+                      l =>
+                        l.status === 'PENDING_PARENT_APPROVAL' ||
+                        l.status === 'PENDING_TEACHER_APPROVAL',
+                    ).length === 0 ? (
+                      <div className='text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200'>
+                        <div className='w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3'>
+                          <Clock className='h-6 w-6 text-slate-400' />
+                        </div>
+                        <p className='text-slate-500 font-medium'>
+                          No pending leave requests
+                        </p>
+                        <p className='text-slate-400 text-sm mt-1'>
+                          All your leave requests have been processed
+                        </p>
                       </div>
-                      <div className='text-sm text-gray-500 mb-1'>
-                        Date: {event.date}{' '}
-                        {event.time !== 'N/A' && `• ${event.time}`} •{' '}
-                        {event.location}
+                    ) : (
+                      leaveRequests
+                        .filter(
+                          l =>
+                            l.status === 'PENDING_PARENT_APPROVAL' ||
+                            l.status === 'PENDING_TEACHER_APPROVAL',
+                        )
+                        .map(leaveRequest => (
+                          <div
+                            key={leaveRequest.id}
+                            className='group bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'
+                          >
+                            <div className='flex items-start justify-between mb-4'>
+                              <div className='flex-1'>
+                                <h3 className='font-semibold text-slate-800 text-lg mb-2 line-clamp-2'>
+                                  {leaveRequest.title}
+                                </h3>
+                                <div className='text-sm text-gray-600 mb-2'>
+                                  <span className='font-medium'>Type:</span>{' '}
+                                  {leaveRequest.type}
+                                </div>
+                                <div className='text-sm text-gray-600 mb-2'>
+                                  <span className='font-medium'>Duration:</span>{' '}
+                                  {leaveRequest.days} day
+                                  {leaveRequest.days !== 1 ? 's' : ''}
+                                </div>
+                                <div className='flex items-center gap-4 text-sm text-slate-600 mb-3'>
+                                  <span className='flex items-center gap-1'>
+                                    <CalendarDays className='h-4 w-4' />
+                                    {new Date(
+                                      leaveRequest.startDate,
+                                    ).toLocaleDateString()}{' '}
+                                    -{' '}
+                                    {new Date(
+                                      leaveRequest.endDate,
+                                    ).toLocaleDateString()}
+                                  </span>
+                                  <span className='flex items-center gap-1'>
+                                    <span className='w-2 h-2 bg-blue-500 rounded-full'></span>
+                                    {leaveRequest.type}
+                                  </span>
+                                  <span className='flex items-center gap-1'>
+                                    <span className='w-2 h-2 bg-yellow-500 rounded-full'></span>
+                                    {leaveRequest.status ===
+                                    'PENDING_PARENT_APPROVAL'
+                                      ? 'Pending Parent Approval'
+                                      : 'Pending Teacher Approval'}
+                                  </span>
+                                </div>
+                                {leaveRequest.description && (
+                                  <p className='text-slate-600 text-sm line-clamp-2'>
+                                    {leaveRequest.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className='ml-4'>
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    leaveRequest.status ===
+                                    'PENDING_PARENT_APPROVAL'
+                                      ? 'bg-yellow-100 text-yellow-700'
+                                      : 'bg-blue-100 text-blue-700'
+                                  }`}
+                                >
+                                  {leaveRequest.status ===
+                                  'PENDING_PARENT_APPROVAL'
+                                    ? 'Pending Parent Approval'
+                                    : 'Pending Teacher Approval'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className='flex items-center justify-between'>
+                              <div className='flex items-center gap-4 text-sm text-slate-500'>
+                                {leaveRequest.attachments &&
+                                  leaveRequest.attachments.length > 0 && (
+                                    <span className='flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full'>
+                                      <FileText className='h-4 w-4' />
+                                      {leaveRequest.attachments.length}{' '}
+                                      attachment
+                                      {leaveRequest.attachments.length !== 1
+                                        ? 's'
+                                        : ''}
+                                    </span>
+                                  )}
+                                <span className='flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full'>
+                                  <CalendarDays className='h-4 w-4' />
+                                  Submitted{' '}
+                                  {new Date(
+                                    leaveRequest.createdAt,
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+
+                              <div className='flex items-center gap-2'>
+                                <Button
+                                  onClick={() =>
+                                    handleViewLeaveRequest(leaveRequest)
+                                  }
+                                  className='bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                >
+                                  <Eye className='h-4 w-4 mr-2' />
+                                  View Details
+                                </Button>
+
+                                {/* Cancel button for students */}
+                                <Button
+                                  onClick={() => {
+                                    setLeaveRequestToCancel(leaveRequest);
+                                    setCancelConfirmationModalOpen(true);
+                                  }}
+                                  className='bg-gradient-to-r from-orange-600 to-orange-700 text-white px-4 py-2 rounded-xl hover:from-orange-700 hover:to-orange-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                >
+                                  <X className='h-4 w-4 mr-2' />
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+
+                <div className='mb-8'>
+                  <h4 className='text-xl font-semibold text-slate-800 mb-4'>
+                    Approved Leave Requests
+                  </h4>
+                  <div className='space-y-4'>
+                    {leaveRequests.filter(l => l.status === 'APPROVED')
+                      .length === 0 ? (
+                      <div className='text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200'>
+                        <div className='w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3'>
+                          <CheckCircle2 className='h-6 w-6 text-slate-400' />
+                        </div>
+                        <p className='text-slate-500 font-medium'>
+                          No approved leave requests
+                        </p>
+                        <p className='text-slate-400 text-sm mt-1'>
+                          Your approved leave requests will appear here
+                        </p>
                       </div>
-                      <Button className='bg-gray-100 text-gray-700 px-4 py-2 rounded w-fit'>
-                        View Details
-                      </Button>
-                      {/* Parent approve/reject buttons for leave requests */}
-                      <div className='flex gap-2 mt-2'>
-                        <Button
-                          className='bg-green-500 text-white px-4 py-2 rounded'
-                          onClick={() =>
-                            handleParentAction(event.id, 'approved')
-                          }
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          className='bg-red-500 text-white px-4 py-2 rounded'
-                          onClick={() =>
-                            handleParentAction(event.id, 'rejected')
-                          }
-                        >
-                          Reject
-                        </Button>
+                    ) : (
+                      leaveRequests
+                        .filter(l => l.status === 'APPROVED')
+                        .map(leaveRequest => (
+                          <div
+                            key={leaveRequest.id}
+                            className='group bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'
+                          >
+                            <div className='flex items-start justify-between mb-4'>
+                              <div className='flex-1'>
+                                <h3 className='font-semibold text-slate-800 text-lg mb-2 line-clamp-2'>
+                                  {leaveRequest.title}
+                                </h3>
+                                <div className='text-sm text-gray-600 mb-2'>
+                                  <span className='font-medium'>Type:</span>{' '}
+                                  {leaveRequest.type}
+                                </div>
+                                <div className='text-sm text-gray-600 mb-2'>
+                                  <span className='font-medium'>Duration:</span>{' '}
+                                  {leaveRequest.days} day
+                                  {leaveRequest.days !== 1 ? 's' : ''}
+                                </div>
+                                <div className='flex items-center gap-4 text-sm text-slate-600 mb-3'>
+                                  <span className='flex items-center gap-1'>
+                                    <CalendarDays className='h-4 w-4' />
+                                    {new Date(
+                                      leaveRequest.startDate,
+                                    ).toLocaleDateString()}{' '}
+                                    -{' '}
+                                    {new Date(
+                                      leaveRequest.endDate,
+                                    ).toLocaleDateString()}
+                                  </span>
+                                  <span className='flex items-center gap-1'>
+                                    <span className='w-2 h-2 bg-blue-500 rounded-full'></span>
+                                    {leaveRequest.type}
+                                  </span>
+                                  <span className='flex items-center gap-1'>
+                                    <span className='w-2 h-2 bg-green-500 rounded-full'></span>
+                                    Approved
+                                  </span>
+                                </div>
+                                {leaveRequest.description && (
+                                  <p className='text-slate-600 text-sm line-clamp-2'>
+                                    {leaveRequest.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className='ml-4'>
+                                <span className='bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium'>
+                                  Approved
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className='flex items-center justify-between'>
+                              <div className='flex items-center gap-4 text-sm text-slate-500'>
+                                {leaveRequest.attachments &&
+                                  leaveRequest.attachments.length > 0 && (
+                                    <span className='flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full'>
+                                      <FileText className='h-4 w-4' />
+                                      {leaveRequest.attachments.length}{' '}
+                                      attachment
+                                      {leaveRequest.attachments.length !== 1
+                                        ? 's'
+                                        : ''}
+                                    </span>
+                                  )}
+                                <span className='flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full'>
+                                  <CalendarDays className='h-4 w-4' />
+                                  Approved on{' '}
+                                  {new Date(
+                                    leaveRequest.createdAt,
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+
+                              <div className='flex items-center gap-2'>
+                                <Button
+                                  onClick={() =>
+                                    handleViewLeaveRequest(leaveRequest)
+                                  }
+                                  className='bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                >
+                                  <Eye className='h-4 w-4 mr-2' />
+                                  View Details
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+
+                <div className='mb-8'>
+                  <h4 className='text-xl font-semibold text-slate-800 mb-4'>
+                    Rejected Leave Requests
+                  </h4>
+                  <div className='space-y-4'>
+                    {leaveRequests.filter(l => l.status === 'REJECTED')
+                      .length === 0 ? (
+                      <div className='text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200'>
+                        <div className='w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3'>
+                          <XCircle className='h-6 w-6 text-slate-400' />
+                        </div>
+                        <p className='text-slate-500 font-medium'>
+                          No rejected leave requests
+                        </p>
+                        <p className='text-slate-400 text-sm mt-1'>
+                          Your rejected leave requests will appear here
+                        </p>
                       </div>
-                    </div>
-                  ))
-              )}
-            </div>
+                    ) : (
+                      leaveRequests
+                        .filter(l => l.status === 'REJECTED')
+                        .map(leaveRequest => (
+                          <div
+                            key={leaveRequest.id}
+                            className='group bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'
+                          >
+                            <div className='flex items-start justify-between mb-4'>
+                              <div className='flex-1'>
+                                <h3 className='font-semibold text-slate-800 text-lg mb-2 line-clamp-2'>
+                                  {leaveRequest.title}
+                                </h3>
+                                <div className='text-sm text-gray-600 mb-2'>
+                                  <span className='font-medium'>Type:</span>{' '}
+                                  {leaveRequest.type}
+                                </div>
+                                <div className='text-sm text-gray-600 mb-2'>
+                                  <span className='font-medium'>Duration:</span>{' '}
+                                  {leaveRequest.days} day
+                                  {leaveRequest.days !== 1 ? 's' : ''}
+                                </div>
+                                <div className='flex items-center gap-4 text-sm text-slate-600 mb-3'>
+                                  <span className='flex items-center gap-1'>
+                                    <CalendarDays className='h-4 w-4' />
+                                    {new Date(
+                                      leaveRequest.startDate,
+                                    ).toLocaleDateString()}{' '}
+                                    -{' '}
+                                    {new Date(
+                                      leaveRequest.endDate,
+                                    ).toLocaleDateString()}
+                                  </span>
+                                  <span className='flex items-center gap-1'>
+                                    <span className='w-2 h-2 bg-blue-500 rounded-full'></span>
+                                    {leaveRequest.type}
+                                  </span>
+                                  <span className='flex items-center gap-1'>
+                                    <span className='w-2 h-2 bg-red-500 rounded-full'></span>
+                                    Rejected
+                                  </span>
+                                </div>
+                                {leaveRequest.description && (
+                                  <p className='text-slate-600 text-sm line-clamp-2'>
+                                    {leaveRequest.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className='ml-4'>
+                                <span className='bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium'>
+                                  Rejected
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className='flex items-center justify-between'>
+                              <div className='flex items-center gap-4 text-sm text-slate-500'>
+                                {leaveRequest.attachments &&
+                                  leaveRequest.attachments.length > 0 && (
+                                    <span className='flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full'>
+                                      <FileText className='h-4 w-4' />
+                                      {leaveRequest.attachments.length}{' '}
+                                      attachment
+                                      {leaveRequest.attachments.length !== 1
+                                        ? 's'
+                                        : ''}
+                                    </span>
+                                  )}
+                                <span className='flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full'>
+                                  <CalendarDays className='h-4 w-4' />
+                                  Rejected on{' '}
+                                  {new Date(
+                                    leaveRequest.createdAt,
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+
+                              <div className='flex items-center gap-2'>
+                                <Button
+                                  onClick={() =>
+                                    handleViewLeaveRequest(leaveRequest)
+                                  }
+                                  className='bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                >
+                                  <Eye className='h-4 w-4 mr-2' />
+                                  View Details
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </>
       ),
@@ -1275,6 +1694,24 @@ export const ComplaintsAndLeavePage = () => {
         open={complaintModalOpen}
         onClose={() => setComplaintModalOpen(false)}
         onSubmit={handleSubmitComplaint}
+      />
+
+      <LeaveRequestModal
+        open={leaveRequestModalOpen}
+        onClose={() => setLeaveRequestModalOpen(false)}
+        onSuccess={refreshLeaveRequests}
+      />
+
+      <LeaveRequestDetailModal
+        open={leaveRequestDetailModalOpen}
+        onClose={() => {
+          setLeaveRequestDetailModalOpen(false);
+          setSelectedLeaveRequest(null);
+        }}
+        leaveRequest={selectedLeaveRequest}
+        onApprove={handleApproveLeaveRequest}
+        onReject={handleRejectLeaveRequest}
+        onCancel={handleCancelLeaveRequest}
       />
 
       <ComplaintDetailModal
@@ -1353,6 +1790,135 @@ export const ComplaintsAndLeavePage = () => {
                 className='bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700'
               >
                 Yes, Close Complaint
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Cancel Confirmation Modal */}
+      {cancelConfirmationModalOpen && leaveRequestToCancel && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8 animate-in fade-in duration-200'>
+          <div className='bg-white rounded-xl max-w-md w-full mx-4 shadow-xl animate-in zoom-in-95 duration-200'>
+            {/* Header */}
+            <div className='bg-gradient-to-r from-orange-50 to-orange-100 p-6 border-b border-orange-200'>
+              <div className='flex justify-between items-start'>
+                <div className='flex items-center gap-3'>
+                  <div className='w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center'>
+                    <X className='h-5 w-5 text-orange-600' />
+                  </div>
+                  <div>
+                    <h2 className='text-xl font-bold text-gray-800'>
+                      Cancel Leave Request
+                    </h2>
+                    <p className='text-sm text-gray-600 mt-1'>
+                      This action cannot be undone
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setCancelConfirmationModalOpen(false);
+                    setLeaveRequestToCancel(null);
+                  }}
+                  className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className='p-6'>
+              <div className='mb-6'>
+                <div className='flex items-start gap-3 mb-4'>
+                  <div className='w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5'>
+                    <AlertCircle className='h-4 w-4 text-orange-600' />
+                  </div>
+                  <div>
+                    <p className='text-gray-700 font-medium'>
+                      Are you sure you want to cancel this leave request?
+                    </p>
+                  </div>
+                </div>
+
+                <div className='bg-gray-50 p-4 rounded-lg border border-gray-200'>
+                  <h3 className='font-semibold text-gray-800 text-lg mb-2'>
+                    {leaveRequestToCancel.title}
+                  </h3>
+                  <div className='flex items-center gap-4 text-sm text-gray-600'>
+                    <span className='flex items-center gap-1'>
+                      <span className='w-2 h-2 bg-blue-500 rounded-full'></span>
+                      {leaveRequestToCancel.type}
+                    </span>
+                    <span className='flex items-center gap-1'>
+                      <CalendarDays className='h-4 w-4' />
+                      {leaveRequestToCancel.days} day
+                      {leaveRequestToCancel.days !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className='text-sm text-gray-500 mt-2'>
+                    {new Date(
+                      leaveRequestToCancel.startDate,
+                    ).toLocaleDateString()}{' '}
+                    -{' '}
+                    {new Date(
+                      leaveRequestToCancel.endDate,
+                    ).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className='bg-orange-50 border border-orange-200 rounded-lg p-4'>
+                <div className='flex items-start gap-3'>
+                  <div className='w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5'>
+                    <AlertCircle className='h-3 w-3 text-orange-600' />
+                  </div>
+                  <div>
+                    <p className='text-sm text-orange-800 font-medium mb-1'>
+                      Important Note
+                    </p>
+                    <p className='text-sm text-orange-700'>
+                      Once cancelled, this leave request will no longer be
+                      active and cannot be reactivated. You'll need to submit a
+                      new request if needed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className='flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50'>
+              <Button
+                onClick={() => {
+                  setCancelConfirmationModalOpen(false);
+                  setLeaveRequestToCancel(null);
+                }}
+                disabled={cancelling}
+                className='bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium'
+              >
+                Keep Request
+              </Button>
+              <Button
+                onClick={async () => {
+                  setCancelling(true);
+                  await handleCancelLeaveRequest(leaveRequestToCancel.id);
+                  setCancelConfirmationModalOpen(false);
+                  setLeaveRequestToCancel(null);
+                  setCancelling(false);
+                }}
+                disabled={cancelling}
+                className='bg-orange-600 text-white px-6 py-2.5 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-sm'
+              >
+                {cancelling ? (
+                  <>
+                    <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+                    Cancelling...
+                  </>
+                ) : (
+                  'Yes, Cancel Request'
+                )}
               </Button>
             </div>
           </div>
@@ -1440,7 +2006,13 @@ export const ComplaintsAndLeavePage = () => {
                 Pending Leave
               </p>
               <p className='text-3xl font-bold text-slate-800 mt-1'>
-                {leaveRequests.filter(l => l.status === 'pending').length}
+                {
+                  leaveRequests.filter(
+                    l =>
+                      l.status === 'PENDING_PARENT_APPROVAL' ||
+                      l.status === 'PENDING_TEACHER_APPROVAL',
+                  ).length
+                }
               </p>
             </div>
             <div className='w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center'>
@@ -1462,9 +2034,7 @@ export const ComplaintsAndLeavePage = () => {
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <button
             type='button'
-            onClick={() => {
-              // Leave request functionality
-            }}
+            onClick={() => setLeaveRequestModalOpen(true)}
             className='group relative bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] text-left'
           >
             <div className='flex items-start gap-4'>

@@ -13,9 +13,11 @@ import {
   UseInterceptors,
   UploadedFiles,
   Delete,
+  BadRequestException,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { LeaveRequestService } from '../application/leave-request.service';
+import { LeaveRequestAttachmentService } from '../application/leave-request-attachment.service';
 import { CreateLeaveRequestDto, UpdateLeaveRequestDto } from '../dto';
 import { UserRole } from '@sms/shared-types';
 import {
@@ -25,24 +27,91 @@ import {
 
 @Controller('api/v1/leave-requests')
 export class LeaveRequestController {
-  constructor(private readonly leaveRequestService: LeaveRequestService) {}
+  constructor(
+    private readonly leaveRequestService: LeaveRequestService,
+    private readonly attachmentService: LeaveRequestAttachmentService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() body: CreateLeaveRequestDto, @Req() req: any) {
+  @UseInterceptors(
+    FilesInterceptor(
+      'attachments',
+      10,
+      createMulterConfig(UPLOAD_PATHS.LEAVE_REQUEST_ATTACHMENTS, 'document'),
+    ),
+  )
+  async create(
+    @Body() body: any,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: any,
+  ) {
     const user = req.user;
     const userRole = Array.isArray(user.roles)
       ? user.roles[0]
       : user.role || user.roles;
 
+    // Parse the body data and add files
+    const createData: CreateLeaveRequestDto = {
+      title: body.title,
+      description: body.description,
+      type: body.type,
+      start_date: body.start_date,
+      end_date: body.end_date,
+      attachments: files || [],
+    };
+
+    // Validate required fields
+    if (
+      !createData.title ||
+      !createData.type ||
+      !createData.start_date ||
+      !createData.end_date
+    ) {
+      throw new BadRequestException(
+        'Missing required fields: title, type, start_date, end_date',
+      );
+    }
+
     const leaveRequest = await this.leaveRequestService.create(
-      body,
+      createData,
       user.id,
       userRole,
       req.ip,
       req.headers['user-agent'],
     );
     return { message: 'Leave request created', leaveRequest };
+  }
+
+  @Post(':id/attachments')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FilesInterceptor(
+      'attachments',
+      10,
+      createMulterConfig(UPLOAD_PATHS.LEAVE_REQUEST_ATTACHMENTS, 'document'),
+    ),
+  )
+  async uploadAttachments(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const result = await this.attachmentService.uploadAttachments(
+      id,
+      files,
+      user.id,
+      userRole,
+      req.ip,
+      req.headers['user-agent'],
+    );
+
+    return result;
   }
 
   @Get()
