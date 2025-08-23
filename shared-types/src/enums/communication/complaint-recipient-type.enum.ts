@@ -1,0 +1,5 @@
+export enum ComplaintRecipientType {
+  CLASS_TEACHER = "CLASS_TEACHER",
+  ADMINISTRATION = "ADMINISTRATION",
+  PARENT = "PARENT",
+}

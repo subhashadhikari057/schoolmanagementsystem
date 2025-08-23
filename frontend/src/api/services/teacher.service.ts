@@ -37,6 +37,7 @@ const TEACHER_ENDPOINTS = {
   ASSIGN_SUBJECTS: (id: string) => `api/v1/teachers/${id}/subjects`,
   GET_CLASSES: (id: string) => `api/v1/teachers/${id}/classes`,
   ASSIGN_CLASSES: (id: string) => `api/v1/teachers/${id}/classes`,
+  GET_STUDENTS: (id: string) => `api/v1/teachers/${id}/students`,
   NEXT_EMPLOYEE_ID: 'api/v1/teachers/next-employee-id',
   CALCULATE_SALARY: 'api/v1/teachers/calculate-salary',
   // Salary history endpoints
@@ -507,6 +508,42 @@ export class TeacherService {
     return this.httpClient.get(TEACHER_ENDPOINTS.NEXT_EMPLOYEE_ID, {
       requiresAuth: true,
     });
+  }
+
+  /**
+   * Get students for a teacher where they are the class teacher
+   * This is used for complaint creation to restrict which students' parents a teacher can complain to
+   */
+  async getStudentsForClassTeacher(teacherId: string): Promise<
+    ApiResponse<
+      Array<{
+        id: string;
+        rollNumber: string;
+        className: string;
+        classId: string;
+        user: {
+          id: string;
+          fullName: string;
+          email: string;
+        };
+        parents: Array<{
+          parent: {
+            user: {
+              id: string;
+              fullName: string;
+              email: string;
+              phone: string;
+            };
+          };
+        }>;
+      }>
+    >
+  > {
+    return this.httpClient.get(
+      TEACHER_ENDPOINTS.GET_STUDENTS(teacherId),
+      undefined,
+      { requiresAuth: true },
+    );
   }
 
   /**
