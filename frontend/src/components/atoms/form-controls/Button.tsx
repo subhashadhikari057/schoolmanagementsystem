@@ -8,7 +8,8 @@ interface Props {
   label?: string;
   as?: 'button' | 'div';
   children?: React.ReactNode;
-  type?: 'button' | 'submit' | 'reset'; // Add this line
+  type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
 }
 
 export default function ReusableButton({
@@ -17,17 +18,18 @@ export default function ReusableButton({
   className,
   as = 'button',
   children,
-  type, // Add this parameter
+  type,
+  disabled,
 }: Props) {
   if (as === 'div') {
     return (
       <div
-        onClick={onClick}
-        className={`${className} cursor-pointer`}
+        onClick={disabled ? undefined : onClick}
+        className={`${className} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         role='button'
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
         onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
             onClick?.();
           }
         }}
@@ -38,9 +40,12 @@ export default function ReusableButton({
   }
 
   return (
-    <Button onClick={onClick} className={`${className}`} type={type}>
-      {' '}
-      {/* Pass the type prop */}
+    <Button
+      onClick={onClick}
+      className={`${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      type={type}
+      disabled={disabled}
+    >
       {children ? children : label}
     </Button>
   );

@@ -38,6 +38,16 @@ model User {
   noticesDeleted     Notice[] @relation("NoticeDeleter")
   noticesReceived    NoticeRecipient[]
 
+  // Complaint relations
+  complaintsCreated     Complaint[] @relation("ComplaintCreator")
+  complaintsUpdated     Complaint[] @relation("ComplaintUpdater")
+  complaintsDeleted     Complaint[] @relation("ComplaintDeleter")
+  complaintsAsComplainant Complaint[] @relation("ComplaintComplainant")
+  complaintsAsRecipient    Complaint[] @relation("ComplaintRecipient")
+  complaintsAsAssigned     Complaint[] @relation("ComplaintAssignedTo")
+  complaintResponses    ComplaintResponse[]
+  complaintAuditLogs    ComplaintAuditLog[]
+
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
@@ -924,3 +934,142 @@ model NoticeAttachment {
   @@index([noticeId])
   @@index([mimeType])
 }
+
+// =====================
+// Complaint Management Enums
+// =====================
+enum ComplaintType {
+  ACADEMIC
+  BEHAVIORAL
+  FACILITY
+  SAFETY
+  BULLYING
+  DISCIPLINARY
+  FINANCIAL
+  ADMINISTRATIVE
+  OTHER
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ComplaintRecipientType {
+  CLASS_TEACHER
+  ADMINISTRATION
+  PARENT
+}
+
+// =====================
+// Complaint Management Models
+// =====================
+model Complaint {
+  id                    String                @id @default(uuid())
+  title                 String
+  description           String
+  type                  ComplaintType
+  priority              ComplaintPriority     @default(MEDIUM)
+  status                ComplaintStatus       @default(OPEN)
+  recipientType         ComplaintRecipientType
+  recipientId           String?               // ID of teacher/admin/parent
+  complainantId         String                // ID of student/teacher/parent
+  complainantType       String                // STUDENT, TEACHER, PARENT
+  assignedToId          String?               // ID of assigned handler
+  assignedAt            DateTime?
+  resolvedAt            DateTime?
+  resolution            String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime?
+  deletedAt             DateTime?
+  createdById           String?
+  updatedById           String?
+  deletedById           String?
+
+  // Relationships
+  complainant           User                  @relation("ComplaintComplainant", fields: [complainantId], references: [id])
+  recipient             User?                 @relation("ComplaintRecipient", fields: [recipientId], references: [id])
+  assignedTo            User?                 @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id])
+  createdBy             User?                 @relation("ComplaintCreator", fields: [createdById], references: [id])
+  updatedBy             User?                 @relation("ComplaintUpdater", fields: [updatedById], references: [id])
+  deletedBy             User?                 @relation("ComplaintDeleter", fields: [deletedById], references: [id])
+  attachments           ComplaintAttachment[]
+  responses             ComplaintResponse[]
+  auditLogs             ComplaintAuditLog[]
+
+  @@index([complainantId])
+  @@index([recipientId])
+  @@index([assignedToId])
+  @@index([type])
+  @@index([status])
+  @@index([priority])
+  @@index([recipientType])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ComplaintResponse {
+  id          String   @id @default(uuid())
+  complaintId String
+  responderId String
+  content     String
+  isInternal  Boolean  @default(false) // Internal notes vs public response
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime?
+
+  // Relationships
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  responder   User      @relation(fields: [responderId], references: [id])
+
+  @@index([complaintId])
+  @@index([responderId])
+  @@index([createdAt])
+}
+
+model ComplaintAttachment {
+  id           String   @id @default(uuid())
+  complaintId  String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  uploadedAt   DateTime @default(now())
+
+  // Relationships
+  complaint    Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId])
+  @@index([mimeType])
+}
+
+model ComplaintAuditLog {
+  id          String   @id @default(uuid())
+  complaintId String
+  action      String   // CREATED, UPDATED, ASSIGNED, RESPONDED, RESOLVED, etc.
+  details     Json?
+  performedBy String?
+  performedAt DateTime @default(now())
+
+  // Relationships
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  performer   User?     @relation(fields: [performedBy], references: [id])
+
+  @@index([complaintId])
+  @@index([action])
+  @@index([performedBy])
+  @@index([performedAt])
+}
+

@@ -1,7 +1,7 @@
 export enum ComplaintStatus {
-  OPEN = "open",
-  IN_PROGRESS = "in_progress",
-  RESOLVED = "resolved",
-  CLOSED = "closed",
-  ESCALATED = "escalated",
+  OPEN = "OPEN",
+  IN_PROGRESS = "IN_PROGRESS",
+  RESOLVED = "RESOLVED",
+  CLOSED = "CLOSED",
+  ESCALATED = "ESCALATED",
 }

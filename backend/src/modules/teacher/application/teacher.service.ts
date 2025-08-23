@@ -362,6 +362,7 @@ export class TeacherService {
 
       return {
         id: teacher.id,
+        userId: teacher.user.id, // Add the user ID for assignment purposes
         fullName: teacher.user.fullName,
         email: teacher.user.email,
         phone: teacher.user.phone,
@@ -1197,5 +1198,61 @@ export class TeacherService {
       message: 'Classes unassigned successfully',
       filters: { classId },
     };
+  }
+
+  /**
+   * Get students for a teacher where they are the class teacher
+   * This is used for complaint creation to restrict which students' parents a teacher can complain to
+   */
+  async getStudentsForClassTeacher(teacherId: string) {
+    // Get classes where this teacher is the class teacher
+    const classTeacherClasses = await this.prisma.class.findMany({
+      where: {
+        classTeacherId: teacherId,
+        deletedAt: null,
+      },
+      include: {
+        students: {
+          where: { deletedAt: null },
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+            parents: {
+              where: { deletedAt: null },
+              include: {
+                parent: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        fullName: true,
+                        email: true,
+                        phone: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Flatten the students from all classes
+    const allStudents = classTeacherClasses.flatMap(cls =>
+      cls.students.map(student => ({
+        ...student,
+        className: `${cls.grade}${cls.section}`,
+        classId: cls.id,
+      })),
+    );
+
+    return allStudents;
   }
 }

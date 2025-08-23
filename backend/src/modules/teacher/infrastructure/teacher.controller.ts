@@ -326,6 +326,12 @@ export class TeacherController {
     return this.teacherService.getAssignedClasses(id);
   }
 
+  @Get(':id/students')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getStudentsForClassTeacher(@Param('id') id: string) {
+    return this.teacherService.getStudentsForClassTeacher(id);
+  }
+
   @Post(':id/classes')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async assignClasses(
