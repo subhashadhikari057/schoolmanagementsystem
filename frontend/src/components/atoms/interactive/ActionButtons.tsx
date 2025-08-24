@@ -18,6 +18,8 @@ import AddSubjectFormModal from '@/components/organisms/modals/AddSubjectFormMod
 import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
 import AddClassModal from '@/components/organisms/modals/AddClassModal';
 import GenerateEmailModal from '@/components/organisms/modals/GenerateEmailModal';
+import CreateFeeStructureModal from '@/components/organisms/modals/CreateFeeStructureModal';
+import type { CalendarEvent } from '@/components/organisms/calendar/types/calendar.types';
 
 interface ActionButtonConfig {
   id: string;
@@ -49,7 +51,7 @@ interface ActionButtonsProps {
     | 'fee-management';
   onRefresh?: () => void;
   onAddNew?: () => void;
-  events?: any[]; // For calendar events
+  events?: CalendarEvent[]; // For calendar events
 }
 
 const getActionButtonsConfig = (
@@ -444,6 +446,17 @@ export const ActionButtons = ({
           isOpen={isModalOpen}
           onClose={closeModal}
           onSuccess={handleSuccess}
+        />
+      ) : pageType === 'fee-management' ? (
+        <CreateFeeStructureModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            closeModal();
+          }}
+          onSuccess={() => {
+            handleSuccess();
+            onRefresh?.();
+          }}
         />
       ) : null}
 

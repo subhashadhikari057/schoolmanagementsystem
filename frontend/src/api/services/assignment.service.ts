@@ -72,7 +72,7 @@ export class AssignmentService {
   ): Promise<ApiResponse<AssignmentResponse[]>> {
     return this.httpClient.get<AssignmentResponse[]>(
       ASSIGNMENT_ENDPOINTS.LIST,
-      filters,
+      filters as Record<string, unknown>,
       { requiresAuth: true },
     );
   }

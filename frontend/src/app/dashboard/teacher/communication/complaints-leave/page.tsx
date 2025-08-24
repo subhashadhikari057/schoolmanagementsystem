@@ -56,7 +56,7 @@ const mockLeaveRequests = [
   },
 ];
 
-export const ComplaintsAndLeavePage = () => {
+const ComplaintsAndLeavePage = () => {
   const [activeTab, setActiveTab] = useState(0);
   const router = useRouter();
 
@@ -132,7 +132,7 @@ export const ComplaintsAndLeavePage = () => {
             type='button'
             onClick={() =>
               router.push(
-                '/dashboard/teacher/communication/complaints&leave/leave-request',
+                '/dashboard/teacher/communication/complaints-leave/leave-request',
               )
             }
             className='flex w-full items-center gap-4 rounded-lg bg-white p-4 text-left shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'

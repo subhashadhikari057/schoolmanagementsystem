@@ -18,6 +18,9 @@ import {
 } from '@sms/shared-types';
 import { CalendarEvent } from '../../components/organisms/calendar/types/calendar.types';
 
+// Re-export for convenience
+export type { CalendarEvent };
+
 /**
  * Calendar Service Class
  * Handles all calendar-related API operations

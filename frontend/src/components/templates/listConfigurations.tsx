@@ -145,6 +145,7 @@ export const complaintsConfig = {
 };
 // ...existing code...
 import React from 'react';
+import { Eye, Edit, Clock } from 'lucide-react';
 import { ListConfiguration, BaseItem } from './GenericList';
 import UserInfoCell from '@/components/molecules/display/UserInfoCell';
 import StatusBadge from '@/components/atoms/data/StatusBadge';
@@ -483,6 +484,125 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         { value: 'Other', label: 'Other' },
       ],
     },
+  },
+  'fee-structures': {
+    title: 'Fee Structure Management',
+    searchPlaceholder: 'Search fee structures by name, academic year...',
+    primaryFilter: {
+      title: 'Status',
+      options: [
+        { value: 'all', label: 'All Status' },
+        { value: 'ACTIVE', label: 'Active' },
+        { value: 'DRAFT', label: 'Draft' },
+        { value: 'ARCHIVED', label: 'Archived' },
+      ],
+    },
+    secondaryFilter: {
+      title: 'Academic Year',
+      options: [
+        { value: 'all', label: 'All Years' },
+        { value: '2024', label: '2024' },
+        { value: '2025', label: '2025' },
+      ],
+    },
+    columns: [
+      {
+        key: 'name',
+        header: 'Structure Name',
+        render: (item: any) => (
+          <div>
+            <p className='font-medium text-gray-900'>{item.name}</p>
+            <p className='text-xs text-gray-500'>
+              {item.assignedClasses
+                ?.map((cls: any) => `Grade ${cls.grade} - ${cls.section}`)
+                .join(', ')}
+            </p>
+          </div>
+        ),
+      },
+      {
+        key: 'academicYear',
+        header: 'Academic Year',
+        render: (item: any) => (
+          <span className='font-mono text-sm'>{item.academicYear}</span>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (item: any) => (
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-medium ${
+              item.status === 'ACTIVE'
+                ? 'bg-green-100 text-green-800'
+                : item.status === 'DRAFT'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : item.status === 'ARCHIVED'
+                    ? 'bg-gray-100 text-gray-800'
+                    : 'bg-gray-100 text-gray-800'
+            }`}
+          >
+            {item.status}
+          </span>
+        ),
+      },
+      {
+        key: 'totalAnnual',
+        header: 'Total Annual',
+        render: (item: any) =>
+          item.totalAnnual ? (
+            <span className='font-medium text-green-600'>
+              Rs. {parseFloat(item.totalAnnual).toLocaleString()}
+            </span>
+          ) : (
+            <span className='text-gray-400 text-xs'>-</span>
+          ),
+      },
+      {
+        key: 'effectiveFrom',
+        header: 'Effective From',
+        render: (item: any) => (
+          <span className='text-sm'>
+            {new Date(item.effectiveFrom).toLocaleDateString()}
+          </span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        render: (
+          item: any,
+          isSelected?: boolean,
+          onSelect?: (id: string | number) => void,
+          onItemAction?: (action: string, item: any) => void,
+        ) => (
+          <div className='flex items-center gap-1'>
+            <button
+              onClick={() => onItemAction?.('view', item)}
+              className='p-1.5 rounded-md hover:bg-gray-100 transition-colors text-blue-600 hover:text-blue-800'
+              title='View Details'
+            >
+              <Eye className='h-4 w-4' />
+            </button>
+            <button
+              onClick={() => onItemAction?.('edit', item)}
+              className='p-1.5 rounded-md hover:bg-gray-100 transition-colors text-green-600 hover:text-green-800'
+              title='Edit'
+            >
+              <Edit className='h-4 w-4' />
+            </button>
+            <button
+              onClick={() => onItemAction?.('history', item)}
+              className='p-1.5 rounded-md hover:bg-gray-100 transition-colors text-purple-600 hover:text-purple-800'
+              title='View History'
+            >
+              <Clock className='h-4 w-4' />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    emptyMessage: 'No fee structures found',
   },
   notices: {
     title: 'Notice Management',

@@ -119,7 +119,7 @@ export class RoomService {
   ): Promise<ApiResponse<RoomPaginatedResponse>> {
     return this.httpClient.get<RoomPaginatedResponse>(
       ROOM_ENDPOINTS.LIST,
-      params,
+      params as Record<string, unknown>,
       { requiresAuth: true },
     );
   }

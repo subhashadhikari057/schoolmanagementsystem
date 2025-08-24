@@ -88,13 +88,37 @@ export function TimetableBuilder() {
     type: string;
   }
   const originalSlotsRef = useRef<Record<string, OriginalSlotSnapshot>>({});
+  // Prevent duplicate concurrent loads (e.g., React StrictMode double effect invocation)
+  const classLoadInFlightRef = useRef<Set<string>>(new Set());
 
   // Load or create schedule for the selected class
   const loadClassSchedule = useCallback(async () => {
-    if (!selectedClassId || !selectedClass) return;
+    // Fresh system: no class selected yet -> do nothing
+    if (!selectedClassId) return; // nothing selected
+    if (classLoadInFlightRef.current.has(selectedClassId)) {
+      // Another load already in progress for this class (StrictMode / rapid switch)
+      return;
+    }
+    if (selectedClassId && !selectedClass) {
+      console.warn(
+        'Selected class id has no corresponding class metadata; skipping timetable load',
+      );
+      return;
+    }
 
+    classLoadInFlightRef.current.add(selectedClassId);
     setIsLoadingTimetable(true);
     try {
+      // Ensure class meta is valid (prevent creating schedules for stale client-side classId)
+      // At this point selectedClass is guaranteed non-null by guards above
+      if (!selectedClass!.id || selectedClass!.id !== selectedClassId) {
+        console.warn(
+          'Selected class metadata mismatch, aborting schedule load',
+        );
+        classLoadInFlightRef.current.delete(selectedClassId);
+        setIsLoadingTimetable(false);
+        return;
+      }
       // Validate all referenced timeslots are persisted UUIDs
       const uuidRegex = /^[0-9a-fA-F-]{36}$/;
       const invalidSlots = timetableSlots.filter(s => {
@@ -105,6 +129,8 @@ export function TimetableBuilder() {
         alert(
           'Some timetable entries reference unsaved time slots. Please save timeslots in the Timeslot Manager first.',
         );
+        classLoadInFlightRef.current.delete(selectedClassId);
+        setIsLoadingTimetable(false);
         return;
       }
       // First, load timeslots for this class
@@ -135,6 +161,13 @@ export function TimetableBuilder() {
       // Get schedules for this class to find active one
       const scheduleResponse =
         await scheduleService.getSchedulesByClass(selectedClassId);
+      if (
+        !scheduleResponse.success &&
+        scheduleResponse.message?.includes('not found')
+      ) {
+        console.warn('Class not found on server; skipping schedule creation');
+        return;
+      }
 
       let scheduleId;
       if (
@@ -157,8 +190,8 @@ export function TimetableBuilder() {
         // Create new schedule for the class
         const newScheduleResponse = await scheduleService.createSchedule({
           classId: selectedClassId,
-          academicYear: selectedClass.academicYearId,
-          name: `Grade ${selectedClass.grade} Section ${selectedClass.section} Timetable`,
+          academicYear: selectedClass!.academicYearId,
+          name: `Grade ${selectedClass!.grade} Section ${selectedClass!.section} Timetable`,
           status: 'active',
           startDate: new Date(),
           endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
@@ -174,7 +207,27 @@ export function TimetableBuilder() {
             isActive: newScheduleResponse.data.status === 'active',
           });
         } else {
-          throw new Error('Failed to create schedule');
+          // Likely race (duplicate create) or other failure; attempt recovery by refetching
+          const retrySchedules =
+            await scheduleService.getSchedulesByClass(selectedClassId);
+          if (
+            retrySchedules.success &&
+            retrySchedules.data &&
+            retrySchedules.data.length > 0
+          ) {
+            const activeRetry =
+              retrySchedules.data.find(s => s.status === 'active') ||
+              retrySchedules.data[0];
+            scheduleId = activeRetry.id;
+            setCurrentSchedule({
+              id: activeRetry.id,
+              classId: activeRetry.classId,
+              academicYearId: activeRetry.academicYear,
+              isActive: activeRetry.status === 'active',
+            });
+          } else {
+            throw new Error('Failed to create or recover schedule');
+          }
         }
       }
 
@@ -248,6 +301,9 @@ export function TimetableBuilder() {
     } finally {
       setIsLoadingTimetable(false);
       setHasLoadedTimetable(true);
+      if (selectedClassId) {
+        classLoadInFlightRef.current.delete(selectedClassId);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -311,32 +367,6 @@ export function TimetableBuilder() {
     if (!currentSchedule) {
       console.error('No schedule available to save');
       return;
-    }
-
-    const storeState = useScheduleStore.getState();
-    const { pendingDeletedTimeslotIds, clearPendingDeletedTimeslots } =
-      storeState as {
-        pendingDeletedTimeslotIds: string[];
-        clearPendingDeletedTimeslots: () => void;
-      };
-
-    // If there are pending timeslot deletions, confirm impact
-    if (pendingDeletedTimeslotIds && pendingDeletedTimeslotIds.length > 0) {
-      const warning =
-        `You're about to permanently delete ${pendingDeletedTimeslotIds.length} time slot(s).\n\n` +
-        `All timetable entries (subjects/teachers) mapped to these slots will also be deleted.\n\nContinue?`;
-      const confirmed = window.confirm(warning);
-      if (!confirmed) return;
-
-      // Perform backend deletions sequentially (could be parallel, keep simple for now)
-      for (const tsId of pendingDeletedTimeslotIds) {
-        try {
-          await timeslotService.deleteTimeslot(tsId);
-        } catch (e) {
-          console.warn('Failed deleting timeslot on save', tsId, e);
-        }
-      }
-      clearPendingDeletedTimeslots();
     }
 
     // Validate before saving
@@ -560,8 +590,8 @@ export function TimetableBuilder() {
             No Class Selected
           </h3>
           <p className='mt-2 text-sm text-gray-500 max-w-sm'>
-            Please select a class from the dropdown above to start building your
-            timetable.
+            Select a class to start building a timetable. If this is a fresh
+            system, create classes first.
           </p>
         </div>
       </div>

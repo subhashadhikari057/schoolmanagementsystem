@@ -247,7 +247,7 @@ const Modal: React.FC<ModalProps> = ({ open, onClose, type, onSubmit }) => {
   ) : null;
 };
 
-export const ComplaintsAndLeavePage = () => {
+const ComplaintsAndLeavePage = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'complaint' | 'leave'>('leave');

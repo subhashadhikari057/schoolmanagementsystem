@@ -196,16 +196,16 @@ export const scheduleService = {
   checkTeacherConflict: async (
     data: CheckTeacherConflictDto,
   ): Promise<
-    ApiResponse<{ hasConflict: boolean; conflictingSlots?: any[] }>
+    ApiResponse<{ hasConflict: boolean; conflictingSlots?: unknown[] }>
   > => {
     return await httpClient.post<{
       hasConflict: boolean;
-      conflictingSlots?: any[];
+      conflictingSlots?: unknown[];
     }>(`${BASE_URL}/schedules/check-teacher-conflict`, data);
   },
 
   // Get a subject by ID
-  getSubjectById: async (id: string): Promise<ApiResponse<any>> => {
-    return await httpClient.get<any>(`${BASE_URL}/subjects/${id}`);
+  getSubjectById: async (id: string): Promise<ApiResponse<unknown>> => {
+    return await httpClient.get<unknown>(`${BASE_URL}/subjects/${id}`);
   },
 };

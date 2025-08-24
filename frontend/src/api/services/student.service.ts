@@ -419,9 +419,13 @@ export class StudentService {
       totalPages: number;
     }>
   > {
-    return this.httpClient.get(STUDENT_ENDPOINTS.GET_ALL, params, {
-      requiresAuth: true,
-    });
+    return this.httpClient.get(
+      STUDENT_ENDPOINTS.GET_ALL,
+      params as Record<string, unknown>,
+      {
+        requiresAuth: true,
+      },
+    );
   }
 
   // Get student by ID
