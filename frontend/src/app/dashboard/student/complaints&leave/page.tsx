@@ -731,7 +731,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
   ) : null;
 };
 
-export const ComplaintsAndLeavePage = () => {
+export const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [complaintModalOpen, setComplaintModalOpen] = useState(false);
   const [complaintDetailModalOpen, setComplaintDetailModalOpen] =
@@ -750,6 +750,8 @@ export const ComplaintsAndLeavePage = () => {
   const [cancelConfirmationModalOpen, setCancelConfirmationModalOpen] =
     useState(false);
   const [leaveRequestToCancel, setLeaveRequestToCancel] = useState<any>(null);
+  const [leaveRequestToReject, setLeaveRequestToReject] = useState<any>(null);
+  const [rejectReasonModalOpen, setRejectReasonModalOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
@@ -829,6 +831,30 @@ export const ComplaintsAndLeavePage = () => {
     }
   };
 
+  const handleParentApprove = async (leaveRequestId: string) => {
+    try {
+      // Call the backend API to approve the leave request by parent
+      await approveByParent(leaveRequestId);
+      toast.success('Leave request approved by parent successfully');
+      // The hook will automatically update the local state
+    } catch (error) {
+      console.error('Error approving leave request:', error);
+      toast.error('Failed to approve leave request');
+    }
+  };
+
+  const handleTeacherApprove = async (leaveRequestId: string) => {
+    try {
+      // Call the backend API to approve the leave request by teacher
+      await approveByTeacher(leaveRequestId);
+      toast.success('Leave request approved by teacher successfully');
+      // The hook will automatically update the local state
+    } catch (error) {
+      console.error('Error approving leave request:', error);
+      toast.error('Failed to approve leave request');
+    }
+  };
+
   const handleRejectLeaveRequest = async (
     leaveRequestId: string,
     reason: string,
@@ -853,7 +879,29 @@ export const ComplaintsAndLeavePage = () => {
       // No need to manually refresh
     } catch (error) {
       console.error('Error cancelling leave request:', error);
-      toast.error('Failed to cancel leave request');
+
+      // Handle specific error messages from the backend
+      if (error instanceof Error) {
+        // Check if it's a forbidden error with a specific message
+        if (
+          error.message.includes(
+            'Cannot cancel leave request after approval process has started',
+          )
+        ) {
+          toast.error(
+            'Cannot cancel leave request after approval process has started',
+          );
+        } else if (error.message.includes('Forbidden')) {
+          toast.error(
+            'Cannot cancel leave request after approval process has started',
+          );
+        } else {
+          toast.error(error.message || 'Failed to cancel leave request');
+        }
+      } else {
+        // Fallback for other error types
+        toast.error('Failed to cancel leave request');
+      }
     }
   };
 
@@ -1288,11 +1336,21 @@ export const ComplaintsAndLeavePage = () => {
                   <p className='text-sm text-slate-600'>Pending</p>
                   <p className='text-2xl font-bold text-orange-600'>
                     {
-                      leaveRequests.filter(
-                        l =>
-                          l.status === 'PENDING_PARENT_APPROVAL' ||
-                          l.status === 'PENDING_TEACHER_APPROVAL',
-                      ).length
+                      leaveRequests.filter(l => {
+                        if ((userRole || user?.role) === 'teacher') {
+                          // Teachers only see requests approved by parents (waiting for teacher approval)
+                          return l.status === 'PENDING_TEACHER_APPROVAL';
+                        } else if ((userRole || user?.role) === 'parent') {
+                          // Parents see requests pending their approval
+                          return l.status === 'PENDING_PARENT_APPROVAL';
+                        } else {
+                          // Students see their pending requests
+                          return (
+                            l.status === 'PENDING_PARENT_APPROVAL' ||
+                            l.status === 'PENDING_TEACHER_APPROVAL'
+                          );
+                        }
+                      }).length
                     }
                   </p>
                 </div>
@@ -1318,36 +1376,71 @@ export const ComplaintsAndLeavePage = () => {
               <>
                 <div className='mb-8'>
                   <h4 className='text-xl font-semibold text-slate-800 mb-4'>
-                    Active Leave Requests
+                    {(userRole || user?.role) === 'teacher'
+                      ? 'Parent-Approved Leave Requests'
+                      : (userRole || user?.role) === 'parent'
+                        ? 'Pending Leave Requests'
+                        : 'Active Leave Requests'}
                   </h4>
                   <p className='text-slate-600 text-sm mb-4'>
-                    These are your pending leave requests. You can cancel them
-                    if they haven't been approved by your parent yet.
+                    {(userRole || user?.role) === 'teacher'
+                      ? 'These are leave requests approved by parents that require your approval.'
+                      : (userRole || user?.role) === 'parent'
+                        ? 'These are leave requests from your children that require your approval.'
+                        : "These are your pending leave requests. You can cancel them if they haven't been approved by your parent yet."}
                   </p>
                   <div className='space-y-4'>
-                    {leaveRequests.filter(
-                      l =>
-                        l.status === 'PENDING_PARENT_APPROVAL' ||
-                        l.status === 'PENDING_TEACHER_APPROVAL',
-                    ).length === 0 ? (
+                    {leaveRequests.filter(l => {
+                      if ((userRole || user?.role) === 'teacher') {
+                        // Teachers only see requests approved by parents (waiting for teacher approval)
+                        return l.status === 'PENDING_TEACHER_APPROVAL';
+                      } else if ((userRole || user?.role) === 'parent') {
+                        // Parents see requests pending their approval
+                        return l.status === 'PENDING_PARENT_APPROVAL';
+                      } else {
+                        // Students see their pending requests
+                        return (
+                          l.status === 'PENDING_PARENT_APPROVAL' ||
+                          l.status === 'PENDING_TEACHER_APPROVAL'
+                        );
+                      }
+                    }).length === 0 ? (
                       <div className='text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200'>
                         <div className='w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3'>
                           <Clock className='h-6 w-6 text-slate-400' />
                         </div>
                         <p className='text-slate-500 font-medium'>
-                          No pending leave requests
+                          {(userRole || user?.role) === 'teacher'
+                            ? 'No parent-approved leave requests'
+                            : (userRole || user?.role) === 'parent'
+                              ? 'No pending leave requests'
+                              : 'No pending leave requests'}
                         </p>
                         <p className='text-slate-400 text-sm mt-1'>
-                          All your leave requests have been processed
+                          {(userRole || user?.role) === 'teacher'
+                            ? 'All leave requests are either pending parent approval or have been processed'
+                            : (userRole || user?.role) === 'parent'
+                              ? 'All leave requests have been processed'
+                              : 'All your leave requests have been processed'}
                         </p>
                       </div>
                     ) : (
                       leaveRequests
-                        .filter(
-                          l =>
-                            l.status === 'PENDING_PARENT_APPROVAL' ||
-                            l.status === 'PENDING_TEACHER_APPROVAL',
-                        )
+                        .filter(l => {
+                          if ((userRole || user?.role) === 'teacher') {
+                            // Teachers only see requests approved by parents (waiting for teacher approval)
+                            return l.status === 'PENDING_TEACHER_APPROVAL';
+                          } else if ((userRole || user?.role) === 'parent') {
+                            // Parents see requests pending their approval
+                            return l.status === 'PENDING_PARENT_APPROVAL';
+                          } else {
+                            // Students see their pending requests
+                            return (
+                              l.status === 'PENDING_PARENT_APPROVAL' ||
+                              l.status === 'PENDING_TEACHER_APPROVAL'
+                            );
+                          }
+                        })
                         .map(leaveRequest => (
                           <div
                             key={leaveRequest.id}
@@ -1384,10 +1477,12 @@ export const ComplaintsAndLeavePage = () => {
                                   </span>
                                   <span className='flex items-center gap-1'>
                                     <span className='w-2 h-2 bg-yellow-500 rounded-full'></span>
-                                    {leaveRequest.status ===
-                                    'PENDING_PARENT_APPROVAL'
-                                      ? 'Pending Parent Approval'
-                                      : 'Pending Teacher Approval'}
+                                    {(userRole || user?.role) === 'teacher'
+                                      ? 'Parent Approved - Awaiting Teacher'
+                                      : leaveRequest.status ===
+                                          'PENDING_PARENT_APPROVAL'
+                                        ? 'Pending Parent Approval'
+                                        : 'Pending Teacher Approval'}
                                   </span>
                                 </div>
                                 {leaveRequest.description && (
@@ -1399,16 +1494,20 @@ export const ComplaintsAndLeavePage = () => {
                               <div className='ml-4'>
                                 <span
                                   className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                    leaveRequest.status ===
-                                    'PENDING_PARENT_APPROVAL'
-                                      ? 'bg-yellow-100 text-yellow-700'
-                                      : 'bg-blue-100 text-blue-700'
+                                    (userRole || user?.role) === 'teacher'
+                                      ? 'bg-green-100 text-green-700'
+                                      : leaveRequest.status ===
+                                          'PENDING_PARENT_APPROVAL'
+                                        ? 'bg-yellow-100 text-yellow-700'
+                                        : 'bg-blue-100 text-blue-700'
                                   }`}
                                 >
-                                  {leaveRequest.status ===
-                                  'PENDING_PARENT_APPROVAL'
-                                    ? 'Pending Parent Approval'
-                                    : 'Pending Teacher Approval'}
+                                  {(userRole || user?.role) === 'teacher'
+                                    ? 'Parent Approved'
+                                    : leaveRequest.status ===
+                                        'PENDING_PARENT_APPROVAL'
+                                      ? 'Pending Parent Approval'
+                                      : 'Pending Teacher Approval'}
                                 </span>
                               </div>
                             </div>
@@ -1436,6 +1535,7 @@ export const ComplaintsAndLeavePage = () => {
                               </div>
 
                               <div className='flex items-center gap-2'>
+                                {/* View Details button - always shown */}
                                 <Button
                                   onClick={() =>
                                     handleViewLeaveRequest(leaveRequest)
@@ -1446,17 +1546,69 @@ export const ComplaintsAndLeavePage = () => {
                                   View Details
                                 </Button>
 
-                                {/* Cancel button for students */}
-                                <Button
-                                  onClick={() => {
-                                    setLeaveRequestToCancel(leaveRequest);
-                                    setCancelConfirmationModalOpen(true);
-                                  }}
-                                  className='bg-gradient-to-r from-orange-600 to-orange-700 text-white px-4 py-2 rounded-xl hover:from-orange-700 hover:to-orange-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
-                                >
-                                  <X className='h-4 w-4 mr-2' />
-                                  Cancel
-                                </Button>
+                                {/* Conditional buttons based on user role */}
+                                {(userRole || user?.role) === 'parent' ? (
+                                  <>
+                                    {/* Parent buttons */}
+                                    <Button
+                                      onClick={() =>
+                                        handleParentApprove(leaveRequest.id)
+                                      }
+                                      className='bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                    >
+                                      <CheckCircle className='h-4 w-4 mr-2' />
+                                      Approve
+                                    </Button>
+                                    <Button
+                                      onClick={() => {
+                                        setLeaveRequestToReject(leaveRequest);
+                                        setRejectReasonModalOpen(true);
+                                      }}
+                                      className='bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                    >
+                                      <X className='h-4 w-4 mr-2' />
+                                      Reject
+                                    </Button>
+                                  </>
+                                ) : (userRole || user?.role) === 'teacher' ? (
+                                  <>
+                                    {/* Teacher buttons */}
+                                    <Button
+                                      onClick={() =>
+                                        handleTeacherApprove(leaveRequest.id)
+                                      }
+                                      className='bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                    >
+                                      <CheckCircle className='h-4 w-4 mr-2' />
+                                      Approve
+                                    </Button>
+                                    <Button
+                                      onClick={() => {
+                                        setLeaveRequestToReject(leaveRequest);
+                                        setRejectReasonModalOpen(true);
+                                      }}
+                                      className='bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                    >
+                                      <X className='h-4 w-4 mr-2' />
+                                      Reject
+                                    </Button>
+                                  </>
+                                ) : (
+                                  /* Student buttons - only show cancel if still pending parent approval */
+                                  leaveRequest.status ===
+                                    'PENDING_PARENT_APPROVAL' && (
+                                    <Button
+                                      onClick={() => {
+                                        setLeaveRequestToCancel(leaveRequest);
+                                        setCancelConfirmationModalOpen(true);
+                                      }}
+                                      className='bg-gradient-to-r from-orange-600 to-orange-700 text-white px-4 py-2 rounded-xl hover:from-orange-700 hover:to-orange-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                    >
+                                      <X className='h-4 w-4 mr-2' />
+                                      Cancel
+                                    </Button>
+                                  )
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2124,6 +2276,127 @@ export const ComplaintsAndLeavePage = () => {
       <div className='bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden'>
         <Tabs tabs={tabs} defaultIndex={activeTab} />
       </div>
+
+      {/* Reject Reason Modal */}
+      {rejectReasonModalOpen && leaveRequestToReject && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8'>
+          <div className='bg-white rounded-xl max-w-md w-full mx-4 shadow-xl'>
+            {/* Header */}
+            <div className='bg-gradient-to-r from-red-50 to-red-100 p-6 border-b border-red-200'>
+              <div className='flex justify-between items-start'>
+                <div>
+                  <h2 className='text-xl font-bold text-gray-800'>
+                    Reject Leave Request
+                  </h2>
+                  <p className='text-sm text-gray-600 mt-1'>
+                    Provide a reason for rejection
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setRejectReasonModalOpen(false);
+                    setLeaveRequestToReject(null);
+                  }}
+                  className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className='p-6'>
+              <div className='mb-4'>
+                <h3 className='font-semibold text-gray-800 mb-2'>
+                  Leave Request Details
+                </h3>
+                <div className='text-sm text-gray-600 space-y-1'>
+                  <p>
+                    <span className='font-medium'>Title:</span>{' '}
+                    {leaveRequestToReject.title}
+                  </p>
+                  <p>
+                    <span className='font-medium'>Type:</span>{' '}
+                    {leaveRequestToReject.type}
+                  </p>
+                  <p>
+                    <span className='font-medium'>Duration:</span>{' '}
+                    {leaveRequestToReject.days} day
+                    {leaveRequestToReject.days !== 1 ? 's' : ''}
+                  </p>
+                  <p>
+                    <span className='font-medium'>Dates:</span>{' '}
+                    {new Date(
+                      leaveRequestToReject.startDate,
+                    ).toLocaleDateString()}{' '}
+                    -{' '}
+                    {new Date(
+                      leaveRequestToReject.endDate,
+                    ).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+
+              <form
+                onSubmit={async e => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const reason = formData.get('reason') as string;
+
+                  if (!reason.trim()) {
+                    toast.error('Please provide a reason for rejection');
+                    return;
+                  }
+
+                  try {
+                    await handleRejectLeaveRequest(
+                      leaveRequestToReject.id,
+                      reason,
+                    );
+                    setRejectReasonModalOpen(false);
+                    setLeaveRequestToReject(null);
+                  } catch (error) {
+                    console.error('Error rejecting leave request:', error);
+                  }
+                }}
+                className='space-y-4'
+              >
+                <div>
+                  <label className='block mb-2 font-medium'>
+                    Rejection Reason <span className='text-red-500'>*</span>
+                  </label>
+                  <textarea
+                    name='reason'
+                    className='w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-500'
+                    rows={4}
+                    placeholder='Explain why this leave request is being rejected...'
+                    required
+                  />
+                </div>
+
+                <div className='flex items-center gap-3 pt-4'>
+                  <Button
+                    type='button'
+                    onClick={() => {
+                      setRejectReasonModalOpen(false);
+                      setLeaveRequestToReject(null);
+                    }}
+                    className='bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300'
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type='submit'
+                    className='bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700'
+                  >
+                    Reject Request
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

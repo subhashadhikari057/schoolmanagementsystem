@@ -67,10 +67,18 @@ export default function LeaveRequestModal({
   open,
   onClose,
   onSuccess,
+  role = 'student',
+  leaveRequest = null,
+  onApprove,
+  onReject,
 }: {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  role?: 'student' | 'parent';
+  leaveRequest?: any | null;
+  onApprove?: (id: string) => Promise<void>;
+  onReject?: (id: string) => Promise<void>;
 }) {
   const { createLeaveRequest } = useLeaveRequests();
 
@@ -85,6 +93,7 @@ export default function LeaveRequestModal({
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [parentActionLoading, setParentActionLoading] = useState(false);
 
   // Reset form to initial state
   const resetForm = () => {
@@ -138,7 +147,7 @@ export default function LeaveRequestModal({
       const startDate = new Date(form.start_date);
       const endDate = new Date(form.end_date);
 
-      if (startDate >= endDate) {
+      if (startDate > endDate) {
         newErrors.end_date = 'End date must be after start date';
       }
 
@@ -237,14 +246,14 @@ export default function LeaveRequestModal({
       <div className='flex min-h-screen items-center justify-center p-4'>
         {/* Backdrop */}
         <div
-          className='fixed inset-0 bg-black bg-opacity-50 transition-opacity'
+          className='fixed inset-0 backdrop-blur-sm bg-white/30 transition-opacity'
           onClick={onClose}
         />
 
         {/* Modal */}
-        <div className='relative w-full max-w-2xl bg-white rounded-lg shadow-xl'>
+        <div className='relative w-full max-w-lg bg-white rounded-lg shadow-xl'>
           {/* Header */}
-          <div className='flex items-center justify-between p-6 border-b border-gray-200'>
+          <div className='flex items-center justify-between p-4 border-b border-gray-200'>
             <div className='flex items-center space-x-3'>
               <div className='p-2 bg-blue-100 rounded-lg'>
                 <CalendarIcon className='h-6 w-6 text-blue-600' />
@@ -267,7 +276,7 @@ export default function LeaveRequestModal({
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className='p-6 space-y-6'>
+          <form onSubmit={handleSubmit} className='p-4 space-y-4'>
             {/* Title */}
             <div>
               <Label>Leave Request Title *</Label>

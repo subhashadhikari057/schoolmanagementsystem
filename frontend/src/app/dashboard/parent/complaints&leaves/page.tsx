@@ -17,7 +17,7 @@ export default function ParentComplaintsAndLeavesPage() {
         children and resolve complaints where you are the recipient.
       </p>
       {/* Parent can approve/reject leave requests and resolve complaints below */}
-      <ComplaintsAndLeavePage />
+      <ComplaintsAndLeavePage userRole='parent' />
     </div>
   );
 }
