@@ -10,6 +10,9 @@ import { UserRole } from '@sms/shared-types';
 import { CreateLeaveRequestDto, UpdateLeaveRequestDto } from '../dto';
 import { LeaveRequestStatus } from '../enums/leave-request-status.enum';
 import { LeaveRequestType } from '../enums/leave-request-type.enum';
+import { CreateTeacherLeaveRequestDto } from '../dto/create-teacher-leave-request.dto';
+import { TeacherLeaveRequestStatus } from '../enums/teacher-leave-request-status.enum';
+import { AdminLeaveRequestActionDto } from '../dto/admin-leave-request-action.dto';
 
 @Injectable()
 export class LeaveRequestService {
@@ -1191,5 +1194,368 @@ export class LeaveRequestService {
     });
 
     return updatedLeaveRequest;
+  }
+
+  /**
+   * Create teacher leave request
+   * Teachers can create leave requests that go directly to admin approval
+   */
+  async createTeacherLeaveRequest(
+    createTeacherLeaveRequestDto: CreateTeacherLeaveRequestDto,
+    userId: string,
+    userRole: UserRole,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    if (userRole !== UserRole.TEACHER) {
+      throw new ForbiddenException(
+        'Only teachers can create teacher leave requests',
+      );
+    }
+
+    // Find the teacher
+    const teacher = await this.prisma.teacher.findFirst({
+      where: { userId, deletedAt: null },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    // Validate dates
+    const startDate = new Date(createTeacherLeaveRequestDto.startDate);
+    const endDate = new Date(createTeacherLeaveRequestDto.endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      throw new BadRequestException('Start date cannot be in the past');
+    }
+
+    if (startDate > endDate) {
+      throw new BadRequestException('Start date cannot be after end date');
+    }
+
+    // Calculate days difference
+    const daysDiff =
+      Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+      ) + 1;
+
+    if (daysDiff !== createTeacherLeaveRequestDto.days) {
+      throw new BadRequestException(
+        'Days calculation does not match start and end dates',
+      );
+    }
+
+    const teacherLeaveRequest = await this.prisma.teacherLeaveRequest.create({
+      data: {
+        title: createTeacherLeaveRequestDto.title,
+        description: createTeacherLeaveRequestDto.description,
+        type: createTeacherLeaveRequestDto.type,
+        status: TeacherLeaveRequestStatus.PENDING_ADMINISTRATION,
+        startDate,
+        endDate,
+        days: daysDiff,
+        teacherId: teacher.id,
+        createdById: userId,
+      },
+      include: {
+        teacher: {
+          include: {
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Log the action
+    await this.auditService.log({
+      userId,
+      action: 'TEACHER_LEAVE_REQUEST_CREATED',
+      module: 'TEACHER_LEAVE_REQUEST',
+      details: { teacherLeaveRequestId: teacherLeaveRequest.id },
+      ipAddress,
+      userAgent,
+    });
+
+    return teacherLeaveRequest;
+  }
+
+  /**
+   * Get teacher leave requests
+   * Teachers can see their own requests, admins can see all
+   */
+  async getTeacherLeaveRequests(
+    userId: string,
+    userRole: UserRole,
+    teacherId?: string,
+  ) {
+    const whereClause: any = { deletedAt: null };
+
+    if (userRole === UserRole.TEACHER) {
+      // Teachers can only see their own requests
+      const teacher = await this.prisma.teacher.findFirst({
+        where: { userId, deletedAt: null },
+      });
+      if (!teacher) {
+        throw new NotFoundException('Teacher not found');
+      }
+      whereClause.teacherId = teacher.id;
+    } else if (
+      userRole === UserRole.SUPER_ADMIN ||
+      userRole === UserRole.ADMIN
+    ) {
+      // Admins can see all or filter by specific teacher
+      if (teacherId) {
+        whereClause.teacherId = teacherId;
+      }
+    } else {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    return this.prisma.teacherLeaveRequest.findMany({
+      where: whereClause,
+      include: {
+        teacher: {
+          include: {
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        attachments: true,
+        auditLogs: {
+          orderBy: { performedAt: 'desc' },
+          take: 5,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Get teacher leave request by ID
+   */
+  async getTeacherLeaveRequestById(
+    id: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
+    const teacherLeaveRequest = await this.prisma.teacherLeaveRequest.findFirst(
+      {
+        where: { id, deletedAt: null },
+        include: {
+          teacher: {
+            include: {
+              user: {
+                select: {
+                  fullName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          attachments: true,
+          auditLogs: {
+            orderBy: { performedAt: 'desc' },
+          },
+        },
+      },
+    );
+
+    if (!teacherLeaveRequest) {
+      throw new NotFoundException('Teacher leave request not found');
+    }
+
+    // Check permissions
+    if (userRole === UserRole.TEACHER) {
+      const teacher = await this.prisma.teacher.findFirst({
+        where: { userId, deletedAt: null },
+      });
+      if (!teacher || teacher.id !== teacherLeaveRequest.teacherId) {
+        throw new ForbiddenException(
+          'You can only view your own leave requests',
+        );
+      }
+    } else if (
+      userRole !== UserRole.SUPER_ADMIN &&
+      userRole !== UserRole.ADMIN
+    ) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    return teacherLeaveRequest;
+  }
+
+  /**
+   * Admin approve/reject teacher leave request
+   */
+  async adminActionOnTeacherLeaveRequest(
+    id: string,
+    adminId: string,
+    userRole: UserRole,
+    actionDto: AdminLeaveRequestActionDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    if (userRole !== UserRole.SUPER_ADMIN && userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Only admins can approve/reject teacher leave requests',
+      );
+    }
+
+    const teacherLeaveRequest = await this.prisma.teacherLeaveRequest.findFirst(
+      {
+        where: { id, deletedAt: null },
+      },
+    );
+
+    if (!teacherLeaveRequest) {
+      throw new NotFoundException('Teacher leave request not found');
+    }
+
+    if (
+      teacherLeaveRequest.status !==
+      TeacherLeaveRequestStatus.PENDING_ADMINISTRATION
+    ) {
+      throw new BadRequestException(
+        'Leave request is not pending administration approval',
+      );
+    }
+
+    const updateData: any = {
+      status: actionDto.status,
+      adminId,
+      updatedById: adminId,
+      updatedAt: new Date(),
+    };
+
+    if (actionDto.status === TeacherLeaveRequestStatus.APPROVED) {
+      updateData.approvedAt = new Date();
+    } else if (actionDto.status === TeacherLeaveRequestStatus.REJECTED) {
+      updateData.rejectedAt = new Date();
+      updateData.rejectionReason = actionDto.rejectionReason;
+    }
+
+    const updatedTeacherLeaveRequest =
+      await this.prisma.teacherLeaveRequest.update({
+        where: { id },
+        data: updateData,
+        include: {
+          teacher: {
+            include: {
+              user: {
+                select: {
+                  fullName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    // Log the action
+    await this.auditService.log({
+      userId: adminId,
+      action: `TEACHER_LEAVE_REQUEST_${actionDto.status}`,
+      module: 'TEACHER_LEAVE_REQUEST',
+      details: {
+        teacherLeaveRequestId: id,
+        status: actionDto.status,
+        rejectionReason: actionDto.rejectionReason,
+      },
+      ipAddress,
+      userAgent,
+    });
+
+    return updatedTeacherLeaveRequest;
+  }
+
+  /**
+   * Cancel teacher leave request
+   * Only the creator (teacher) can cancel, or super admin/admin
+   */
+  async cancelTeacherLeaveRequest(
+    id: string,
+    userId: string,
+    userRole: UserRole,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    const teacherLeaveRequest = await this.prisma.teacherLeaveRequest.findFirst(
+      {
+        where: { id, deletedAt: null },
+        include: {
+          teacher: { select: { userId: true } },
+        },
+      },
+    );
+
+    if (!teacherLeaveRequest) {
+      throw new NotFoundException('Teacher leave request not found');
+    }
+
+    // Check if user can cancel
+    if (userRole !== UserRole.SUPER_ADMIN && userRole !== UserRole.ADMIN) {
+      if (teacherLeaveRequest.teacher.userId !== userId) {
+        throw new ForbiddenException(
+          'You can only cancel your own leave requests',
+        );
+      }
+
+      // Teachers can only cancel if status is still pending
+      if (
+        teacherLeaveRequest.status !==
+        TeacherLeaveRequestStatus.PENDING_ADMINISTRATION
+      ) {
+        throw new ForbiddenException(
+          'Cannot cancel leave request after approval process has started',
+        );
+      }
+    }
+
+    const updatedTeacherLeaveRequest =
+      await this.prisma.teacherLeaveRequest.update({
+        where: { id },
+        data: {
+          status: TeacherLeaveRequestStatus.CANCELLED,
+          updatedById: userId,
+          updatedAt: new Date(),
+        },
+        include: {
+          teacher: {
+            include: {
+              user: {
+                select: {
+                  fullName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    // Log the action
+    await this.auditService.log({
+      userId,
+      action: 'TEACHER_LEAVE_REQUEST_CANCELLED',
+      module: 'TEACHER_LEAVE_REQUEST',
+      details: { teacherLeaveRequestId: id },
+      ipAddress,
+      userAgent,
+    });
+
+    return updatedTeacherLeaveRequest;
   }
 }

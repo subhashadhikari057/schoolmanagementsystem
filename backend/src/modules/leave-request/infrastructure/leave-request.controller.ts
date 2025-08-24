@@ -24,6 +24,10 @@ import {
   createMulterConfig,
   UPLOAD_PATHS,
 } from '../../../shared/utils/file-upload.util';
+import {
+  CreateTeacherLeaveRequestDto,
+  AdminLeaveRequestActionDto,
+} from '../dto';
 
 @Controller('api/v1/leave-requests')
 export class LeaveRequestController {
@@ -281,5 +285,120 @@ export class LeaveRequestController {
       req.headers['user-agent'],
     );
     return { message: 'Leave request cancelled', leaveRequest };
+  }
+
+  // =====================
+  // Teacher Leave Request Endpoints
+  // =====================
+
+  @Post('teacher')
+  @HttpCode(HttpStatus.CREATED)
+  async createTeacherLeaveRequest(
+    @Body() createTeacherLeaveRequestDto: CreateTeacherLeaveRequestDto,
+    @Req() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const teacherLeaveRequest =
+      await this.leaveRequestService.createTeacherLeaveRequest(
+        createTeacherLeaveRequestDto,
+        user.id,
+        userRole,
+        req.ip,
+        req.headers['user-agent'],
+      );
+    return {
+      message: 'Teacher leave request created successfully',
+      teacherLeaveRequest,
+    };
+  }
+
+  @Get('teacher')
+  @HttpCode(HttpStatus.OK)
+  async getTeacherLeaveRequests(
+    @Req() req: any,
+    @Query('teacherId') teacherId?: string,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const teacherLeaveRequests =
+      await this.leaveRequestService.getTeacherLeaveRequests(
+        user.id,
+        userRole,
+        teacherId,
+      );
+    return { teacherLeaveRequests };
+  }
+
+  @Get('teacher/:id')
+  @HttpCode(HttpStatus.OK)
+  async getTeacherLeaveRequestById(@Param('id') id: string, @Req() req: any) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const teacherLeaveRequest =
+      await this.leaveRequestService.getTeacherLeaveRequestById(
+        id,
+        user.id,
+        userRole,
+      );
+    return { teacherLeaveRequest };
+  }
+
+  @Post('teacher/:id/admin-action')
+  @HttpCode(HttpStatus.OK)
+  async adminActionOnTeacherLeaveRequest(
+    @Param('id') id: string,
+    @Body() actionDto: AdminLeaveRequestActionDto,
+    @Req() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const teacherLeaveRequest =
+      await this.leaveRequestService.adminActionOnTeacherLeaveRequest(
+        id,
+        user.id,
+        userRole,
+        actionDto,
+        req.ip,
+        req.headers['user-agent'],
+      );
+
+    const actionMessage =
+      actionDto.status === 'APPROVED'
+        ? 'Teacher leave request approved successfully'
+        : 'Teacher leave request rejected successfully';
+
+    return { message: actionMessage, teacherLeaveRequest };
+  }
+
+  @Post('teacher/:id/cancel')
+  @HttpCode(HttpStatus.OK)
+  async cancelTeacherLeaveRequest(@Param('id') id: string, @Req() req: any) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const teacherLeaveRequest =
+      await this.leaveRequestService.cancelTeacherLeaveRequest(
+        id,
+        user.id,
+        userRole,
+        req.ip,
+        req.headers['user-agent'],
+      );
+    return { message: 'Teacher leave request cancelled', teacherLeaveRequest };
   }
 }
