@@ -27,6 +27,7 @@ import { AssignmentModule } from './modules/assignment/assignment.module';
 import { ParentModule } from './modules/parent/parent.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
 import { NoticeModule } from './modules/notice/notice.module';
+import { ComplaintModule } from './modules/complaint/complaint.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { NoticeModule } from './modules/notice/notice.module';
     AssignmentModule,
     ScheduleModule,
     NoticeModule,
+    ComplaintModule,
   ],
 })
 export class AppModule implements NestModule {

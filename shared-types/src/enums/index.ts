@@ -40,6 +40,9 @@ export * from "./communication/notice-recipient-type.enum";
 export * from "./communication/notice-category.enum";
 export * from "./communication/message-status.enum";
 export * from "./communication/complaint-status.enum";
+export * from "./communication/complaint-type.enum";
+export * from "./communication/complaint-priority.enum";
+export * from "./communication/complaint-recipient-type.enum";
 
 // Exam Module Enums
 export * from "./exam/exam-status.enum";

@@ -10,6 +10,7 @@ export const UPLOAD_PATHS = {
   PARENT_PROFILES: 'uploads/parents/profiles',
   DOCUMENTS: 'uploads/documents',
   NOTICE_ATTACHMENTS: 'uploads/notices/attachments',
+  COMPLAINT_ATTACHMENTS: 'uploads/complaints/attachments',
 } as const;
 
 // Ensure upload directories exist

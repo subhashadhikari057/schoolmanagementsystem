@@ -3,22 +3,27 @@
 export const complaintsConfig = {
   title: 'Complaint Management',
   searchPlaceholder: 'Search complaints by title, category, or submitter...',
+  enableSelection: false,
+  emptyMessage: 'No complaints found',
   primaryFilter: {
     title: 'All Status',
     options: [
       { value: 'all', label: 'All Status' },
-      { value: 'Pending', label: 'Pending' },
-      { value: 'In Progress', label: 'In Progress' },
-      { value: 'Resolved', label: 'Resolved' },
+      { value: 'OPEN', label: 'Open' },
+      { value: 'IN_PROGRESS', label: 'In Progress' },
+      { value: 'RESOLVED', label: 'Resolved' },
+      { value: 'CLOSED', label: 'Closed' },
+      { value: 'CANCELLED', label: 'Cancelled' },
     ],
   },
   secondaryFilter: {
     title: 'Priority',
     options: [
       { value: 'all', label: 'All' },
-      { value: 'High', label: 'High' },
-      { value: 'Medium', label: 'Medium' },
-      { value: 'Low', label: 'Low' },
+      { value: 'URGENT', label: 'Urgent' },
+      { value: 'HIGH', label: 'High' },
+      { value: 'MEDIUM', label: 'Medium' },
+      { value: 'LOW', label: 'Low' },
     ],
   },
   columns: [
@@ -28,25 +33,50 @@ export const complaintsConfig = {
       render: (row: any) => (
         <div>
           <div className='font-medium text-gray-900'>{row.title}</div>
-          <div className='text-gray-600 text-sm'>{row.description}</div>
+          <div className='text-gray-600 text-sm'>
+            {row.description.length > 40
+              ? `${row.description.substring(0, 40)}...`
+              : row.description}
+          </div>
           <div className='flex flex-wrap gap-2 mt-1'>
             {row.categories?.map((cat: string) => (
               <span
                 key={cat}
-                className='bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs'
+                className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                  cat === 'ACADEMIC'
+                    ? 'bg-blue-100 text-blue-800'
+                    : cat === 'BEHAVIORAL'
+                      ? 'bg-orange-100 text-orange-800'
+                      : cat === 'FACILITY'
+                        ? 'bg-purple-100 text-purple-800'
+                        : cat === 'SAFETY'
+                          ? 'bg-red-100 text-red-800'
+                          : cat === 'BULLYING'
+                            ? 'bg-pink-100 text-pink-800'
+                            : cat === 'DISCIPLINARY'
+                              ? 'bg-indigo-100 text-indigo-800'
+                              : cat === 'FINANCIAL'
+                                ? 'bg-amber-100 text-amber-800'
+                                : cat === 'ADMINISTRATIVE'
+                                  ? 'bg-teal-100 text-teal-800'
+                                  : cat === 'OTHER'
+                                    ? 'bg-gray-100 text-gray-800'
+                                    : 'bg-gray-100 text-gray-700'
+                }`}
               >
                 {cat}
               </span>
             ))}
             {row.files > 0 && (
-              <span className='bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs flex items-center gap-1'>
-                <span className='icon-[lucide--paperclip]' /> {row.files} files
+              <span className='bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1'>
+                <span className='icon-[lucide--paperclip]' /> {row.files}{' '}
+                {row.files === 1 ? 'file' : 'files'}
               </span>
             )}
           </div>
         </div>
       ),
-      minWidth: 300,
+      minWidth: 180,
     },
     {
       key: 'submittedBy',
@@ -75,30 +105,69 @@ export const complaintsConfig = {
       minWidth: 120,
     },
     {
+      key: 'responses',
+      header: 'Responses',
+      render: (row: any) => (
+        <div className='flex items-center justify-center'>
+          <span
+            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              row.responses > 0
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            <svg
+              className='w-3 h-3 mr-1'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+              />
+            </svg>
+            {row.responses || 0}
+          </span>
+        </div>
+      ),
+      minWidth: 80,
+    },
+    {
       key: 'status',
       header: 'Status & Priority',
       render: (row: any) => (
         <div className='flex flex-col gap-1'>
           <span
             className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-              row.status === 'Pending'
+              row.status === 'OPEN'
                 ? 'bg-yellow-100 text-yellow-800'
-                : row.status === 'In Progress'
-                  ? 'bg-orange-100 text-orange-800'
-                  : row.status === 'Resolved'
+                : row.status === 'IN_PROGRESS'
+                  ? 'bg-blue-100 text-blue-800'
+                  : row.status === 'RESOLVED'
                     ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-700'
+                    : row.status === 'CLOSED'
+                      ? 'bg-purple-100 text-purple-800'
+                      : row.status === 'CANCELLED'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-indigo-100 text-indigo-700'
             }`}
           >
-            {row.status}
+            {row.status === 'IN_PROGRESS' ? 'IN PROGRESS' : row.status}
           </span>
           <span
             className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-              row.priority === 'High'
-                ? 'bg-red-100 text-red-700'
-                : row.priority === 'Medium'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : 'bg-gray-100 text-gray-700'
+              row.priority === 'URGENT'
+                ? 'bg-red-100 text-red-800'
+                : row.priority === 'HIGH'
+                  ? 'bg-orange-100 text-orange-800'
+                  : row.priority === 'MEDIUM'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : row.priority === 'LOW'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-teal-100 text-teal-700'
             }`}
           >
             {row.priority}
@@ -107,39 +176,84 @@ export const complaintsConfig = {
       ),
       minWidth: 120,
     },
-  ],
-  filters: [
     {
-      key: 'search',
-      type: 'search',
-      placeholder: 'Search complaints by title, category, or submitter...',
-    },
-    {
-      key: 'status',
-      type: 'select',
-      placeholder: 'All Status',
-      options: [
-        { label: 'All Status', value: '' },
-        { label: 'Pending', value: 'Pending' },
-        { label: 'In Progress', value: 'In Progress' },
-        { label: 'Resolved', value: 'Resolved' },
-      ],
-    },
-    {
-      key: 'priority',
-      type: 'select',
-      placeholder: 'Priority',
-      options: [
-        { label: 'All', value: '' },
-        { label: 'High', value: 'High' },
-        { label: 'Medium', value: 'Medium' },
-        { label: 'Low', value: 'Low' },
-      ],
-    },
-    {
-      key: 'advanced',
-      type: 'advanced',
-      label: 'Advanced Filters',
+      key: 'actions',
+      header: 'Actions',
+      mobileLabel: 'Actions',
+      render: (
+        row: any,
+        isSelected?: boolean,
+        onSelect?: any,
+        onItemAction?: any,
+      ) => (
+        <div className='flex items-center gap-2'>
+          <button
+            onClick={() => onItemAction && onItemAction('view', row)}
+            className='p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors'
+            title='View Details'
+          >
+            <svg
+              className='w-4 h-4'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'
+              />
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'
+              />
+            </svg>
+          </button>
+
+          <button
+            onClick={() => onItemAction && onItemAction('assign', row)}
+            className='p-1 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition-colors'
+            title='Assign to Teacher'
+          >
+            <svg
+              className='w-4 h-4'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z'
+              />
+            </svg>
+          </button>
+          <button
+            onClick={() => onItemAction && onItemAction('delete', row)}
+            className='p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors'
+            title='Delete'
+          >
+            <svg
+              className='w-4 h-4'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+              />
+            </svg>
+          </button>
+        </div>
+      ),
+      minWidth: 120,
     },
   ],
 };
