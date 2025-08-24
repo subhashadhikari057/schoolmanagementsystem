@@ -26,6 +26,7 @@ import { CalendarModule } from './modules/calendar/calendar.module';
 import { AssignmentModule } from './modules/assignment/assignment.module';
 import { ParentModule } from './modules/parent/parent.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
+import { FeeModule } from './modules/fee/fee.module';
 import { NoticeModule } from './modules/notice/notice.module';
 
 @Module({
@@ -47,6 +48,7 @@ import { NoticeModule } from './modules/notice/notice.module';
     CalendarModule,
     AssignmentModule,
     ScheduleModule,
+    FeeModule,
     NoticeModule,
   ],
 })

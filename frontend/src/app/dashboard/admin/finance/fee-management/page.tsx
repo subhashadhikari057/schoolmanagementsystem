@@ -8,6 +8,7 @@ import ViewFeeStructureModal from '@/components/organisms/modals/ViewFeeStructur
 import EditFeeStructureModal from '@/components/organisms/modals/EditFeeStructureModal';
 import FeeStructureHistoryModal from '@/components/organisms/modals/FeeStructureHistoryModal';
 import ScholarshipsChargesTab from '@/components/organisms/finance/ScholarshipsChargesTab';
+import { feeService, FeeStructure } from '@/api/services';
 import {
   Layers,
   Users,
@@ -39,31 +40,6 @@ interface FeeStructureDetailed {
   latestVersion: number;
 }
 
-interface ApiStructureItem {
-  id: string;
-  label: string;
-  amount: number;
-}
-interface ApiFeeStructure {
-  id: string;
-  name: string;
-  academicYear: string;
-  status: 'ACTIVE' | 'ARCHIVED' | 'DRAFT';
-  effectiveFrom: string;
-  classId: string;
-  grade?: number; // from class relation
-  section?: string | null;
-  studentCount: number;
-  items: ApiStructureItem[];
-  totalAnnual?: { toString(): string } | number; // Decimal from backend serialized maybe
-  latestVersion: number;
-  assignedClasses?: {
-    id: string;
-    grade: number | null;
-    section: string | null;
-  }[];
-}
-
 interface FeeStructureRow extends Record<string, unknown> {
   id: string;
   name: string;
@@ -73,7 +49,7 @@ interface FeeStructureRow extends Record<string, unknown> {
   assignedClasses: { id: string; label: string }[];
   totalStudents: number;
   // Added for modal compatibility
-  status: 'ACTIVE' | 'ARCHIVED' | 'DRAFT';
+  status: string;
   effectiveFrom: string;
   createdAt: string;
   classId: string;
@@ -85,7 +61,7 @@ interface FeeStructureRow extends Record<string, unknown> {
   totalAnnual?: string | number;
 }
 
-function mapApiToRow(structure: ApiFeeStructure): FeeStructureRow {
+function mapApiToRow(structure: FeeStructure): FeeStructureRow {
   const assignedClasses = structure.assignedClasses || [];
 
   return {
@@ -116,10 +92,7 @@ function mapApiToRow(structure: ApiFeeStructure): FeeStructureRow {
     })),
     studentCount: structure.studentCount,
     latestVersion: structure.latestVersion || 1,
-    totalAnnual:
-      typeof structure.totalAnnual === 'object'
-        ? Number(structure.totalAnnual?.toString() || 0)
-        : structure.totalAnnual,
+    totalAnnual: structure.totalAnnual || 0,
   };
 }
 const FeeManagementPage = () => {
@@ -145,17 +118,15 @@ const FeeManagementPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (yearFilter !== 'all') params.set('academicYear', yearFilter);
-      // backend doesn't support status filter yet directly; we'll filter client-side
-      const res = await fetch(
-        `/api/v1/fees/structures/list?${params.toString()}`,
-        { credentials: 'include' },
-      );
-      if (!res.ok) throw new Error(`Failed ${res.status}`);
-      const json = await res.json();
-      const rows: FeeStructureRow[] = (json.data || []).map(
-        (s: ApiFeeStructure) => mapApiToRow(s),
+      const params: { academicYear?: string } = {};
+      if (yearFilter !== 'all') params.academicYear = yearFilter;
+
+      const result = await feeService.listStructures(params);
+      console.log('Fee structures API response:', result); // Temporary debug
+
+      // Convert service response to expected format - result is Paginated<FeeStructure>
+      const rows: FeeStructureRow[] = (result?.data || []).map(
+        (s: FeeStructure) => mapApiToRow(s),
       );
       setApiData(rows);
     } catch (err) {

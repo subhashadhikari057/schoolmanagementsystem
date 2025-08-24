@@ -11,6 +11,7 @@ export * from './auth.service';
 export * from './calendar.service';
 export * from './class.service';
 export * from './csrf.service';
+export * from './fee.service';
 export * from './notice.service';
 export * from './parent.service';
 export * from './staff.service';

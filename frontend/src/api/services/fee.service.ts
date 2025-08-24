@@ -26,7 +26,17 @@ export interface FeeStructure {
   name: string;
   status: string;
   effectiveFrom: string;
-  createdAt: string;
+  grade?: number;
+  section?: string;
+  assignedClasses: Array<{
+    id: string;
+    grade: number | null;
+    section: string | null;
+  }>;
+  studentCount: number;
+  items: Array<{ id: string; label: string; amount: number }>;
+  totalAnnual?: number;
+  latestVersion: number;
 }
 
 export interface Paginated<T> {
@@ -112,7 +122,7 @@ export const feeService = {
     const response = await apiClient.get<Paginated<FeeStructure>>(
       `/api/v1/fees/structures/list?${qp.toString()}`,
     );
-    return response.data;
+    return response; // Return the full response, not response.data
   },
   async history(structureId: string) {
     const response = await apiClient.get<

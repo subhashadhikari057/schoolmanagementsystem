@@ -27,7 +27,6 @@ export class ClassSubjectService {
       includeTeacher = true,
       includeSubjectDetails = true,
     } = params;
-
     // Verify class exists
     const classExists = await this.prisma.class.findUnique({
       where: { id: classId, deletedAt: null },
