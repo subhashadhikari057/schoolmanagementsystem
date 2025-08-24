@@ -12,8 +12,9 @@ The School Management System's Fee Management module provides a comprehensive so
 4. [Charge Management](#charge-management)
 5. [Student Fee Calculations](#student-fee-calculations)
 6. [Student Lookup](#student-lookup)
-7. [Data Models](#data-models)
-8. [Error Handling](#error-handling)
+7. [Frontend Integration](#frontend-integration)
+8. [Data Models](#data-models)
+9. [Error Handling](#error-handling)
 
 ## Authentication & Authorization
 
@@ -379,6 +380,83 @@ GET /api/v1/fees/students/search
 
 Returns student information for fee assignment operations.
 
+## Frontend Integration
+
+### Service Layer Architecture
+
+The fee management frontend uses a centralized service pattern with proper authentication handling:
+
+```typescript
+// Import from centralized services
+import { feeService } from '@/api/services';
+
+// All fee operations use the standardized apiClient
+const result = await feeService.listStructures(params);
+```
+
+### Authentication Flow
+
+1. **Automatic Token Injection**: All API calls automatically include JWT tokens via `httpClient`
+2. **401 Handling**: Unauthenticated users are automatically redirected to login page
+3. **Session Management**: Proper token refresh and session expiry handling
+
+### Fee Structure List Integration
+
+The fee management page (`/dashboard/admin/finance/fee-management`) integrates with the API as follows:
+
+```typescript
+// Fetch fee structures with pagination
+const fetchStructures = async () => {
+  const params = { academicYear: selectedYear };
+  const result = await feeService.listStructures(params);
+
+  // result structure: { data: FeeStructure[], page, pageSize, total, totalPages }
+  const structures = result.data; // Array of fee structures
+};
+```
+
+### Data Mapping
+
+The frontend maps backend data to UI components:
+
+```typescript
+interface FeeStructureRow {
+  id: string;
+  name: string;
+  academicYear: string;
+  components: { label: string; amount: number }[];
+  totalComponents: number;
+  assignedClasses: { id: string; label: string }[];
+  totalStudents: number;
+  status: 'ACTIVE' | 'ARCHIVED' | 'DRAFT';
+  // ... other UI-specific fields
+}
+```
+
+### Common Integration Patterns
+
+1. **Error Handling**: All API errors are caught and displayed in the UI
+2. **Loading States**: Proper loading indicators during API calls
+3. **Pagination**: Consistent pagination handling across all list views
+4. **Filtering**: Real-time filtering with API parameter mapping
+
+### Troubleshooting
+
+**Issue**: "No fee structures match your filters"
+
+- **Cause**: User not authenticated or no data in database
+- **Solution**: Ensure user is logged in and has proper permissions
+
+**Issue**: "Access token is required" (401 error)
+
+- **Cause**: Authentication token missing or expired
+- **Solution**: Redirect to login page (handled automatically)
+
+**Issue**: Data not loading
+
+- **Cause**: Incorrect data access pattern or API response format mismatch
+- **Solution**: Verify API response structure matches frontend expectations
+
 ## Data Models
 
 ### Fee Structure
@@ -567,4 +645,4 @@ const feeCalculation = await fetch('/api/v1/fees/compute/month', {
 
 ---
 
-_This API reference covers all currently implemented and working endpoints in the Fee Management System. The system provides comprehensive functionality for managing fee structures, scholarships, charges, and fee calculations._
+_This API reference covers all currently implemented and working endpoints in the Fee Management System. The system provides comprehensive functionality for managing fee structures, scholarships, charges, and fee calculations. The frontend integration section documents the proper authentication flow and service patterns implemented for seamless UI/API interaction._
