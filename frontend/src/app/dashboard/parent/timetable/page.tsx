@@ -1,7 +1,8 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
+import { CardGridLoader } from '@/components/atoms/loading';
 
 // Demo children data
 const children = [
@@ -106,11 +107,35 @@ const timetableData: Record<
 
 export default function ParentTimetablePage() {
   const [selectedChild, setSelectedChild] = useState(children[0].id);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1100);
+
+    return () => clearTimeout(timer);
+  }, []);
   const childOptions = children.map(child => ({
     value: child.id,
     label: `${child.name} (Class ${child.class}${child.section})`,
   }));
   const timetable = timetableData[selectedChild] || [];
+
+  if (loading) {
+    return (
+      <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 lg:px-8 pt-8 pb-12'>
+        <div className='max-w-8xl mx-auto'>
+          <CardGridLoader
+            cards={7}
+            columns='grid-cols-1 sm:grid-cols-2'
+            cardHeight='h-24'
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 lg:px-8 pt-8 pb-12'>

@@ -1,24 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import { Calendar, BarChart3, TrendingUp } from 'lucide-react';
 import AttendanceRecords from '@/components/organisms/attendance/AttendanceRecords';
 import QuickActions from '@/components/organisms/attendance/QuickActions';
-import { PageLoader } from '@/components/atoms/loading';
+import Dropdown from '@/components/molecules/interactive/Dropdown';
 
 export default function AttendancePage() {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1200);
-
-    return () => clearTimeout(timer);
-  }, []);
   // Mock attendance records data
   const attendanceRecords = [
     { id: '1', present: 20, total: 29, date: 'Today', isToday: true },
@@ -60,6 +50,17 @@ export default function AttendancePage() {
     },
   ];
 
+  // Mock class list for dropdown
+  const classOptions = [
+    { value: 'all', label: 'All Classes' },
+    { value: 'grade-1', label: 'Grade 1' },
+    { value: 'grade-2', label: 'Grade 2' },
+    { value: 'grade-3', label: 'Grade 3' },
+    { value: 'grade-4', label: 'Grade 4' },
+    { value: 'grade-5', label: 'Grade 5' },
+  ];
+  const [selectedClass, setSelectedClass] = useState('all');
+
   // Get current date
   const getCurrentDate = () => {
     const today = new Date();
@@ -85,10 +86,6 @@ export default function AttendancePage() {
     return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
   };
 
-  if (loading) {
-    return <PageLoader />;
-  }
-
   return (
     <div className='space-y-6'>
       {/* Header Section */}
@@ -107,6 +104,18 @@ export default function AttendancePage() {
           <Calendar className='w-5 h-5' />
           <span className='text-sm font-medium'>Today, {getCurrentDate()}</span>
         </div>
+      </div>
+
+      {/* Class-wise Attendance Dropdown */}
+      <div className='max-w-xs'>
+        <Dropdown
+          type='filter'
+          title='Select Class'
+          options={classOptions}
+          selectedValue={selectedClass}
+          onSelect={setSelectedClass}
+          className='w-full mb-2'
+        />
       </div>
 
       {/* Information Banner */}

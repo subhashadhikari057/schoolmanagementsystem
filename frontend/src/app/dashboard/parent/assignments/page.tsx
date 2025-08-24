@@ -1,9 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import { FiSearch } from 'react-icons/fi';
+import { PageLoader } from '@/components/atoms/loading';
 
 const assignmentStatuses = [
   { label: 'All Status', value: 'All Status' },
@@ -51,6 +52,16 @@ export default function ParentAssignmentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedChild, setSelectedChild] = useState(childrenList[0].id);
   const [showSearch, setShowSearch] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredAssignments = assignmentsData.filter(
     assignment =>
@@ -59,6 +70,10 @@ export default function ParentAssignmentsPage() {
         assignment.status === selectedStatus) &&
       assignment.title.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  if (loading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='p-6'>

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Button from '@/components/atoms/form-controls/Button';
@@ -10,8 +10,24 @@ import ExamsTab from '@/components/organisms/tabs/ExamsTab';
 import ResultsTab from '@/components/organisms/tabs/ResultsTab';
 import AnalyticsTab from '@/components/organisms/tabs/AnalyticsTab';
 import ReportsTab from '@/components/organisms/tabs/ReportsTab';
+import { PageLoader } from '@/components/atoms/loading';
 
 export default function ResultsPage() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1300);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
   return (
     <div className='min-h-screen bg-gray-50'>
       <div className='max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8'>

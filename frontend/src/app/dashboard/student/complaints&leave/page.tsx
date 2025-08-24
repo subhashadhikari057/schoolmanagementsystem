@@ -21,6 +21,7 @@ import {
 import Button from '@/components/atoms/form-controls/Button';
 import StatusBadge from '@/components/atoms/data/StatusBadge';
 import { useRouter } from 'next/navigation';
+import { PageLoader } from '@/components/atoms/loading';
 import { useAuth } from '@/hooks/useAuth';
 import { complaintService } from '@/api/services/complaint.service';
 import type {
@@ -960,6 +961,15 @@ export const ComplaintsAndLeavePage = () => {
     }
   };
 
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1300);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Tab content with approved/unapproved sections
   interface CardListProps {
     title: string;
@@ -1268,6 +1278,10 @@ export const ComplaintsAndLeavePage = () => {
       ),
     },
   ];
+
+  if (loading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6'>

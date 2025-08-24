@@ -14,6 +14,7 @@ import Label from '@/components/atoms/display/Label';
 import Button from '@/components/atoms/form-controls/Button';
 import GenericTabs from '@/components/organisms/tabs/GenericTabs';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
+import { PageLoader } from '@/components/atoms/loading';
 
 // Overview tab: summary, info, assignments (matches image)
 function OverviewTab({ subject }: { subject: any }) {
@@ -230,6 +231,16 @@ export default function SubjectDetailsPage({
   params: Promise<{ subjectId: string }> | { subjectId: string };
 }) {
   const router = useRouter();
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
   // Unwrap params if it's a Promise (Next.js 14+)
   let subjectId: string;
   if (isPromise<{ subjectId: string }>(params)) {
@@ -257,6 +268,11 @@ export default function SubjectDetailsPage({
       content: <AssignmentsTab subject={subject} />,
     },
   ];
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
   return (
     <div className='min-h-screen w-full bg-[#f7f8fa] sm:px-4 pb-12'>
       <div className='max-w-8xl mx-auto'>

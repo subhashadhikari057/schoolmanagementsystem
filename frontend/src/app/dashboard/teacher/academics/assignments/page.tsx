@@ -17,14 +17,25 @@ import { teacherService } from '@/api/services/teacher.service';
 import { useAuth } from '@/hooks/useAuth';
 import { AssignmentStats } from '@/api/types/assignment';
 import { toast } from 'sonner';
+import { PageLoader } from '@/components/atoms/loading';
 
 export default function AssignmentsPage() {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stats, setStats] = useState<AssignmentStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mainLoading, setMainLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Main page loading effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMainLoading(false);
+    }, 1400);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const loadAssignmentStats = useCallback(async () => {
     if (!user?.id) {
@@ -116,6 +127,10 @@ export default function AssignmentsPage() {
         },
       ]
     : [];
+
+  if (mainLoading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='min-h-screen bg-background'>

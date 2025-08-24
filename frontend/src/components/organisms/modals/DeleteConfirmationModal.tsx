@@ -10,6 +10,7 @@ interface DeleteConfirmationModalProps {
   onConfirm: () => void;
   title: string;
   message: string;
+  itemName?: string;
   isLoading?: boolean;
 }
 
@@ -19,6 +20,7 @@ export default function DeleteConfirmationModal({
   onConfirm,
   title,
   message,
+  itemName,
   isLoading = false,
 }: DeleteConfirmationModalProps) {
   if (!isOpen) return null;
@@ -63,7 +65,12 @@ export default function DeleteConfirmationModal({
 
         {/* Content */}
         <div className='p-6'>
-          <p className='text-gray-600'>{message}</p>
+          <p className='text-gray-600'>
+            {message}
+            {itemName && (
+              <span className='font-semibold text-gray-900'> {itemName}</span>
+            )}
+          </p>
         </div>
 
         {/* Footer */}

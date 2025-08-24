@@ -19,6 +19,7 @@ import {
 import { noticeService, type Notice } from '@/api/services/notice.service';
 import { toast } from 'sonner';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
+import SectionTitle from '@/components/atoms/display/SectionTitle';
 
 type Row = BaseItem & {
   id: string;
@@ -303,12 +304,12 @@ const NoticeManagement: React.FC = () => {
           key: 'title',
           header: 'Notice Details',
           render: (item: Row) => (
-            <div>
-              <div className='font-semibold'>{item.title}</div>
-              <div className='text-gray-500 text-xs truncate max-w-xs'>
+            <div className='py-1'>
+              <div className='font-medium text-sm'>{item.title}</div>
+              <div className='text-gray-500 text-[11px] truncate max-w-xs'>
                 {item.content}
               </div>
-              <div className='text-xs text-gray-400 mt-1'>
+              <div className='text-[10px] text-gray-400 mt-1'>
                 By: {item.author}
               </div>
             </div>
@@ -318,9 +319,9 @@ const NoticeManagement: React.FC = () => {
           key: 'recipients',
           header: 'Recipients ',
           render: (item: Row) => (
-            <div className='text-xs'>
+            <div className='text-[11px] py-1'>
               <div className='uppercase'>{item.recipients}</div>
-              <div className='text-green-600 font-semibold'>
+              <div className='text-green-600 font-medium'>
                 {item.total} recipients
               </div>
             </div>
@@ -331,13 +332,11 @@ const NoticeManagement: React.FC = () => {
           header: 'Status & Priority',
           render: (item: Row) => {
             const isExpired = new Date(item.expiry) < new Date();
-
-            // Status badge
             const getStatusBadge = () => {
               switch (item.status) {
                 case 'DRAFT':
                   return (
-                    <span className='inline-block px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700'>
+                    <span className='inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-700'>
                       Draft
                     </span>
                   );
@@ -345,7 +344,7 @@ const NoticeManagement: React.FC = () => {
                   const computed = isExpired ? 'Inactive' : 'Active';
                   return (
                     <span
-                      className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${computed === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                      className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${computed === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
                     >
                       {computed}
                     </span>
@@ -353,21 +352,20 @@ const NoticeManagement: React.FC = () => {
                 }
                 case 'ARCHIVED':
                   return (
-                    <span className='inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700'>
+                    <span className='inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700'>
                       Archived
                     </span>
                   );
                 default:
                   return (
-                    <span className='inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700'>
+                    <span className='inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700'>
                       {item.status}
                     </span>
                   );
               }
             };
-
             return (
-              <div className='flex gap-2 items-center'>
+              <div className='flex gap-2 items-center py-1'>
                 {getStatusBadge()}
                 {(() => {
                   const p = item.priority;
@@ -381,7 +379,7 @@ const NoticeManagement: React.FC = () => {
                           : 'bg-green-100 text-green-700';
                   return (
                     <span
-                      className={`inline-block px-2 py-0.5 rounded text-xs font-medium capitalize ${cls}`}
+                      className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${cls}`}
                     >
                       {p.toLowerCase()}
                     </span>
@@ -395,7 +393,7 @@ const NoticeManagement: React.FC = () => {
           key: 'date',
           header: 'Publish / Expiry',
           render: (item: Row) => (
-            <div className='text-xs text-gray-600'>
+            <div className='text-[11px] text-gray-600 py-1'>
               <div>{new Date(item.date).toLocaleString()}</div>
               <div className='text-gray-400'>
                 → {new Date(item.expiry).toLocaleString()}
@@ -407,14 +405,14 @@ const NoticeManagement: React.FC = () => {
           key: 'actions',
           header: 'Actions',
           render: (item: Row) => (
-            <div className='flex items-center gap-3'>
+            <div className='flex items-center gap-2 py-1'>
               <button
                 type='button'
                 aria-label='View'
                 className='text-gray-600 hover:text-blue-600 transition-colors'
                 onClick={() => setViewing(item)}
               >
-                <Eye size={16} />
+                <Eye size={14} />
               </button>
               <button
                 type='button'
@@ -422,7 +420,7 @@ const NoticeManagement: React.FC = () => {
                 className='text-gray-600 hover:text-green-600 transition-colors'
                 onClick={() => setEditing(item)}
               >
-                <Pencil size={16} />
+                <Pencil size={14} />
               </button>
               <button
                 type='button'
@@ -430,7 +428,7 @@ const NoticeManagement: React.FC = () => {
                 className='text-gray-600 hover:text-red-600 transition-colors'
                 onClick={() => confirmDelete(item)}
               >
-                <Trash2 size={16} />
+                <Trash2 size={14} />
               </button>
             </div>
           ),
@@ -444,8 +442,11 @@ const NoticeManagement: React.FC = () => {
     <div className='space-y-6'>
       {/* Section Title */}
       <div className='mb-6'>
-        <h1 className='text-xl font-bold text-gray-700'>Notice Management</h1>
-        <p className='text-xs text-gray-500 mt-1'>
+        <SectionTitle
+          text='Notice Management'
+          className='mb-1 text-3xl font-bold'
+        />
+        <p className='text-sm text-gray-500 mt-1'>
           Manage All Notice Related Information Here
         </p>
       </div>
