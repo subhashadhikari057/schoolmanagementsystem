@@ -1,7 +1,8 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
+import { PageLoader } from '@/components/atoms/loading';
 
 // Demo children data
 const children = [
@@ -47,6 +48,16 @@ const feeData: Record<
 export default function ParentFeesPage() {
   const [selectedChild, setSelectedChild] = useState(children[0].id);
   const [statusFilter, setStatusFilter] = useState('All');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1100);
+
+    return () => clearTimeout(timer);
+  }, []);
   const childOptions = children.map(child => ({
     value: child.id,
     label: `${child.name} (Class ${child.class}${child.section})`,
@@ -61,6 +72,10 @@ export default function ParentFeesPage() {
     statusFilter === 'All'
       ? feesRaw
       : feesRaw.filter(fee => fee.status === statusFilter);
+
+  if (loading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 lg:px-8 pt-8 pb-12'>

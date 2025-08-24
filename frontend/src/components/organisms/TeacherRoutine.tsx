@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import GenericTabs from '@/components/organisms/tabs/GenericTabs';
@@ -100,7 +100,16 @@ const teacherRoutine = [
 ];
 
 const TeacherRoutine = () => {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const dayParam = searchParams.get('day');
+  const daysLower = days.map(d => d.toLowerCase());
+  let defaultIndex = 0;
+  if (dayParam) {
+    const idx = daysLower.indexOf(dayParam.toLowerCase());
+    if (idx !== -1) defaultIndex = idx;
+  } else {
+    defaultIndex = new Date().getDay();
+  }
 
   const tabsWithNav = teacherRoutine.map(day => ({
     name: day.name,
@@ -153,7 +162,11 @@ const TeacherRoutine = () => {
           appear below.
         </Label>
         <div className='mb-8'>
-          <GenericTabs tabs={tabsWithNav} defaultIndex={0} className='' />
+          <GenericTabs
+            tabs={tabsWithNav}
+            defaultIndex={defaultIndex}
+            className=''
+          />
         </div>
       </div>
     </div>

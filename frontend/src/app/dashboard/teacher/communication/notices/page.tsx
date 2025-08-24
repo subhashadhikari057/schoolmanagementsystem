@@ -8,15 +8,26 @@ import { Plus } from 'lucide-react';
 import TeacherNoticesTab from '@/components/organisms/tabs/TeacherNoticesTab';
 import CreateNoticeModal from '@/components/organisms/modals/CreateNoticeModal';
 import { noticeService } from '@/api/services/notice.service';
+import { PageLoader } from '@/components/atoms/loading';
 
 export default function NoticesPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [mainLoading, setMainLoading] = useState(true);
   const [stats, setStats] = useState({
     totalNotices: 0,
     activeNotices: 0,
     thisMonthNotices: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  // Main page loading effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMainLoading(false);
+    }, 1400);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch notice statistics
   useEffect(() => {
@@ -82,6 +93,10 @@ export default function NoticesPage() {
       };
     }
   }, []);
+
+  if (mainLoading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='min-h-screen bg-gray-50'>

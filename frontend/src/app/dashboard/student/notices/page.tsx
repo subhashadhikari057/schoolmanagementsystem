@@ -5,15 +5,26 @@ import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import StudentNoticesTab from '@/components/organisms/tabs/StudentNoticesTab';
 import { noticeService } from '@/api/services/notice.service';
+import { PageLoader } from '@/components/atoms/loading';
 
 export default function StudentNoticesPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [mainLoading, setMainLoading] = useState(true);
   const [stats, setStats] = useState({
     totalNotices: 0,
     unreadNotices: 0,
     thisWeekNotices: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  // Main page loading effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMainLoading(false);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch notice statistics
   useEffect(() => {
@@ -79,6 +90,10 @@ export default function StudentNoticesPage() {
       };
     }
   }, []);
+
+  if (mainLoading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className='min-h-screen bg-gray-50'>
