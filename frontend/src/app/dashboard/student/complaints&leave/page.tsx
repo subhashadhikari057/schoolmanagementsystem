@@ -858,11 +858,20 @@ export const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
   const handleRejectLeaveRequest = async (
     leaveRequestId: string,
     reason: string,
+    rejectorRole?: 'parent' | 'teacher',
   ) => {
     try {
-      // Call the backend API to reject the leave request
-      await rejectByParent(leaveRequestId, reason);
-      toast.success('Leave request rejected successfully');
+      // Call the appropriate backend API based on who is rejecting
+      if (
+        rejectorRole === 'teacher' ||
+        (userRole || user?.role) === 'teacher'
+      ) {
+        await rejectByTeacher(leaveRequestId, reason);
+        toast.success('Leave request rejected by teacher successfully');
+      } else {
+        await rejectByParent(leaveRequestId, reason);
+        toast.success('Leave request rejected by parent successfully');
+      }
       // The hook will automatically update the local state
     } catch (error) {
       console.error('Error rejecting leave request:', error);
@@ -1561,7 +1570,10 @@ export const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                                     </Button>
                                     <Button
                                       onClick={() => {
-                                        setLeaveRequestToReject(leaveRequest);
+                                        setLeaveRequestToReject({
+                                          ...leaveRequest,
+                                          rejectorRole: 'parent',
+                                        });
                                         setRejectReasonModalOpen(true);
                                       }}
                                       className='bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
@@ -1584,7 +1596,10 @@ export const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                                     </Button>
                                     <Button
                                       onClick={() => {
-                                        setLeaveRequestToReject(leaveRequest);
+                                        setLeaveRequestToReject({
+                                          ...leaveRequest,
+                                          rejectorRole: 'teacher',
+                                        });
                                         setRejectReasonModalOpen(true);
                                       }}
                                       className='bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
@@ -2352,6 +2367,7 @@ export const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                     await handleRejectLeaveRequest(
                       leaveRequestToReject.id,
                       reason,
+                      leaveRequestToReject.rejectorRole,
                     );
                     setRejectReasonModalOpen(false);
                     setLeaveRequestToReject(null);
