@@ -28,6 +28,7 @@ import { ParentModule } from './modules/parent/parent.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
 import { FeeModule } from './modules/fee/fee.module';
 import { NoticeModule } from './modules/notice/notice.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { NoticeModule } from './modules/notice/notice.module';
     ScheduleModule,
     FeeModule,
     NoticeModule,
+    AttendanceModule,
   ],
 })
 export class AppModule implements NestModule {

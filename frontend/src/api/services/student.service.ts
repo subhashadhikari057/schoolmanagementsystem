@@ -522,11 +522,18 @@ export class StudentService {
     }>
   > {
     try {
-      const response = await this.httpClient.post(
-        `/api/v1/students/${studentId}/guardians`,
-        guardianData,
-        { requiresAuth: true },
-      );
+      const response = await this.httpClient.post<{
+        message: string;
+        guardianCredentials?: Array<{
+          id: string;
+          fullName: string;
+          email: string;
+          relationship: string;
+          temporaryPassword: string;
+        }>;
+      }>(`/api/v1/students/${studentId}/guardians`, guardianData, {
+        requiresAuth: true,
+      });
 
       return response;
     } catch (error) {
@@ -548,7 +555,7 @@ export class StudentService {
     },
   ): Promise<ApiResponse<{ message: string }>> {
     try {
-      const response = await this.httpClient.patch(
+      const response = await this.httpClient.patch<{ message: string }>(
         `/api/v1/students/${studentId}/guardians/${guardianId}`,
         guardianData,
         { requiresAuth: true },
@@ -566,7 +573,7 @@ export class StudentService {
     studentId: string,
   ): Promise<ApiResponse<{ message: string }>> {
     try {
-      const response = await this.httpClient.post(
+      const response = await this.httpClient.post<{ message: string }>(
         `/api/v1/students/${studentId}/guardians/cleanup-duplicates`,
         {},
         { requiresAuth: true },

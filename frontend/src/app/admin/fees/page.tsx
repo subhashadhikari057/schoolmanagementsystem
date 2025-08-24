@@ -1,10 +1,9 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
-  feeService,
+  feeManagementApi,
   FeeStructure,
-  Paginated,
-} from '@/api/services/fee.service';
+} from '@/api/services/complete-fee-api.service';
 import {
   GenericList,
   ListConfiguration,
@@ -45,8 +44,15 @@ const useToasts = () => {
 };
 
 // Enhanced FeeStructure interface for the row data
-interface FeeStructureRow extends FeeStructure {
+interface FeeStructureRow {
   [key: string]: unknown;
+  id: string;
+  classId: string;
+  academicYear: string;
+  name: string;
+  status: string;
+  effectiveFrom: string;
+  createdAt: string;
   totalAnnual?: string;
   latestVersion: number;
   grade?: number;
@@ -84,19 +90,21 @@ const FeeManagementAdminPage: React.FC = () => {
     null,
   );
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res: Paginated<FeeStructure> = await feeService.listStructures({
+      const res = await feeManagementApi.getFeeStructures({
         page,
         pageSize,
       });
       // Map the response data to include additional properties
       setRows(
-        res.data.map(r => ({
+        res.data.map((r: FeeStructure) => ({
           ...r,
-          assignedClasses: [{ id: r.classId, grade: null, section: null }],
-          items: [],
+          assignedClasses: [
+            { id: r.classId || '', grade: null, section: null },
+          ],
+          items: r.items || [],
           studentCount: 0,
           totalAnnual: '0',
           latestVersion: 1,
@@ -109,10 +117,10 @@ const FeeManagementAdminPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, pageSize, push]);
 
   useEffect(() => {
-    load(); /* eslint-disable-line react-hooks/exhaustive-deps */
+    load();
   }, [page]);
 
   // Handle actions from GenericList

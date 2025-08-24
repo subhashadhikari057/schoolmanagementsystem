@@ -37,6 +37,7 @@ model User {
   noticesUpdated     Notice[] @relation("NoticeUpdater")
   noticesDeleted     Notice[] @relation("NoticeDeleter")
   noticesReceived    NoticeRecipient[]
+  attendanceSessionsMarked AttendanceSession[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -98,6 +99,7 @@ model Class {
   notices            Notice[] @relation("NoticeClass")
   feeStructures      FeeStructure[]
   feeStructureAssignments FeeStructureAssignment[]
+  attendanceSessions AttendanceSession[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -210,6 +212,7 @@ model Student {
   scholarshipAssignments ScholarshipAssignment[]
   chargeAssignments      ChargeAssignment[]
   feeHistories           StudentFeeHistory[]
+  attendanceRecords      AttendanceRecord[]
 
   @@index([userId])
   @@index([classId])
@@ -1145,4 +1148,72 @@ model StudentFeeHistory {
   @@index([feeStructureId])
   @@index([periodMonth])
   @@unique([studentId, periodMonth, version], name: "unique_student_month_fee_version")
+}
+
+// Attendance Models
+model AttendanceSession {
+  id          String   @id @default(uuid())
+  classId     String
+  date        DateTime @db.Date
+  sessionType String   @default("daily") // daily, morning, afternoon
+  markedBy    String
+  markedAt    DateTime @default(now())
+  isCompleted Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime?
+  
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  marker      User     @relation(fields: [markedBy], references: [id])
+  records     AttendanceRecord[]
+  
+  @@unique([classId, date, sessionType])
+  @@index([classId])
+  @@index([date])
+  @@index([markedBy])
+}
+
+model AttendanceRecord {
+  id               String            @id @default(uuid())
+  sessionId        String
+  studentId        String
+  status           AttendanceStatus
+  markedAt         DateTime          @default(now())
+  remarks          String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime?
+  
+  session          AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student          Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  @@unique([sessionId, studentId])
+  @@index([sessionId])
+  @@index([studentId])
+  @@index([status])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+// Working Days Tracking Model
+model WorkingDaysTracker {
+  id              String   @id @default(uuid())
+  month           Int      // 1-12 
+  year            Int      // e.g., 2025
+  totalDays       Int      // Total days in month
+  saturdays       Int      // Number of Saturdays
+  holidays        Int      // Holidays from calendar
+  events          Int      // Events from calendar
+  exams           Int      // Exam days from calendar  
+  availableDays   Int      // Calculated working days
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  
+  @@unique([month, year])
+  @@index([month])
+  @@index([year])
 }
