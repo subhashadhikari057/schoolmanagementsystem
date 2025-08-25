@@ -61,6 +61,11 @@ model User {
   teacherLeaveRequestAuditLogs    TeacherLeaveRequestAuditLog[]
   teacherLeaveRequestsAsAdmin     TeacherLeaveRequest[] @relation("TeacherLeaveRequestAdmin")
 
+  // Leave Type relations
+  leaveTypesCreated     LeaveType[] @relation("LeaveTypeCreator")
+  leaveTypesUpdated     LeaveType[] @relation("LeaveTypeUpdater")
+  leaveTypesDeleted     LeaveType[] @relation("LeaveTypeDeleter")
+
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
@@ -1110,6 +1115,43 @@ enum LeaveRequestType {
   EMERGENCY
   MEDICAL
   FAMILY
+}
+
+// =====================
+// Leave Type Management Models
+// =====================
+
+model LeaveType {
+  id                String              @id @default(uuid())
+  name              String              @unique
+  description       String?
+  maxDays           Int                 @default(1)
+  isPaid            Boolean             @default(false)
+  status            LeaveTypeStatus     @default(ACTIVE)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime?
+  deletedAt         DateTime?
+  createdById       String?
+  updatedById       String?
+  deletedById       String?
+
+  // Relationships
+  createdBy         User?               @relation("LeaveTypeCreator", fields: [createdById], references: [id])
+  updatedBy         User?               @relation("LeaveTypeUpdater", fields: [updatedById], references: [id])
+  deletedBy         User?               @relation("LeaveTypeDeleter", fields: [deletedById], references: [id])
+
+  @@index([name])
+  @@index([status])
+  @@index([isPaid])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+enum LeaveTypeStatus {
+  ACTIVE
+  INACTIVE
 }
 
 model LeaveRequest {

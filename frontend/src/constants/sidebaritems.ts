@@ -76,6 +76,11 @@ export const sidebarItems = {
           icon: 'CalendarMinus',
           path: '/dashboard/admin/communication/leave-requests',
         },
+        {
+          label: 'Leave Types',
+          icon: 'List',
+          path: '/dashboard/admin/communication/leave-types',
+        },
       ],
     },
     {
