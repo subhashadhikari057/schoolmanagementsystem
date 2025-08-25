@@ -123,7 +123,7 @@ export default function Statsgrid({
   }
 
   if (variant === 'assignments') {
-    const assignmentItems = items as any[];
+    const assignmentItems = items as AssignmentItem[];
     return (
       <div className={className || 'grid grid-cols-1 lg:grid-cols-2 gap-4'}>
         {assignmentItems.map((a, idx) => (
@@ -137,7 +137,6 @@ export default function Statsgrid({
               >
                 {a.title}
               </div>
-              {a.statusBadge}
             </div>
             <div className={`text-xs text-gray-500 mb-3`}>
               Subject: {a.subject} • {a.className}
@@ -145,8 +144,8 @@ export default function Statsgrid({
             <div className='flex items-center justify-between'>
               <span className={`text-xs text-gray-500`}>{a.submissions}</span>
               <Button
-                className={`px-3 py-1.5 border text-xs font-medium rounded-md ${a.actionLabel === 'Submit' ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' : 'bg-green-600 text-white border-green-600 hover:bg-green-700'}`}
-                label={a.actionLabel}
+                className={`px-3 py-1.5 border text-xs font-medium rounded-md bg-green-600 text-white border-green-600 hover:bg-green-700`}
+                label={actionLabel}
                 onClick={a.onClick}
               />
             </div>

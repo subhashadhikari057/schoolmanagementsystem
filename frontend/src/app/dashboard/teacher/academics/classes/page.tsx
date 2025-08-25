@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import React, { useState, useEffect, useCallback } from 'react';
 import { GraduationCap, Users, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { CardGridLoader } from '@/components/atoms/loading';
 
 interface TeacherClass {
   class: {
@@ -23,7 +24,17 @@ export default function TeacherClassesPage() {
   const router = useRouter();
   const [classes, setClasses] = useState<TeacherClass[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mainLoading, setMainLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Main page loading effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMainLoading(false);
+    }, 1300);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const loadClasses = useCallback(async () => {
     if (!user?.id) {
@@ -53,6 +64,18 @@ export default function TeacherClassesPage() {
     router.push(`/dashboard/teacher/academics/classes/${classId}`);
   };
 
+  if (mainLoading) {
+    return (
+      <div className='space-y-6'>
+        <CardGridLoader
+          cards={6}
+          columns='grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+          cardHeight='h-32'
+        />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className='space-y-6'>
@@ -78,7 +101,7 @@ export default function TeacherClassesPage() {
         <SectionTitle
           text='My Classes'
           level={1}
-          className='mb-4 text-xl font-semibold text-foreground'
+          className='mb-4 text-xl font-bold text-foreground'
         />
         <div className='text-center py-8'>
           <p className='text-red-600 mb-4'>{error}</p>
@@ -99,7 +122,7 @@ export default function TeacherClassesPage() {
         <SectionTitle
           text='My Classes'
           level={1}
-          className='mb-4 text-xl font-semibold text-foreground'
+          className='mb-4 text-3xl font-bold text-foreground'
         />
       </div>
 

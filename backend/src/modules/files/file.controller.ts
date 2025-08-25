@@ -18,6 +18,7 @@ export class FileController {
       'staff',
       'documents',
       'notices',
+      'complaints',
     ];
     if (!allowedFolders.includes(folder)) {
       throw new NotFoundException('Invalid folder');
@@ -27,7 +28,9 @@ export class FileController {
       process.cwd(),
       'uploads',
       folder,
-      folder === 'notices' ? 'attachments' : 'profiles',
+      folder === 'notices' || folder === 'complaints'
+        ? 'attachments'
+        : 'profiles',
       filename,
     );
 

@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StudentAttendanceCalendar, {
   AttendanceEvent,
 } from './StudentAttendanceCalendar';
+import { CalendarLoader } from '@/components/atoms/loading';
 
 import { bs2ad } from 'hamro-nepali-patro';
 
@@ -24,6 +25,21 @@ const attendanceEvents: AttendanceEvent[] = [
 ];
 
 export default function AttendancePage() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return <CalendarLoader />;
+  }
+
   return (
     <div className='p-6'>
       <h1 className='text-lg font-bold mb-4'>Student Attendance Calendar</h1>

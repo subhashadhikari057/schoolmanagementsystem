@@ -1,10 +1,11 @@
 'use client';
 // Student Subjects Page: Day-wise tabs, 7 periods per day, teacher info, consistent card UI
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import GenericTabs from '@/components/organisms/tabs/GenericTabs';
+import { CardGridLoader } from '@/components/atoms/loading';
 
 // Days of the week (Sunday to Saturday)
 const days = [
@@ -74,6 +75,16 @@ const tabs = timetable.map(day => ({
 
 export default function StudentSubjectsPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Attach router to cards
   const tabsWithNav = timetable.map(day => ({
@@ -106,6 +117,20 @@ export default function StudentSubjectsPage() {
       </div>
     ),
   }));
+
+  if (loading) {
+    return (
+      <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 pt-8 pb-12'>
+        <div className='max-w-8xl mx-auto'>
+          <CardGridLoader
+            cards={21}
+            columns='grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+            cardHeight='h-32'
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 pt-8 pb-12'>

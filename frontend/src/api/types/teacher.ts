@@ -103,6 +103,7 @@ export interface CreateTeacherResponse {
 
 export interface TeacherListResponse {
   id: string;
+  userId: string; // Add userId for assignment purposes
   fullName: string;
   email: string;
   phone?: string;

@@ -266,7 +266,6 @@ export default function AttendanceTrackingPage({ params }: PageProps) {
                     label={isSaving ? 'Saving...' : 'Save Attendance'}
                     className='bg-blue-600 text-white px-12 py-4 rounded-lg text-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
                     onClick={handleSave}
-                    disabled={!hasChanges || isSaving}
                   />
                 ) : (
                   <div className='space-y-3'>

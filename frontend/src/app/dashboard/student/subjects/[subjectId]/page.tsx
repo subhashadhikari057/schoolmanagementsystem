@@ -7,6 +7,7 @@ import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Button from '@/components/atoms/form-controls/Button';
 import GenericTabs from '@/components/organisms/tabs/GenericTabs';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
+import { PageLoader } from '@/components/atoms/loading';
 
 // Overview tab: summary, info, assignments (matches image)
 function OverviewTab({ subject }: { subject: any }) {
@@ -240,6 +241,11 @@ function SubjectDetailsContent({ subjectId }: { subjectId: string }) {
       content: <AssignmentsTab subject={subject} />,
     },
   ];
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
   return (
     <div className='min-h-screen w-full bg-[#f7f8fa] sm:px-4 pb-12'>
       <div className='max-w-8xl mx-auto'>
