@@ -180,7 +180,7 @@ export const sidebarItems = {
         {
           label: 'Complaints and Requests',
           icon: 'Mailbox',
-          path: '/dashboard/teacher/communication/complaints&leave',
+          path: '/dashboard/teacher/communication/complaints-leave',
         },
       ],
     },
@@ -223,7 +223,7 @@ export const sidebarItems = {
         {
           label: 'Complaints and leaves',
           icon: 'Mailbox',
-          path: '/dashboard/student/complaints&leave',
+          path: '/dashboard/student/complaints-leave',
         },
       ],
     },
@@ -266,7 +266,7 @@ export const sidebarItems = {
         {
           label: 'Complaints and Leaves',
           icon: 'Megaphone',
-          path: '/dashboard/parent/complaints&leaves',
+          path: '/dashboard/parent/complaints-leaves',
         },
         {
           label: 'Fees',

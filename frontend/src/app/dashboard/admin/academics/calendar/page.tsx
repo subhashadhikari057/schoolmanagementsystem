@@ -10,9 +10,6 @@ export default function CalendarPage() {
       subtitle='Plan and organize academic year events, holidays, and examinations'
       showExportButton={true}
       showActionButtons={true}
-      showStatsGrid={true}
-      showQuickActions={true}
-      defaultLanguage='english'
     />
   );
 }

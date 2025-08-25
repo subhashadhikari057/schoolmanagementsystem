@@ -58,6 +58,13 @@ export default function ScheduleBuilder() {
         }));
         setClasses(classData);
         console.log('Classes loaded, selectedClassId:', selectedClassId);
+        // If a persisted selectedClassId exists but is no longer valid, clear it to stop 404 spam
+        if (selectedClassId && !classData.some(c => c.id === selectedClassId)) {
+          console.warn(
+            'Persisted selectedClassId not found in server classes, clearing',
+          );
+          useScheduleStore.getState().setSelectedClass('');
+        }
         // Don't reset selectedClassId here - it should persist
       } else {
         setClasses([]);
@@ -67,7 +74,7 @@ export default function ScheduleBuilder() {
     } finally {
       setIsLoading(false);
     }
-  }, []); // Remove selectedClassId and setSelectedClass from dependencies
+  }, [selectedClassId]); // include selectedClassId so we can clear stale persisted id when it changes
 
   // Handle client-side hydration
   useEffect(() => {
@@ -78,11 +85,9 @@ export default function ScheduleBuilder() {
   // Handle class selection
   const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newClassId = e.target.value;
-    console.log('Class selection changed to:', newClassId);
-
-    // Reset timetable loaded flag when changing class
+    console.log('Class selection changed to:', newClassId || '(none)');
     useScheduleStore.getState().setHasLoadedTimetable(false);
-    setSelectedClass(newClassId);
+    setSelectedClass(newClassId || '');
   };
 
   // Get the selected class info and update store with full class data

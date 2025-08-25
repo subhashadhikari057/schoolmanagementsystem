@@ -26,7 +26,9 @@ import { CalendarModule } from './modules/calendar/calendar.module';
 import { AssignmentModule } from './modules/assignment/assignment.module';
 import { ParentModule } from './modules/parent/parent.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
+import { FeeModule } from './modules/fee/fee.module';
 import { NoticeModule } from './modules/notice/notice.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
 
 @Module({
@@ -48,7 +50,9 @@ import { ComplaintModule } from './modules/complaint/complaint.module';
     CalendarModule,
     AssignmentModule,
     ScheduleModule,
+    FeeModule,
     NoticeModule,
+    AttendanceModule,
     ComplaintModule,
   ],
 })

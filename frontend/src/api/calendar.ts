@@ -57,8 +57,7 @@ export const calendarApi = {
     total: number;
     holidays: number;
     events: number;
-    reminders: number;
-    published: number;
+    exams: number;
     thisMonth: number;
   }> {
     return calendarService.getCalendarStatistics();

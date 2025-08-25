@@ -479,13 +479,18 @@ export const useScheduleStore = create<ScheduleState>()(
 
       // Actions
       setSelectedClass: (classId: string) => {
+        const normalized = classId && classId.trim().length ? classId : null;
         set({
-          selectedClassId: classId,
+          selectedClassId: normalized,
+          // Clear any previously persisted class meta so TimetableBuilder won't treat stale data as valid
+          selectedClass: null,
           classSubjects: [],
           availableSubjects: [],
           timetableSlots: [],
           validationErrors: [],
           validationWarnings: [],
+          currentSchedule: null,
+          hasLoadedTimetable: false,
         });
       },
 
@@ -882,7 +887,6 @@ export const useScheduleStore = create<ScheduleState>()(
       name: 'schedule-store',
       partialize: state => ({
         selectedClassId: state.selectedClassId,
-        selectedClass: state.selectedClass,
         selectedGrade: state.selectedGrade,
         selectedSection: state.selectedSection,
         currentSchedule: state.currentSchedule,

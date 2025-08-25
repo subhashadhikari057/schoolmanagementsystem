@@ -3,7 +3,7 @@
 import { Select } from '@headlessui/react';
 import React, { useState } from 'react';
 
-import ComplaintsAndLeavePage from '@/app/dashboard/student/complaints&leave/page';
+import ComplaintsAndLeavePage from '@/app/dashboard/student/complaints-leave/page';
 
 // Parent wrapper: adds approve/reject for leave requests and resolve for complaints
 export default function ParentComplaintsAndLeavesPage() {
