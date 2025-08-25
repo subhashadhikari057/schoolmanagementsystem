@@ -24,12 +24,9 @@ export default function ExamPerformanceChart() {
       <ChartHeader title='Exam Performance' toggleLabel='Subject-wise' />
       <ResponsiveContainer width='100%' height={240}>
         <LineChart data={data}>
-          {/* @ts-expect-error - Recharts compatibility */}
           <XAxis dataKey='subject' />
-          {/* @ts-expect-error - Recharts compatibility */}
           <YAxis />
           <Tooltip />
-          {/* @ts-expect-error - Recharts compatibility */}
           <Line
             type='bump'
             dot={{ r: 8 }}

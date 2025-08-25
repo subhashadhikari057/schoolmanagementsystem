@@ -7,7 +7,7 @@ import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Button from '@/components/atoms/form-controls/Button';
 import GenericTabs from '@/components/organisms/tabs/GenericTabs';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
-import { PageLoader } from '@/components/atoms/loading';
+// import { PageLoader } from '@/components/atoms/loading';
 
 // Overview tab: summary, info, assignments (matches image)
 function OverviewTab({ subject }: { subject: any }) {
@@ -242,9 +242,10 @@ function SubjectDetailsContent({ subjectId }: { subjectId: string }) {
     },
   ];
 
-  if (loading) {
-    return <PageLoader />;
-  }
+  // For now, no loading state - data is hardcoded
+  // if (loading) {
+  //   return <PageLoader />;
+  // }
 
   return (
     <div className='min-h-screen w-full bg-[#f7f8fa] sm:px-4 pb-12'>

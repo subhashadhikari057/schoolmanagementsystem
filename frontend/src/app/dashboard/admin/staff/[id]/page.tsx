@@ -46,7 +46,7 @@ const StaffProfilePage = () => {
             const salaryResponse =
               await staffService.getStaffSalaryHistory(staffId);
             if (salaryResponse.success && salaryResponse.data) {
-              setSalaryHistory(salaryResponse.data);
+              setSalaryHistory(salaryResponse.data.data || []);
             }
           } catch (err) {
             console.error('Error fetching salary history:', err);

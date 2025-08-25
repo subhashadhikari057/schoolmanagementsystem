@@ -95,14 +95,16 @@ export default function CalendarDayTooltip({
       <div className='space-y-2'>
         {events.slice(0, 3).map((event, index) => (
           <div key={`${event.id}-${index}`} className='flex items-start gap-2'>
-            <span className='text-sm'>{getEventIcon(event.type)}</span>
+            <span className='text-sm'>
+              {getEventIcon(event.type || 'event')}
+            </span>
             <div className='flex-1 min-w-0'>
               <div className='flex items-center gap-1 mb-1'>
                 <span className='text-xs font-medium text-gray-900 truncate'>
                   {event.name || event.title || 'Untitled Event'}
                 </span>
                 <span
-                  className={`text-xs px-1.5 py-0.5 rounded-full border ${getEventTypeColor(event.type)}`}
+                  className={`text-xs px-1.5 py-0.5 rounded-full border ${getEventTypeColor(event.type || 'event')}`}
                 >
                   {event.type}
                 </span>

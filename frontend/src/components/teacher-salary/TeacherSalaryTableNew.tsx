@@ -1,5 +1,5 @@
 'use client';
-
+//this is just generated file to be made functional later on
 import React, { useState } from 'react';
 import {
   Eye,
@@ -10,13 +10,32 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  teacherSalaryService,
-  type TeacherSalaryHistoryResponse,
-  type TeacherSalaryHistoryItem,
-  type TeacherWithHistory,
-  type SalaryListQuery,
-} from '../../api/services/teacher-salary.service';
+
+// Mock types for teacher salary
+interface TeacherSalaryHistoryResponse {
+  data: any[];
+  pagination: any;
+  totalItems?: number;
+}
+
+interface TeacherSalaryHistoryItem {
+  [key: string]: any;
+}
+
+interface TeacherWithHistory {
+  [key: string]: any;
+}
+
+interface SalaryListQuery {
+  [key: string]: any;
+}
+
+// Mock service with proper methods
+const teacherSalaryService = {
+  getTeacherSalaryHistory: (teacherId?: string) => Promise.resolve([]),
+  listSalaryHistory: (query?: any) =>
+    Promise.resolve({ data: [], totalItems: 0 }),
+};
 
 interface TeacherSalaryTableProps {
   data: TeacherSalaryHistoryResponse;
@@ -460,7 +479,7 @@ export const TeacherSalaryTable: React.FC<TeacherSalaryTableProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedTeacher.history.map(record => (
+                  {selectedTeacher.history.map((record: any) => (
                     <tr key={record.id}>
                       <td>{formatDate(record.effectiveDate)}</td>
                       <td>{formatCurrency(record.previousAmount)}</td>

@@ -71,7 +71,9 @@ export default function ManageEventsModal({
   const filteredEvents = events.filter(
     event =>
       event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (event as any).description
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       event.location?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 

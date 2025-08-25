@@ -456,7 +456,7 @@ export interface Staff extends BaseItem {
   name: string;
   department: string;
   position: string;
-  status: 'Active' | 'On Leave' | 'Inactive';
+  status: 'Active' | 'On Leave' | 'Inactive' | 'Suspended' | 'Transferred';
   avatar?: string;
   staffId?: string;
   employeeId?: string;

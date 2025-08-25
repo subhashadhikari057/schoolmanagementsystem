@@ -1,173 +1,86 @@
-// Mock data for Super Admin Dashboard
-import { Event } from '@/types/EventTypes';
-import { QuickAction } from '@/types/QuickActionItems';
-import {
-  GraduationCap,
-  IdCard,
-  CalendarPlus,
-  FileText,
-  Settings,
-  UserPlus,
-  Users,
-} from 'lucide-react';
+/**
+ * Mock data for development and testing
+ */
+
 import React from 'react';
-import type { ClassResponse } from '@/api/services/class.service';
+import { UserPlus, Users, BookOpen } from 'lucide-react';
 
-// Mock Events Data
-export const mockEvents: Event[] = [
+export const adminQuickActions = [
   {
-    id: '1',
-    title: 'Parent-Teacher Conference',
-    date: '2024-02-15',
-    time: '09:00 AM',
-    location: 'Main Auditorium',
-    status: 'Scheduled',
+    id: 'add-student',
+    title: 'Add Student',
+    description: 'Register a new student',
+    icon: React.createElement(UserPlus, { size: 20 }),
+    action: 'modal',
+    modalType: 'add-student',
+    onClick: () => console.log('Add Student clicked'),
   },
   {
-    id: '2',
-    title: 'Annual Sports Day',
-    date: '2024-02-20',
-    time: '08:00 AM',
-    location: 'Sports Ground',
-    status: 'Active',
+    id: 'add-teacher',
+    title: 'Add Teacher',
+    description: 'Register a new teacher',
+    icon: React.createElement(UserPlus, { size: 20 }),
+    action: 'modal',
+    modalType: 'add-teacher',
+    onClick: () => console.log('Add Teacher clicked'),
   },
   {
-    id: '3',
-    title: 'Science Fair Exhibition',
-    date: '2024-02-25',
-    time: '10:00 AM',
-    location: 'Science Lab',
-    status: 'Scheduled',
+    id: 'add-staff',
+    title: 'Add Staff',
+    description: 'Register a new staff member',
+    icon: React.createElement(Users, { size: 20 }),
+    action: 'modal',
+    modalType: 'add-staff',
+    onClick: () => console.log('Add Staff clicked'),
   },
   {
-    id: '4',
-    title: 'Mid-Term Examinations',
-    date: '2024-03-01',
-    time: '09:00 AM',
-    location: 'All Classrooms',
-    status: 'Scheduled',
-  },
-  {
-    id: '5',
-    title: 'Cultural Program',
-    date: '2024-03-05',
-    time: '02:00 PM',
-    location: 'Main Hall',
-    status: 'Active',
-  },
-  {
-    id: '6',
-    title: 'Staff Meeting',
-    date: '2024-02-18',
-    time: '03:30 PM',
-    location: 'Conference Room',
-    status: 'Scheduled',
+    id: 'add-class',
+    title: 'Add Class',
+    description: 'Create a new class',
+    icon: React.createElement(BookOpen, { size: 20 }),
+    action: 'modal',
+    modalType: 'add-class',
+    onClick: () => console.log('Add Class clicked'),
   },
 ];
 
-// Mock Quick Actions Data
-export const teacherQuickActions: QuickAction[] = [
-  {
-    id: 'attendance-report',
-    title: 'Attendance Report',
-    icon: React.createElement(Users, { className: 'w-6 h-6' }),
-    onClick: () => {},
-  },
-  {
-    id: 'grade-summary',
-    title: 'Grade Summary',
-    icon: React.createElement(FileText, { className: 'w-6 h-6' }),
-    onClick: () => {},
-  },
-  {
-    id: 'class-schedule',
-    title: 'Class Schedule',
-    icon: React.createElement(CalendarPlus, { className: 'w-6 h-6' }),
-    onClick: () => {},
-  },
-  {
-    id: 'syllabus-progress',
-    title: 'Syllabus Progress',
-    icon: React.createElement(FileText, { className: 'w-6 h-6' }),
-    onClick: () => {},
-  },
-];
-
-export const adminQuickActions: QuickAction[] = [
-  {
-    id: '1',
-    title: 'Add New Student',
-    icon: React.createElement(UserPlus, { className: 'w-6 h-6' }),
-    onClick: () => {},
-  },
-  {
-    id: '2',
-    title: 'Add New Teacher',
-    icon: React.createElement(GraduationCap, { className: 'w-6 h-6' }),
-    onClick: () => {},
-  },
-  {
-    id: '3',
-    title: 'Generate ID',
-    icon: React.createElement(IdCard, { className: 'w-6 h-6' }),
-    onClick: () => {},
-  },
-  {
-    id: '4',
-    title: 'Create Event',
-    icon: React.createElement(CalendarPlus, { className: 'w-6 h-6' }),
-    onClick: () => {},
-  },
-  {
-    id: '5',
-    title: 'Process Files',
-    icon: React.createElement(FileText, { className: 'w-6 h-6' }),
-    onClick: () => {},
-  },
-  {
-    id: '6',
-    title: 'System Settings',
-    icon: React.createElement(Settings, { className: 'w-6 h-6' }),
-    onClick: () => {},
-  },
-];
-
-// Usage: import the correct quick actions for the role
-
-// Route mappings for quick actions
 export const quickActionRoutes: Record<string, string> = {
-  '1': '/dashboard/admin/students', // Add New Student
-  '2': '/dashboard/admin/teachers', // Add New Teacher
-  '3': '/dashboard/admin/id-generation', // Generate ID
-  '4': '/dashboard/admin/events', // Create Event
-  '5': '/dashboard/admin/files', // Process Files
-  '6': '/dashboard/admin/settings', // System Settings
+  'add-student': '/dashboard/admin/students',
+  'add-teacher': '/dashboard/admin/teachers',
+  'add-staff': '/dashboard/admin/staff',
+  'add-class': '/dashboard/admin/academics/classes',
 };
 
-// Mock Classes Data
-export const mockClasses: ClassResponse[] = [
+// Mock classes data to match the expected interface
+export const mockClasses = [
   {
     id: 'class-1',
-    name: 'Grade 10',
+    name: 'Class 1A',
     section: 'A',
-    grade: 10,
-    capacity: 40,
-    roomId: 'room-101',
+    grade: 1,
+    capacity: 30,
+    currentEnrollment: 25,
+    roomId: 'room-1',
+    classTeacherId: 'teacher-1',
+    shift: 'morning' as const,
     createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-02T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
     createdById: 'admin-1',
-    updatedById: 'admin-2',
+    updatedById: 'admin-1',
   },
   {
     id: 'class-2',
-    name: 'Grade 11',
-    section: 'A',
-    grade: 11,
-    capacity: 35,
-    roomId: 'room-102',
+    name: 'Class 1B',
+    section: 'B',
+    grade: 1,
+    capacity: 30,
+    currentEnrollment: 28,
+    roomId: 'room-2',
+    classTeacherId: 'teacher-2',
+    shift: 'morning' as const,
     createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-02T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
     createdById: 'admin-1',
-    updatedById: 'admin-2',
+    updatedById: 'admin-1',
   },
 ];

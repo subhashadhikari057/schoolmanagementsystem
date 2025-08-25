@@ -158,10 +158,9 @@ export default function EditEventModal({
 
       // Add type-specific fields
       if (form.type === 'holiday') {
-        updateData.holidayType =
-          form.holidayType && form.holidayType !== ''
-            ? form.holidayType
-            : undefined;
+        updateData.holidayType = form.holidayType
+          ? form.holidayType
+          : undefined;
         // Remove time fields for holidays
         updateData.startTime = undefined;
         updateData.endTime = undefined;
@@ -169,8 +168,7 @@ export default function EditEventModal({
         updateData.examType = undefined;
         updateData.examDetails = undefined;
       } else if (form.type === 'exam') {
-        updateData.examType =
-          form.examType && form.examType !== '' ? form.examType : undefined;
+        updateData.examType = form.examType ? form.examType : undefined;
         updateData.examDetails = form.examDetails || undefined;
         updateData.startTime = form.startTime || undefined;
         updateData.endTime = form.endTime || undefined;
@@ -758,9 +756,8 @@ export default function EditEventModal({
         <div className='px-6 py-4 border-t bg-gray-50 flex justify-end gap-3'>
           <Button
             onClick={handleClose}
-            variant='secondary'
             disabled={isLoading}
-            className='px-6'
+            className='px-6 bg-gray-200 text-gray-700 hover:bg-gray-300'
           >
             Cancel
           </Button>
@@ -770,9 +767,8 @@ export default function EditEventModal({
               isLoading ||
               !form.name ||
               !form.date ||
-              (form.type === 'holiday' &&
-                (!form.holidayType || form.holidayType === '')) ||
-              (form.type === 'exam' && (!form.examType || form.examType === ''))
+              (form.type === 'holiday' && !form.holidayType) ||
+              (form.type === 'exam' && !form.examType)
             }
             className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
               config.color === 'red'

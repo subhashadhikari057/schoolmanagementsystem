@@ -50,7 +50,6 @@ export default function AttendanceOverview() {
           margin={{ top: 20, right: 0, left: 0, bottom: 5 }}
           barCategoryGap='20%'
         >
-          {/* @ts-expect-error - Recharts component type issue */}
           <XAxis
             dataKey='day'
             axisLine={false}
@@ -59,7 +58,6 @@ export default function AttendanceOverview() {
             interval={0}
           />
           <Tooltip content={<CustomTooltip />} />
-          {/* @ts-expect-error - Recharts component type issue */}
           <Bar
             radius={[3, 3, 0, 0]}
             dataKey='students'
@@ -67,7 +65,6 @@ export default function AttendanceOverview() {
             fill='#3b82f6'
             maxBarSize={35}
           />
-          {/* @ts-expect-error - Recharts component type issue */}
           <Bar
             radius={[3, 3, 0, 0]}
             dataKey='teachers'

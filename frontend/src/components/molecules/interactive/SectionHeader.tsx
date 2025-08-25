@@ -62,7 +62,6 @@ export default function SectionHeader({
                         }`
                       }
                     >
-                      {/* @ts-expect-error - Headless UI compatibility */}
                       {({ selected }) => (
                         <>
                           <span

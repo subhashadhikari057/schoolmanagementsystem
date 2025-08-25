@@ -1361,7 +1361,7 @@ const TeacherComplaintDetailModal: React.FC<
   ) : null;
 };
 
-export const ComplaintsAndLeavePage = () => {
+const ComplaintsAndLeavePage = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [leaveRequests, setLeaveRequests] = useState(mockLeaveRequests);

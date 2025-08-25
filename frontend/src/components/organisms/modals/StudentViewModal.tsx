@@ -560,7 +560,7 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
                             <span className='text-gray-600 text-sm'>
                               ({guardian.relation})
                             </span>
-                            {guardian.hasUserAccount && (
+                            {(guardian as any).hasUserAccount && (
                               <span className='bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs ml-2'>
                                 Has Login Account
                               </span>

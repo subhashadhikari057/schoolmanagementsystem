@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { StudentService } from '@/api/services/student.service';
 import { Loader2 } from 'lucide-react';
@@ -65,14 +64,12 @@ export const StudentSelectionModal: React.FC<StudentSelectionModalProps> = ({
       setLoading(true);
       const response = await studentService.getAllStudents({
         page,
-        pageSize: 20,
+        limit: 20,
         search: searchTerm || undefined,
-        orderBy: 'rollNumber',
-        orderDirection: 'asc',
       });
 
-      setStudents(response.data);
-      setTotalPages(response.totalPages);
+      setStudents(response.data?.data || []);
+      setTotalPages(Math.ceil((response.data?.total || 0) / 20));
     } catch (error) {
       console.error('Failed to fetch students:', error);
     } finally {
@@ -178,9 +175,11 @@ export const StudentSelectionModal: React.FC<StudentSelectionModalProps> = ({
                     }`}
                     onClick={() => handleSelectStudent(student.id)}
                   >
-                    <Checkbox
+                    <input
+                      type='checkbox'
                       checked={selectedIds.has(student.id)}
                       onChange={() => handleSelectStudent(student.id)}
+                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                     />
                     <div className='flex-1 min-w-0'>
                       <div className='flex items-center gap-2'>

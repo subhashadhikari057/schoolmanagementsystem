@@ -53,14 +53,11 @@ export default function FeeCollectionChart() {
       <ChartHeader title='Fee Collection' toggleLabel='Half-year' />
       <ResponsiveContainer width='100%' height={240}>
         <AreaChart data={data}>
-          {/* @ts-expect-error - Recharts component type issue */}
           <XAxis dataKey='month' />
-          {/* @ts-expect-error - Recharts component type issue */}
           <YAxis />
           <Tooltip content={<CustomTooltip />} />
 
           {/* PENDING AREA (Bottom) */}
-          {/* @ts-expect-error - Recharts component type issue */}
           <Area
             type='linear'
             dataKey='pending'
@@ -71,7 +68,6 @@ export default function FeeCollectionChart() {
           />
 
           {/* COLLECTED AREA (Top) */}
-          {/* @ts-expect-error - Recharts component type issue */}
           <Area
             type='linear'
             dataKey='collected'

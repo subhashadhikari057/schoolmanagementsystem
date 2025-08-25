@@ -26,12 +26,12 @@ import StaffEditModal from '@/components/organisms/modals/StaffEditModal';
 import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
 
 // Minimal mock data for dev mode
-const mockStaff = [
+const mockStaff: Staff[] = [
   {
     id: 1,
     name: 'John Smith',
     department: 'Administration',
-    designation: 'Office Manager',
+    position: 'Office Manager',
     status: 'Active' as const,
     email: 'john.smith@example.com',
     phone: '+1234567890',
@@ -87,7 +87,7 @@ const StaffPage = () => {
     const onLeave = staffData.filter(s => s.status === 'On Leave').length;
     const newHires = staffData.filter(s => {
       if (!s.joinedDate) return false;
-      const joinDate = new Date(s.joinedDate);
+      const joinDate = new Date(s.joinedDate as string);
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       return joinDate >= threeMonthsAgo;
@@ -160,32 +160,36 @@ const StaffPage = () => {
       const response = await staffService.getAllStaff();
       if (response.success && response.data) {
         const mappedStaff: Staff[] = response.data.map(
-          (staff, index) =>
+          (staff: Record<string, unknown>, index: number): Staff =>
             ({
-              id: staff.id || index + 1,
-              name: staff.fullName,
-              department: staff.department || 'General',
-              designation: staff.designation || 'Staff',
+              id: (staff.id as number) || index + 1,
+              name: staff.fullName as string,
+              department: (staff.department as string) || 'General',
+              position:
+                (staff.position as string) ||
+                (staff.designation as string) ||
+                'Staff',
               status:
-                staff.employmentStatus === 'active'
+                (staff.employmentStatus as string) === 'active'
                   ? 'Active'
-                  : staff.employmentStatus === 'on_leave'
+                  : (staff.employmentStatus as string) === 'on_leave'
                     ? 'On Leave'
                     : 'Inactive',
-              email: staff.email,
-              phone: staff.phone,
-              employeeId: staff.employeeId || '',
+              email: staff.email as string,
+              phone: staff.phone as string,
+              employeeId: (staff.employeeId as string) || '',
               joinedDate: staff.employmentDate
-                ? staff.employmentDate.split('T')[0]
+                ? (staff.employmentDate as string).split('T')[0]
                 : undefined,
-              experienceYears: staff.experienceYears,
-              qualification: staff.qualification,
-              address: staff.address,
-              basicSalary: staff.basicSalary,
-              allowances: staff.allowances,
-              totalSalary: staff.totalSalary,
-              hasLoginAccount: !!staff.userId,
-              // Add more fields as needed for filtering
+              salary: staff.totalSalary as number,
+              lastActivity: staff.lastActivity as string,
+              avatar: staff.avatar as string,
+              staffId: staff.staffId as string,
+              isOnline:
+                (staff.employmentStatus as string) === 'active' &&
+                staff.lastActivity &&
+                new Date(staff.lastActivity as string) >
+                  new Date(Date.now() - 10 * 60 * 1000),
             }) as Staff,
         );
         setStaff(mappedStaff);
@@ -225,7 +229,7 @@ const StaffPage = () => {
           staff.name?.toLowerCase().includes(searchTerm) ||
           staff.email?.toLowerCase().includes(searchTerm) ||
           staff.department?.toLowerCase().includes(searchTerm) ||
-          staff.designation?.toLowerCase().includes(searchTerm) ||
+          staff.position?.toLowerCase().includes(searchTerm) ||
           // Add search by employee ID - use non-strict comparison to handle both string and number types
           (staff.employeeId &&
             staff.employeeId.toString().toLowerCase().includes(searchTerm)),
@@ -235,15 +239,13 @@ const StaffPage = () => {
     // Apply designation filter
     if (filters.designation) {
       result = result.filter(staff => {
-        if (!staff.designation) return false;
-        // Check if the designation value matches the option value or label
+        if (!staff.position) return false;
+        // Check if the position value matches the option value or label
         return designationOptions.some(
           option =>
             (option.value === filters.designation &&
-              staff.designation?.toLowerCase() ===
-                option.label.toLowerCase()) ||
-            staff.designation?.toLowerCase() ===
-              filters.designation.toLowerCase(),
+              staff.position?.toLowerCase() === option.label.toLowerCase()) ||
+            staff.position?.toLowerCase() === filters.designation.toLowerCase(),
         );
       });
     }
@@ -276,17 +278,17 @@ const StaffPage = () => {
   };
 
   // Handle staff actions
-  const handleStaffAction = async (action: string, staff: Staff) => {
+  const handleStaffAction = async (action: string, staffMember: Staff) => {
     // View action
     if (action === 'view') {
-      setSelectedStaff(staff);
+      setSelectedStaff(staffMember);
       setViewModalOpen(true);
       return;
     }
 
     // Edit action
     if (action === 'edit') {
-      setSelectedStaff(staff);
+      setSelectedStaff(staffMember);
       setEditModalOpen(true);
       return;
     }
@@ -294,11 +296,12 @@ const StaffPage = () => {
     // Toggle status action
     if (action === 'toggle-status') {
       try {
-        const newStatus = staff.status === 'Active' ? 'Inactive' : 'Active';
+        const newStatus =
+          staffMember.status === 'Active' ? 'Inactive' : 'Active';
 
         // Optimistically update UI first for better UX
         const updatedStaff = {
-          ...staff,
+          ...staffMember,
           status: newStatus as
             | 'Active'
             | 'Inactive'
@@ -306,31 +309,31 @@ const StaffPage = () => {
             | 'Suspended'
             | 'Transferred',
         };
-        const updatedStaffList = staff.map(s =>
-          s.id === staff.id ? updatedStaff : s,
+        const updatedStaffList = staff.map((s: Staff) =>
+          s.id === staffMember.id ? updatedStaff : s,
         );
         setStaff(updatedStaffList);
 
         // Also update filtered staff to reflect change immediately
-        const updatedFilteredStaff = filteredStaff.map(s =>
-          s.id === staff.id ? updatedStaff : s,
+        const updatedFilteredStaff = filteredStaff.map((s: Staff) =>
+          s.id === staffMember.id ? updatedStaff : s,
         );
         setFilteredStaff(updatedFilteredStaff);
 
         // Call API to update status
         const response = await staffService.updateEmploymentStatus(
-          String(staff.id),
+          String(staffMember.id),
           newStatus.toLowerCase(),
         );
 
         if (response.success) {
           toast.success(`Staff ${newStatus.toLowerCase()}`, {
-            description: `${staff.name} has been ${newStatus.toLowerCase()}.`,
+            description: `${staffMember.name} has been ${newStatus.toLowerCase()}.`,
           });
         } else {
           // Revert changes if API call fails
-          const revertedStaffList = staff.map(s =>
-            s.id === staff.id ? staff : s,
+          const revertedStaffList = staff.map((s: Staff) =>
+            s.id === staffMember.id ? staffMember : s,
           );
           setStaff(revertedStaffList);
           applyFilters(filters); // Re-apply filters
@@ -349,42 +352,35 @@ const StaffPage = () => {
 
     // Delete action
     if (action === 'delete') {
-      setSelectedStaff(staff);
+      setSelectedStaff(staffMember);
       setDeleteModalOpen(true);
       return;
     }
 
     // Default case
-    console.log('Unhandled action:', action, 'for staff:', staff.id);
+    console.log('Unhandled action:', action, 'for staff:', staffMember.id);
   };
 
   // Handle successful edit
-  const handleEditSuccess = (updatedStaff: any) => {
+  const handleEditSuccess = (updatedStaff: Record<string, unknown>) => {
     // Update the staff in the local state
-    const updatedStaffList = staff.map(s => {
+    const updatedStaffList = staff.map((s: Staff) => {
       if (s.id === updatedStaff.id) {
         // Create updated staff object with new data
         return {
           ...s,
           name: `${updatedStaff.firstName} ${updatedStaff.middleName ? updatedStaff.middleName + ' ' : ''}${updatedStaff.lastName}`,
-          email: updatedStaff.email,
-          phone: updatedStaff.phone,
-          designation: updatedStaff.designation,
-          department: updatedStaff.department,
-          qualification: updatedStaff.qualification,
-          experienceYears: updatedStaff.experienceYears,
-          joinedDate: updatedStaff.joinedDate,
-          status: updatedStaff.status,
-          // Add address fields for display
-          street: updatedStaff.street,
-          city: updatedStaff.city,
-          state: updatedStaff.state,
-          pinCode: updatedStaff.pinCode,
-          gender: updatedStaff.gender,
-          bloodGroup: updatedStaff.bloodGroup,
-          maritalStatus: updatedStaff.maritalStatus,
-          hasLoginAccount: updatedStaff.hasLoginAccount,
-        };
+          email: updatedStaff.email as string,
+          phone: updatedStaff.phone as string,
+          position:
+            (updatedStaff.designation as string) ||
+            (updatedStaff.position as string),
+          department: updatedStaff.department as string,
+          // Additional fields for compatibility
+          salary: updatedStaff.totalSalary as number,
+          employeeId: updatedStaff.employeeId as string,
+          isOnline: false,
+        } as Staff;
       }
       return s;
     });
@@ -392,30 +388,23 @@ const StaffPage = () => {
     setStaff(updatedStaffList);
 
     // Also update filtered staff
-    const updatedFilteredStaffList = filteredStaff.map(s => {
+    const updatedFilteredStaffList = filteredStaff.map((s: Staff) => {
       if (s.id === updatedStaff.id) {
         // Create updated staff object with new data
         return {
           ...s,
           name: `${updatedStaff.firstName} ${updatedStaff.middleName ? updatedStaff.middleName + ' ' : ''}${updatedStaff.lastName}`,
-          email: updatedStaff.email,
-          phone: updatedStaff.phone,
-          designation: updatedStaff.designation,
-          department: updatedStaff.department,
-          qualification: updatedStaff.qualification,
-          experienceYears: updatedStaff.experienceYears,
-          joinedDate: updatedStaff.joinedDate,
-          status: updatedStaff.status,
-          // Add address fields for display
-          street: updatedStaff.street,
-          city: updatedStaff.city,
-          state: updatedStaff.state,
-          pinCode: updatedStaff.pinCode,
-          gender: updatedStaff.gender,
-          bloodGroup: updatedStaff.bloodGroup,
-          maritalStatus: updatedStaff.maritalStatus,
-          hasLoginAccount: updatedStaff.hasLoginAccount,
-        };
+          email: updatedStaff.email as string,
+          phone: updatedStaff.phone as string,
+          position:
+            (updatedStaff.designation as string) ||
+            (updatedStaff.position as string),
+          department: updatedStaff.department as string,
+          // Additional fields for compatibility
+          salary: updatedStaff.totalSalary as number,
+          employeeId: updatedStaff.employeeId as string,
+          isOnline: false,
+        } as Staff;
       }
       return s;
     });
