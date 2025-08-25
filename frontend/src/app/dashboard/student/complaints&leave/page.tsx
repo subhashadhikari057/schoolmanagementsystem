@@ -32,6 +32,7 @@ import type {
 } from '@/api/services/complaint.service';
 import { toast } from 'sonner';
 import LeaveRequestModal from '@/components/organisms/modals/LeaveRequestModal';
+import TeacherComplaintModal from '@/components/organisms/modals/TeacherComplaintModal';
 import LeaveRequestDetailModal from '@/components/organisms/modals/LeaveRequestDetailModal';
 import { useLeaveRequests } from '@/hooks/useLeaveRequests';
 
@@ -1871,11 +1872,20 @@ export const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6'>
-      <ComplaintModal
-        open={complaintModalOpen}
-        onClose={() => setComplaintModalOpen(false)}
-        onSubmit={handleSubmitComplaint}
-      />
+      {/* Conditionally render the appropriate complaint modal based on user role */}
+      {userRole === 'teacher' ? (
+        <TeacherComplaintModal
+          open={complaintModalOpen}
+          onClose={() => setComplaintModalOpen(false)}
+          onSubmit={handleSubmitComplaint}
+        />
+      ) : (
+        <ComplaintModal
+          open={complaintModalOpen}
+          onClose={() => setComplaintModalOpen(false)}
+          onSubmit={handleSubmitComplaint}
+        />
+      )}
 
       <LeaveRequestModal
         open={leaveRequestModalOpen}
