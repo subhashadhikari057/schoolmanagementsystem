@@ -7,6 +7,7 @@ import {
   IsInt,
   Min,
   Max,
+  IsArray,
 } from 'class-validator';
 import { TeacherLeaveRequestType } from '../enums/teacher-leave-request-type.enum';
 
@@ -32,4 +33,8 @@ export class CreateTeacherLeaveRequestDto {
   @Min(1)
   @Max(365)
   days: number;
+
+  @IsArray()
+  @IsOptional()
+  attachments?: Express.Multer.File[];
 }

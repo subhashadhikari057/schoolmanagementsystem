@@ -293,14 +293,30 @@ export class LeaveRequestController {
 
   @Post('teacher')
   @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FilesInterceptor(
+      'attachments',
+      10,
+      createMulterConfig(
+        UPLOAD_PATHS.TEACHER_LEAVE_REQUEST_ATTACHMENTS,
+        'document',
+      ),
+    ),
+  )
   async createTeacherLeaveRequest(
     @Body() createTeacherLeaveRequestDto: CreateTeacherLeaveRequestDto,
+    @UploadedFiles() files: Express.Multer.File[],
     @Req() req: any,
   ) {
     const user = req.user;
     const userRole = Array.isArray(user.roles)
       ? user.roles[0]
       : user.role || user.roles;
+
+    // Add uploaded files to the DTO
+    if (files && files.length > 0) {
+      createTeacherLeaveRequestDto.attachments = files;
+    }
 
     const teacherLeaveRequest =
       await this.leaveRequestService.createTeacherLeaveRequest(
@@ -400,5 +416,88 @@ export class LeaveRequestController {
         req.headers['user-agent'],
       );
     return { message: 'Teacher leave request cancelled', teacherLeaveRequest };
+  }
+
+  // =====================
+  // Teacher Leave Request Attachment Endpoints
+  // =====================
+
+  @Post('teacher/:id/attachments')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FilesInterceptor(
+      'attachments',
+      10,
+      createMulterConfig(
+        UPLOAD_PATHS.TEACHER_LEAVE_REQUEST_ATTACHMENTS,
+        'document',
+      ),
+    ),
+  )
+  async uploadTeacherLeaveRequestAttachments(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const result =
+      await this.attachmentService.uploadTeacherLeaveRequestAttachments(
+        id,
+        files,
+        user.id,
+        userRole,
+        req.ip,
+        req.headers['user-agent'],
+      );
+
+    return result;
+  }
+
+  @Get('teacher/:id/attachments')
+  @HttpCode(HttpStatus.OK)
+  async getTeacherLeaveRequestAttachments(
+    @Param('id') id: string,
+    @Req() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const attachments =
+      await this.attachmentService.getTeacherLeaveRequestAttachments(
+        id,
+        user.id,
+        userRole,
+      );
+
+    return { attachments };
+  }
+
+  @Delete('teacher/attachments/:attachmentId')
+  @HttpCode(HttpStatus.OK)
+  async deleteTeacherLeaveRequestAttachment(
+    @Param('attachmentId') attachmentId: string,
+    @Req() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const result =
+      await this.attachmentService.deleteTeacherLeaveRequestAttachment(
+        attachmentId,
+        user.id,
+        userRole,
+        req.ip,
+        req.headers['user-agent'],
+      );
+
+    return result;
   }
 }

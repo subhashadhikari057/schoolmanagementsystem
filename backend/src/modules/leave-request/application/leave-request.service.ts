@@ -1274,6 +1274,39 @@ export class LeaveRequestService {
       },
     });
 
+    // Process attachments if any
+    if (
+      createTeacherLeaveRequestDto.attachments &&
+      createTeacherLeaveRequestDto.attachments.length > 0
+    ) {
+      try {
+        // Import the attachment service dynamically to avoid circular dependencies
+        const { LeaveRequestAttachmentService } = await import(
+          './leave-request-attachment.service'
+        );
+        const attachmentService = new LeaveRequestAttachmentService(
+          this.prisma,
+          this.auditService,
+        );
+
+        await attachmentService.uploadTeacherLeaveRequestAttachments(
+          teacherLeaveRequest.id,
+          createTeacherLeaveRequestDto.attachments,
+          userId,
+          userRole,
+          ipAddress,
+          userAgent,
+        );
+      } catch (attachmentError) {
+        console.error(
+          'Error uploading teacher leave request attachments:',
+          attachmentError,
+        );
+        // Don't fail the leave request creation if attachments fail
+        // The leave request is still created successfully
+      }
+    }
+
     // Log the action
     await this.auditService.log({
       userId,
