@@ -44,9 +44,9 @@ export const UnifiedFeeStructureDrawer: React.FC<UnifiedDrawerProps> = ({
     setLoading(true);
     try {
       const list = await feeService.listStructures({ page: 1, pageSize: 200 });
-      const found = list.data.find(s => s.id === structureId) as
-        | StructureLite
-        | undefined;
+      const found = list.data?.data?.find(
+        (s: { id: string }) => s.id === structureId,
+      ) as StructureLite | undefined;
       setDetail(found || null);
       const hist = await feeService.history(structureId);
       setHistory(hist);

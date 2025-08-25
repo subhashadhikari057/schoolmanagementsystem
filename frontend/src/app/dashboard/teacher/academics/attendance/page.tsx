@@ -110,11 +110,11 @@ export default function TeacherAttendancePage() {
           // @ts-ignore - Check nested data.records
           if (
             data.data &&
-            data.data.records &&
-            Array.isArray(data.data.records)
+            (data as any).data.records &&
+            Array.isArray((data as any).data.records)
           ) {
             // @ts-ignore
-            records = data.data.records;
+            records = (data as any).data.records;
             // @ts-ignore - Check if data is direct array
           } else if (Array.isArray(data.data)) {
             // @ts-ignore
@@ -312,11 +312,11 @@ export default function TeacherAttendancePage() {
           // @ts-ignore - Check nested data.records
           if (
             data.data &&
-            data.data.records &&
-            Array.isArray(data.data.records)
+            (data as any).data.records &&
+            Array.isArray((data as any).data.records)
           ) {
             // @ts-ignore
-            records = data.data.records;
+            records = (data as any).data.records;
             // @ts-ignore - Check if data is direct array
           } else if (Array.isArray(data.data)) {
             // @ts-ignore

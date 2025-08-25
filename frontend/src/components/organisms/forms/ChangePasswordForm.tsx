@@ -7,7 +7,7 @@ import {
   ChangePasswordFormData,
 } from '@/lib/validations/auth';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
-import { Button } from '@/components/atoms/form-controls/Button';
+import Button from '@/components/atoms/form-controls/Button';
 import { useAuth } from '@/hooks/useAuth';
 
 export function ChangePasswordForm() {
@@ -35,25 +35,25 @@ export function ChangePasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
       <LabeledInputField
-        {...register('currentPassword')}
+        {...register('current_password')}
         label='Current Password'
         type='password'
         placeholder='Enter your current password'
-        error={errors.currentPassword?.message}
+        error={errors.current_password?.message}
       />
       <LabeledInputField
-        {...register('newPassword')}
+        {...register('new_password')}
         label='New Password'
         type='password'
         placeholder='Enter your new password'
-        error={errors.newPassword?.message}
+        error={errors.new_password?.message}
       />
       <LabeledInputField
-        {...register('confirmPassword')}
+        {...register('confirm_password')}
         label='Confirm New Password'
         type='password'
         placeholder='Confirm your new password'
-        error={errors.confirmPassword?.message}
+        error={errors.confirm_password?.message}
       />
       <Button type='submit' disabled={isSubmitting}>
         {isSubmitting ? 'Changing...' : 'Change Password'}

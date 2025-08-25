@@ -10,21 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -51,6 +36,16 @@ import {
 } from '@/api/services/fee.service';
 import { StudentSelectionModal, Student } from './StudentSelectionModal';
 import { toast } from 'sonner';
+import GenericTable, { TableColumn } from '@/components/templates/GenericTable';
+
+// Extended interfaces for GenericTable compatibility
+interface ExtendedScholarshipDefinition extends ScholarshipDefinition {
+  [key: string]: unknown;
+}
+
+interface ExtendedChargeDefinition extends ChargeDefinition {
+  [key: string]: unknown;
+}
 
 interface CreateScholarshipForm {
   name: string;
@@ -240,6 +235,122 @@ export const ScholarshipsCharges: React.FC = () => {
     return valueType === 'PERCENTAGE' ? `${numValue}%` : `$${numValue}`;
   };
 
+  // Scholarship table columns
+  const scholarshipColumns: TableColumn<ExtendedScholarshipDefinition>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      render: row => <div className='font-medium'>{row.name}</div>,
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      render: row => <Badge variant='secondary'>{row.type}</Badge>,
+    },
+    {
+      key: 'value',
+      header: 'Value',
+      render: row => formatValue(row.valueType, row.value),
+    },
+    {
+      key: 'isActive',
+      header: 'Status',
+      render: row => (
+        <Badge variant={row.isActive ? 'default' : 'secondary'}>
+          {row.isActive ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: row => (
+        <div className='flex items-center gap-2'>
+          <Button
+            size='sm'
+            variant='outline'
+            onClick={() => handleAssignToStudents(row, 'scholarship')}
+            className='flex items-center gap-1'
+          >
+            <Users className='h-3 w-3' />
+            Assign
+          </Button>
+          <Button size='sm' variant='ghost'>
+            <Edit className='h-3 w-3' />
+          </Button>
+          <Button size='sm' variant='ghost'>
+            <Trash2 className='h-3 w-3' />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  // Charge table columns
+  const chargeColumns: TableColumn<ExtendedChargeDefinition>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      render: row => <div className='font-medium'>{row.name}</div>,
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      render: row => <Badge variant='secondary'>{row.type}</Badge>,
+    },
+    {
+      key: 'value',
+      header: 'Value',
+      render: row => formatValue(row.valueType, row.value),
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      render: row => (row as any).category || 'General',
+    },
+    {
+      key: 'isRecurring',
+      header: 'Recurring',
+      render: row => (
+        <Badge variant={row.isRecurring ? 'default' : 'outline'}>
+          {row.isRecurring ? 'Yes' : 'No'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'isActive',
+      header: 'Status',
+      render: row => (
+        <Badge variant={row.isActive ? 'default' : 'secondary'}>
+          {row.isActive ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: row => (
+        <div className='flex items-center gap-2'>
+          <Button
+            size='sm'
+            variant='outline'
+            onClick={() => handleAssignToStudents(row, 'charge')}
+            className='flex items-center gap-1'
+          >
+            <Users className='h-3 w-3' />
+            Apply
+          </Button>
+          <Button size='sm' variant='ghost'>
+            <Edit className='h-3 w-3' />
+          </Button>
+          <Button size='sm' variant='ghost'>
+            <Trash2 className='h-3 w-3' />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className='space-y-6'>
       <div className='flex items-center justify-between'>
@@ -317,56 +428,47 @@ export const ScholarshipsCharges: React.FC = () => {
                       </div>
                       <div className='space-y-2'>
                         <Label htmlFor='scholarship-type'>Type</Label>
-                        <Select
+                        <select
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                           value={scholarshipForm.type}
-                          onValueChange={(
-                            value: 'MERIT' | 'NEED_BASED' | 'SPORTS' | 'OTHER',
-                          ) =>
+                          onChange={e =>
                             setScholarshipForm({
                               ...scholarshipForm,
-                              type: value,
+                              type: e.target.value as
+                                | 'MERIT'
+                                | 'NEED_BASED'
+                                | 'SPORTS'
+                                | 'OTHER',
                             })
                           }
                         >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value='MERIT'>Merit Based</SelectItem>
-                            <SelectItem value='NEED_BASED'>
-                              Need Based
-                            </SelectItem>
-                            <SelectItem value='SPORTS'>Sports</SelectItem>
-                            <SelectItem value='OTHER'>Other</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <option value='MERIT'>Merit Based</option>
+                          <option value='NEED_BASED'>Need Based</option>
+                          <option value='SPORTS'>Sports</option>
+                          <option value='OTHER'>Other</option>
+                        </select>
                       </div>
                       <div className='grid grid-cols-2 gap-4'>
                         <div className='space-y-2'>
                           <Label htmlFor='scholarship-value-type'>
                             Value Type
                           </Label>
-                          <Select
+                          <select
+                            id='scholarship-value-type'
                             value={scholarshipForm.valueType}
-                            onValueChange={(value: 'PERCENTAGE' | 'FIXED') =>
+                            onChange={e =>
                               setScholarshipForm({
                                 ...scholarshipForm,
-                                valueType: value,
+                                valueType: e.target.value as
+                                  | 'PERCENTAGE'
+                                  | 'FIXED',
                               })
                             }
+                            className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
                           >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value='PERCENTAGE'>
-                                Percentage
-                              </SelectItem>
-                              <SelectItem value='FIXED'>
-                                Fixed Amount
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                            <option value='PERCENTAGE'>Percentage</option>
+                            <option value='FIXED'>Fixed Amount</option>
+                          </select>
                         </div>
                         <div className='space-y-2'>
                           <Label htmlFor='scholarship-value'>Value</Label>
@@ -423,74 +525,11 @@ export const ScholarshipsCharges: React.FC = () => {
                   </div>
                 </div>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Value</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredScholarships.map(scholarship => (
-                      <TableRow key={scholarship.id}>
-                        <TableCell className='font-medium'>
-                          {scholarship.name}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant='secondary'>{scholarship.type}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {formatValue(
-                            scholarship.valueType,
-                            scholarship.value,
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              scholarship.isActive ? 'default' : 'secondary'
-                            }
-                          >
-                            {scholarship.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className='flex items-center gap-2'>
-                            <Button
-                              size='sm'
-                              variant='outline'
-                              onClick={() =>
-                                handleAssignToStudents(
-                                  scholarship,
-                                  'scholarship',
-                                )
-                              }
-                              className='flex items-center gap-1'
-                            >
-                              <Users className='h-3 w-3' />
-                              Assign
-                            </Button>
-                            <Button size='sm' variant='ghost'>
-                              <Edit className='h-3 w-3' />
-                            </Button>
-                            <Button size='sm' variant='ghost'>
-                              <Trash2 className='h-3 w-3' />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                {filteredScholarships.length === 0 && (
-                  <div className='text-center py-8 text-muted-foreground'>
-                    No scholarships found
-                  </div>
-                )}
+                <GenericTable<ExtendedScholarshipDefinition>
+                  data={filteredScholarships as ExtendedScholarshipDefinition[]}
+                  columns={scholarshipColumns}
+                  emptyMessage='No scholarships found'
+                />
               </div>
             </CardContent>
           </Card>
@@ -545,44 +584,46 @@ export const ScholarshipsCharges: React.FC = () => {
                       </div>
                       <div className='space-y-2'>
                         <Label htmlFor='charge-type'>Type</Label>
-                        <Select
+                        <select
+                          id='charge-type'
                           value={chargeForm.type}
-                          onValueChange={(
-                            value: 'FINE' | 'EQUIPMENT' | 'TRANSPORT' | 'OTHER',
-                          ) => setChargeForm({ ...chargeForm, type: value })}
+                          onChange={e =>
+                            setChargeForm({
+                              ...chargeForm,
+                              type: e.target.value as
+                                | 'FINE'
+                                | 'EQUIPMENT'
+                                | 'TRANSPORT'
+                                | 'OTHER',
+                            })
+                          }
+                          className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
                         >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value='FINE'>Fine</SelectItem>
-                            <SelectItem value='EQUIPMENT'>Equipment</SelectItem>
-                            <SelectItem value='TRANSPORT'>Transport</SelectItem>
-                            <SelectItem value='OTHER'>Other</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <option value='FINE'>Fine</option>
+                          <option value='EQUIPMENT'>Equipment</option>
+                          <option value='TRANSPORT'>Transport</option>
+                          <option value='OTHER'>Other</option>
+                        </select>
                       </div>
                       <div className='grid grid-cols-2 gap-4'>
                         <div className='space-y-2'>
                           <Label htmlFor='charge-value-type'>Value Type</Label>
-                          <Select
+                          <select
+                            id='charge-value-type'
                             value={chargeForm.valueType}
-                            onValueChange={(value: 'FIXED' | 'PERCENTAGE') =>
-                              setChargeForm({ ...chargeForm, valueType: value })
+                            onChange={e =>
+                              setChargeForm({
+                                ...chargeForm,
+                                valueType: e.target.value as
+                                  | 'FIXED'
+                                  | 'PERCENTAGE',
+                              })
                             }
+                            className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
                           >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value='FIXED'>
-                                Fixed Amount
-                              </SelectItem>
-                              <SelectItem value='PERCENTAGE'>
-                                Percentage
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                            <option value='FIXED'>Fixed Amount</option>
+                            <option value='PERCENTAGE'>Percentage</option>
+                          </select>
                         </div>
                         <div className='space-y-2'>
                           <Label htmlFor='charge-value'>Value</Label>
@@ -667,78 +708,11 @@ export const ScholarshipsCharges: React.FC = () => {
                   </div>
                 </div>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Value</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Recurring</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredCharges.map(charge => (
-                      <TableRow key={charge.id}>
-                        <TableCell className='font-medium'>
-                          {charge.name}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant='secondary'>{charge.type}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {formatValue(charge.valueType, charge.value)}
-                        </TableCell>
-                        <TableCell>
-                          {(charge as any).category || 'General'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={charge.isRecurring ? 'default' : 'outline'}
-                          >
-                            {charge.isRecurring ? 'Yes' : 'No'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={charge.isActive ? 'default' : 'secondary'}
-                          >
-                            {charge.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className='flex items-center gap-2'>
-                            <Button
-                              size='sm'
-                              variant='outline'
-                              onClick={() =>
-                                handleAssignToStudents(charge, 'charge')
-                              }
-                              className='flex items-center gap-1'
-                            >
-                              <Users className='h-3 w-3' />
-                              Apply
-                            </Button>
-                            <Button size='sm' variant='ghost'>
-                              <Edit className='h-3 w-3' />
-                            </Button>
-                            <Button size='sm' variant='ghost'>
-                              <Trash2 className='h-3 w-3' />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                {filteredCharges.length === 0 && (
-                  <div className='text-center py-8 text-muted-foreground'>
-                    No charges found
-                  </div>
-                )}
+                <GenericTable<ExtendedChargeDefinition>
+                  data={filteredCharges as ExtendedChargeDefinition[]}
+                  columns={chargeColumns}
+                  emptyMessage='No charges found'
+                />
               </div>
             </CardContent>
           </Card>

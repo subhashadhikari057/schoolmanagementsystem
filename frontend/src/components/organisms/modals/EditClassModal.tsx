@@ -34,7 +34,7 @@ export default function EditClassModal({
   useEffect(() => {
     if (classData) {
       setFormData({
-        name: classData.name,
+        name: classData.name || '',
       });
     }
   }, [classData]);
@@ -72,7 +72,7 @@ export default function EditClassModal({
     const isDuplicate = existingClasses.some(
       existingClass =>
         existingClass.id !== classData.id &&
-        existingClass.name.toLowerCase() === trimmedName.toLowerCase(),
+        existingClass.name?.toLowerCase() === trimmedName.toLowerCase(),
     );
 
     if (isDuplicate) {

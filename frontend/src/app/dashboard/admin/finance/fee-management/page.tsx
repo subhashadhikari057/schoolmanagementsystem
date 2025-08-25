@@ -125,7 +125,7 @@ const FeeManagementPage = () => {
       console.log('Fee structures API response:', result); // Temporary debug
 
       // Convert service response to expected format - result is Paginated<FeeStructure>
-      const rows: FeeStructureRow[] = (result?.data || []).map(
+      const rows: FeeStructureRow[] = (result?.data?.data || []).map(
         (s: FeeStructure) => mapApiToRow(s),
       );
       setApiData(rows);
