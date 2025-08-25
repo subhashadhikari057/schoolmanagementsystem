@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Button from '@/components/atoms/form-controls/Button';
@@ -16,7 +16,6 @@ import { classService, type ClassResponse } from '@/api/services/class.service';
 import { attendanceService } from '@/api/services/attendance.service';
 import {
   Search,
-  Filter,
   Plus,
   Download,
   ClipboardCheck,
@@ -30,6 +29,7 @@ import {
   BarChart3,
   FileText,
   Settings,
+  RefreshCw,
 } from 'lucide-react';
 
 interface ClassBlock {
@@ -90,11 +90,18 @@ export default function AttendancePage() {
       try {
         setIsLoading(true);
 
-        // Fetch classes and attendance stats in parallel
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().split('T')[0];
+        console.log('Fetching attendance stats for date:', today);
+
+        // Fetch classes and attendance stats in parallel with today's date
         const [classesResponse, attendanceStatsResponse] = await Promise.all([
           classService.getAllClasses(),
-          attendanceService.getClassWiseAttendanceStats(),
+          attendanceService.getClassWiseAttendanceStats(today), // Pass today's date
         ]);
+
+        console.log('Classes response:', classesResponse);
+        console.log('Attendance stats response:', attendanceStatsResponse);
 
         if (classesResponse.success && classesResponse.data) {
           // Create a map of attendance data for quick lookup
@@ -140,9 +147,55 @@ export default function AttendancePage() {
   }, [refreshKey]); // Re-fetch when refreshKey changes
 
   // Function to refresh attendance data
-  const refreshAttendanceData = () => {
-    setRefreshKey(prev => prev + 1);
-  };
+  const refreshAttendanceData = useCallback(
+    (force = false) => {
+      // Don't refresh if modal is open unless forced
+      if (!force && isMarkAttendanceOpen) {
+        console.log('Refresh blocked - attendance modal is open');
+        return;
+      }
+      console.log('Refreshing attendance data...');
+      setRefreshKey(prev => prev + 1);
+    },
+    [isMarkAttendanceOpen],
+  );
+
+  // Function to handle successful attendance marking
+  const handleAttendanceSuccess = useCallback(() => {
+    console.log('Attendance marked successfully - forcing refresh');
+    refreshAttendanceData(true); // Force refresh after successful attendance marking
+  }, [refreshAttendanceData]);
+
+  // Auto-refresh data every 30 seconds to keep it current (paused when modal is open)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Don't auto-refresh when attendance modal is open
+      if (!isMarkAttendanceOpen) {
+        console.log('Auto-refreshing attendance data...');
+        refreshAttendanceData();
+      } else {
+        console.log('Auto-refresh paused - attendance modal is open');
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [isMarkAttendanceOpen, refreshAttendanceData]); // Re-create interval when modal state or refresh function changes
+
+  // Refresh data when window gains focus (user returns to tab) - paused when modal is open
+  useEffect(() => {
+    const handleFocus = () => {
+      // Don't refresh on focus when attendance modal is open
+      if (!isMarkAttendanceOpen) {
+        console.log('Window focused - refreshing attendance data...');
+        refreshAttendanceData();
+      } else {
+        console.log('Focus refresh paused - attendance modal is open');
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isMarkAttendanceOpen, refreshAttendanceData]); // Re-create listener when modal state or refresh function changes
 
   // Calculate overall attendance rate
   const calculateOverallRate = () => {
@@ -337,10 +390,6 @@ export default function AttendancePage() {
               </Label>
             </div>
             <div className='flex items-center space-x-4'>
-              <WorkingDaysCounter
-                showLabel={true}
-                className='bg-blue-50 border border-blue-200'
-              />
               <div className='flex items-center space-x-2'>
                 <div className='relative'>
                   <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
@@ -351,10 +400,21 @@ export default function AttendancePage() {
                     onChange={e => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <Button className='border border-gray-300 bg-white text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50'>
-                  <Filter className='w-4 h-4 mr-2' />
-                  Filter
+                <Button
+                  onClick={refreshAttendanceData}
+                  className={`border border-gray-300 bg-white text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+                  />
+                  Refresh
                 </Button>
+                {isMarkAttendanceOpen && (
+                  <div className='flex items-center text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded'>
+                    <div className='w-2 h-2 bg-amber-500 rounded-full mr-1'></div>
+                    Auto-refresh paused
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -802,18 +862,23 @@ export default function AttendancePage() {
         {stats.map((stat, index) => (
           <Card
             key={index}
-            className='p-6 bg-white shadow-sm border-0 rounded-xl'
+            className={`p-6 bg-white shadow-sm border-0 rounded-xl transition-opacity ${isLoading ? 'opacity-75' : ''}`}
           >
             <div className='flex items-center justify-between'>
               <div className='flex-1'>
                 <Label className='text-sm font-medium text-gray-600 mb-1'>
                   {stat.title}
                 </Label>
-                <SectionTitle
-                  text={stat.value}
-                  level={3}
-                  className='text-2xl font-semibold text-gray-900'
-                />
+                <div className='flex items-center space-x-2'>
+                  <SectionTitle
+                    text={stat.value}
+                    level={3}
+                    className='text-2xl font-semibold text-gray-900'
+                  />
+                  {isLoading && (
+                    <div className='w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin'></div>
+                  )}
+                </div>
               </div>
               <div
                 className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}
@@ -840,7 +905,7 @@ export default function AttendancePage() {
       <MarkAttendanceModal
         isOpen={isMarkAttendanceOpen}
         onClose={() => setIsMarkAttendanceOpen(false)}
-        onSuccess={refreshAttendanceData}
+        onSuccess={handleAttendanceSuccess}
         selectedClass={
           selectedClass
             ? {

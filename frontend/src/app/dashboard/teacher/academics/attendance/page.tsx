@@ -1,62 +1,441 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
-import { Calendar, BarChart3, TrendingUp } from 'lucide-react';
-import AttendanceRecords from '@/components/organisms/attendance/AttendanceRecords';
-import QuickActions from '@/components/organisms/attendance/QuickActions';
+import Button from '@/components/atoms/form-controls/Button';
+import Input from '@/components/atoms/form-controls/Input';
+import { Card } from '@/components/ui/card';
+import {
+  Calendar,
+  ClipboardCheck,
+  Users,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  GraduationCap,
+  History,
+  Search,
+  CalendarDays,
+} from 'lucide-react';
+import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
+import { teacherService } from '@/api/services/teacher.service';
+import { attendanceService } from '@/api/services/attendance.service';
 
-export default function AttendancePage() {
-  // Mock attendance records data
-  const attendanceRecords = [
-    { id: '1', present: 20, total: 29, date: 'Today', isToday: true },
-    { id: '2', present: 18, total: 29, date: '6th April, 2025' },
-    { id: '3', present: 22, total: 29, date: '5th April, 2025' },
-    { id: '4', present: 19, total: 29, date: '4th April, 2025' },
-    { id: '5', present: 21, total: 29, date: '3rd April, 2025' },
-    { id: '6', present: 17, total: 29, date: '2nd April, 2025' },
-    { id: '7', present: 20, total: 29, date: '1st April, 2025' },
-    { id: '8', present: 23, total: 29, date: '31st March, 2025' },
-    { id: '9', present: 16, total: 29, date: '30th March, 2025' },
-    { id: '10', present: 19, total: 29, date: '29th March, 2025' },
-    { id: '11', present: 21, total: 29, date: '28th March, 2025' },
-    { id: '12', present: 18, total: 29, date: '27th March, 2025' },
-  ];
+interface AssignedClass {
+  id: string;
+  grade: number;
+  section: string;
+  currentEnrollment: number;
+  present?: number;
+  absent?: number;
+  attendanceMarked?: boolean;
+}
 
-  // Quick actions data
-  const quickActions = [
-    {
-      title: 'Take Attendance',
-      subtitle: "Mark today's attendance",
-      icon: Calendar,
-      iconColor: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-    },
-    {
-      title: 'Attendance Reports',
-      subtitle: 'View detailed reports',
-      icon: BarChart3,
-      iconColor: 'text-green-600',
-      bgColor: 'bg-green-50',
-    },
-    {
-      title: 'Student Analytics',
-      subtitle: 'Analyze attendance patterns',
-      icon: TrendingUp,
-      iconColor: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-    },
-  ];
+interface HistoryAttendanceRecord {
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
+}
 
-  // Get current date
+interface RawAttendanceRecord {
+  studentId?: string;
+  id?: string;
+  studentName?: string;
+  student?: {
+    id?: string;
+    name?: string;
+    rollNumber?: string;
+    user?: {
+      fullName?: string;
+    };
+  };
+  rollNumber?: string;
+  status: string;
+}
+
+export default function TeacherAttendancePage() {
+  const [assignedClass, setAssignedClass] = useState<AssignedClass | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isMarkAttendanceOpen, setIsMarkAttendanceOpen] = useState(false);
+  const [todayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isReadOnlyMode, setIsReadOnlyMode] = useState(false); // New state to track read-only mode
+  const [attendanceStats, setAttendanceStats] = useState<{
+    present: number;
+    absent: number;
+    total: number;
+    percentage: number;
+  } | null>(null);
+
+  // History-related state
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState<string>('');
+  const [historyAttendance, setHistoryAttendance] = useState<
+    HistoryAttendanceRecord[]
+  >([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // Check if attendance is already marked for today
+  const checkTodayAttendance = useCallback(
+    async (classId: string) => {
+      try {
+        console.log(
+          'Checking attendance for classId:',
+          classId,
+          'date:',
+          todayDate,
+        );
+        const attendanceData = await attendanceService.getClassAttendance(
+          classId,
+          todayDate,
+        );
+        console.log('Attendance API response:', attendanceData);
+
+        // Handle different response formats - could be direct array or wrapped in data property
+        let records = [];
+
+        // @ts-ignore - Handle dynamic API response formats
+        const data = attendanceData;
+
+        // @ts-ignore - Check for records property
+        if (data && data.records && Array.isArray(data.records)) {
+          // @ts-ignore
+          records = data.records;
+          // @ts-ignore - Check for data wrapper
+        } else if (data && typeof data === 'object' && 'data' in data) {
+          // @ts-ignore - Check nested data.records
+          if (
+            data.data &&
+            data.data.records &&
+            Array.isArray(data.data.records)
+          ) {
+            // @ts-ignore
+            records = data.data.records;
+            // @ts-ignore - Check if data is direct array
+          } else if (Array.isArray(data.data)) {
+            // @ts-ignore
+            records = data.data;
+          }
+        } else if (Array.isArray(data)) {
+          // Direct array format
+          records = data;
+        }
+
+        console.log('Processed attendance records:', records);
+
+        if (Array.isArray(records) && records.length > 0) {
+          // Check for any attendance records regardless of status
+          const present = records.filter(
+            (record: { status: string }) =>
+              record.status?.toUpperCase() === 'PRESENT',
+          ).length;
+          const absent = records.filter(
+            (record: { status: string }) =>
+              record.status?.toUpperCase() === 'ABSENT',
+          ).length;
+          const late = records.filter(
+            (record: { status: string }) =>
+              record.status?.toUpperCase() === 'LATE',
+          ).length;
+          const excused = records.filter(
+            (record: { status: string }) =>
+              record.status?.toUpperCase() === 'EXCUSED',
+          ).length;
+
+          const total = present + absent + late + excused;
+          const percentage = total > 0 ? (present / total) * 100 : 0;
+
+          console.log('Attendance counts:', {
+            present,
+            absent,
+            late,
+            excused,
+            total,
+          });
+
+          // If ANY attendance records exist for today, mark as already completed
+          if (total > 0) {
+            console.log(
+              'Setting attendance as marked - records found for today',
+            );
+            setAttendanceStats({ present, absent, total, percentage });
+            setAssignedClass(prev =>
+              prev ? { ...prev, attendanceMarked: true } : null,
+            );
+            setIsReadOnlyMode(true); // Enable read-only mode
+          } else {
+            console.log('No valid attendance records found');
+            setAttendanceStats(null);
+            setAssignedClass(prev =>
+              prev ? { ...prev, attendanceMarked: false } : null,
+            );
+            setIsReadOnlyMode(false); // Disable read-only mode
+          }
+        } else {
+          // No attendance records found for today
+          console.log('No attendance records found for today');
+          setAttendanceStats(null);
+          setAssignedClass(prev =>
+            prev ? { ...prev, attendanceMarked: false } : null,
+          );
+          setIsReadOnlyMode(false); // Disable read-only mode
+        }
+      } catch (err) {
+        console.error('Error checking today attendance:', err);
+        // On error, assume attendance is not marked to allow retry
+        setAttendanceStats(null);
+        setAssignedClass(prev =>
+          prev ? { ...prev, attendanceMarked: false } : null,
+        );
+        setIsReadOnlyMode(false); // Disable read-only mode on error
+      }
+    },
+    [todayDate],
+  );
+
+  // Fetch teacher's assigned class
+  useEffect(() => {
+    const fetchAssignedClass = async () => {
+      try {
+        setIsLoading(true);
+        const response = await teacherService.getMyClasses();
+        console.log('Teacher classes response:', response);
+
+        // Check if teacher is assigned as class teacher to any class
+        const classTeacherClass = response.data.find(
+          (c: {
+            class: {
+              id: string;
+              grade: number;
+              section: string;
+              currentEnrollment?: number;
+            };
+          }) => c.class,
+        );
+
+        console.log('Found class teacher class:', classTeacherClass);
+
+        if (!classTeacherClass) {
+          setError('You are not assigned as a class teacher to any class.');
+          return;
+        }
+
+        const classData = {
+          id: classTeacherClass.class.id,
+          grade: classTeacherClass.class.grade,
+          section: classTeacherClass.class.section,
+          currentEnrollment: classTeacherClass.class.currentEnrollment || 0,
+        };
+
+        console.log('Setting assigned class data:', classData);
+        setAssignedClass(classData);
+
+        // Check if attendance is already marked for today
+        await checkTodayAttendance(classData.id);
+      } catch (err) {
+        setError('Failed to fetch class information. Please try again.');
+        console.error('Error fetching assigned class:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAssignedClass();
+  }, [checkTodayAttendance]);
+
+  // Periodic attendance status check to prevent duplicate marking
+  useEffect(() => {
+    if (!assignedClass?.id) return;
+
+    const intervalId = setInterval(async () => {
+      console.log('Periodic attendance check...');
+      await checkTodayAttendance(assignedClass.id);
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [assignedClass?.id, checkTodayAttendance]);
+
+  // Check attendance status when window gains focus
+  useEffect(() => {
+    if (!assignedClass?.id) return;
+
+    const handleFocus = async () => {
+      console.log('Window focused - checking attendance status...');
+      await checkTodayAttendance(assignedClass.id);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [assignedClass?.id, checkTodayAttendance]);
+
+  // Function to fetch attendance history for a specific date
+  const fetchAttendanceHistory = useCallback(
+    async (date: string) => {
+      if (!assignedClass?.id || !date) {
+        console.log('Missing classId or date for history fetch:', {
+          classId: assignedClass?.id,
+          date,
+        });
+        return;
+      }
+
+      try {
+        setIsLoadingHistory(true);
+        setHistoryError(null);
+
+        console.log('Fetching attendance history for:', {
+          classId: assignedClass.id,
+          date,
+        });
+        const attendanceData = await attendanceService.getClassAttendance(
+          assignedClass.id,
+          date,
+        );
+        console.log('Raw attendance history response:', attendanceData);
+
+        // Handle the backend response format - attendance records are nested in attendanceData.records
+        let records: RawAttendanceRecord[] = [];
+
+        // @ts-ignore - Handle dynamic API response formats
+        const data = attendanceData;
+
+        // @ts-ignore - Check for records property
+        if (data && data.records && Array.isArray(data.records)) {
+          // @ts-ignore
+          records = data.records;
+          // @ts-ignore - Check for data wrapper
+        } else if (data && typeof data === 'object' && 'data' in data) {
+          // @ts-ignore - Check nested data.records
+          if (
+            data.data &&
+            data.data.records &&
+            Array.isArray(data.data.records)
+          ) {
+            // @ts-ignore
+            records = data.data.records;
+            // @ts-ignore - Check if data is direct array
+          } else if (Array.isArray(data.data)) {
+            // @ts-ignore
+            records = data.data;
+          }
+        } else if (Array.isArray(data)) {
+          // Direct array format
+          records = data;
+        }
+
+        console.log('Processed attendance history records:', records);
+
+        if (Array.isArray(records) && records.length > 0) {
+          // Transform the records to match our interface
+          const formattedRecords: HistoryAttendanceRecord[] = records.map(
+            (record: RawAttendanceRecord) => ({
+              studentId:
+                record.studentId ||
+                record.id ||
+                record.student?.id ||
+                'unknown',
+              studentName:
+                record.studentName ||
+                record.student?.user?.fullName ||
+                record.student?.name ||
+                `Student ${record.studentId || record.id}`,
+              rollNumber:
+                record.rollNumber || record.student?.rollNumber || 'N/A',
+              status: record.status?.toUpperCase() as
+                | 'PRESENT'
+                | 'ABSENT'
+                | 'LATE'
+                | 'EXCUSED',
+            }),
+          );
+
+          console.log(
+            'Formatted attendance history records:',
+            formattedRecords,
+          );
+          setHistoryAttendance(formattedRecords);
+        } else {
+          console.log('No attendance records found for date:', date);
+          setHistoryAttendance([]);
+        }
+      } catch (err) {
+        console.error('Error fetching attendance history:', err);
+        setHistoryError('Failed to fetch attendance history for this date.');
+        setHistoryAttendance([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    },
+    [assignedClass?.id],
+  );
+
+  // Handle date selection for history
+  const handleHistoryDateChange = (date: string) => {
+    setSelectedHistoryDate(date);
+    if (date) {
+      fetchAttendanceHistory(date);
+    } else {
+      setHistoryAttendance([]);
+      setHistoryError(null);
+    }
+  };
+
+  const handleMarkAttendance = async () => {
+    if (!assignedClass) {
+      return;
+    }
+
+    // Check read-only mode first
+    if (isReadOnlyMode) {
+      alert(
+        'Attendance has already been marked for today. The system is now in read-only mode.',
+      );
+      return;
+    }
+
+    // Double-check attendance status before opening modal
+    console.log('Double-checking attendance status before opening modal...');
+    await checkTodayAttendance(assignedClass.id);
+
+    // Check again after the refresh
+    if (assignedClass.attendanceMarked || isReadOnlyMode) {
+      alert(
+        'Attendance has already been marked for today. You cannot mark attendance multiple times per day.',
+      );
+      return;
+    }
+
+    setIsMarkAttendanceOpen(true);
+  };
+
+  const handleAttendanceMarked = async () => {
+    setIsMarkAttendanceOpen(false);
+
+    if (assignedClass) {
+      // Add a small delay to ensure the server has processed the attendance
+      setTimeout(async () => {
+        console.log('Re-checking attendance status after marking...');
+        await checkTodayAttendance(assignedClass.id);
+
+        // Force a page refresh of the attendance status after a longer delay
+        setTimeout(async () => {
+          console.log('Second attendance check...');
+          await checkTodayAttendance(assignedClass.id);
+        }, 2000);
+      }, 1000);
+    }
+  };
+
   const getCurrentDate = () => {
-    const today = new Date();
-    const month = today.toLocaleDateString('en-US', { month: 'long' });
-    const day = today.getDate();
-    const year = today.getFullYear();
+    const date = new Date();
+    const day = date.getDate();
+    const month = date.toLocaleString('default', { month: 'long' });
+    const year = date.getFullYear();
 
-    // Add ordinal suffix to day
     const getOrdinalSuffix = (day: number) => {
       if (day > 3 && day < 21) return 'th';
       switch (day % 10) {
@@ -71,41 +450,387 @@ export default function AttendancePage() {
       }
     };
 
-    return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
+    return `${day}${getOrdinalSuffix(day)} ${month}, ${year}`;
   };
 
+  if (isLoading) {
+    return (
+      <div className='p-8 space-y-6'>
+        <div className='flex justify-center items-center min-h-[400px]'>
+          <div className='text-center'>
+            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
+            <Label className='text-gray-600'>
+              Loading your class information...
+            </Label>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className='p-8 space-y-6'>
+        <div className='flex justify-center items-center min-h-[400px]'>
+          <Card className='p-8 text-center max-w-md'>
+            <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-4' />
+            <SectionTitle
+              text='Access Restricted'
+              className='text-lg font-semibold text-gray-900 mb-2'
+            />
+            <Label className='text-gray-600 mb-4'>{error}</Label>
+            <Label className='text-sm text-gray-500'>
+              Please contact the administrator if you believe this is an error.
+            </Label>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className='space-y-6'>
+    <div className='p-8 space-y-6'>
       {/* Header Section */}
-      <div className='flex items-center justify-between'>
+      <div className='flex justify-between items-center'>
         <div>
           <SectionTitle
-            text='Attendance Management'
-            level={1}
+            text='Class Attendance'
             className='text-2xl font-bold text-gray-900'
           />
-          <Label className='mt-1 text-gray-600'>
-            Track and manage student attendance efficiently
+          <Label className='text-gray-600 mt-1'>
+            {assignedClass &&
+              `Grade ${assignedClass.grade} - Section ${assignedClass.section}`}
           </Label>
         </div>
-        <div className='flex items-center gap-2 text-gray-600'>
-          <Calendar className='w-5 h-5' />
-          <span className='text-sm font-medium'>Today, {getCurrentDate()}</span>
+        <div className='text-right'>
+          <Label className='text-sm text-gray-500'>Today's Date</Label>
+          <div className='text-lg font-semibold text-gray-900'>
+            {getCurrentDate()}
+          </div>
         </div>
       </div>
 
-      {/* Information Banner */}
-      <div className='border-2 border-dashed border-blue-200 bg-blue-50 rounded-lg p-4'>
-        <div className='text-center text-blue-800 font-medium'>
-          Attendance For today is tracked! Come again tomorrow!
-        </div>
-      </div>
+      {/* Class Information Card */}
+      {assignedClass && (
+        <Card className='p-6'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center space-x-4'>
+              <div className='p-3 bg-blue-100 rounded-lg'>
+                <GraduationCap className='h-6 w-6 text-blue-600' />
+              </div>
+              <div>
+                <SectionTitle
+                  text={`Grade ${assignedClass.grade} - Section ${assignedClass.section}`}
+                  className='text-lg font-semibold text-gray-900'
+                />
+                <Label className='text-gray-600'>
+                  Total Students: {assignedClass.currentEnrollment}
+                </Label>
+              </div>
+            </div>
+            <div className='text-right'>
+              {assignedClass.attendanceMarked ? (
+                <div className='text-center'>
+                  <div className='flex items-center space-x-2 text-green-600 mb-1'>
+                    <CheckCircle className='h-5 w-5' />
+                    <span className='font-semibold'>Attendance Marked</span>
+                  </div>
+                  <Label className='text-xs text-gray-500'>
+                    Cannot mark again today
+                  </Label>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleMarkAttendance}
+                  className='flex items-center space-x-2'
+                >
+                  <Calendar className='h-4 w-4' />
+                  <span>Mark Attendance</span>
+                </Button>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
 
-      {/* Records Section */}
-      <AttendanceRecords records={attendanceRecords} />
+      {/* Attendance Status Banner */}
+      {assignedClass?.attendanceMarked && (
+        <Card className='p-4 bg-green-50 border-green-200'>
+          <div className='flex items-center justify-center space-x-3'>
+            <CheckCircle className='h-6 w-6 text-green-600' />
+            <div className='text-center'>
+              <Label className='text-green-800 font-semibold'>
+                ✅ Today's attendance has been successfully recorded
+              </Label>
+              <Label className='text-green-600 text-sm block mt-1'>
+                You can only mark attendance once per day. Come back tomorrow!
+              </Label>
+            </div>
+          </div>
+        </Card>
+      )}
 
-      {/* Quick Actions Section */}
-      <QuickActions actions={quickActions} />
+      {/* Today's Attendance Summary */}
+      {attendanceStats && (
+        <Card className='p-6'>
+          <SectionTitle
+            text="Today's Attendance Summary"
+            className='text-lg font-semibold text-gray-900 mb-4'
+          />
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+            <div className='bg-green-50 p-4 rounded-lg'>
+              <div className='flex items-center space-x-2'>
+                <CheckCircle className='h-5 w-5 text-green-600' />
+                <Label className='text-sm text-green-800'>Present</Label>
+              </div>
+              <div className='text-2xl font-bold text-green-900 mt-1'>
+                {attendanceStats.present}
+              </div>
+            </div>
+            <div className='bg-red-50 p-4 rounded-lg'>
+              <div className='flex items-center space-x-2'>
+                <XCircle className='h-5 w-5 text-red-600' />
+                <Label className='text-sm text-red-800'>Absent</Label>
+              </div>
+              <div className='text-2xl font-bold text-red-900 mt-1'>
+                {attendanceStats.absent}
+              </div>
+            </div>
+            <div className='bg-blue-50 p-4 rounded-lg'>
+              <div className='flex items-center space-x-2'>
+                <Users className='h-5 w-5 text-blue-600' />
+                <Label className='text-sm text-blue-800'>Total</Label>
+              </div>
+              <div className='text-2xl font-bold text-blue-900 mt-1'>
+                {attendanceStats.total}
+              </div>
+            </div>
+            <div className='bg-purple-50 p-4 rounded-lg'>
+              <div className='flex items-center space-x-2'>
+                <ClipboardCheck className='h-5 w-5 text-purple-600' />
+                <Label className='text-sm text-purple-800'>Percentage</Label>
+              </div>
+              <div className='text-2xl font-bold text-purple-900 mt-1'>
+                {attendanceStats.percentage.toFixed(1)}%
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Attendance History Section */}
+      {assignedClass && (
+        <Card className='p-6'>
+          <div className='flex items-center space-x-3 mb-4'>
+            <CalendarDays className='h-6 w-6 text-blue-600' />
+            <SectionTitle
+              text='Attendance History'
+              className='text-lg font-semibold text-gray-900'
+            />
+          </div>
+
+          {/* Date Selector */}
+          <div className='mb-4'>
+            <Label className='block text-sm font-medium text-gray-700 mb-2'>
+              Select Date to View History
+            </Label>
+            <div className='max-w-full sm:max-w-xs'>
+              <Input
+                type='date'
+                value={selectedHistoryDate}
+                onChange={e => handleHistoryDateChange(e.target.value)}
+                max={todayDate} // Prevent selecting future dates
+                className='w-full h-11 text-base' // Increased height for mobile
+                placeholder='Select a date...'
+              />
+            </div>
+            <Label className='text-xs text-gray-500 mt-1 block'>
+              💡 Tip: You can view attendance records for any past date
+            </Label>
+          </div>
+
+          {/* History Content */}
+          {!selectedHistoryDate ? (
+            // Default message when no date is selected
+            <div className='text-center py-8 bg-gray-50 rounded-lg'>
+              <Search className='h-12 w-12 text-gray-400 mx-auto mb-3' />
+              <Label className='text-gray-600 text-lg font-medium'>
+                Select a Date to View Attendance History
+              </Label>
+              <Label className='text-gray-500 text-sm block mt-1'>
+                Choose any previous date to see the attendance records for that
+                day
+              </Label>
+            </div>
+          ) : isLoadingHistory ? (
+            // Loading state
+            <div className='text-center py-8'>
+              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3'></div>
+              <Label className='text-gray-600'>
+                Loading attendance history...
+              </Label>
+            </div>
+          ) : historyError ? (
+            // Error state
+            <div className='text-center py-8 bg-red-50 rounded-lg'>
+              <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-3' />
+              <Label className='text-red-700 text-lg font-medium'>
+                Attendance Not Available
+              </Label>
+              <Label className='text-red-600 text-sm block mt-1'>
+                No attendance records found for{' '}
+                {new Date(selectedHistoryDate).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </Label>
+            </div>
+          ) : historyAttendance.length === 0 ? (
+            // No records found
+            <div className='text-center py-8 bg-yellow-50 rounded-lg'>
+              <History className='h-12 w-12 text-yellow-500 mx-auto mb-3' />
+              <Label className='text-yellow-700 text-lg font-medium'>
+                No Attendance Records
+              </Label>
+              <Label className='text-yellow-600 text-sm block mt-1'>
+                No attendance was marked for{' '}
+                {new Date(selectedHistoryDate).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </Label>
+            </div>
+          ) : (
+            // Display attendance records
+            <div>
+              <div className='mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between bg-blue-50 p-3 rounded-lg'>
+                <Label className='text-blue-800 font-medium'>
+                  Attendance for{' '}
+                  {new Date(selectedHistoryDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </Label>
+                <Label className='text-blue-600 text-sm mt-1 sm:mt-0'>
+                  Total Records: {historyAttendance.length}
+                </Label>
+              </div>
+
+              {/* Statistics Summary */}
+              <div className='grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4'>
+                <div className='bg-green-50 p-3 rounded-lg text-center'>
+                  <div className='text-green-600 text-lg font-bold'>
+                    {
+                      historyAttendance.filter(r => r.status === 'PRESENT')
+                        .length
+                    }
+                  </div>
+                  <div className='text-green-800 text-xs'>Present</div>
+                </div>
+                <div className='bg-red-50 p-3 rounded-lg text-center'>
+                  <div className='text-red-600 text-lg font-bold'>
+                    {
+                      historyAttendance.filter(r => r.status === 'ABSENT')
+                        .length
+                    }
+                  </div>
+                  <div className='text-red-800 text-xs'>Absent</div>
+                </div>
+                <div className='bg-yellow-50 p-3 rounded-lg text-center'>
+                  <div className='text-yellow-600 text-lg font-bold'>
+                    {historyAttendance.filter(r => r.status === 'LATE').length}
+                  </div>
+                  <div className='text-yellow-800 text-xs'>Late</div>
+                </div>
+                <div className='bg-purple-50 p-3 rounded-lg text-center'>
+                  <div className='text-purple-600 text-lg font-bold'>
+                    {
+                      historyAttendance.filter(r => r.status === 'EXCUSED')
+                        .length
+                    }
+                  </div>
+                  <div className='text-purple-800 text-xs'>Excused</div>
+                </div>
+              </div>
+
+              {/* Student Records List */}
+              <div className='space-y-2 max-h-96 overflow-y-auto'>
+                {historyAttendance.map((record, index) => (
+                  <div
+                    key={record.studentId}
+                    className='flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors'
+                  >
+                    <div className='flex items-center space-x-3 mb-2 sm:mb-0'>
+                      <div className='flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center'>
+                        <span className='text-sm font-medium text-gray-600'>
+                          {index + 1}
+                        </span>
+                      </div>
+                      <div className='flex-1 min-w-0'>
+                        <div className='font-medium text-gray-900 truncate'>
+                          {record.studentName}
+                        </div>
+                        <div className='text-sm text-gray-500'>
+                          Roll: {record.rollNumber}
+                        </div>
+                      </div>
+                    </div>
+                    <div className='flex items-center justify-end sm:justify-start'>
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          record.status === 'PRESENT'
+                            ? 'bg-green-100 text-green-800'
+                            : record.status === 'ABSENT'
+                              ? 'bg-red-100 text-red-800'
+                              : record.status === 'LATE'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-purple-100 text-purple-800'
+                        }`}
+                      >
+                        {record.status === 'PRESENT' && (
+                          <CheckCircle className='w-4 h-4 mr-1' />
+                        )}
+                        {record.status === 'ABSENT' && (
+                          <XCircle className='w-4 h-4 mr-1' />
+                        )}
+                        {record.status === 'LATE' && (
+                          <AlertCircle className='w-4 h-4 mr-1' />
+                        )}
+                        {record.status === 'EXCUSED' && (
+                          <CheckCircle className='w-4 h-4 mr-1' />
+                        )}
+                        {record.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Mark Attendance Modal */}
+      {assignedClass && !isReadOnlyMode && (
+        <MarkAttendanceModal
+          isOpen={isMarkAttendanceOpen}
+          onClose={() => setIsMarkAttendanceOpen(false)}
+          selectedClass={{
+            id: assignedClass.id,
+            grade: assignedClass.grade.toString(),
+            section: assignedClass.section,
+            students: assignedClass.currentEnrollment,
+          }}
+          onSuccess={handleAttendanceMarked}
+          restrictToToday={true}
+        />
+      )}
     </div>
   );
 }

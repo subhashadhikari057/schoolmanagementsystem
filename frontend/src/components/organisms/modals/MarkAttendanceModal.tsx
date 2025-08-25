@@ -31,6 +31,7 @@ interface MarkAttendanceModalProps {
   onClose: () => void;
   selectedClass?: SelectedClass;
   onSuccess?: () => void; // Callback to refresh data after successful attendance marking
+  restrictToToday?: boolean; // New prop to lock date to today only
 }
 
 interface ExistingAttendanceRecord {
@@ -52,6 +53,7 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
   onClose,
   selectedClass,
   onSuccess,
+  restrictToToday = false, // Default to false for backward compatibility
 }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedDate, setSelectedDate] = useState(
@@ -419,6 +421,41 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
       setIsSaving(true);
       setError(null);
 
+      // FOR TEACHERS: Check if attendance already exists for today when restrictToToday is true
+      if (restrictToToday) {
+        const todayDate = new Date().toISOString().split('T')[0];
+        if (selectedDate === todayDate) {
+          try {
+            const existingAttendance =
+              await attendanceService.getClassAttendance(
+                selectedClass.id,
+                todayDate,
+              );
+            let existingRecords = existingAttendance;
+            if (
+              existingAttendance &&
+              typeof existingAttendance === 'object' &&
+              'data' in existingAttendance
+            ) {
+              existingRecords = existingAttendance.data;
+            }
+
+            if (Array.isArray(existingRecords) && existingRecords.length > 0) {
+              setError(
+                'Attendance has already been marked for today. You cannot mark attendance multiple times per day.',
+              );
+              setIsSaving(false);
+              return;
+            }
+          } catch (checkError) {
+            console.warn(
+              'Could not check existing attendance, proceeding with save:',
+              checkError,
+            );
+          }
+        }
+      }
+
       // Validate date is not in the future
       const attendanceDate = new Date(selectedDate);
       const today = new Date();
@@ -555,16 +592,34 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
                 Date
               </Label>
               <div className='relative'>
-                <Input
-                  type='date'
-                  value={selectedDate}
-                  onChange={e => setSelectedDate(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]} // Prevent future dates
-                  className='h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                  title='Select date for attendance (cannot be in the future)'
-                />
+                {restrictToToday ? (
+                  // Teacher mode: Show locked today's date with mobile-friendly message
+                  <div className='h-10 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 flex items-center justify-between'>
+                    <span className='text-gray-700 font-medium'>
+                      {new Date().toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                    <span className='text-xs text-gray-500 bg-blue-100 px-2 py-1 rounded-full'>
+                      Today Only
+                    </span>
+                  </div>
+                ) : (
+                  // Admin mode: Show date picker
+                  <Input
+                    type='date'
+                    value={selectedDate}
+                    onChange={e => setSelectedDate(e.target.value)}
+                    max={new Date().toISOString().split('T')[0]} // Prevent future dates
+                    className='h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                    title='Select date for attendance (cannot be in the future)'
+                  />
+                )}
                 {/* Date status indicator */}
-                {selectedDate && (
+                {selectedDate && !restrictToToday && (
                   <div className='mt-1'>
                     {new Date(selectedDate) > new Date() ? (
                       <p className='text-red-500 text-xs'>
@@ -581,6 +636,14 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
                         })}
                       </p>
                     )}
+                  </div>
+                )}
+                {/* Teacher mode: Show restriction message */}
+                {restrictToToday && (
+                  <div className='mt-1'>
+                    <p className='text-blue-600 text-xs flex items-center'>
+                      🔒 Teachers can only mark today's attendance
+                    </p>
                   </div>
                 )}
               </div>
