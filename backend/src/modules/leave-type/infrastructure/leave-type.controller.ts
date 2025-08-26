@@ -49,13 +49,19 @@ export class LeaveTypeController {
 
   @Get()
   async findAll(@Query() query: any, @Req() req: any) {
-    // Check if user has admin or super admin role
+    // Allow teachers, admins, and super admins to view leave types
     const userRole = Array.isArray(req.user.roles)
       ? req.user.roles[0]
       : req.user.role || req.user.roles;
 
-    if (![UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(userRole)) {
-      throw new Error('Unauthorized: Only admins can view leave types');
+    if (
+      ![UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER].includes(
+        userRole,
+      )
+    ) {
+      throw new Error(
+        'Unauthorized: Only teachers, admins, and super admins can view leave types',
+      );
     }
 
     // Transform query parameters manually
@@ -75,13 +81,19 @@ export class LeaveTypeController {
 
   @Get('stats')
   async getStats(@Req() req: any) {
-    // Check if user has admin or super admin role
+    // Allow teachers, admins, and super admins to view leave type stats
     const userRole = Array.isArray(req.user.roles)
       ? req.user.roles[0]
       : req.user.role || req.user.roles;
 
-    if (![UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(userRole)) {
-      throw new Error('Unauthorized: Only admins can view leave type stats');
+    if (
+      ![UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER].includes(
+        userRole,
+      )
+    ) {
+      throw new Error(
+        'Unauthorized: Only teachers, admins, and super admins can view leave type stats',
+      );
     }
 
     return this.leaveTypeService.getStats();
@@ -89,13 +101,19 @@ export class LeaveTypeController {
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: any) {
-    // Check if user has admin or super admin role
+    // Allow teachers, admins, and super admins to view leave types
     const userRole = Array.isArray(req.user.roles)
       ? req.user.roles[0]
       : req.user.role || req.user.roles;
 
-    if (![UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(userRole)) {
-      throw new Error('Unauthorized: Only admins can view leave types');
+    if (
+      ![UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER].includes(
+        userRole,
+      )
+    ) {
+      throw new Error(
+        'Unauthorized: Only teachers, admins, and super admins can view leave types',
+      );
     }
 
     return this.leaveTypeService.findOne(id);

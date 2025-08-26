@@ -66,6 +66,11 @@ model User {
   leaveTypesUpdated     LeaveType[] @relation("LeaveTypeUpdater")
   leaveTypesDeleted     LeaveType[] @relation("LeaveTypeDeleter")
 
+  // Teacher Leave Usage relations
+  teacherLeaveUsageCreated     TeacherLeaveUsage[] @relation("TeacherLeaveUsageCreator")
+  teacherLeaveUsageUpdated     TeacherLeaveUsage[] @relation("TeacherLeaveUsageUpdater")
+  teacherLeaveUsageDeleted     TeacherLeaveUsage[] @relation("TeacherLeaveUsageDeleter")
+
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
@@ -383,6 +388,7 @@ model Teacher {
   leaveRequestsApproved  LeaveRequest[]
   teacherLeaveRequests  TeacherLeaveRequest[]
   teacherLeaveRequestAttachments TeacherLeaveRequestAttachment[]
+  leaveUsage TeacherLeaveUsage[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -1139,6 +1145,8 @@ model LeaveType {
   createdBy         User?               @relation("LeaveTypeCreator", fields: [createdById], references: [id])
   updatedBy         User?               @relation("LeaveTypeUpdater", fields: [updatedById], references: [id])
   deletedBy         User?               @relation("LeaveTypeDeleter", fields: [deletedById], references: [id])
+  teacherLeaveRequests TeacherLeaveRequest[]
+  teacherLeaveUsage    TeacherLeaveUsage[]
 
   @@index([name])
   @@index([status])
@@ -1249,24 +1257,13 @@ enum TeacherLeaveRequestStatus {
   CANCELLED
 }
 
-enum TeacherLeaveRequestType {
-  SICK
-  PERSONAL
-  VACATION
-  EMERGENCY
-  MEDICAL
-  FAMILY
-  PROFESSIONAL_DEVELOPMENT
-  CONFERENCE
-  WORKSHOP
-  OTHER
-}
+
 
 model TeacherLeaveRequest {
   id                String                    @id @default(uuid())
   title             String
   description       String?
-  type              TeacherLeaveRequestType
+  leaveTypeId       String                    // Changed from 'type' field
   status            TeacherLeaveRequestStatus @default(PENDING_ADMINISTRATION)
   startDate         DateTime
   endDate           DateTime
@@ -1285,6 +1282,7 @@ model TeacherLeaveRequest {
 
   // Relationships
   teacher           Teacher                   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  leaveType         LeaveType                 @relation(fields: [leaveTypeId], references: [id])
   admin             User?                     @relation("TeacherLeaveRequestAdmin", fields: [adminId], references: [id])
   createdBy         User?                     @relation("TeacherLeaveRequestCreator", fields: [createdById], references: [id])
   updatedBy         User?                     @relation("TeacherLeaveRequestUpdater", fields: [updatedById], references: [id])
@@ -1293,8 +1291,8 @@ model TeacherLeaveRequest {
   auditLogs         TeacherLeaveRequestAuditLog[]
 
   @@index([teacherId])
+  @@index([leaveTypeId])
   @@index([adminId])
-  @@index([type])
   @@index([status])
   @@index([startDate])
   @@index([endDate])
@@ -1341,5 +1339,37 @@ model TeacherLeaveRequestAuditLog {
   @@index([action])
   @@index([performedBy])
   @@index([performedAt])
+}
+
+// =====================
+// Teacher Leave Usage Tracking
+// =====================
+
+model TeacherLeaveUsage {
+  id                String      @id @default(uuid())
+  teacherId         String
+  leaveTypeId       String
+  totalDaysUsed     Int         @default(0)
+  lastUpdated       DateTime    @default(now())
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime?
+  deletedAt         DateTime?
+  createdById       String?
+  updatedById       String?
+  deletedById       String?
+
+  // Relationships
+  teacher           Teacher     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  leaveType         LeaveType   @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  createdBy         User?       @relation("TeacherLeaveUsageCreator", fields: [createdById], references: [id])
+  updatedBy         User?       @relation("TeacherLeaveUsageUpdater", fields: [updatedById], references: [id])
+  deletedBy         User?       @relation("TeacherLeaveUsageDeleter", fields: [deletedById], references: [id])
+
+  @@unique([teacherId, leaveTypeId, deletedAt], name: "unique_teacher_leave_type_usage")
+  @@index([teacherId])
+  @@index([leaveTypeId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
 }
 

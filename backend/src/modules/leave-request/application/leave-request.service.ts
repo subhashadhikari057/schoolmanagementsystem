@@ -13,12 +13,14 @@ import { LeaveRequestType } from '../enums/leave-request-type.enum';
 import { CreateTeacherLeaveRequestDto } from '../dto/create-teacher-leave-request.dto';
 import { TeacherLeaveRequestStatus } from '../enums/teacher-leave-request-status.enum';
 import { AdminLeaveRequestActionDto } from '../dto/admin-leave-request-action.dto';
+import { TeacherLeaveUsageService } from './teacher-leave-usage.service';
 
 @Injectable()
 export class LeaveRequestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly leaveUsageService: TeacherLeaveUsageService,
   ) {}
 
   /**
@@ -1197,6 +1199,42 @@ export class LeaveRequestService {
   }
 
   /**
+   * Calculate days between two dates (inclusive)
+   * This is a shared utility method that matches frontend logic exactly
+   */
+  private calculateLeaveDays(startDateStr: string, endDateStr: string): number {
+    try {
+      // Parse dates consistently - expect YYYY-MM-DD format
+      const startDateMatch = startDateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      const endDateMatch = endDateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+      if (!startDateMatch || !endDateMatch) {
+        throw new Error('Invalid date format. Expected YYYY-MM-DD');
+      }
+
+      const [, startYear, startMonth, startDay] = startDateMatch.map(Number);
+      const [, endYear, endMonth, endDay] = endDateMatch.map(Number);
+
+      // Create dates in local timezone to avoid UTC issues
+      const startDate = new Date(startYear, startMonth - 1, startDay);
+      const endDate = new Date(endYear, endMonth - 1, endDay);
+
+      // Validate date objects
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        throw new Error('Invalid date values');
+      }
+
+      // Calculate difference in milliseconds and convert to days
+      const timeDiff = endDate.getTime() - startDate.getTime();
+      const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24)) + 1; // +1 for inclusive
+
+      return daysDiff > 0 ? daysDiff : 0;
+    } catch (error) {
+      throw new BadRequestException(`Date calculation error: ${error.message}`);
+    }
+  }
+
+  /**
    * Create teacher leave request
    * Teachers can create leave requests that go directly to admin approval
    */
@@ -1222,12 +1260,32 @@ export class LeaveRequestService {
       throw new NotFoundException('Teacher not found');
     }
 
-    // Validate dates
-    const startDate = new Date(createTeacherLeaveRequestDto.startDate);
-    const endDate = new Date(createTeacherLeaveRequestDto.endDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Validate date format first
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (
+      !datePattern.test(createTeacherLeaveRequestDto.startDate) ||
+      !datePattern.test(createTeacherLeaveRequestDto.endDate)
+    ) {
+      throw new BadRequestException('Invalid date format. Expected YYYY-MM-DD');
+    }
 
+    // Calculate days using the same method as frontend
+    const calculatedDays = this.calculateLeaveDays(
+      createTeacherLeaveRequestDto.startDate,
+      createTeacherLeaveRequestDto.endDate,
+    );
+
+    // Parse dates for additional validation
+    const startDate = new Date(
+      createTeacherLeaveRequestDto.startDate + 'T00:00:00.000Z',
+    );
+    const endDate = new Date(
+      createTeacherLeaveRequestDto.endDate + 'T00:00:00.000Z',
+    );
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    // Validate date logic
     if (startDate < today) {
       throw new BadRequestException('Start date cannot be in the past');
     }
@@ -1236,15 +1294,22 @@ export class LeaveRequestService {
       throw new BadRequestException('Start date cannot be after end date');
     }
 
-    // Calculate days difference
-    const daysDiff =
-      Math.ceil(
-        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-      ) + 1;
-
-    if (daysDiff !== createTeacherLeaveRequestDto.days) {
+    if (calculatedDays <= 0) {
       throw new BadRequestException(
-        'Days calculation does not match start and end dates',
+        'Invalid date range. End date must be after or equal to start date',
+      );
+    }
+
+    // Validate that frontend calculated days match backend calculation
+    // Note: Transform decorator in DTO should handle string-to-number conversion
+    const receivedDays =
+      typeof createTeacherLeaveRequestDto.days === 'string'
+        ? parseInt(createTeacherLeaveRequestDto.days, 10)
+        : createTeacherLeaveRequestDto.days;
+
+    if (calculatedDays !== receivedDays) {
+      throw new BadRequestException(
+        `Days calculation mismatch. Expected: ${calculatedDays}, received: ${receivedDays}. Please refresh the form and try again.`,
       );
     }
 
@@ -1252,11 +1317,15 @@ export class LeaveRequestService {
       data: {
         title: createTeacherLeaveRequestDto.title,
         description: createTeacherLeaveRequestDto.description,
-        type: createTeacherLeaveRequestDto.type,
+        leaveTypeId: createTeacherLeaveRequestDto.leaveTypeId,
         status: TeacherLeaveRequestStatus.PENDING_ADMINISTRATION,
-        startDate,
-        endDate,
-        days: daysDiff,
+        startDate: new Date(
+          createTeacherLeaveRequestDto.startDate + 'T00:00:00.000Z',
+        ),
+        endDate: new Date(
+          createTeacherLeaveRequestDto.endDate + 'T00:00:00.000Z',
+        ),
+        days: calculatedDays,
         teacherId: teacher.id,
         createdById: userId,
       },
@@ -1497,6 +1566,25 @@ export class LeaveRequestService {
         },
       });
 
+    // Update leave usage if approved
+    if (actionDto.status === TeacherLeaveRequestStatus.APPROVED) {
+      try {
+        await this.leaveUsageService.updateUsageOnApproval(
+          teacherLeaveRequest.teacherId,
+          teacherLeaveRequest.leaveTypeId,
+          teacherLeaveRequest.days,
+          id,
+          adminId,
+          ipAddress,
+          userAgent,
+        );
+      } catch (usageError) {
+        console.error('Error updating leave usage:', usageError);
+        // Don't fail the approval if usage tracking fails
+        // The leave request is still approved successfully
+      }
+    }
+
     // Log the action
     await this.auditService.log({
       userId: adminId,
@@ -1578,6 +1666,26 @@ export class LeaveRequestService {
           },
         },
       });
+
+    // Decrease usage if the request was previously approved
+    if (teacherLeaveRequest.status === TeacherLeaveRequestStatus.APPROVED) {
+      try {
+        await this.leaveUsageService.decreaseUsageOnCancellation(
+          teacherLeaveRequest.teacherId,
+          teacherLeaveRequest.leaveTypeId,
+          teacherLeaveRequest.days,
+          id,
+          userId,
+          userRole,
+          ipAddress,
+          userAgent,
+        );
+      } catch (usageError) {
+        console.error('Error decreasing leave usage:', usageError);
+        // Don't fail the cancellation if usage tracking fails
+        // The leave request is still cancelled successfully
+      }
+    }
 
     // Log the action
     await this.auditService.log({

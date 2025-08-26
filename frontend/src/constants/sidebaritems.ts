@@ -137,7 +137,14 @@ export const sidebarItems = {
   teacher: [
     {
       title: 'GENERAL',
-      items: [{ label: 'Dashboard', icon: 'Home', path: '/dashboard/teacher' }],
+      items: [
+        { label: 'Dashboard', icon: 'Home', path: '/dashboard/teacher' },
+        {
+          label: 'My Leave',
+          icon: 'CalendarMinus',
+          path: '/dashboard/teacher/my-leave',
+        },
+      ],
     },
     {
       title: 'ACADEMICS',

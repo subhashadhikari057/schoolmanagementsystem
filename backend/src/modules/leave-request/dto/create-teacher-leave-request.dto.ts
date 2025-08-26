@@ -3,13 +3,13 @@ import {
   IsNotEmpty,
   IsDateString,
   IsOptional,
-  IsEnum,
+  IsUUID,
   IsInt,
   Min,
   Max,
   IsArray,
 } from 'class-validator';
-import { TeacherLeaveRequestType } from '../enums/teacher-leave-request-type.enum';
+import { Transform } from 'class-transformer';
 
 export class CreateTeacherLeaveRequestDto {
   @IsString()
@@ -20,8 +20,9 @@ export class CreateTeacherLeaveRequestDto {
   @IsOptional()
   description?: string;
 
-  @IsEnum(TeacherLeaveRequestType)
-  type: TeacherLeaveRequestType;
+  @IsUUID()
+  @IsNotEmpty()
+  leaveTypeId: string;
 
   @IsDateString()
   startDate: string;
@@ -29,6 +30,13 @@ export class CreateTeacherLeaveRequestDto {
   @IsDateString()
   endDate: string;
 
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      const parsed = parseInt(value, 10);
+      return isNaN(parsed) ? value : parsed;
+    }
+    return value;
+  })
   @IsInt()
   @Min(1)
   @Max(365)
