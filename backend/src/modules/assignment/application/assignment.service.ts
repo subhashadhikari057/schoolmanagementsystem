@@ -138,13 +138,45 @@ export class AssignmentService {
       where: whereClause,
       include: {
         class: {
-          select: { grade: true, section: true },
+          select: {
+            id: true,
+            grade: true,
+            section: true,
+            students: {
+              where: { deletedAt: null },
+              select: {
+                id: true,
+                rollNumber: true,
+                user: { select: { fullName: true } },
+              },
+            },
+          },
         },
         subject: {
           select: { name: true, code: true },
         },
         teacher: {
           select: { user: { select: { fullName: true } } },
+        },
+        submissions: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                rollNumber: true,
+                user: { select: { fullName: true } },
+              },
+            },
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            size: true,
+            mimeType: true,
+            url: true,
+          },
         },
         _count: {
           select: { submissions: true },
@@ -191,6 +223,15 @@ export class AssignmentService {
                 user: { select: { fullName: true } },
               },
             },
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            size: true,
+            mimeType: true,
+            url: true,
           },
         },
       },
@@ -266,13 +307,51 @@ export class AssignmentService {
       },
       include: {
         class: {
-          select: { grade: true, section: true },
+          select: {
+            id: true,
+            grade: true,
+            section: true,
+            students: {
+              where: { deletedAt: null },
+              select: {
+                id: true,
+                rollNumber: true,
+                user: { select: { fullName: true } },
+              },
+            },
+          },
         },
         subject: {
-          select: { name: true, code: true },
+          select: { id: true, name: true, code: true },
         },
         teacher: {
-          select: { user: { select: { fullName: true } } },
+          select: {
+            id: true,
+            user: { select: { fullName: true, email: true } },
+          },
+        },
+        submissions: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                rollNumber: true,
+                user: { select: { fullName: true } },
+              },
+            },
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            size: true,
+            mimeType: true,
+            url: true,
+          },
+        },
+        _count: {
+          select: { submissions: true },
         },
       },
     });

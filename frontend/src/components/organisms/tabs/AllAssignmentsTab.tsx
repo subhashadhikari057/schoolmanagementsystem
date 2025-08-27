@@ -12,6 +12,8 @@ import {
   Edit2,
   Eye,
   Trash2,
+  Paperclip,
+  FileText,
 } from 'lucide-react';
 import { assignmentService } from '@/api/services/assignment.service';
 import { teacherService } from '@/api/services/teacher.service';
@@ -32,6 +34,15 @@ interface ProcessedAssignment {
   totalStudents: number;
   submissions: number;
   graded: number;
+  attachments: number;
+  attachmentDetails?: Array<{
+    id: string;
+    filename: string;
+    originalName: string;
+    url: string;
+    mimeType: string;
+    size: number;
+  }>;
   status: 'active' | 'completed' | 'overdue';
   priority: 'low' | 'medium' | 'high';
   originalData: AssignmentResponse;
@@ -80,12 +91,45 @@ export default function AllAssignmentsTab({
       setError(null);
 
       // First get the teacher record to get teacher ID
-      const teacherResponse = await teacherService.getCurrentTeacher();
+      let teacherResponse;
+      try {
+        teacherResponse = await teacherService.getCurrentTeacher();
+      } catch (teacherError) {
+        console.error('Failed to get teacher data:', teacherError);
+        setError(
+          'Failed to load teacher information. Please check your authentication.',
+        );
+        setLoading(false);
+        return;
+      }
+
       const teacherId = teacherResponse.data.id;
 
-      const response =
-        await assignmentService.getAssignmentsByTeacher(teacherId);
+      let response;
+      try {
+        response = await assignmentService.getAssignmentsByTeacher(teacherId);
+      } catch (assignmentError) {
+        console.error('Failed to get assignments:', assignmentError);
+        setError(
+          'Failed to load assignments. Please check your connection and try again.',
+        );
+        setLoading(false);
+        return;
+      }
+
       const assignmentData = response.data;
+
+      // Debug: Log raw assignment data (commented out for production)
+      // console.log('Raw assignment data:', assignmentData.map(a => ({
+      //   id: a.id,
+      //   title: a.title,
+      //   class: a.class,
+      //   classId: a.class?.id,
+      //   hasClass: !!a.class,
+      //   hasStudents: !!a.class?.students?.length,
+      //   studentCount: a.class?.students?.length || 0,
+      //   students: a.class?.students
+      // })));
 
       // Process assignments data
       const processedAssignments: ProcessedAssignment[] = assignmentData.map(
@@ -93,7 +137,27 @@ export default function AllAssignmentsTab({
           const submissionCount = assignment._count?.submissions || 0;
           const gradedCount =
             assignment.submissions?.filter(sub => sub.isCompleted).length || 0;
-          const totalStudents = assignment?.class?.students?.length || 0;
+
+          // Try to get student count from multiple sources
+          let totalStudents = 0;
+          if (assignment?.class?.students?.length) {
+            totalStudents = assignment.class.students.length;
+          } else {
+            // Fallback: we'll need to fetch class details separately
+            totalStudents = 0; // Will be updated if we can fetch class details
+          }
+
+          // Get attachment count and details
+          const attachmentCount = assignment.attachments?.length || 0;
+          const attachmentDetails =
+            assignment.attachments?.map(attachment => ({
+              id: attachment.id,
+              filename: attachment.filename,
+              originalName: attachment.originalName,
+              url: attachment.url,
+              mimeType: attachment.mimeType,
+              size: attachment.size,
+            })) || [];
 
           // Determine status
           let status: 'active' | 'completed' | 'overdue' = 'active';
@@ -124,6 +188,8 @@ export default function AllAssignmentsTab({
             totalStudents,
             submissions: submissionCount,
             graded: gradedCount,
+            attachments: attachmentCount,
+            attachmentDetails,
             status,
             priority,
             originalData: assignment,
@@ -131,7 +197,22 @@ export default function AllAssignmentsTab({
         },
       );
 
+      // Note: We already have student data from the backend, so we don't need to fetch class details separately
+      // The backend's findAll method includes students in the class data
+
       setAssignments(processedAssignments);
+
+      // Debug: Log assignment data to understand student count issues (commented out for production)
+      // console.log('Processed assignments:', processedAssignments.map(a => ({
+      //   id: a.id,
+      //   title: a.title,
+      //   class: a.class,
+      //   classId: a.originalData.class?.id,
+      //   totalStudents: a.totalStudents,
+      //   hasStudentsInClass: !!a.originalData.class?.students?.length,
+      //   studentCount: a.originalData.class?.students?.length || 0,
+      //   students: a.originalData.class?.students
+      // })));
 
       // Extract unique subjects and classes for filters
       const uniqueSubjects = [
@@ -360,24 +441,42 @@ export default function AllAssignmentsTab({
             >
               <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4'>
                 <div className='flex-1 min-w-0'>
-                  <div className='flex flex-wrap items-center gap-2 sm:gap-3 mb-2'>
+                  <div className='flex flex-wrap items-center gap-2 sm:gap-3 mb-3'>
+                    {/* Status Badge */}
                     <span
-                      className={`inline-block px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium ${getStatusColor(
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium ${getStatusColor(
                         assignment.status,
                       )}`}
                     >
-                      {assignment.status}
+                      <div
+                        className={`w-2 h-2 rounded-full mr-1.5 ${
+                          assignment.status === 'active'
+                            ? 'bg-blue-500'
+                            : assignment.status === 'completed'
+                              ? 'bg-green-500'
+                              : 'bg-red-500'
+                        }`}
+                      />
+                      {assignment.status === 'active'
+                        ? 'Active'
+                        : assignment.status === 'completed'
+                          ? 'Completed'
+                          : 'Overdue'}
                     </span>
-                    <span
-                      className={`inline-block px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium ${getPriorityColor(
-                        assignment.priority,
-                      )}`}
-                    >
-                      {assignment.priority} priority
-                    </span>
+
+                    {/* Subject Badge */}
                     <span className='inline-block px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-gray-100 text-gray-700'>
                       {assignment.subject}
                     </span>
+
+                    {/* Attachment Badge - Only show if there are attachments */}
+                    {assignment.attachments > 0 && (
+                      <span className='inline-flex items-center px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-blue-100 text-blue-700 gap-1'>
+                        <Paperclip className='w-3 h-3' />
+                        {assignment.attachments}{' '}
+                        {assignment.attachments === 1 ? 'file' : 'files'}
+                      </span>
+                    )}
                   </div>
 
                   <h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-2 line-clamp-2'>
@@ -387,17 +486,64 @@ export default function AllAssignmentsTab({
                   <div className='flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-gray-600'>
                     <div className='flex items-center gap-1.5'>
                       <Users className='w-4 h-4 shrink-0' />
-                      <span className='truncate'>{assignment.class}</span>
+                      <span className='truncate font-medium'>
+                        {assignment.class}
+                      </span>
                     </div>
                     <div className='flex items-center gap-1.5'>
                       <Calendar className='w-4 h-4 shrink-0' />
-                      <span>Due: {assignment.dueDate}</span>
+                      <span
+                        className={
+                          assignment.status === 'overdue'
+                            ? 'text-red-600 font-medium'
+                            : ''
+                        }
+                      >
+                        Due: {assignment.dueDate}
+                      </span>
                     </div>
-                    <div className='flex items-center gap-1.5'>
-                      <Users className='w-4 h-4 shrink-0' />
-                      <span>{assignment.totalStudents} students</span>
-                    </div>
+                    {assignment.totalStudents > 0 && (
+                      <div className='flex items-center gap-1.5'>
+                        <Users className='w-4 h-4 shrink-0' />
+                        <span>
+                          {assignment.totalStudents} student
+                          {assignment.totalStudents !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Attachments Section */}
+                  {assignment.attachmentDetails &&
+                    assignment.attachmentDetails.length > 0 && (
+                      <div className='mt-3 pt-3 border-t border-gray-100'>
+                        <div className='flex items-center gap-2 mb-2'>
+                          <Paperclip className='w-3 h-3 text-gray-500' />
+                          <span className='text-xs font-medium text-gray-700'>
+                            Attachments:
+                          </span>
+                        </div>
+                        <div className='flex flex-wrap gap-2'>
+                          {assignment.attachmentDetails.map(
+                            (attachment, index) => (
+                              <a
+                                key={attachment.id}
+                                href={attachment.url}
+                                target='_blank'
+                                rel='noreferrer'
+                                className='inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md px-3 py-1.5 transition-colors duration-200'
+                                title={attachment.originalName}
+                              >
+                                <FileText className='w-3 h-3 text-blue-600 flex-shrink-0' />
+                                <span className='text-xs font-medium text-blue-700'>
+                                  File {index + 1}
+                                </span>
+                              </a>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    )}
                 </div>
 
                 <div className='flex gap-1.5 sm:gap-2'>
@@ -428,62 +574,98 @@ export default function AllAssignmentsTab({
                 </div>
               </div>
 
-              {/* Progress Bars */}
-              <div className='space-y-3'>
-                <div>
-                  <div className='flex justify-between text-xs sm:text-sm mb-1'>
-                    <span className='text-gray-600'>Submissions</span>
-                    <span className='text-gray-900'>
-                      {assignment.submissions}/{assignment.totalStudents} (
-                      {pct(assignment.submissions, assignment.totalStudents)}
-                      %)
-                    </span>
-                  </div>
-                  <div className='w-full bg-gray-200 rounded-full h-2'>
-                    <div
-                      className='bg-blue-600 h-2 rounded-full transition-all duration-300'
-                      style={{
-                        width: `${pctRaw(
-                          assignment.submissions,
-                          assignment.totalStudents,
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
+              {/* Assignment Status & Progress */}
+              <div className='mt-4 pt-4 border-t border-gray-100'>
+                {assignment.totalStudents > 0 ? (
+                  <div className='space-y-3'>
+                    {/* Submissions Progress */}
+                    <div>
+                      <div className='flex justify-between text-xs sm:text-sm mb-2'>
+                        <span className='text-gray-600 font-medium'>
+                          Submissions
+                        </span>
+                        <span
+                          className={`font-medium ${
+                            assignment.submissions === assignment.totalStudents
+                              ? 'text-green-600'
+                              : assignment.submissions > 0
+                                ? 'text-blue-600'
+                                : 'text-gray-500'
+                          }`}
+                        >
+                          {assignment.submissions}/{assignment.totalStudents}
+                        </span>
+                      </div>
+                      {assignment.submissions > 0 ? (
+                        <div className='w-full bg-gray-200 rounded-full h-2'>
+                          <div
+                            className='bg-blue-600 h-2 rounded-full transition-all duration-300'
+                            style={{
+                              width: `${pctRaw(
+                                assignment.submissions,
+                                assignment.totalStudents,
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className='text-xs text-gray-400 italic'>
+                          No submissions yet
+                        </div>
+                      )}
+                    </div>
 
-                <div>
-                  <div className='flex justify-between text-xs sm:text-sm mb-1'>
-                    <span className='text-gray-600'>Graded</span>
-                    <span className='text-gray-900'>
-                      {assignment.graded}/{assignment.submissions} (
-                      {pct(assignment.graded, assignment.submissions)}%)
-                    </span>
-                  </div>
-                  <div className='w-full bg-gray-200 rounded-full h-2'>
-                    <div
-                      className='bg-green-600 h-2 rounded-full transition-all duration-300'
-                      style={{
-                        width: `${pctRaw(
-                          assignment.graded,
-                          assignment.submissions,
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
+                    {/* Grading Progress - Only show if there are submissions */}
+                    {assignment.submissions > 0 && (
+                      <div>
+                        <div className='flex justify-between text-xs sm:text-sm mb-2'>
+                          <span className='text-gray-600 font-medium'>
+                            Graded
+                          </span>
+                          <span
+                            className={`font-medium ${
+                              assignment.graded === assignment.submissions
+                                ? 'text-green-600'
+                                : assignment.graded > 0
+                                  ? 'text-orange-600'
+                                  : 'text-gray-500'
+                            }`}
+                          >
+                            {assignment.graded}/{assignment.submissions}
+                          </span>
+                        </div>
+                        <div className='w-full bg-gray-200 rounded-full h-2'>
+                          <div
+                            className='bg-green-600 h-2 rounded-full transition-all duration-300'
+                            style={{
+                              width: `${pctRaw(
+                                assignment.graded,
+                                assignment.submissions,
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
 
-              {/* Pending Review */}
-              {assignment.status === 'active' &&
-                assignment.submissions > assignment.graded && (
-                  <div className='mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200'>
-                    <span className='text-orange-600 text-xs sm:text-sm font-medium'>
-                      {assignment.submissions - assignment.graded} pending
-                      review
-                    </span>
+                    {/* Pending Review Alert */}
+                    {assignment.submissions > 0 &&
+                      assignment.submissions > assignment.graded && (
+                        <div className='flex items-center gap-2 text-xs text-orange-600 bg-orange-50 px-3 py-2 rounded-lg'>
+                          <AlertCircle className='w-4 h-4' />
+                          <span className='font-medium'>
+                            {assignment.submissions - assignment.graded} pending
+                            review
+                          </span>
+                        </div>
+                      )}
+                  </div>
+                ) : (
+                  <div className='text-xs text-gray-400 italic'>
+                    No students assigned to this class
                   </div>
                 )}
+              </div>
             </div>
           ))
         )}
@@ -508,7 +690,7 @@ export default function AllAssignmentsTab({
               setSelectedAssignment(null);
             }}
             onSuccess={handleEditSuccess}
-            editAssignment={selectedAssignment}
+            editAssignment={selectedAssignment.originalData}
           />
 
           <DeleteConfirmationModal

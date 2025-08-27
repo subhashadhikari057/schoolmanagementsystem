@@ -175,6 +175,16 @@ export class HttpClient {
           .replace(/\/+/g, '/')
           .replace('http:/', 'http://');
 
+    // Debug log for requests in development
+    // if (process.env.NODE_ENV === 'development') {
+    //   console.log('🌐 Making request:', {
+    //     method,
+    //     url: fullUrl,
+    //     hasData: !!data,
+    //     headers: Object.keys(headers),
+    //   });
+    // }
+
     // Request options
     const requestOptions: RequestInit = {
       method,
@@ -213,6 +223,16 @@ export class HttpClient {
         requestOptions.signal = controller.signal;
 
         const response = await fetch(fullUrl, requestOptions);
+
+        // Debug log for responses in development
+        // if (process.env.NODE_ENV === 'development') {
+        //   console.log('📡 Response received:', {
+        //     status: response.status,
+        //     statusText: response.statusText,
+        //     url: fullUrl,
+        //     ok: response.ok,
+        //   });
+        // }
 
         // Parse response
         let responseData: unknown;

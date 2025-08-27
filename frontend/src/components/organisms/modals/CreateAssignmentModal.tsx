@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Input from '@/components/atoms/form-controls/Input';
 import Textarea from '@/components/atoms/form-controls/Textarea';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
@@ -9,9 +9,18 @@ import { teacherService } from '@/api/services/teacher.service';
 import {
   CreateAssignmentRequest,
   AssignmentResponse,
+  AssignmentAttachment,
 } from '@/api/types/assignment';
 import { useAuth } from '@/hooks/useAuth';
-import { Users, AlertCircle } from 'lucide-react';
+import {
+  Users,
+  AlertCircle,
+  Upload,
+  X,
+  FileText,
+  Image,
+  File,
+} from 'lucide-react';
 
 interface CreateAssignmentModalProps {
   isOpen: boolean;
@@ -117,10 +126,16 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
 
+  // File upload state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [fileErrors, setFileErrors] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Effect to populate form with edit data or pre-selected class
   useEffect(() => {
     if (isOpen) {
       if (editAssignment) {
+        console.log('Populating form with edit data:', editAssignment);
         setTitle(editAssignment.title);
         setDescription(editAssignment.description || '');
 
@@ -149,11 +164,13 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           : '';
 
         setDueDate(safeDueDate);
-        // Use the stored IDs from ProcessedAssignment when available
-        const classId =
-          (editAssignment as any).classId || editAssignment.class?.id || '';
-        const subjectId = (editAssignment as any).subjectId || '';
-        const teacherId = (editAssignment as any).teacherId || '';
+
+        // Extract IDs from the assignment data structure
+        const classId = editAssignment.class?.id || '';
+        const subjectId = editAssignment.subject?.id || '';
+        const teacherId = editAssignment.teacher?.id || '';
+
+        console.log('Extracted IDs:', { classId, subjectId, teacherId });
 
         setSelectedClasses([classId]);
         setSelectedSubject(subjectId);
@@ -161,9 +178,56 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
       } else if (preSelectedClass) {
         // If we have a pre-selected class, set it
         setSelectedClasses([preSelectedClass.id]);
+      } else {
+        // Reset form for create mode
+        resetForm();
       }
     }
   }, [editAssignment, isOpen, preSelectedClass]);
+
+  // Effect to populate form after data is loaded (for edit mode)
+  useEffect(() => {
+    if (isOpen && editAssignment && subjects.length > 0 && classes.length > 0) {
+      // Re-populate form with edit data after subjects and classes are loaded
+      const subjectId = editAssignment.subject?.id || '';
+      const classId = editAssignment.class?.id || '';
+      const teacherId = editAssignment.teacher?.id || '';
+
+      console.log('Re-populating form after data load:', {
+        subjectId,
+        classId,
+        teacherId,
+      });
+      console.log(
+        'Available subjects:',
+        subjects.map(s => ({ id: s.id, name: s.name })),
+      );
+      console.log(
+        'Available classes:',
+        classes.map(c => ({ id: c.id, label: c.label })),
+      );
+
+      // Only set if the IDs exist in the loaded data
+      if (subjectId && subjects.some(s => s.id === subjectId)) {
+        console.log('Setting selected subject:', subjectId);
+        setSelectedSubject(subjectId);
+      } else {
+        console.log('Subject ID not found in available subjects:', subjectId);
+      }
+      if (classId && classes.some(c => c.id === classId)) {
+        console.log('Setting selected class:', classId);
+        setSelectedClasses([classId]);
+      } else {
+        console.log('Class ID not found in available classes:', classId);
+      }
+      if (teacherId && teachers.some(t => t.id === teacherId)) {
+        console.log('Setting selected teacher:', teacherId);
+        setSelectedTeacher(teacherId);
+      } else {
+        console.log('Teacher ID not found in available teachers:', teacherId);
+      }
+    }
+  }, [isOpen, editAssignment, subjects, classes, teachers]);
 
   // Load classes, subjects, and teachers based on user role
   const loadInitialData = useCallback(async () => {
@@ -198,6 +262,7 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           }),
         );
 
+        console.log('Teacher subjects loaded:', transformedSubjects);
         setClasses(transformedClasses);
         setSubjects(transformedSubjects);
         setTeachers([]); // Teachers don't need to see other teachers
@@ -236,6 +301,8 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           }),
         );
 
+        console.log('Admin subjects loaded:', transformedSubjects);
+
         // Transform teachers data
         const transformedTeachers: TeacherOption[] = teachersResponse.data.map(
           (teacher: TeacherResponse) => ({
@@ -264,22 +331,110 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
     }
   }, [isOpen, user, loadInitialData]);
 
-  // Reset form when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      resetForm();
-    }
-  }, [isOpen]);
-
   // Reset form to initial state
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setSelectedClasses([]);
     setSelectedSubject('');
     setSelectedTeacher('');
     setTitle('');
     setDescription('');
     setDueDate('');
+    setSelectedFiles([]);
+    setFileErrors([]);
     setError(null);
+  }, []);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      resetForm();
+    }
+  }, [isOpen, resetForm]);
+
+  // File handling functions
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const newErrors: string[] = [];
+    const validFiles: File[] = [];
+
+    files.forEach(file => {
+      const validation = assignmentService.validateFile(file);
+      if (validation.isValid) {
+        validFiles.push(file);
+      } else {
+        newErrors.push(`${file.name}: ${validation.error}`);
+      }
+    });
+
+    // Check if adding these files would exceed the limit
+    if (selectedFiles.length + validFiles.length > 5) {
+      newErrors.push('Maximum 5 files allowed');
+    } else {
+      setSelectedFiles(prev => [...prev, ...validFiles]);
+    }
+
+    setFileErrors(newErrors);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) {
+      return <Image className='w-4 h-4' />;
+    } else if (file.type.includes('pdf')) {
+      return <FileText className='w-4 h-4' />;
+    } else {
+      return <File className='w-4 h-4' />;
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    return assignmentService.formatFileSize(bytes);
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+
+    const files = Array.from(e.dataTransfer.files);
+    const newErrors: string[] = [];
+    const validFiles: File[] = [];
+
+    files.forEach(file => {
+      const validation = assignmentService.validateFile(file);
+      if (validation.isValid) {
+        validFiles.push(file);
+      } else {
+        newErrors.push(`${file.name}: ${validation.error}`);
+      }
+    });
+
+    // Check if adding these files would exceed the limit
+    if (selectedFiles.length + validFiles.length > 5) {
+      newErrors.push('Maximum 5 files allowed');
+    } else {
+      setSelectedFiles(prev => [...prev, ...validFiles]);
+    }
+
+    setFileErrors(newErrors);
   };
 
   // Handle form submission
@@ -317,6 +472,55 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
         );
 
         if (result.success) {
+          // Handle attachments replacement - only when new files are selected
+          if (selectedFiles.length > 0) {
+            try {
+              // First, delete all existing attachments if there are any
+              if (
+                editAssignment.attachments &&
+                editAssignment.attachments.length > 0
+              ) {
+                console.log(
+                  'Deleting existing attachments:',
+                  editAssignment.attachments.length,
+                );
+                const deletePromises = editAssignment.attachments.map(
+                  (attachment: AssignmentAttachment) =>
+                    assignmentService
+                      .deleteAssignmentAttachment(
+                        editAssignment.id,
+                        attachment.id,
+                      )
+                      .catch(error => {
+                        console.error(
+                          `Failed to delete attachment ${attachment.id}:`,
+                          error,
+                        );
+                        return null; // Continue with other deletions
+                      }),
+                );
+                await Promise.all(deletePromises);
+                console.log('Existing attachments deleted');
+              }
+
+              // Then upload new attachments
+              console.log('Uploading new attachments:', selectedFiles.length);
+              await assignmentService.uploadAssignmentAttachments(
+                editAssignment.id,
+                selectedFiles,
+              );
+              console.log('New attachments uploaded');
+            } catch (uploadError) {
+              console.error('Failed to handle attachments:', uploadError);
+              // Don't fail the entire operation if file upload fails
+            }
+          } else {
+            // No new files selected - keep existing attachments unchanged
+            console.log(
+              'No new files selected - keeping existing attachments unchanged',
+            );
+          }
+
           onSuccess?.();
           onClose();
           resetForm();
@@ -345,10 +549,56 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
           ),
         );
 
+        // Debug: Log the results to understand the structure
+        console.log('Assignment creation results:', results);
+
         // Check if all assignments were created successfully
         const allSuccessful = results.every(result => result.success);
 
         if (allSuccessful) {
+          // Upload attachments to all created assignments if files are selected
+          if (selectedFiles.length > 0) {
+            console.log('Uploading attachments to assignments...');
+            const uploadPromises = results.map((result, index) => {
+              console.log(`Result ${index}:`, result);
+              if (result.success && result.data) {
+                // Try different possible structures
+                const assignmentId =
+                  result.data.assignment?.id || (result.data as any).id;
+                if (assignmentId) {
+                  console.log(`Uploading to assignment ID: ${assignmentId}`);
+                  return assignmentService
+                    .uploadAssignmentAttachments(assignmentId, selectedFiles)
+                    .catch(uploadError => {
+                      console.error(
+                        'Failed to upload attachments:',
+                        uploadError,
+                      );
+                      // Don't fail the entire operation if file upload fails
+                      return null;
+                    });
+                } else {
+                  console.log(
+                    `No assignment ID found in result ${index}:`,
+                    result.data,
+                  );
+                }
+              } else {
+                console.log(`Skipping upload for result ${index}:`, result);
+              }
+              return Promise.resolve(null);
+            });
+
+            // Wait for all uploads to complete (but don't fail if some fail)
+            const uploadResults = await Promise.all(uploadPromises);
+            const successfulUploads = uploadResults.filter(
+              result => result !== null,
+            ).length;
+            console.log(
+              `All uploads completed. ${successfulUploads} out of ${results.length} assignments received attachments.`,
+            );
+          }
+
           onSuccess?.();
           onClose();
           resetForm();
@@ -463,6 +713,100 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
             value={description}
             onChange={e => setDescription(e.target.value)}
           />
+        </div>
+
+        {/* File Upload Section */}
+        <div>
+          <label className='block text-sm font-medium text-gray-700 mb-2'>
+            Attachments (Optional)
+          </label>
+          <div className='space-y-3'>
+            {/* File Upload Area */}
+            <div
+              className='border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors'
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <input
+                ref={fileInputRef}
+                type='file'
+                multiple
+                accept='.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.jpg,.jpeg,.png,.gif,.webp'
+                onChange={handleFileSelect}
+                className='hidden'
+              />
+              <button
+                type='button'
+                onClick={() => fileInputRef.current?.click()}
+                className='flex flex-col items-center justify-center w-full space-y-2'
+              >
+                <Upload className='w-8 h-8 text-gray-400' />
+                <div className='text-sm text-gray-600'>
+                  <span className='font-medium text-blue-600 hover:text-blue-500'>
+                    Click to upload
+                  </span>{' '}
+                  or drag and drop
+                </div>
+                <div className='text-xs text-gray-500'>
+                  PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, RTF, Images (max
+                  10MB each, up to 5 files)
+                </div>
+              </button>
+            </div>
+
+            {/* File Errors */}
+            {fileErrors.length > 0 && (
+              <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
+                <div className='text-sm text-red-700'>
+                  <div className='font-medium mb-1'>File upload errors:</div>
+                  <ul className='list-disc list-inside space-y-1'>
+                    {fileErrors.map((error, index) => (
+                      <li key={index} className='text-xs'>
+                        {error}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Selected Files */}
+            {selectedFiles.length > 0 && (
+              <div className='space-y-2'>
+                <div className='text-sm font-medium text-gray-700'>
+                  Selected Files ({selectedFiles.length}/5):
+                </div>
+                <div className='space-y-2'>
+                  {selectedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className='flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg'
+                    >
+                      <div className='flex items-center space-x-3'>
+                        <div className='text-gray-500'>{getFileIcon(file)}</div>
+                        <div className='flex flex-col'>
+                          <div className='text-sm font-medium text-gray-900 truncate max-w-xs'>
+                            {file.name}
+                          </div>
+                          <div className='text-xs text-gray-500'>
+                            {formatFileSize(file.size)}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type='button'
+                        onClick={() => removeFile(index)}
+                        className='text-gray-400 hover:text-red-500 transition-colors'
+                      >
+                        <X className='w-4 h-4' />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
