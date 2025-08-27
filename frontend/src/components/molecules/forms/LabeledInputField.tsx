@@ -16,6 +16,7 @@ interface Props {
   error?: string; // Add error prop for validation messages
   maxLength?: number; // Add maxLength prop
   readOnly?: boolean; // Add readOnly prop
+  required?: boolean; // Add required prop
 }
 
 const LabeledInputField = forwardRef<HTMLInputElement, Props>(

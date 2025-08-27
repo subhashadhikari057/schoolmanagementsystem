@@ -72,13 +72,18 @@ export const sidebarItems = {
           path: '/dashboard/admin/communication/complaints',
         },
         {
-          label: 'Leave Requests',
+          label: 'Student Leave',
           icon: 'CalendarMinus',
           path: '/dashboard/admin/communication/leave-requests',
         },
         {
+          label: 'Teacher Leave',
+          icon: 'UserX',
+          path: '/dashboard/admin/communication/teacher-leave',
+        },
+        {
           label: 'Leave Types',
-          icon: 'CalendarMinus',
+          icon: 'List',
           path: '/dashboard/admin/communication/leave-types',
         },
       ],
@@ -137,7 +142,14 @@ export const sidebarItems = {
   teacher: [
     {
       title: 'GENERAL',
-      items: [{ label: 'Dashboard', icon: 'Home', path: '/dashboard/teacher' }],
+      items: [
+        { label: 'Dashboard', icon: 'Home', path: '/dashboard/teacher' },
+        {
+          label: 'My Leave',
+          icon: 'CalendarMinus',
+          path: '/dashboard/teacher/my-leave',
+        },
+      ],
     },
     {
       title: 'ACADEMICS',

@@ -48,6 +48,7 @@ export * from "./schedule/timetable.dto";
 // Attendance Module DTOs
 export * from "./attendance/attendance.dto";
 export * from "./attendance/leave-request.dto";
+export * from "./attendance/teacher-leave-request.dto";
 
 // Finance Module DTOs
 export * from "./finance/payment.dto";
