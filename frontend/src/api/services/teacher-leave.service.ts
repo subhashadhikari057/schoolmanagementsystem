@@ -391,16 +391,15 @@ export class TeacherLeaveService {
       maxDays: number;
     }>;
   }> {
-    const response =
-      await this.httpClient.get<
-        Array<{
-          id: string;
-          name: string;
-          description?: string;
-          isPaid: boolean;
-          maxDays: number;
-        }>
-      >('api/v1/leave-types');
+    const response = await this.httpClient.get<
+      Array<{
+        id: string;
+        name: string;
+        description?: string;
+        isPaid: boolean;
+        maxDays: number;
+      }>
+    >('api/v1/leave-types');
     return { leaveTypes: response.data };
   }
 

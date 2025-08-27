@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { assignmentService } from '@/api/services/assignment.service';
+import { AssignmentResponse, SubmissionResponse } from '@/api/types/assignment';
 import Panel from '@/components/organisms/dashboard/UpcomingEventsPanel';
+import { useCalendarEvents } from '@/components/organisms/calendar/hooks/useCalendarEvents';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import Button from '@/components/atoms/form-controls/Button';
 import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
@@ -44,6 +47,18 @@ interface TeacherClass {
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
+  // Fetch all calendar events (exams, holidays, events)
+  const { events: calendarEvents } = useCalendarEvents({ page: 1, limit: 50 });
+  // Map backend events to UpcomingEventsPanel's Event type
+  const mappedEvents = calendarEvents.map(ev => ({
+    id: ev.id,
+    title: ev.title || ev.name || 'Untitled Event',
+    date: ev.date,
+    time: ev.time || ev.startTime || '',
+    location: ev.location || ev.venue || '',
+    status: typeof ev.status === 'string' ? ev.status : 'Active',
+    type: ev.type || 'event',
+  }));
   const router = useRouter();
   const [showAttendance, setShowAttendance] = useState(false);
   const [subjects, setSubjects] = useState<TeacherSubject[]>([]);
@@ -104,20 +119,59 @@ export default function TeacherDashboard() {
     router.push(`/dashboard/teacher/academics/classes/${classId}`);
   };
 
-  const assignments = [
+  const [assignments, setAssignments] = useState<
     {
-      title: 'An essay about Railway in Nepal (minimum 300 words)',
-      subject: 'Science',
-      className: 'Class 8 - A',
-      submissions: '0/50 Submissions',
-    },
-    {
-      title: 'An essay about Railway in Nepal (minimum 300 words)',
-      subject: 'Science',
-      className: 'Class 8 - A',
-      submissions: '0/50 Submissions',
-    },
-  ];
+      title: string;
+      subject: string;
+      className: string;
+      submissions: string;
+      onClick: () => void;
+    }[]
+  >([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true);
+
+  // Load assignments needing grading
+  useEffect(() => {
+    const loadAssignmentsToGrade = async () => {
+      if (!user?.id) {
+        setAssignmentsLoading(false);
+        return;
+      }
+      try {
+        setAssignmentsLoading(true);
+        // Get teacherId from teacherService
+        const teacherRes = await teacherService.getCurrentTeacher();
+        const teacherId = teacherRes.data.id;
+        // Get assignments for this teacher
+        const res = await assignmentService.getAssignmentsByTeacher(teacherId);
+        // Filter assignments with pending/ungraded submissions
+        const filtered = (res.data || []).filter((a: AssignmentResponse) => {
+          if (Array.isArray(a.submissions)) {
+            return (a.submissions as SubmissionResponse[]).some(
+              (sub: SubmissionResponse) => !sub.isCompleted,
+            );
+          }
+          return true;
+        });
+        // Map to Statsgrid assignment format
+        setAssignments(
+          filtered.map((a: AssignmentResponse) => ({
+            title: a.title,
+            subject: a.subject?.name || '',
+            className: `Grade ${a.class?.grade || ''} - ${a.class?.section || ''}`,
+            submissions: `${a._count?.submissions || 0}/${a.class?.students?.length || 0} Submissions`,
+            onClick: () =>
+              router.push(`/dashboard/teacher/academics/assignments/${a.id}`),
+          })),
+        );
+      } catch (err) {
+        setAssignments([]);
+      } finally {
+        setAssignmentsLoading(false);
+      }
+    };
+    loadAssignmentsToGrade();
+  }, [user, router]);
 
   // Calculate dynamic stats from real data
   const totalStudents = classes.reduce(
@@ -304,11 +358,25 @@ export default function TeacherDashboard() {
                 View All
               </Label>
             </div>
-            <Statsgrid
-              variant='assignments'
-              items={assignments}
-              actionLabel='Learn More'
-            />
+            {assignmentsLoading ? (
+              <div className='animate-pulse'>
+                <div className='grid grid-cols-2 lg:grid-cols-2 gap-3'>
+                  {[...Array(2)].map((_, i) => (
+                    <div key={i} className='h-16 bg-gray-200 rounded-lg'></div>
+                  ))}
+                </div>
+              </div>
+            ) : assignments.length > 0 ? (
+              <Statsgrid
+                variant='assignments'
+                items={assignments}
+                actionLabel='Learn More'
+              />
+            ) : (
+              <div className='text-center py-6 bg-gray-50 rounded-lg'>
+                <p className='text-sm text-gray-500'>No assignments to grade</p>
+              </div>
+            )}
           </div>
 
           {/* Events and My Subjects */}
@@ -319,6 +387,7 @@ export default function TeacherDashboard() {
                 title='Upcoming Events'
                 maxEvents={3}
                 className='!bg-transparent !border-0 !p-0 !rounded-none !shadow-none'
+                events={mappedEvents}
               />
             </div>
             <div className='lg:col-span-4'>

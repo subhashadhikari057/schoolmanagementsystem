@@ -206,8 +206,6 @@ export default function AssignmentsPage() {
                     ),
                   },
                   { name: 'Submissions', content: <SubmissionsTab /> },
-                  { name: 'Grading', content: <GradingTab /> },
-                  { name: 'Deadlines', content: <DeadlinesTab /> },
                 ]}
               />
             </>

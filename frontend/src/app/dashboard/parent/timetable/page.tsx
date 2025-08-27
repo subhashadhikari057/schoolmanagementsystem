@@ -6,7 +6,7 @@ import { CardGridLoader } from '@/components/atoms/loading';
 
 // Demo children data
 const children = [
-  { id: '1', name: 'Aarav Sharma', class: '10', section: 'A' },
+  { id: '1', name: 'Aarash Sharma', class: '10', section: 'A' },
   { id: '2', name: 'Priya Sharma', class: '7', section: 'B' },
 ];
 

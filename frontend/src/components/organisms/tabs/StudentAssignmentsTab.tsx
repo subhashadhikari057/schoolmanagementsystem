@@ -1,50 +1,16 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import Button from '@/components/atoms/form-controls/Button';
 import { Users, Calendar, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { studentService } from '@/api/services/student.service';
+import { assignmentService } from '@/api/services/assignment.service';
 
-// Mock data for student assignments
-const mockAssignments = [
-  {
-    id: '1',
-    title: 'Math Homework 1',
-    class: 'Grade 10 - Section A',
-    subject: 'Mathematics',
-    dueDate: '2025-08-20',
-    status: 'active',
-    priority: 'medium',
-    submissions: 1, // student's own submission status
-    graded: 1,
-    totalStudents: 1,
-  },
-  {
-    id: '2',
-    title: 'Science Project',
-    class: 'Grade 10 - Section A',
-    subject: 'Science',
-    dueDate: '2025-08-25',
-    status: 'completed',
-    priority: 'high',
-    submissions: 1,
-    graded: 1,
-    totalStudents: 1,
-  },
-  {
-    id: '3',
-    title: 'History Essay',
-    class: 'Grade 10 - Section A',
-    subject: 'History',
-    dueDate: '2025-08-22',
-    status: 'overdue',
-    priority: 'low',
-    submissions: 0,
-    graded: 0,
-    totalStudents: 1,
-  },
-];
+// Backend assignments state
+const initialAssignments: StudentAssignment[] = [];
 
 interface StudentAssignment {
   id: string;
@@ -68,16 +34,80 @@ export default function StudentAssignmentsTab({
   statusFilter,
   setStatusFilter,
 }: StudentAssignmentsTabProps) {
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
+  const [assignments, setAssignments] =
+    useState<StudentAssignment[]>(initialAssignments);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch student info and assignments
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      if (!user?.id) return;
+      setLoading(true);
+      try {
+        // Get student profile to get classId
+        const studentRes = await studentService.getStudentByUserId(user.id);
+        const student = studentRes.data;
+        if (!student?.classId) {
+          setAssignments([]);
+          setLoading(false);
+          return;
+        }
+        // Get assignments for student's class
+        const assignmentRes = await assignmentService.getAllAssignments({
+          classId: student.classId,
+        });
+        // Map backend assignments to StudentAssignment type
+        const mappedAssignments = (assignmentRes.data || []).map(a => {
+          let status: 'active' | 'completed' | 'overdue' = 'active';
+          if (a.deletedAt) status = 'overdue';
+          else if (
+            a.submissions &&
+            a.submissions.some(s => s.studentId === student.id && s.isCompleted)
+          )
+            status = 'completed';
+          return {
+            id: a.id,
+            title: a.title,
+            class: `Grade ${a.class.grade} - Section ${a.class.section}`,
+            subject: a.subject.name,
+            dueDate: a.dueDate || '',
+            status,
+            priority: 'medium' as 'low' | 'medium' | 'high',
+            submissions:
+              a.submissions &&
+              a.submissions.some(s => s.studentId === student.id)
+                ? 1
+                : 0,
+            graded:
+              a.submissions &&
+              a.submissions.some(
+                s => s.studentId === student.id && s.isCompleted,
+              )
+                ? 1
+                : 0,
+            totalStudents: a.class.students?.length || 0,
+          };
+        });
+        setAssignments(mappedAssignments);
+      } catch (err) {
+        setAssignments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAssignments();
+  }, [user]);
 
   // Extract unique subjects for filter
   const subjects = useMemo(() => {
-    return [...new Set(mockAssignments.map(a => a.subject))];
-  }, []);
+    return [...new Set(assignments.map(a => a.subject))];
+  }, [assignments]);
 
   const filteredAssignments = useMemo(() => {
-    return mockAssignments.filter(assignment => {
+    return assignments.filter(assignment => {
       const matchesQuery =
         assignment.title.toLowerCase().includes(query.toLowerCase()) ||
         assignment.class.toLowerCase().includes(query.toLowerCase()) ||
@@ -87,7 +117,6 @@ export default function StudentAssignmentsTab({
         statusFilter === 'all' ||
         (statusFilter === 'pending' && assignment.status === 'active') ||
         (statusFilter === 'submitted' && assignment.submissions === 1) ||
-        (statusFilter === 'rejected' && assignment.status === 'rejected') ||
         (statusFilter === 'overdue' && assignment.status === 'overdue');
 
       const matchesSubject =
@@ -95,7 +124,7 @@ export default function StudentAssignmentsTab({
 
       return matchesQuery && matchesStatus && matchesSubject;
     });
-  }, [query, statusFilter, subjectFilter]);
+  }, [query, statusFilter, subjectFilter, assignments]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
