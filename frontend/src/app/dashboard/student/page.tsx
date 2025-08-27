@@ -20,6 +20,7 @@ import React, { useState, useEffect } from 'react';
 import { PageLoader } from '@/components/atoms/loading';
 import { useRouter } from 'next/navigation';
 import Panel from '@/components/organisms/dashboard/UpcomingEventsPanel';
+import { useCalendarEvents } from '@/components/organisms/calendar/hooks/useCalendarEvents';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import Button from '@/components/atoms/form-controls/Button';
 import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
@@ -149,6 +150,18 @@ const assignedSubjects = subjects.map(subjectItem => ({
 }));
 export default function Page() {
   const [loading, setLoading] = useState(true);
+  // Fetch all calendar events (exams, holidays, events)
+  const { events: calendarEvents } = useCalendarEvents({ page: 1, limit: 50 });
+  // Map backend events to UpcomingEventsPanel's Event type
+  const mappedEvents = calendarEvents.map(ev => ({
+    id: ev.id,
+    title: ev.title || ev.name || 'Untitled Event',
+    date: ev.date,
+    time: ev.time || ev.startTime || '',
+    location: ev.location || ev.venue || '',
+    status: typeof ev.status === 'string' ? ev.status : 'Active',
+    type: ev.type || 'event',
+  }));
 
   // Mock student info, replace with real user context if available
   const student = {
@@ -318,6 +331,7 @@ export default function Page() {
                 title='Upcoming Events'
                 maxEvents={3}
                 className='!bg-transparent !border-0 !p-0 !rounded-none !shadow-none'
+                events={mappedEvents}
               />
             </div>
           </div>

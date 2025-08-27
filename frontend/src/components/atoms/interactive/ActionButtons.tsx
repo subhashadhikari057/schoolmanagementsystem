@@ -48,6 +48,7 @@ interface ActionButtonsProps {
     | 'notices'
     | 'complaints'
     | 'leave-requests'
+    | 'leave-types'
     | 'fee-management';
   onRefresh?: () => void;
   onAddNew?: () => void;
@@ -104,6 +105,35 @@ const getActionButtonsConfig = (
         className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
         icon: <Plus size={16} />,
         onClick: () => alert('Bulk actions feature coming soon!'),
+      },
+    ];
+  }
+
+  if (pageType === 'leave-types') {
+    return [
+      {
+        id: 'import-types',
+        label: 'Import Types',
+        variant: 'import',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Upload size={16} />,
+        onClick: () => alert('Import Leave Types feature coming soon!'),
+      },
+      {
+        id: 'export-types',
+        label: 'Export Types',
+        variant: 'export',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: () => alert('Export Leave Types feature coming soon!'),
+      },
+      {
+        id: 'add-leave-type',
+        label: 'Add Leave Type',
+        className: 'bg-[#2F80ED] text-white hover:bg-blue-600 rounded-lg',
+        variant: 'primary',
+        icon: <Plus size={16} />,
+        onClick: openAddModal,
       },
     ];
   }

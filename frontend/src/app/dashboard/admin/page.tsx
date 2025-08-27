@@ -5,6 +5,7 @@ import { useAnalyticsOverview } from '@/context/AnalyticsOverviewContext';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { Users, GraduationCap, DollarSign, CreditCard } from 'lucide-react';
 import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
+import { useCalendarEvents } from '@/components/organisms/calendar/hooks/useCalendarEvents';
 import NotificationPanel from '@/components/organisms/dashboard/NotificationPanel';
 import QuickActions from '@/components/organisms/dashboard/QuickAction';
 import ExpensesBreakdownChart from '@/components/organisms/dashboard/ExpensesBreakdownChart';
@@ -57,6 +58,18 @@ export default function AdminDashboard() {
   const [showAllCharts, setShowAllCharts] = React.useState(false);
   const { showAnalytics } = useAnalyticsOverview();
 
+  // Fetch all calendar events (exams, holidays, events)
+  const { events: calendarEvents } = useCalendarEvents({ page: 1, limit: 50 });
+  // Map backend events to UpcomingEventsPanel's Event type
+  const mappedEvents = calendarEvents.map(ev => ({
+    id: ev.id,
+    title: ev.title || ev.name || 'Untitled Event',
+    date: ev.date,
+    time: ev.time || ev.startTime || '',
+    location: ev.location || ev.venue || '',
+    status: typeof ev.status === 'string' ? ev.status : 'Active',
+  }));
+
   return (
     <div className='min-h-screen bg-background'>
       {/* Mobile-optimized header */}
@@ -77,7 +90,8 @@ export default function AdminDashboard() {
           {/* Main Content Grid - Mobile: Stacked with proper spacing */}
           <div className='space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6'>
             <div className='lg:col-span-8'>
-              <UpcomingEventsPanel />
+              {/* Pass all calendar events to UpcomingEventsPanel */}
+              <UpcomingEventsPanel events={mappedEvents} />
             </div>
             <div className='lg:col-span-4'>
               <NotificationPanel />

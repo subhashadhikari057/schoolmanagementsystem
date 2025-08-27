@@ -934,67 +934,193 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
     searchPlaceholder: 'Search leave requests by name, type, or status...',
     columns: [
       {
-        key: 'employee',
-        header: 'Employee',
+        key: 'applicant',
+        header: 'Student',
         render: (item: any) => (
-          <UserInfoCell
-            name={item.employeeName}
-            id={item.employeeId}
-            avatar={item.avatar}
-            idLabel=''
-          />
+          <div className='flex items-center gap-3'>
+            <div className='w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 text-white font-medium text-sm'>
+              {item.applicant?.name?.charAt(0)?.toUpperCase() || 'S'}
+            </div>
+            <div className='min-w-0 flex-1'>
+              <div className='font-medium text-gray-900 truncate'>
+                {item.applicant?.name || 'Unknown Student'}
+              </div>
+              <div className='text-sm text-gray-500 truncate'>
+                {item.applicant?.extra || 'No Class'}
+              </div>
+            </div>
+          </div>
         ),
       },
       {
         key: 'leaveType',
         header: 'Leave Type',
         render: (item: any) => (
-          <span className='font-medium'>{item.leaveType}</span>
+          <span
+            className={`inline-block px-2 py-1 rounded text-xs font-medium ${item.leaveTypeColor || 'bg-gray-100 text-gray-700'}`}
+          >
+            {item.leaveType}
+          </span>
         ),
       },
       {
         key: 'duration',
         header: 'Duration',
         render: (item: any) => (
-          <span>
-            {item.startDate} - {item.endDate}
-          </span>
+          <div className='text-sm'>
+            <div className='font-medium text-gray-900'>{item.duration}</div>
+            <div className='text-xs text-gray-500'>
+              {item.startDate} to {item.endDate}
+            </div>
+          </div>
         ),
       },
       {
         key: 'reason',
         header: 'Reason',
         render: (item: any) => (
-          <span className='text-xs text-gray-500'>{item.reason}</span>
+          <div className='text-sm'>
+            <div className='text-gray-700'>{item.reason}</div>
+            {item.files > 0 && (
+              <div className='flex items-center gap-1 mt-1 text-xs text-blue-600'>
+                <svg
+                  className='w-3 h-3'
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth={2}
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    d='M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13'
+                  />
+                </svg>
+                {item.files} file{item.files > 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
         ),
       },
       {
         key: 'status',
         header: 'Status',
-        render: (item: any) => <StatusBadge status={item.status} />,
+        render: (item: any) => (
+          <div className='text-sm'>
+            <span
+              className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                item.status === 'Approved'
+                  ? 'bg-green-100 text-green-800'
+                  : item.status === 'Rejected'
+                    ? 'bg-red-100 text-red-800'
+                    : item.status.includes('Pending')
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : item.status === 'Cancelled'
+                        ? 'bg-gray-100 text-gray-800'
+                        : 'bg-blue-100 text-blue-800'
+              }`}
+            >
+              {item.status}
+            </span>
+            {item.statusBy && (
+              <div className='text-xs text-gray-500 mt-1'>
+                By: {item.statusBy}
+              </div>
+            )}
+          </div>
+        ),
       },
       {
         key: 'actions',
         header: 'Actions',
         mobileLabel: 'Actions',
-        render: (item: any) => (
-          <ActionsCell
-            onAction={(action: string) => {
-              switch (action) {
-                case 'view':
-                  // open view modal
-                  break;
-                case 'edit':
-                  // open edit modal
-                  break;
-                case 'delete':
-                  // open delete confirm
-                  break;
-                default:
-                  break;
-              }
-            }}
-          />
+        render: (
+          item: any,
+          isSelected?: boolean,
+          onSelect?: any,
+          onItemAction?: any,
+        ) => (
+          <div className='flex items-center gap-2'>
+            <button
+              onClick={() => onItemAction && onItemAction('view', item)}
+              className='p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors'
+              title='View Details'
+            >
+              <svg
+                className='w-4 h-4'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'
+                />
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'
+                />
+              </svg>
+            </button>
+
+            {/* Show approve/reject buttons for superadmin only */}
+            {item.status !== 'Approved' && item.status !== 'Cancelled' && (
+              <>
+                {/* Approve button only for requests where parent has already approved */}
+                {item.status === 'Pending Teacher' && (
+                  <button
+                    onClick={() =>
+                      onItemAction && onItemAction('approve', item)
+                    }
+                    className='p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors'
+                    title='Approve (Parent already approved)'
+                  >
+                    <svg
+                      className='w-4 h-4'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M5 13l4 4L19 7'
+                      />
+                    </svg>
+                  </button>
+                )}
+
+                {/* Reject button for pending requests */}
+                {(item.status === 'Pending Parent' ||
+                  item.status === 'Pending Teacher') && (
+                  <button
+                    onClick={() => onItemAction && onItemAction('reject', item)}
+                    className='p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors'
+                    title='Reject'
+                  >
+                    <svg
+                      className='w-4 h-4'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M6 18L18 6M6 6l12 12'
+                      />
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         ),
       },
     ],
