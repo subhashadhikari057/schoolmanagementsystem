@@ -305,9 +305,9 @@ export class AttendanceController {
   @Get('date-status/:date')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @ApiOperation({
-    summary: 'Check if a date is a holiday, event, or working day',
+    summary: 'Check date status for attendance purposes',
     description:
-      "Check the status of a specific date to determine if it's a holiday, event, exam, Saturday, or working day",
+      'Check if a date requires attendance, is a holiday, emergency closure, or event. Considers EventScope for proper attendance planning.',
   })
   @ApiParam({
     name: 'date',
@@ -317,20 +317,34 @@ export class AttendanceController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Date status information',
+    description: 'Date status information with attendance requirements',
     schema: {
       type: 'object',
       properties: {
-        isHoliday: { type: 'boolean' },
-        isEvent: { type: 'boolean' },
-        isExam: { type: 'boolean' },
-        isSaturday: { type: 'boolean' },
-        isWorkingDay: { type: 'boolean' },
+        isWorkingDay: {
+          type: 'boolean',
+          description: 'Whether attendance is required',
+        },
+        isHoliday: { type: 'boolean', description: 'Whether it is a holiday' },
+        isEmergencyClosure: {
+          type: 'boolean',
+          description: 'Whether school is closed due to emergency',
+        },
+        message: {
+          type: 'string',
+          description: 'Human-readable status message',
+        },
         eventDetails: {
           type: 'object',
+          nullable: true,
           properties: {
             title: { type: 'string' },
             type: { type: 'string' },
+            eventScope: {
+              type: 'string',
+              enum: ['PARTIAL', 'SCHOOL_WIDE'],
+              nullable: true,
+            },
             description: { type: 'string' },
           },
         },
@@ -338,7 +352,7 @@ export class AttendanceController {
     },
   })
   async checkDateStatus(@Param('date') date: string) {
-    return this.attendanceService.checkDateStatus(date);
+    return this.workingDaysService.checkDateStatus(date);
   }
 
   @Get('class-wise-stats')

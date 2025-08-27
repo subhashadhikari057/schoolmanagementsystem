@@ -171,6 +171,7 @@ export class AttendanceService {
     isExam: boolean;
     isSaturday: boolean;
     isWorkingDay: boolean;
+    isEmergencyClosure: boolean;
     eventDetails?: {
       title: string;
       type: string;
@@ -186,6 +187,7 @@ export class AttendanceService {
       isExam: boolean;
       isSaturday: boolean;
       isWorkingDay: boolean;
+      isEmergencyClosure: boolean;
       eventDetails?: {
         title: string;
         type: string;

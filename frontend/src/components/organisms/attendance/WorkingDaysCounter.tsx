@@ -40,10 +40,10 @@ const BreakdownModal: React.FC<BreakdownModalProps> = ({
   const monthName = workingDaysService.getMonthName(breakdown.month);
 
   return (
-    <div className='fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50'>
-      <div className='bg-white rounded-lg shadow-xl max-w-md w-full mx-4'>
+    <div className='fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+      <div className='bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto'>
         {/* Header */}
-        <div className='flex items-center justify-between p-6 border-b'>
+        <div className='sticky top-0 bg-white flex items-center justify-between p-4 sm:p-6 border-b rounded-t-lg'>
           <div className='flex items-center gap-2'>
             <Calendar className='h-5 w-5 text-blue-600' />
             <h3 className='text-lg font-semibold text-gray-900'>
@@ -59,9 +59,9 @@ const BreakdownModal: React.FC<BreakdownModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className='p-6'>
+        <div className='p-4 sm:p-6'>
           {/* Month/Year Info */}
-          <div className='text-center mb-6'>
+          <div className='text-center mb-4 sm:mb-6'>
             <h4 className='text-xl font-bold text-gray-900'>
               {monthName} {breakdown.year}
             </h4>
@@ -73,15 +73,15 @@ const BreakdownModal: React.FC<BreakdownModalProps> = ({
           </div>
 
           {/* Main Stats */}
-          <div className='grid grid-cols-2 gap-4 mb-6'>
-            <div className='text-center p-4 bg-blue-50 rounded-lg'>
-              <div className='text-2xl font-bold text-blue-600'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6'>
+            <div className='text-center p-3 sm:p-4 bg-blue-50 rounded-lg'>
+              <div className='text-xl sm:text-2xl font-bold text-blue-600'>
                 {breakdown.availableDays}
               </div>
               <div className='text-sm text-blue-700'>Working Days</div>
             </div>
-            <div className='text-center p-4 bg-green-50 rounded-lg'>
-              <div className='text-2xl font-bold text-green-600'>
+            <div className='text-center p-3 sm:p-4 bg-green-50 rounded-lg'>
+              <div className='text-xl sm:text-2xl font-bold text-green-600'>
                 {percentage}%
               </div>
               <div className='text-sm text-green-700'>of Total Days</div>
@@ -89,10 +89,10 @@ const BreakdownModal: React.FC<BreakdownModalProps> = ({
           </div>
 
           {/* Detailed Breakdown */}
-          <div className='space-y-3'>
-            <div className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'>
+          <div className='space-y-2 sm:space-y-3'>
+            <div className='flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg'>
               <div className='flex items-center gap-2'>
-                <div className='w-3 h-3 bg-gray-600 rounded-full'></div>
+                <div className='w-3 h-3 bg-gray-600 rounded-full flex-shrink-0'></div>
                 <span className='text-sm font-medium text-gray-700'>
                   Total Days
                 </span>
@@ -102,9 +102,9 @@ const BreakdownModal: React.FC<BreakdownModalProps> = ({
               </span>
             </div>
 
-            <div className='flex items-center justify-between p-3 bg-red-50 rounded-lg'>
+            <div className='flex items-center justify-between p-2 sm:p-3 bg-red-50 rounded-lg'>
               <div className='flex items-center gap-2'>
-                <div className='w-3 h-3 bg-red-500 rounded-full'></div>
+                <div className='w-3 h-3 bg-red-500 rounded-full flex-shrink-0'></div>
                 <span className='text-sm font-medium text-red-700'>
                   Saturdays
                 </span>
@@ -114,9 +114,9 @@ const BreakdownModal: React.FC<BreakdownModalProps> = ({
               </span>
             </div>
 
-            <div className='flex items-center justify-between p-3 bg-orange-50 rounded-lg'>
+            <div className='flex items-center justify-between p-2 sm:p-3 bg-orange-50 rounded-lg'>
               <div className='flex items-center gap-2'>
-                <div className='w-3 h-3 bg-orange-500 rounded-full'></div>
+                <div className='w-3 h-3 bg-orange-500 rounded-full flex-shrink-0'></div>
                 <span className='text-sm font-medium text-orange-700'>
                   Holidays
                 </span>
@@ -126,9 +126,9 @@ const BreakdownModal: React.FC<BreakdownModalProps> = ({
               </span>
             </div>
 
-            <div className='flex items-center justify-between p-3 bg-purple-50 rounded-lg'>
+            <div className='flex items-center justify-between p-2 sm:p-3 bg-purple-50 rounded-lg'>
               <div className='flex items-center gap-2'>
-                <div className='w-3 h-3 bg-purple-500 rounded-full'></div>
+                <div className='w-3 h-3 bg-purple-500 rounded-full flex-shrink-0'></div>
                 <span className='text-sm font-medium text-purple-700'>
                   Events
                 </span>
@@ -138,23 +138,40 @@ const BreakdownModal: React.FC<BreakdownModalProps> = ({
               </span>
             </div>
 
-            <div className='flex items-center justify-between p-3 bg-blue-50 rounded-lg'>
-              <div className='flex items-center gap-2'>
-                <div className='w-3 h-3 bg-blue-500 rounded-full'></div>
-                <span className='text-sm font-medium text-blue-700'>Exams</span>
+            <div className='flex items-center justify-between p-2 sm:p-3 bg-blue-50 rounded-lg'>
+              <div className='flex items-center gap-2 flex-1 min-w-0'>
+                <div className='w-3 h-3 bg-blue-500 rounded-full flex-shrink-0'></div>
+                <span className='text-sm font-medium text-blue-700 truncate'>
+                  Exams
+                </span>
               </div>
-              <span className='text-sm font-semibold text-blue-800'>
-                {breakdown.exams}
-              </span>
-              <span className='text-xs text-blue-600'>
-                (Still working days)
+              <div className='flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-2'>
+                <span className='text-sm font-semibold text-blue-800'>
+                  {breakdown.exams}
+                </span>
+                <span className='text-xs text-blue-600 leading-none'>
+                  <span className='hidden sm:inline'>(Still working days)</span>
+                  <span className='sm:hidden'>(Working)</span>
+                </span>
+              </div>
+            </div>
+
+            <div className='flex items-center justify-between p-2 sm:p-3 bg-red-50 rounded-lg'>
+              <div className='flex items-center gap-2'>
+                <div className='w-3 h-3 bg-red-600 rounded-full flex-shrink-0'></div>
+                <span className='text-sm font-medium text-red-700'>
+                  Emergency Closures
+                </span>
+              </div>
+              <span className='text-sm font-semibold text-red-800'>
+                -{breakdown.emergencyClosures || 0}
               </span>
             </div>
 
-            <div className='mt-4 pt-3 border-t border-gray-200'>
-              <div className='flex items-center justify-between p-3 bg-green-50 rounded-lg'>
+            <div className='mt-3 sm:mt-4 pt-3 border-t border-gray-200'>
+              <div className='flex items-center justify-between p-2 sm:p-3 bg-green-50 rounded-lg'>
                 <div className='flex items-center gap-2'>
-                  <TrendingUp className='h-4 w-4 text-green-600' />
+                  <TrendingUp className='h-4 w-4 text-green-600 flex-shrink-0' />
                   <span className='text-sm font-medium text-green-700'>
                     Available Working Days
                   </span>
@@ -168,7 +185,7 @@ const BreakdownModal: React.FC<BreakdownModalProps> = ({
 
           {/* Last Updated */}
           {breakdown.lastCalculated && (
-            <div className='mt-4 text-center text-xs text-gray-500'>
+            <div className='mt-3 sm:mt-4 text-center text-xs text-gray-500 px-2'>
               Last calculated:{' '}
               {new Date(breakdown.lastCalculated).toLocaleString()}
             </div>
@@ -176,10 +193,10 @@ const BreakdownModal: React.FC<BreakdownModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className='px-6 py-4 bg-gray-50 rounded-b-lg'>
+        <div className='sticky bottom-0 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 rounded-b-lg border-t'>
           <button
             onClick={onClose}
-            className='w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium'
+            className='w-full bg-blue-600 text-white py-2 sm:py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base'
           >
             Close
           </button>

@@ -12,6 +12,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
+import { WorkingDaysService } from '../../attendance/application/working-days.service';
 import {
   CreateCalendarEntryDto,
   UpdateCalendarEntryDto,
@@ -22,12 +23,16 @@ import {
   CalendarEntryType,
   HolidayType,
   ExamType,
+  EmergencyClosureType,
 } from '../dto/calendar.dto';
 import { CalendarEntry, Prisma } from '@prisma/client';
 
 @Injectable()
 export class CalendarService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly workingDaysService: WorkingDaysService,
+  ) {}
 
   /**
    * Create a new calendar entry
@@ -39,17 +44,24 @@ export class CalendarService {
     // Calendar entry creation logic
 
     try {
+      const startDate = new Date(dto.startDate);
+      const endDate = new Date(dto.endDate);
+
       const data: Prisma.CalendarEntryCreateInput = {
         name: dto.name,
-        type: dto.type,
-        startDate: new Date(dto.startDate),
-        endDate: new Date(dto.endDate),
+        type: dto.type as any, // Type conversion needed due to enum mismatch
+        startDate,
+        endDate,
         venue: dto.venue,
-        holidayType: dto.holidayType,
+        eventScope: dto.eventScope,
+        holidayType: dto.holidayType as any,
         startTime: dto.startTime,
         endTime: dto.endTime,
-        examType: dto.examType,
+        examType: dto.examType as any,
         examDetails: dto.examDetails,
+        emergencyClosureType: dto.emergencyClosureType as any,
+        emergencyReason: dto.emergencyReason,
+        affectedAreas: dto.affectedAreas,
         createdById: userId,
       };
 
@@ -57,8 +69,12 @@ export class CalendarService {
         data,
       });
 
+      // Recalculate working days for affected months
+      await this.workingDaysService.recalculateForEvent(startDate, endDate);
+
       return this.mapToResponseDto(entry);
-    } catch {
+    } catch (error) {
+      console.error('Error creating calendar entry:', error);
       throw new BadRequestException('Failed to create calendar entry');
     }
   }
@@ -217,6 +233,32 @@ export class CalendarService {
         data: updateData,
       });
 
+      // Recalculate working days for affected months
+      // Use both old and new dates to ensure all affected months are recalculated
+      const oldStartDate = existingEntry.startDate;
+      const oldEndDate = existingEntry.endDate;
+      const newStartDate = dto.startDate
+        ? new Date(dto.startDate)
+        : oldStartDate;
+      const newEndDate = dto.endDate ? new Date(dto.endDate) : oldEndDate;
+
+      // Recalculate for old date range (in case event was moved)
+      await this.workingDaysService.recalculateForEvent(
+        oldStartDate,
+        oldEndDate,
+      );
+
+      // Recalculate for new date range (in case dates changed)
+      if (
+        newStartDate.getTime() !== oldStartDate.getTime() ||
+        newEndDate.getTime() !== oldEndDate.getTime()
+      ) {
+        await this.workingDaysService.recalculateForEvent(
+          newStartDate,
+          newEndDate,
+        );
+      }
+
       return this.mapToResponseDto(updatedEntry);
     } catch {
       throw new BadRequestException('Failed to update calendar entry');
@@ -246,6 +288,12 @@ export class CalendarService {
           deletedById: userId,
         },
       });
+
+      // Recalculate working days for the affected months after deletion
+      await this.workingDaysService.recalculateForEvent(
+        entry.startDate,
+        entry.endDate,
+      );
     } catch {
       throw new BadRequestException('Failed to delete calendar entry');
     }

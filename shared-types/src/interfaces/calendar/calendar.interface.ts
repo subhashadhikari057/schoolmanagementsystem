@@ -11,6 +11,7 @@ import {
   HolidayType,
   ReminderType,
   Priority,
+  EmergencyClosureType,
 } from "../../enums";
 import { AuditInfo } from "../common/audit.interface";
 
@@ -34,6 +35,11 @@ export interface CalendarEntry extends AuditInfo {
 
   // Holiday-specific fields
   holidayType?: HolidayType;
+
+  // Emergency closure specific fields
+  emergencyClosureType?: EmergencyClosureType;
+  emergencyReason?: string;
+  affectedAreas?: string; // JSON string for areas affected
 
   // Reminder-specific fields
   reminderType?: ReminderType;

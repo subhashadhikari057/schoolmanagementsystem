@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
-import CreateTemplateModal from '@/components/organisms/modals/CreateTemplateModal';
+import CreateTemplateModal from '@/components/modals/CreateTemplateModal';
 import TemplatePreviewModal from '@/components/organisms/modals/TemplatePreviewModal';
 import TemplateEditModal from '@/components/organisms/modals/TemplateEditModal';
 import TemplateCopyModal from '@/components/organisms/modals/TemplateCopyModal';
@@ -425,8 +425,12 @@ const IDCardGenerationPage = () => {
       />
 
       <CreateTemplateModal
-        open={createTemplateModalOpen}
-        onOpenChange={setCreateTemplateModalOpen}
+        isOpen={createTemplateModalOpen}
+        onClose={() => setCreateTemplateModalOpen(false)}
+        onSuccess={() => {
+          setCreateTemplateModalOpen(false);
+          // Refresh templates list
+        }}
       />
 
       <TemplatePreviewModal

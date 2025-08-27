@@ -17,8 +17,16 @@ import {
   CalendarEntryType,
   HolidayType,
   ExamType,
+  EventScope,
   CreateCalendarEntryDto,
 } from '../types/calendar.types';
+import {
+  EmergencyClosureType,
+  EmergencyClosureTypeLabels,
+  EmergencyClosureIcons,
+  EventScopeLabels,
+  EventScopeDescriptions,
+} from '@sms/shared-types';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
 import { toast } from 'sonner';
 
@@ -26,28 +34,32 @@ export default function AddEventModal({
   isOpen,
   onClose,
   onEventCreated,
-  initialDate,
+  initialDate: _initialDate,
 }: AddEventModalProps) {
   const { createEvent } = useCalendarEvents();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [startBsDate, setStartBsDate] = useState({
-    year: 2081,
-    month: 1,
-    day: 1,
+    year: 0,
+    month: 0,
+    day: 0,
   });
-  const [endBsDate, setEndBsDate] = useState({ year: 2081, month: 1, day: 1 });
+  const [endBsDate, setEndBsDate] = useState({ year: 0, month: 0, day: 0 });
   const [formData, setFormData] = useState<EventFormData>({
     name: '',
     type: CalendarEntryType.EVENT,
-    startDate: initialDate || '',
-    endDate: initialDate || '',
+    eventScope: undefined,
+    startDate: '',
+    endDate: '',
     startTime: '09:00',
     endTime: '17:00',
     venue: '',
     holidayType: undefined,
     examType: undefined,
     examDetails: '',
+    emergencyClosureType: undefined,
+    emergencyReason: '',
+    affectedAreas: '',
   });
 
   // Nepali month names
@@ -72,100 +84,33 @@ export default function AddEventModal({
       setFormData({
         name: '',
         type: CalendarEntryType.EVENT,
-        startDate: initialDate || '',
-        endDate: initialDate || '',
+        eventScope: undefined,
+        startDate: '',
+        endDate: '',
         startTime: '09:00',
         endTime: '17:00',
         venue: '',
         holidayType: undefined,
         examType: undefined,
         examDetails: '',
+        emergencyClosureType: undefined,
+        emergencyReason: '',
+        affectedAreas: '',
       });
 
-      // Set BS dates based on initialDate or current date
-      if (initialDate) {
-        // Convert the provided initialDate (AD) to BS
-        try {
-          const selectedDate = new Date(initialDate);
-          const selectedBS = ad2bs(
-            selectedDate.getFullYear(),
-            selectedDate.getMonth() + 1,
-            selectedDate.getDate(),
-          );
-          if (
-            selectedBS &&
-            selectedBS.year &&
-            selectedBS.month &&
-            selectedBS.date
-          ) {
-            setStartBsDate({
-              year: selectedBS.year,
-              month: selectedBS.month,
-              day: selectedBS.date,
-            });
-            setEndBsDate({
-              year: selectedBS.year,
-              month: selectedBS.month,
-              day: selectedBS.date,
-            });
-          } else {
-            throw new Error('Invalid selected BS date');
-          }
-        } catch (error) {
-          console.error('Failed to convert initialDate to BS:', error);
-          // Fallback to current date
-          const today = new Date();
-          const currentBS = ad2bs(
-            today.getFullYear(),
-            today.getMonth() + 1,
-            today.getDate(),
-          );
-          setStartBsDate({
-            year: currentBS.year,
-            month: currentBS.month,
-            day: currentBS.date,
-          });
-          setEndBsDate({
-            year: currentBS.year,
-            month: currentBS.month,
-            day: currentBS.date,
-          });
-        }
-      } else {
-        // Use current date if no initialDate provided
-        try {
-          const today = new Date();
-          const currentBS = ad2bs(
-            today.getFullYear(),
-            today.getMonth() + 1,
-            today.getDate(),
-          );
-          if (
-            currentBS &&
-            currentBS.year &&
-            currentBS.month &&
-            currentBS.date
-          ) {
-            setStartBsDate({
-              year: currentBS.year,
-              month: currentBS.month,
-              day: currentBS.date,
-            });
-            setEndBsDate({
-              year: currentBS.year,
-              month: currentBS.month,
-              day: currentBS.date,
-            });
-          } else {
-            throw new Error('Invalid current BS date');
-          }
-        } catch (error) {
-          setStartBsDate({ year: 2081, month: 9, day: 15 }); // Default to a safe date
-          setEndBsDate({ year: 2081, month: 9, day: 15 }); // Default to a safe date
-        }
-      }
+      // Reset BS dates to empty state
+      setStartBsDate({
+        year: 0,
+        month: 0,
+        day: 0,
+      });
+      setEndBsDate({
+        year: 0,
+        month: 0,
+        day: 0,
+      });
     }
-  }, [isOpen, initialDate]);
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,6 +149,14 @@ export default function AddEventModal({
       return;
     }
 
+    if (formData.type === CalendarEntryType.EVENT && !formData.eventScope) {
+      toast.error('Validation Error', {
+        description: 'Please select an event type (Partial or School-wide).',
+        duration: 3000,
+      });
+      return;
+    }
+
     if (formData.type === CalendarEntryType.HOLIDAY && !formData.holidayType) {
       toast.error('Validation Error', {
         description: 'Please select a holiday type.',
@@ -215,6 +168,28 @@ export default function AddEventModal({
     if (formData.type === CalendarEntryType.EXAM && !formData.examType) {
       toast.error('Validation Error', {
         description: 'Please select an exam type.',
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (
+      formData.type === CalendarEntryType.EMERGENCY_CLOSURE &&
+      !formData.emergencyClosureType
+    ) {
+      toast.error('Validation Error', {
+        description: 'Please select an emergency closure type.',
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (
+      formData.type === CalendarEntryType.EMERGENCY_CLOSURE &&
+      !formData.emergencyReason?.trim()
+    ) {
+      toast.error('Validation Error', {
+        description: 'Please provide a reason for the emergency closure.',
         duration: 3000,
       });
       return;
@@ -249,6 +224,7 @@ export default function AddEventModal({
         endDate: endDateTime,
         ...(formData.type === CalendarEntryType.EVENT && {
           venue: formData.venue?.trim(),
+          eventScope: formData.eventScope,
           startTime: formData.startTime,
           endTime: formData.endTime,
         }),
@@ -261,6 +237,11 @@ export default function AddEventModal({
           venue: formData.venue?.trim(),
           startTime: formData.startTime,
           endTime: formData.endTime,
+        }),
+        ...(formData.type === CalendarEntryType.EMERGENCY_CLOSURE && {
+          emergencyClosureType: formData.emergencyClosureType,
+          emergencyReason: formData.emergencyReason?.trim(),
+          affectedAreas: formData.affectedAreas?.trim(),
         }),
       };
 
@@ -298,23 +279,44 @@ export default function AddEventModal({
           holidayType: undefined,
           examType: undefined,
           examDetails: '',
+          emergencyClosureType: undefined,
+          emergencyReason: '',
+          affectedAreas: '',
           startTime: '09:00',
           endTime: '17:00',
         }),
       ...(field === 'type' &&
         value === CalendarEntryType.HOLIDAY && {
           venue: '',
+          eventScope: undefined,
           examType: undefined,
           examDetails: '',
+          emergencyClosureType: undefined,
+          emergencyReason: '',
+          affectedAreas: '',
           startTime: undefined,
           endTime: undefined,
         }),
       ...(field === 'type' &&
         value === CalendarEntryType.EXAM && {
           venue: '',
+          eventScope: undefined,
           holidayType: undefined,
+          emergencyClosureType: undefined,
+          emergencyReason: '',
+          affectedAreas: '',
           startTime: '09:00',
           endTime: '17:00',
+        }),
+      ...(field === 'type' &&
+        value === CalendarEntryType.EMERGENCY_CLOSURE && {
+          venue: '',
+          eventScope: undefined,
+          holidayType: undefined,
+          examType: undefined,
+          examDetails: '',
+          startTime: undefined,
+          endTime: undefined,
         }),
     }));
   };
@@ -343,8 +345,21 @@ export default function AddEventModal({
     setStartBsDate(prev => {
       const newBsDate = { ...prev, [field]: value };
 
+      // Only convert if all fields have valid values
+      if (
+        newBsDate.year === 0 ||
+        newBsDate.month === 0 ||
+        newBsDate.day === 0
+      ) {
+        setFormData(prevForm => ({
+          ...prevForm,
+          startDate: '',
+        }));
+        return newBsDate;
+      }
+
       // Validate BS date ranges
-      if (newBsDate.year < 2070 || newBsDate.year > 2090) {
+      if (newBsDate.year < 2070 || newBsDate.year > 2100) {
         setFormData(prevForm => ({
           ...prevForm,
           startDate: '',
@@ -419,8 +434,21 @@ export default function AddEventModal({
     setEndBsDate(prev => {
       const newBsDate = { ...prev, [field]: value };
 
+      // Only convert if all fields have valid values
+      if (
+        newBsDate.year === 0 ||
+        newBsDate.month === 0 ||
+        newBsDate.day === 0
+      ) {
+        setFormData(prevForm => ({
+          ...prevForm,
+          endDate: '',
+        }));
+        return newBsDate;
+      }
+
       // Validate BS date ranges
-      if (newBsDate.year < 2070 || newBsDate.year > 2090) {
+      if (newBsDate.year < 2070 || newBsDate.year > 2100) {
         setFormData(prevForm => ({
           ...prevForm,
           endDate: '',
@@ -529,6 +557,9 @@ export default function AddEventModal({
               <option value={CalendarEntryType.EVENT}>Event</option>
               <option value={CalendarEntryType.HOLIDAY}>Holiday</option>
               <option value={CalendarEntryType.EXAM}>Exam</option>
+              <option value={CalendarEntryType.EMERGENCY_CLOSURE}>
+                Emergency Closure
+              </option>
             </select>
           </div>
 
@@ -564,18 +595,18 @@ export default function AddEventModal({
                 <label className='block text-xs text-gray-500 mb-1'>Year</label>
                 <input
                   type='number'
-                  value={startBsDate.year}
+                  value={startBsDate.year || ''}
                   onChange={e =>
                     handleStartBsDateChange(
                       'year',
-                      parseInt(e.target.value) || 2081,
+                      parseInt(e.target.value) || 0,
                     )
                   }
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
                   min='2070'
-                  max='2090'
+                  max='2100'
                   disabled={isSubmitting}
-                  placeholder='2081'
+                  placeholder='2082'
                 />
               </div>
 
@@ -585,13 +616,17 @@ export default function AddEventModal({
                   Month
                 </label>
                 <select
-                  value={startBsDate.month}
+                  value={startBsDate.month || ''}
                   onChange={e =>
-                    handleStartBsDateChange('month', parseInt(e.target.value))
+                    handleStartBsDateChange(
+                      'month',
+                      parseInt(e.target.value) || 0,
+                    )
                   }
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
                   disabled={isSubmitting}
                 >
+                  <option value=''>Select Month</option>
                   {nepaliMonths.map((month, index) => (
                     <option key={index + 1} value={index + 1}>
                       {index + 1}. {month}
@@ -605,11 +640,11 @@ export default function AddEventModal({
                 <label className='block text-xs text-gray-500 mb-1'>Day</label>
                 <input
                   type='number'
-                  value={startBsDate.day}
+                  value={startBsDate.day || ''}
                   onChange={e =>
                     handleStartBsDateChange(
                       'day',
-                      parseInt(e.target.value) || 1,
+                      parseInt(e.target.value) || 0,
                     )
                   }
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
@@ -621,29 +656,36 @@ export default function AddEventModal({
               </div>
             </div>
 
-            {/* Start Date Display */}
-            <div className='mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg'>
-              <div className='text-sm text-blue-800 font-medium'>
-                <strong>Start BS Date:</strong>{' '}
-                {nepaliMonths[startBsDate.month - 1] || 'Invalid'}{' '}
-                {startBsDate.day}, {startBsDate.year}
-              </div>
-              <div className='text-xs text-blue-600 mt-1'>
-                <strong>Equivalent AD Date:</strong>{' '}
-                {formData.startDate
-                  ? new Date(formData.startDate).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })
-                  : 'Calculating...'}
-              </div>
-              {!formData.startDate && (
-                <div className='text-xs text-red-600 mt-1'>
-                  ⚠️ Please select a valid BS date (Year: 2070-2090)
+            {/* Start Date Display - Only show when valid date is selected */}
+            {startBsDate.year > 0 &&
+              startBsDate.month > 0 &&
+              startBsDate.day > 0 && (
+                <div className='mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg'>
+                  <div className='text-sm text-blue-800 font-medium'>
+                    <strong>Start BS Date:</strong>{' '}
+                    {nepaliMonths[startBsDate.month - 1] || 'Invalid'}{' '}
+                    {startBsDate.day}, {startBsDate.year}
+                  </div>
+                  <div className='text-xs text-blue-600 mt-1'>
+                    <strong>Equivalent AD Date:</strong>{' '}
+                    {formData.startDate
+                      ? new Date(formData.startDate).toLocaleDateString(
+                          'en-US',
+                          {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          },
+                        )
+                      : 'Calculating...'}
+                  </div>
+                  {!formData.startDate && (
+                    <div className='text-xs text-red-600 mt-1'>
+                      ⚠️ Please select a valid BS date (Year: 2070-2100)
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
           </div>
 
           {/* End Date (BS) */}
@@ -658,18 +700,15 @@ export default function AddEventModal({
                 <label className='block text-xs text-gray-500 mb-1'>Year</label>
                 <input
                   type='number'
-                  value={endBsDate.year}
+                  value={endBsDate.year || ''}
                   onChange={e =>
-                    handleEndBsDateChange(
-                      'year',
-                      parseInt(e.target.value) || 2081,
-                    )
+                    handleEndBsDateChange('year', parseInt(e.target.value) || 0)
                   }
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
                   min='2070'
-                  max='2090'
+                  max='2100'
                   disabled={isSubmitting}
-                  placeholder='2081'
+                  placeholder='2082'
                 />
               </div>
 
@@ -679,13 +718,17 @@ export default function AddEventModal({
                   Month
                 </label>
                 <select
-                  value={endBsDate.month}
+                  value={endBsDate.month || ''}
                   onChange={e =>
-                    handleEndBsDateChange('month', parseInt(e.target.value))
+                    handleEndBsDateChange(
+                      'month',
+                      parseInt(e.target.value) || 0,
+                    )
                   }
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
                   disabled={isSubmitting}
                 >
+                  <option value=''>Select Month</option>
                   {nepaliMonths.map((month, index) => (
                     <option key={index + 1} value={index + 1}>
                       {index + 1}. {month}
@@ -699,9 +742,9 @@ export default function AddEventModal({
                 <label className='block text-xs text-gray-500 mb-1'>Day</label>
                 <input
                   type='number'
-                  value={endBsDate.day}
+                  value={endBsDate.day || ''}
                   onChange={e =>
-                    handleEndBsDateChange('day', parseInt(e.target.value) || 1)
+                    handleEndBsDateChange('day', parseInt(e.target.value) || 0)
                   }
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
                   min='1'
@@ -712,29 +755,31 @@ export default function AddEventModal({
               </div>
             </div>
 
-            {/* End Date Display */}
-            <div className='mt-2 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg'>
-              <div className='text-sm text-green-800 font-medium'>
-                <strong>End BS Date:</strong>{' '}
-                {nepaliMonths[endBsDate.month - 1] || 'Invalid'} {endBsDate.day}
-                , {endBsDate.year}
-              </div>
-              <div className='text-xs text-green-600 mt-1'>
-                <strong>Equivalent AD Date:</strong>{' '}
-                {formData.endDate
-                  ? new Date(formData.endDate).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })
-                  : 'Calculating...'}
-              </div>
-              {!formData.endDate && (
-                <div className='text-xs text-red-600 mt-1'>
-                  ⚠️ Please select a valid BS date (Year: 2070-2090)
+            {/* End Date Display - Only show when valid date is selected */}
+            {endBsDate.year > 0 && endBsDate.month > 0 && endBsDate.day > 0 && (
+              <div className='mt-2 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg'>
+                <div className='text-sm text-green-800 font-medium'>
+                  <strong>End BS Date:</strong>{' '}
+                  {nepaliMonths[endBsDate.month - 1] || 'Invalid'}{' '}
+                  {endBsDate.day}, {endBsDate.year}
                 </div>
-              )}
-            </div>
+                <div className='text-xs text-green-600 mt-1'>
+                  <strong>Equivalent AD Date:</strong>{' '}
+                  {formData.endDate
+                    ? new Date(formData.endDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : 'Calculating...'}
+                </div>
+                {!formData.endDate && (
+                  <div className='text-xs text-red-600 mt-1'>
+                    ⚠️ Please select a valid BS date (Year: 2070-2100)
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Time Fields (for Events and Exams) */}
@@ -778,24 +823,59 @@ export default function AddEventModal({
 
           {/* Event-specific fields */}
           {formData.type === CalendarEntryType.EVENT && (
-            <div>
-              <label
-                htmlFor='venue'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                Venue <span className='text-red-500'>*</span>
-              </label>
-              <input
-                type='text'
-                id='venue'
-                value={formData.venue || ''}
-                onChange={e => handleInputChange('venue', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Enter event venue'
-                disabled={isSubmitting}
-                required
-              />
-            </div>
+            <>
+              <div>
+                <label
+                  htmlFor='venue'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Venue <span className='text-red-500'>*</span>
+                </label>
+                <input
+                  type='text'
+                  id='venue'
+                  value={formData.venue || ''}
+                  onChange={e => handleInputChange('venue', e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Enter event venue'
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor='eventScope'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Event Type <span className='text-red-500'>*</span>
+                </label>
+                <select
+                  id='eventScope'
+                  value={formData.eventScope || ''}
+                  onChange={e =>
+                    handleInputChange('eventScope', e.target.value)
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  disabled={isSubmitting}
+                  required
+                >
+                  <option value=''>Select event type</option>
+                  <option value='PARTIAL'>
+                    Partial Event (Normal Attendance)
+                  </option>
+                  <option value='SCHOOL_WIDE'>
+                    School-wide Event (No Attendance)
+                  </option>
+                </select>
+                <p className='text-sm text-gray-500 mt-1'>
+                  {formData.eventScope === 'PARTIAL' &&
+                    'This event affects only some classes/students. School remains open and attendance is taken normally.'}
+                  {formData.eventScope === 'SCHOOL_WIDE' &&
+                    'This event affects the entire school. School is closed and this day is excluded from attendance calculations.'}
+                </p>
+              </div>
+            </>
           )}
 
           {/* Holiday-specific fields */}
@@ -875,6 +955,96 @@ export default function AddEventModal({
                   rows={3}
                   disabled={isSubmitting}
                 />
+              </div>
+            </>
+          )}
+
+          {/* Emergency Closure-specific fields */}
+          {formData.type === CalendarEntryType.EMERGENCY_CLOSURE && (
+            <>
+              <div>
+                <label
+                  htmlFor='emergencyClosureType'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Emergency Type <span className='text-red-500'>*</span>
+                </label>
+                <select
+                  id='emergencyClosureType'
+                  value={formData.emergencyClosureType || ''}
+                  onChange={e =>
+                    handleInputChange(
+                      'emergencyClosureType',
+                      e.target.value as EmergencyClosureType,
+                    )
+                  }
+                  className='w-full px-3 py-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500'
+                  disabled={isSubmitting}
+                  required
+                >
+                  <option value=''>Select emergency type</option>
+                  {Object.values(EmergencyClosureType).map(type => (
+                    <option key={type} value={type}>
+                      {EmergencyClosureIcons[type]}{' '}
+                      {EmergencyClosureTypeLabels[type]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor='emergencyReason'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Emergency Reason <span className='text-red-500'>*</span>
+                </label>
+                <textarea
+                  id='emergencyReason'
+                  value={formData.emergencyReason || ''}
+                  onChange={e =>
+                    handleInputChange('emergencyReason', e.target.value)
+                  }
+                  className='w-full px-3 py-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500'
+                  placeholder='Describe the emergency situation and reason for closure...'
+                  rows={3}
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor='affectedAreas'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Affected Areas (Optional)
+                </label>
+                <textarea
+                  id='affectedAreas'
+                  value={formData.affectedAreas || ''}
+                  onChange={e =>
+                    handleInputChange('affectedAreas', e.target.value)
+                  }
+                  className='w-full px-3 py-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500'
+                  placeholder='Specify areas/departments affected (e.g., "All classrooms", "Library and Labs", etc.)'
+                  rows={2}
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
+                <div className='flex items-start space-x-2'>
+                  <span className='text-red-600 text-lg'>⚠️</span>
+                  <div className='text-sm text-red-800'>
+                    <p className='font-medium'>Important Note:</p>
+                    <p>
+                      Emergency closures automatically mark the affected days as
+                      non-working days for attendance calculation. Students and
+                      staff will not be required to attend during this period.
+                    </p>
+                  </div>
+                </div>
               </div>
             </>
           )}

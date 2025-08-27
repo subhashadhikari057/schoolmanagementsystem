@@ -30,8 +30,10 @@ import { FeeModule } from './modules/fee/fee.module';
 import { NoticeModule } from './modules/notice/notice.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
+import { IDCardTemplateModule } from './modules/id-card-templates/id-card-template.module';
 import { LeaveRequestModule } from './modules/leave-request/leave-request.module';
 import { LeaveTypeModule } from './modules/leave-type/leave-type.module';
+
 
 @Module({
   imports: [
@@ -56,6 +58,7 @@ import { LeaveTypeModule } from './modules/leave-type/leave-type.module';
     NoticeModule,
     AttendanceModule,
     ComplaintModule,
+    IDCardTemplateModule,
     LeaveRequestModule,
     LeaveTypeModule,
   ],

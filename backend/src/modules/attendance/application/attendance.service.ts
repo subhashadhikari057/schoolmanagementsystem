@@ -414,8 +414,7 @@ export class AttendanceService {
       const attendanceDate = new Date(date);
 
       // Check if the date is a holiday/event
-      const dateStatus =
-        await this.workingDaysService.checkDateStatus(attendanceDate);
+      const dateStatus = await this.workingDaysService.checkDateStatus(date);
 
       const attendanceSession = await this.prisma.attendanceSession.findUnique({
         where: {
@@ -442,15 +441,14 @@ export class AttendanceService {
         },
       });
 
-      // Return both attendance data and date status
+      // Return both attendance data and date status with new format
       return {
         ...attendanceSession,
         dateStatus: {
-          isHoliday: dateStatus.isHoliday,
-          isEvent: dateStatus.isEvent,
-          isExam: dateStatus.isExam,
-          isSaturday: dateStatus.isSaturday,
           isWorkingDay: dateStatus.isWorkingDay,
+          isHoliday: dateStatus.isHoliday,
+          isEmergencyClosure: dateStatus.isEmergencyClosure,
+          message: dateStatus.message,
           eventDetails: dateStatus.eventDetails,
         },
       };

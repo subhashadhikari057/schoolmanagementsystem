@@ -345,8 +345,20 @@ const CustomBSCalendar = ({
                     ? String((e as any).type).toLowerCase()
                     : '') === 'exam',
               );
+            const hasEmergencyClosure =
+              hasEvents &&
+              dayEvents.some(
+                (e: any) =>
+                  (e && (e as any).type
+                    ? String((e as any).type).toLowerCase()
+                    : '') === 'emergency_closure',
+              );
             const hasOnlyEvent =
-              hasEvents && !hasHoliday && !hasExam && hasEvent;
+              hasEvents &&
+              !hasHoliday &&
+              !hasExam &&
+              !hasEmergencyClosure &&
+              hasEvent;
             const holidayEvent = hasHoliday
               ? dayEvents.find(
                   (e: any) =>
@@ -376,7 +388,11 @@ const CustomBSCalendar = ({
                         ${
                           isSaturday
                             ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
-                            : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
+                            : hasEmergencyClosure
+                              ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-red-400 hover:from-red-700 hover:to-red-800'
+                              : hasHoliday
+                                ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-white shadow-orange-200 hover:from-orange-500 hover:to-orange-600'
+                                : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
                         }
                       `}
                     >
@@ -388,7 +404,9 @@ const CustomBSCalendar = ({
                               className={`text-sm font-bold ${
                                 isTodayDate
                                   ? 'bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto'
-                                  : isSaturday
+                                  : isSaturday ||
+                                      hasEmergencyClosure ||
+                                      hasHoliday
                                     ? 'text-white'
                                     : 'text-gray-900'
                               }`}
@@ -410,6 +428,9 @@ const CustomBSCalendar = ({
                               if (eventType === 'holiday') {
                                 badgeColor = 'bg-red-500 text-white';
                                 dotColor = 'bg-red-600';
+                              } else if (eventType === 'emergency_closure') {
+                                badgeColor = 'bg-red-700 text-white';
+                                dotColor = 'bg-red-800';
                               } else if (eventType === 'exam') {
                                 badgeColor = 'bg-purple-500 text-white';
                                 dotColor = 'bg-purple-600';
@@ -467,6 +488,9 @@ const CustomBSCalendar = ({
                             if (eventType === 'holiday') {
                               borderColor = 'border-red-500';
                               icon = '🎉';
+                            } else if (eventType === 'emergency_closure') {
+                              borderColor = 'border-red-700';
+                              icon = '🚨';
                             } else if (eventType === 'exam') {
                               borderColor = 'border-purple-500';
                               icon = '📝';
@@ -495,6 +519,30 @@ const CustomBSCalendar = ({
                                     {(event as any).description && (
                                       <div className='text-gray-500 text-xs mt-1'>
                                         {(event as any).description}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Emergency Closure-specific details */}
+                                {eventType === 'emergency_closure' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-red-700 font-medium'>
+                                      Emergency Closure
+                                    </div>
+                                    {(event as any).emergencyClosureType && (
+                                      <div className='text-gray-500 text-xs'>
+                                        🚨 {(event as any).emergencyClosureType}
+                                      </div>
+                                    )}
+                                    {(event as any).emergencyReason && (
+                                      <div className='text-gray-500 text-xs mt-1'>
+                                        {(event as any).emergencyReason}
+                                      </div>
+                                    )}
+                                    {(event as any).affectedAreas && (
+                                      <div className='text-gray-500 text-xs'>
+                                        📍 {(event as any).affectedAreas}
                                       </div>
                                     )}
                                   </div>
@@ -853,6 +901,9 @@ const CustomADCalendar = ({
                               if (eventType === 'holiday') {
                                 badgeColor = 'bg-red-500 text-white';
                                 dotColor = 'bg-red-600';
+                              } else if (eventType === 'emergency_closure') {
+                                badgeColor = 'bg-red-700 text-white';
+                                dotColor = 'bg-red-800';
                               } else if (eventType === 'exam') {
                                 badgeColor = 'bg-purple-500 text-white';
                                 dotColor = 'bg-purple-600';
@@ -899,6 +950,9 @@ const CustomADCalendar = ({
                             if (eventType === 'holiday') {
                               borderColor = 'border-red-500';
                               icon = '🎉';
+                            } else if (eventType === 'emergency_closure') {
+                              borderColor = 'border-red-700';
+                              icon = '🚨';
                             } else if (eventType === 'exam') {
                               borderColor = 'border-purple-500';
                               icon = '📝';
@@ -923,6 +977,30 @@ const CustomADCalendar = ({
                                     {(event as any).description && (
                                       <div className='text-gray-500 text-xs mt-1'>
                                         {(event as any).description}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Emergency Closure-specific details */}
+                                {eventType === 'emergency_closure' && (
+                                  <div className='text-gray-600'>
+                                    <div className='text-red-700 font-medium'>
+                                      Emergency Closure
+                                    </div>
+                                    {(event as any).emergencyClosureType && (
+                                      <div className='text-gray-500 text-xs'>
+                                        🚨 {(event as any).emergencyClosureType}
+                                      </div>
+                                    )}
+                                    {(event as any).emergencyReason && (
+                                      <div className='text-gray-500 text-xs mt-1'>
+                                        {(event as any).emergencyReason}
+                                      </div>
+                                    )}
+                                    {(event as any).affectedAreas && (
+                                      <div className='text-gray-500 text-xs'>
+                                        📍 {(event as any).affectedAreas}
                                       </div>
                                     )}
                                   </div>

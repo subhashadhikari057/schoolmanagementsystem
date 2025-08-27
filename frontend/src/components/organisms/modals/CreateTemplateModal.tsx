@@ -1,106 +1,74 @@
-/**
- * =============================================================================
- * Create Template Modal Component
- * =============================================================================
- * Modal for creating and editing ID card templates
- * =============================================================================
- */
-
-import React, { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
-  X,
-  CreditCard,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Slider } from '@/components/ui/slider';
+import {
   FileText,
-  Palette,
+  Image as ImageIcon,
   Layout,
+  Palette,
+  CheckCircle,
+  Loader2,
+  Type,
+  QrCode,
+  CreditCard,
   Minus,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
   Eye,
   Save,
   Copy,
-  Type,
-  QrCode,
-  Image as ImageIcon,
   Grid,
   Ruler,
-  CheckCircle,
-  Loader2,
+  Download,
+  Smartphone,
+  Monitor,
+  Printer,
+  Plus,
+  Database,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+import {
+  IDCardTemplate,
+  CreateTemplateRequest,
+  TemplateField,
+  TemplateSettings,
+  ComponentTemplateField,
+  TemplateTypeInfo,
+  PredefinedDimension,
+  DatabaseField,
+} from '@/types/template.types';
+import { templateApiService } from '@/services/template.service';
 
 interface CreateTemplateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editingTemplate?: {
-    name?: string;
-    type?: string;
-    description?: string;
-    dimensions?: string;
-    orientation?: string;
-    backgroundColor?: string;
-    borderColor?: string;
-    borderWidth?: number;
-    borderRadius?: number;
-    logoRequired?: boolean;
-    photoRequired?: boolean;
-    qrCodeRequired?: boolean;
-    barcodeRequired?: boolean;
-    printMargin?: number;
-    bleedArea?: number;
-    safeArea?: number;
-    fields?: TemplateField[];
-  };
+  editingTemplate?: IDCardTemplate;
+  onTemplateCreated?: (template: IDCardTemplate) => void;
+  onTemplateUpdated?: (template: IDCardTemplate) => void;
 }
 
-interface TemplateField {
-  id: string;
-  type: 'text' | 'image' | 'qr' | 'barcode' | 'logo';
-  label: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  fontSize?: number;
-  fontWeight?: string;
-  textAlign?: 'left' | 'center' | 'right';
-  fontFamily?: string;
-  color?: string;
-  backgroundColor?: string;
-  borderWidth?: number;
-  borderColor?: string;
-  borderRadius?: number;
-  required: boolean;
-  placeholder?: string;
-  rotation?: number;
-  opacity?: number;
-  zIndex?: number;
-}
-
-interface TemplateSettings {
-  name: string;
-  type: 'student' | 'teacher' | 'staff' | 'visitor';
-  description: string;
-  dimensions: string;
-  customWidth?: number;
-  customHeight?: number;
-  orientation: 'horizontal' | 'vertical';
-  backgroundColor: string;
-  backgroundImage?: string;
-  borderColor: string;
-  borderWidth: number;
-  borderRadius: number;
-  logoRequired: boolean;
-  photoRequired: boolean;
-  qrCodeRequired: boolean;
-  barcodeRequired: boolean;
-  watermark?: string;
-  printMargin: number;
-  bleedArea: number;
-  safeArea: number;
-}
-
-export default function CreateTemplateModal({
+export function CreateTemplateModal({
   open,
   onOpenChange,
   editingTemplate,
@@ -113,34 +81,54 @@ export default function CreateTemplateModal({
   const [showGrid, setShowGrid] = useState(true);
   const [showRulers, setShowRulers] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [previewMode, setPreviewMode] = useState<
+    'desktop' | 'mobile' | 'print'
+  >('desktop');
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const [settings, setSettings] = useState<TemplateSettings>({
     name: editingTemplate?.name || '',
-    type:
-      (editingTemplate?.type as 'student' | 'teacher' | 'staff' | 'visitor') ||
-      'student',
+    type: 'student',
     description: editingTemplate?.description || '',
-    dimensions: editingTemplate?.dimensions || '85.6x53.98',
-    orientation:
-      (editingTemplate?.orientation as 'horizontal' | 'vertical') ||
-      'horizontal',
+    dimensions: `${editingTemplate?.width || 85.6}x${editingTemplate?.height || 53.98}`,
+    orientation: editingTemplate?.orientation || 'portrait',
     backgroundColor: editingTemplate?.backgroundColor || '#ffffff',
     borderColor: editingTemplate?.borderColor || '#000000',
     borderWidth: editingTemplate?.borderWidth || 1,
-    borderRadius: editingTemplate?.borderRadius || 0,
-    logoRequired: editingTemplate?.logoRequired ?? true,
-    photoRequired: editingTemplate?.photoRequired ?? true,
-    qrCodeRequired: editingTemplate?.qrCodeRequired ?? true,
-    barcodeRequired: editingTemplate?.barcodeRequired ?? false,
-    printMargin: editingTemplate?.printMargin || 5,
-    bleedArea: editingTemplate?.bleedArea || 3,
-    safeArea: editingTemplate?.safeArea || 5,
+    borderRadius: editingTemplate?.cornerRadius || 0,
+    logoRequired: true,
+    photoRequired: true,
+    qrCodeRequired: true,
+    barcodeRequired: false,
+    printMargin: 5,
+    bleedArea: 3,
+    safeArea: 5,
   });
 
-  const [templateFields, setTemplateFields] = useState<TemplateField[]>(
-    editingTemplate?.fields || [
+  const [templateFields, setTemplateFields] = useState<
+    ComponentTemplateField[]
+  >(
+    editingTemplate?.fields?.map(field => ({
+      id: field.id,
+      type: field.fieldName,
+      label: field.displayName,
+      databaseField: field.fieldName,
+      x: field.x,
+      y: field.y,
+      width: field.width,
+      height: field.height,
+      fontSize: field.fontSize,
+      fontWeight: field.fontWeight,
+      textAlign: field.alignment,
+      fontFamily: field.fontFamily,
+      color: field.color,
+      required: field.isRequired,
+      visible: true,
+      locked: false,
+      opacity: 1,
+      zIndex: 1,
+    })) || [
       {
         id: 'logo',
         type: 'logo',
@@ -149,9 +137,16 @@ export default function CreateTemplateModal({
         y: 10,
         width: 40,
         height: 30,
+        fontSize: 12,
+        fontWeight: 'normal' as const,
+        textAlign: 'center' as const,
+        fontFamily: 'Inter',
+        color: '#000000',
         required: true,
+        visible: true,
+        locked: false,
+        opacity: 1,
         zIndex: 1,
-        opacity: 100,
       },
       {
         id: 'photo',
@@ -161,12 +156,16 @@ export default function CreateTemplateModal({
         y: 20,
         width: 80,
         height: 100,
-        borderWidth: 1,
-        borderColor: '#cccccc',
-        borderRadius: 4,
+        fontSize: 12,
+        fontWeight: 'normal' as const,
+        textAlign: 'center' as const,
+        fontFamily: 'Inter',
+        color: '#000000',
         required: true,
+        visible: true,
+        locked: false,
+        opacity: 1,
         zIndex: 2,
-        opacity: 100,
       },
       {
         id: 'name',
@@ -177,14 +176,15 @@ export default function CreateTemplateModal({
         width: 130,
         height: 20,
         fontSize: 14,
-        fontWeight: 'bold',
-        textAlign: 'left',
+        fontWeight: 'bold' as const,
+        textAlign: 'left' as const,
         fontFamily: 'Inter',
         color: '#000000',
         required: true,
-        placeholder: 'John Doe',
+        visible: true,
+        locked: false,
+        opacity: 1,
         zIndex: 3,
-        opacity: 100,
       },
       {
         id: 'id',
@@ -195,14 +195,15 @@ export default function CreateTemplateModal({
         width: 130,
         height: 15,
         fontSize: 12,
-        fontWeight: 'normal',
-        textAlign: 'left',
+        fontWeight: 'normal' as const,
+        textAlign: 'left' as const,
         fontFamily: 'Inter',
         color: '#666666',
         required: true,
-        placeholder: 'STU123456',
+        visible: true,
+        locked: false,
+        opacity: 1,
         zIndex: 4,
-        opacity: 100,
       },
     ],
   );
@@ -280,6 +281,19 @@ export default function CreateTemplateModal({
     { value: 'custom', label: 'Custom Dimensions', ratio: 1.6 },
   ];
 
+  const fontFamilies = [
+    'Inter',
+    'Arial',
+    'Helvetica',
+    'Times New Roman',
+    'Georgia',
+    'Verdana',
+    'Tahoma',
+    'Calibri',
+    'Roboto',
+    'Open Sans',
+  ];
+
   const getCanvasDimensions = () => {
     const [width, height] = settings.dimensions.split('x').map(Number);
     const baseWidth = settings.orientation === 'horizontal' ? width : height;
@@ -319,7 +333,6 @@ export default function CreateTemplateModal({
 
     setIsLoading(true);
 
-    // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       setShowSuccess(true);
@@ -356,8 +369,8 @@ export default function CreateTemplateModal({
     setSelectedField(null);
   };
 
-  const addField = (type: TemplateField['type']) => {
-    const newField: TemplateField = {
+  const addField = (type: string) => {
+    const newField: ComponentTemplateField = {
       id: `field_${Date.now()}`,
       type,
       label: `New ${type} field`,
@@ -365,20 +378,30 @@ export default function CreateTemplateModal({
       y: 50,
       width: type === 'text' ? 100 : type === 'qr' ? 40 : 60,
       height: type === 'text' ? 20 : type === 'qr' ? 40 : 60,
-      fontSize: type === 'text' ? 12 : undefined,
-      fontWeight: type === 'text' ? 'normal' : undefined,
-      textAlign: type === 'text' ? 'left' : undefined,
-      fontFamily: type === 'text' ? 'Inter' : undefined,
-      color: type === 'text' ? '#000000' : undefined,
-      borderWidth: 0,
-      borderColor: '#cccccc',
-      borderRadius: 0,
+      fontSize: 12,
+      fontWeight: 'normal',
+      textAlign: 'left',
+      fontFamily: 'Inter',
+      color: '#000000',
       required: false,
+      visible: true,
+      locked: false,
+      opacity: 1,
       zIndex: templateFields.length + 1,
-      opacity: 100,
     };
     setTemplateFields([...templateFields, newField]);
     setSelectedField(newField.id);
+  };
+
+  const updateField = (
+    id: string,
+    updates: Partial<ComponentTemplateField>,
+  ) => {
+    setTemplateFields(
+      templateFields.map(field =>
+        field.id === id ? { ...field, ...updates } : field,
+      ),
+    );
   };
 
   const duplicateField = (id: string) => {
@@ -404,466 +427,1015 @@ export default function CreateTemplateModal({
     }
   };
 
-  if (!open) return null;
+  const getSelectedTemplateType = () => {
+    return templateTypes.find(t => t.value === settings.type);
+  };
+
+  const selectedFieldData = templateFields.find(f => f.id === selectedField);
+
+  const renderField = (field: ComponentTemplateField) => {
+    const canvas = getCanvasDimensions();
+    const style: React.CSSProperties = {
+      position: 'absolute',
+      left: `${(field.x / canvas.realWidth) * 100}%`,
+      top: `${(field.y / canvas.realHeight) * 100}%`,
+      width: `${(field.width / canvas.realWidth) * 100}%`,
+      height: `${(field.height / canvas.realHeight) * 100}%`,
+      border:
+        selectedField === field.id
+          ? '2px solid #2563eb'
+          : field.borderWidth
+            ? `${field.borderWidth}px solid ${field.borderColor}`
+            : 'none',
+      borderRadius: field.borderRadius ? `${field.borderRadius}px` : '0',
+      backgroundColor: field.backgroundColor || 'transparent',
+      opacity: (field.opacity || 100) / 100,
+      zIndex: field.zIndex || 1,
+      cursor: 'pointer',
+      fontSize: field.fontSize
+        ? `${field.fontSize * (zoomLevel / 100)}px`
+        : undefined,
+      fontFamily: field.fontFamily,
+      fontWeight: field.fontWeight,
+      textAlign: field.textAlign,
+      color: field.color,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent:
+        field.textAlign === 'center'
+          ? 'center'
+          : field.textAlign === 'right'
+            ? 'flex-end'
+            : 'flex-start',
+      padding: '2px',
+    };
+
+    const content = () => {
+      switch (field.type) {
+        case 'text':
+          return field.placeholder || field.label;
+        case 'image':
+        case 'logo':
+          return (
+            <div className='w-full h-full bg-gray-100 flex items-center justify-center border border-gray-300 rounded'>
+              <ImageIcon className='w-4 h-4 text-gray-400' />
+            </div>
+          );
+        case 'qr':
+          return (
+            <div className='w-full h-full bg-gray-100 flex items-center justify-center border border-gray-300 rounded'>
+              <QrCode className='w-4 h-4 text-gray-600' />
+            </div>
+          );
+        case 'barcode':
+          return (
+            <div className='w-full h-full bg-gray-100 flex items-center justify-center border border-gray-300 rounded'>
+              <div className='text-xs'>|||||||</div>
+            </div>
+          );
+        default:
+          return field.label;
+      }
+    };
+
+    return (
+      <div
+        key={field.id}
+        style={style}
+        onClick={() => setSelectedField(field.id)}
+        className={`select-none ${selectedField === field.id ? 'ring-2 ring-blue-500' : ''}`}
+      >
+        {content()}
+        {selectedField === field.id && (
+          <>
+            <div className='absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full'></div>
+            <div className='absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full'></div>
+            <div className='absolute -bottom-1 -left-1 w-2 h-2 bg-blue-500 rounded-full'></div>
+            <div className='absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full'></div>
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className='fixed inset-0 bg-slate-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
-      <div className='bg-white rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl'>
-        {/* Header */}
-        <div className='relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-blue-500 to-purple-600 p-4 border-b border-gray-100'>
-          <div className='relative flex items-center justify-between'>
-            <div className='flex items-center gap-3'>
-              <div className='p-1.5 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl shadow-lg'>
-                <CreditCard className='w-5 h-5 text-white' />
-              </div>
-              <div>
-                <h2 className='text-lg font-bold text-white'>
-                  {editingTemplate ? 'Edit' : 'Create'} ID Card Template
-                </h2>
-                <p className='text-xs text-blue-100 mt-1'>
-                  Design and customize ID card templates
-                </p>
-              </div>
-            </div>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={() => onOpenChange(false)}
-              className='h-8 w-8 p-0 text-blue-100 hover:text-white hover:bg-white/20 rounded-xl'
-            >
-              <X size={16} />
-            </Button>
-          </div>
-        </div>
-
-        {/* Loading/Success States */}
-        {isLoading && (
-          <div className='bg-blue-50 border-b border-blue-200 p-3'>
-            <div className='flex items-center gap-2 text-blue-800'>
-              <Loader2 className='h-4 w-4 animate-spin' />
-              <span className='text-sm'>
-                {editingTemplate ? 'Updating' : 'Creating'} template... Please
-                wait.
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className='max-w-[95vw] h-[95vh] overflow-hidden flex flex-col bg-white'>
+        <DialogHeader className='flex-shrink-0'>
+          <DialogTitle className='flex items-center justify-between'>
+            <div className='flex items-center space-x-2'>
+              <CreditCard className='w-5 h-5' />
+              <span>
+                {editingTemplate ? 'Edit' : 'Create'} ID Card Template
               </span>
             </div>
-          </div>
+            <div className='flex items-center space-x-2'>
+              <Button
+                variant={showGrid ? 'default' : 'outline'}
+                size='sm'
+                onClick={() => setShowGrid(!showGrid)}
+                className={
+                  showGrid ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''
+                }
+              >
+                <Grid className='w-4 h-4' />
+              </Button>
+              <Button
+                variant={showRulers ? 'default' : 'outline'}
+                size='sm'
+                onClick={() => setShowRulers(!showRulers)}
+                className={
+                  showRulers ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''
+                }
+              >
+                <Ruler className='w-4 h-4' />
+              </Button>
+              <Select
+                value={previewMode}
+                onValueChange={(value: string) =>
+                  setPreviewMode(value as 'desktop' | 'mobile' | 'print')
+                }
+              >
+                <SelectTrigger className='w-32'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='desktop'>
+                    <div className='flex items-center space-x-2'>
+                      <Monitor className='w-4 h-4' />
+                      <span>Desktop</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value='mobile'>
+                    <div className='flex items-center space-x-2'>
+                      <Smartphone className='w-4 h-4' />
+                      <span>Mobile</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value='print'>
+                    <div className='flex items-center space-x-2'>
+                      <Printer className='w-4 h-4' />
+                      <span>Print</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
+
+        {isLoading && (
+          <Alert className='flex-shrink-0'>
+            <Loader2 className='h-4 w-4 animate-spin' />
+            <AlertDescription>
+              {editingTemplate ? 'Updating' : 'Creating'} template... Please
+              wait.
+            </AlertDescription>
+          </Alert>
         )}
 
         {showSuccess && (
-          <div className='bg-green-50 border-b border-green-200 p-3'>
-            <div className='flex items-center gap-2 text-green-800'>
-              <CheckCircle className='h-4 w-4' />
-              <span className='text-sm'>
-                Template {editingTemplate ? 'updated' : 'created'} successfully!
-              </span>
-            </div>
-          </div>
+          <Alert className='bg-green-50 border-green-200 flex-shrink-0'>
+            <CheckCircle className='h-4 w-4 text-green-600' />
+            <AlertDescription className='text-green-800'>
+              Template {editingTemplate ? 'updated' : 'created'} successfully!
+            </AlertDescription>
+          </Alert>
         )}
 
-        {/* Content */}
         <div className='flex-1 overflow-hidden flex'>
-          {/* Left Sidebar - Properties */}
-          <div className='w-80 border-r bg-gray-50 flex flex-col'>
+          <div className='w-80 border-r bg-white flex flex-col'>
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
               className='flex-1'
             >
-              <div className='border-b p-2'>
-                <TabsList className='grid w-full grid-cols-3'>
-                  <TabsTrigger value='basic' className='text-xs'>
-                    <FileText className='w-3 h-3 mr-1' />
-                    Basic
-                  </TabsTrigger>
-                  <TabsTrigger value='layout' className='text-xs'>
-                    <Layout className='w-3 h-3 mr-1' />
-                    Layout
-                  </TabsTrigger>
-                  <TabsTrigger value='design' className='text-xs'>
-                    <Palette className='w-3 h-3 mr-1' />
-                    Design
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+              <TabsList className='grid w-full grid-cols-4 m-2 bg-transparent'>
+                <TabsTrigger
+                  value='basic'
+                  className='text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white'
+                >
+                  <FileText className='w-3 h-3' />
+                </TabsTrigger>
+                <TabsTrigger
+                  value='layout'
+                  className='text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white'
+                >
+                  <Layout className='w-3 h-3' />
+                </TabsTrigger>
+                <TabsTrigger
+                  value='design'
+                  className='text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white'
+                >
+                  <Palette className='w-3 h-3' />
+                </TabsTrigger>
+                <TabsTrigger
+                  value='preview'
+                  className='text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white'
+                >
+                  <Eye className='w-3 h-3' />
+                </TabsTrigger>
+              </TabsList>
 
-              <div className='flex-1 overflow-auto p-4'>
-                {/* Basic Tab */}
-                <TabsContent value='basic' className='space-y-4 mt-0'>
-                  <div className='space-y-3'>
-                    <div className='space-y-2'>
-                      <label className='text-sm font-medium text-gray-700'>
-                        Template Name *
-                      </label>
-                      <Input
-                        value={settings.name}
-                        onChange={e =>
-                          setSettings({ ...settings, name: e.target.value })
-                        }
-                        placeholder='e.g., Student ID Template 2025'
-                        className={errors.name ? 'border-red-500' : ''}
-                      />
-                      {errors.name && (
-                        <p className='text-xs text-red-500'>{errors.name}</p>
-                      )}
-                    </div>
-
-                    <div className='space-y-2'>
-                      <label className='text-sm font-medium text-gray-700'>
-                        Template Type *
-                      </label>
-                      <select
-                        value={settings.type}
-                        onChange={e =>
-                          setSettings({
-                            ...settings,
-                            type: e.target.value as
-                              | 'student'
-                              | 'teacher'
-                              | 'staff'
-                              | 'visitor',
-                          })
-                        }
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.type ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      >
-                        {templateTypes.map(type => (
-                          <option key={type.value} value={type.value}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.type && (
-                        <p className='text-xs text-red-500'>{errors.type}</p>
-                      )}
-                    </div>
-
-                    <div className='space-y-2'>
-                      <label className='text-sm font-medium text-gray-700'>
-                        Description
-                      </label>
-                      <textarea
-                        value={settings.description}
-                        onChange={e =>
-                          setSettings({
-                            ...settings,
-                            description: e.target.value,
-                          })
-                        }
-                        placeholder='Describe the template purpose...'
-                        rows={2}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                      />
-                    </div>
-
-                    <div className='space-y-2'>
-                      <label className='text-sm font-medium text-gray-700'>
-                        Card Dimensions *
-                      </label>
-                      <select
-                        value={settings.dimensions}
-                        onChange={e =>
-                          setSettings({
-                            ...settings,
-                            dimensions: e.target.value,
-                          })
-                        }
-                        className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.dimensions
-                            ? 'border-red-500'
-                            : 'border-gray-300'
-                        }`}
-                      >
-                        {predefinedDimensions.map(dim => (
-                          <option key={dim.value} value={dim.value}>
-                            {dim.label}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.dimensions && (
-                        <p className='text-xs text-red-500'>
-                          {errors.dimensions}
-                        </p>
-                      )}
-                    </div>
-
-                    {settings.dimensions === 'custom' && (
-                      <div className='grid grid-cols-2 gap-2'>
-                        <div className='space-y-2'>
-                          <label className='text-sm font-medium text-gray-700'>
-                            Width (mm)
-                          </label>
-                          <Input
-                            type='number'
-                            value={settings.customWidth || ''}
-                            onChange={e =>
-                              setSettings({
-                                ...settings,
-                                customWidth: Number(e.target.value),
-                              })
-                            }
-                            className={
-                              errors.customWidth ? 'border-red-500' : ''
-                            }
-                          />
-                          {errors.customWidth && (
-                            <p className='text-xs text-red-500'>
-                              {errors.customWidth}
-                            </p>
-                          )}
-                        </div>
-                        <div className='space-y-2'>
-                          <label className='text-sm font-medium text-gray-700'>
-                            Height (mm)
-                          </label>
-                          <Input
-                            type='number'
-                            value={settings.customHeight || ''}
-                            onChange={e =>
-                              setSettings({
-                                ...settings,
-                                customHeight: Number(e.target.value),
-                              })
-                            }
-                            className={
-                              errors.customHeight ? 'border-red-500' : ''
-                            }
-                          />
-                          {errors.customHeight && (
-                            <p className='text-xs text-red-500'>
-                              {errors.customHeight}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-
-                {/* Layout Tab */}
-                <TabsContent value='layout' className='space-y-4 mt-0'>
-                  <div className='space-y-3'>
-                    <div className='flex items-center justify-between'>
-                      <h4 className='font-medium'>Add Elements</h4>
-                      <span className='text-xs text-gray-500'>
-                        {templateFields.length} fields
-                      </span>
-                    </div>
-
-                    <div className='grid grid-cols-2 gap-2'>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={() => addField('text')}
-                        className='justify-start'
-                      >
-                        <Type className='w-3 h-3 mr-1' />
-                        Text
-                      </Button>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={() => addField('image')}
-                        className='justify-start'
-                      >
-                        <ImageIcon className='w-3 h-3 mr-1' />
-                        Image
-                      </Button>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={() => addField('qr')}
-                        className='justify-start'
-                      >
-                        <QrCode className='w-3 h-3 mr-1' />
-                        QR Code
-                      </Button>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={() => addField('logo')}
-                        className='justify-start'
-                      >
-                        <ImageIcon className='w-3 h-3 mr-1' />
-                        Logo
-                      </Button>
-                    </div>
-
-                    <div className='space-y-2'>
-                      <h4 className='font-medium text-sm'>Template Fields</h4>
-                      <div className='space-y-1 max-h-80 overflow-y-auto'>
-                        {templateFields.map(field => (
-                          <div
-                            key={field.id}
-                            className={`p-2 border rounded cursor-pointer transition-colors ${
-                              selectedField === field.id
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'hover:bg-gray-50'
-                            }`}
-                            onClick={() => setSelectedField(field.id)}
-                          >
-                            <div className='flex items-center justify-between mb-1'>
-                              <span className='text-sm font-medium truncate'>
-                                {field.label}
-                              </span>
-                              <div className='flex items-center space-x-1'>
-                                <span className='text-xs px-1.5 py-0.5 bg-gray-100 rounded'>
-                                  {field.type}
-                                </span>
-                                <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  className='h-6 w-6 p-0'
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    duplicateField(field.id);
-                                  }}
-                                >
-                                  <Copy className='w-3 h-3' />
-                                </Button>
-                                <Button
-                                  variant='ghost'
-                                  size='sm'
-                                  className='h-6 w-6 p-0 text-red-600 hover:text-red-700'
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    removeField(field.id);
-                                  }}
-                                >
-                                  <Minus className='w-3 h-3' />
-                                </Button>
-                              </div>
-                            </div>
-                            <div className='text-xs text-gray-500'>
-                              {field.x}×{field.y} • {field.width}×{field.height}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                {/* Design Tab */}
-                <TabsContent value='design' className='space-y-4 mt-0'>
-                  <div className='space-y-3'>
-                    <h4 className='font-medium'>Card Appearance</h4>
-
+              <div className='flex-1 overflow-hidden'>
+                <ScrollArea className='h-full p-4'>
+                  <TabsContent value='basic' className='space-y-4 mt-0'>
                     <div className='space-y-3'>
                       <div className='space-y-2'>
-                        <label className='text-sm font-medium text-gray-700'>
-                          Background Color
-                        </label>
-                        <div className='flex items-center space-x-2'>
-                          <input
-                            type='color'
-                            value={settings.backgroundColor}
-                            onChange={e =>
-                              setSettings({
-                                ...settings,
-                                backgroundColor: e.target.value,
-                              })
-                            }
-                            className='w-8 h-8 border rounded cursor-pointer'
-                          />
-                          <Input
-                            value={settings.backgroundColor}
-                            onChange={e =>
-                              setSettings({
-                                ...settings,
-                                backgroundColor: e.target.value,
-                              })
-                            }
-                            className='flex-1'
-                          />
-                        </div>
+                        <Label htmlFor='name'>Template Name *</Label>
+                        <Input
+                          id='name'
+                          value={settings.name}
+                          onChange={e =>
+                            setSettings({ ...settings, name: e.target.value })
+                          }
+                          placeholder='e.g., Student ID Template 2025'
+                          className={errors.name ? 'border-red-500' : ''}
+                        />
+                        {errors.name && (
+                          <p className='text-xs text-red-500'>{errors.name}</p>
+                        )}
                       </div>
 
                       <div className='space-y-2'>
-                        <label className='text-sm font-medium text-gray-700'>
-                          Border
-                        </label>
-                        <div className='grid grid-cols-3 gap-2'>
-                          <div className='space-y-1'>
-                            <label className='text-xs text-gray-500'>
-                              Width
-                            </label>
+                        <Label htmlFor='type'>Template Type *</Label>
+                        <Select
+                          value={settings.type}
+                          onValueChange={(value: string) =>
+                            setSettings({
+                              ...settings,
+                              type: value as TemplateSettings['type'],
+                            })
+                          }
+                        >
+                          <SelectTrigger
+                            className={errors.type ? 'border-red-500' : ''}
+                          >
+                            <SelectValue placeholder='Select template type' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {templateTypes.map(type => (
+                              <SelectItem key={type.value} value={type.value}>
+                                <div className='flex items-center space-x-2'>
+                                  <div
+                                    className='w-3 h-3 rounded-full'
+                                    style={{
+                                      backgroundColor: type.defaultColor,
+                                    }}
+                                  ></div>
+                                  <span>{type.label}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.type && (
+                          <p className='text-xs text-red-500'>{errors.type}</p>
+                        )}
+                      </div>
+
+                      <div className='space-y-2'>
+                        <Label htmlFor='description'>Description</Label>
+                        <Textarea
+                          id='description'
+                          value={settings.description}
+                          onChange={e =>
+                            setSettings({
+                              ...settings,
+                              description: e.target.value,
+                            })
+                          }
+                          placeholder='Describe the template purpose...'
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className='space-y-2'>
+                        <Label htmlFor='dimensions'>Card Dimensions *</Label>
+                        <Select
+                          value={settings.dimensions}
+                          onValueChange={(value: string) =>
+                            setSettings({ ...settings, dimensions: value })
+                          }
+                        >
+                          <SelectTrigger
+                            className={
+                              errors.dimensions ? 'border-red-500' : ''
+                            }
+                          >
+                            <SelectValue placeholder='Select dimensions' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {predefinedDimensions.map(dim => (
+                              <SelectItem key={dim.value} value={dim.value}>
+                                {dim.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.dimensions && (
+                          <p className='text-xs text-red-500'>
+                            {errors.dimensions}
+                          </p>
+                        )}
+                      </div>
+
+                      {settings.dimensions === 'custom' && (
+                        <div className='grid grid-cols-2 gap-2'>
+                          <div className='space-y-2'>
+                            <Label htmlFor='customWidth'>Width (mm)</Label>
                             <Input
+                              id='customWidth'
                               type='number'
-                              value={settings.borderWidth}
+                              value={settings.customWidth || ''}
                               onChange={e =>
                                 setSettings({
                                   ...settings,
-                                  borderWidth: Number(e.target.value),
+                                  customWidth: Number(e.target.value),
                                 })
                               }
-                              min='0'
-                              max='10'
-                              className='text-sm'
+                              className={
+                                errors.customWidth ? 'border-red-500' : ''
+                              }
+                            />
+                            {errors.customWidth && (
+                              <p className='text-xs text-red-500'>
+                                {errors.customWidth}
+                              </p>
+                            )}
+                          </div>
+                          <div className='space-y-2'>
+                            <Label htmlFor='customHeight'>Height (mm)</Label>
+                            <Input
+                              id='customHeight'
+                              type='number'
+                              value={settings.customHeight || ''}
+                              onChange={e =>
+                                setSettings({
+                                  ...settings,
+                                  customHeight: Number(e.target.value),
+                                })
+                              }
+                              className={
+                                errors.customHeight ? 'border-red-500' : ''
+                              }
+                            />
+                            {errors.customHeight && (
+                              <p className='text-xs text-red-500'>
+                                {errors.customHeight}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className='space-y-2'>
+                        <Label htmlFor='orientation'>Orientation</Label>
+                        <Select
+                          value={settings.orientation}
+                          onValueChange={(value: string) =>
+                            setSettings({
+                              ...settings,
+                              orientation:
+                                value as TemplateSettings['orientation'],
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value='horizontal'>
+                              Horizontal (Landscape)
+                            </SelectItem>
+                            <SelectItem value='vertical'>
+                              Vertical (Portrait)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {getSelectedTemplateType() && (
+                        <div className='p-3 bg-blue-50 rounded-lg'>
+                          <h4 className='font-medium text-blue-900 mb-2 text-sm'>
+                            Standard Fields
+                          </h4>
+                          <div className='flex flex-wrap gap-1'>
+                            {getSelectedTemplateType()?.fields.map(field => (
+                              <Badge
+                                key={field}
+                                variant='outline'
+                                className='text-xs'
+                              >
+                                {field}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value='layout' className='space-y-4 mt-0'>
+                    <div className='space-y-3'>
+                      <div className='flex items-center justify-between'>
+                        <h4 className='font-medium'>Add Elements</h4>
+                        <Badge variant='outline'>
+                          {templateFields.length} fields
+                        </Badge>
+                      </div>
+
+                      <div className='grid grid-cols-2 gap-2'>
+                        <Button
+                          variant='default'
+                          size='sm'
+                          onClick={() => addField('text')}
+                          className='justify-start bg-blue-600 hover:bg-blue-700 text-white'
+                        >
+                          <Type className='w-3 h-3 mr-1' />
+                          Text
+                        </Button>
+                        <Button
+                          variant='default'
+                          size='sm'
+                          onClick={() => addField('image')}
+                          className='justify-start bg-blue-600 hover:bg-blue-700 text-white'
+                        >
+                          <ImageIcon className='w-3 h-3 mr-1' />
+                          Image
+                        </Button>
+                        <Button
+                          variant='default'
+                          size='sm'
+                          onClick={() => addField('qr')}
+                          className='justify-start bg-blue-600 hover:bg-blue-700 text-white'
+                        >
+                          <QrCode className='w-3 h-3 mr-1' />
+                          QR Code
+                        </Button>
+                        <Button
+                          variant='default'
+                          size='sm'
+                          onClick={() => addField('logo')}
+                          className='justify-start bg-blue-600 hover:bg-blue-700 text-white'
+                        >
+                          <ImageIcon className='w-3 h-3 mr-1' />
+                          Logo
+                        </Button>
+                      </div>
+
+                      <div className='space-y-2'>
+                        <h4 className='font-medium text-sm'>Template Fields</h4>
+                        <div className='space-y-1 max-h-80 overflow-y-auto'>
+                          {templateFields.map(field => (
+                            <div
+                              key={field.id}
+                              className={`p-2 border rounded cursor-pointer transition-colors ${
+                                selectedField === field.id
+                                  ? 'border-blue-500 bg-blue-50'
+                                  : 'hover:bg-gray-50'
+                              }`}
+                              onClick={() => setSelectedField(field.id)}
+                            >
+                              <div className='flex items-center justify-between mb-1'>
+                                <span className='text-sm font-medium truncate'>
+                                  {field.label}
+                                </span>
+                                <div className='flex items-center space-x-1'>
+                                  <Badge variant='outline' className='text-xs'>
+                                    {field.type}
+                                  </Badge>
+                                  <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='h-6 w-6 p-0'
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      duplicateField(field.id);
+                                    }}
+                                  >
+                                    <Copy className='w-3 h-3' />
+                                  </Button>
+                                  <Button
+                                    variant='ghost'
+                                    size='sm'
+                                    className='h-6 w-6 p-0 text-red-600 hover:text-red-700'
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      removeField(field.id);
+                                    }}
+                                  >
+                                    <Minus className='w-3 h-3' />
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className='text-xs text-gray-500'>
+                                {field.x}×{field.y} • {field.width}×
+                                {field.height}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {selectedFieldData && (
+                        <div className='space-y-3 p-3 border rounded-lg bg-white'>
+                          <h4 className='font-medium text-sm'>
+                            Field Properties
+                          </h4>
+
+                          <div className='space-y-2'>
+                            <Label className='text-xs'>Label</Label>
+                            <Input
+                              value={selectedFieldData.label}
+                              onChange={e =>
+                                updateField(selectedField!, {
+                                  label: e.target.value,
+                                })
+                              }
+                              className='h-8 text-sm'
                             />
                           </div>
-                          <div className='space-y-1'>
-                            <label className='text-xs text-gray-500'>
-                              Color
-                            </label>
-                            <input
+
+                          <div className='grid grid-cols-2 gap-2'>
+                            <div className='space-y-2'>
+                              <Label className='text-xs'>X Position</Label>
+                              <Input
+                                type='number'
+                                value={selectedFieldData.x}
+                                onChange={e =>
+                                  updateField(selectedField!, {
+                                    x: Number(e.target.value),
+                                  })
+                                }
+                                className='h-8 text-sm'
+                              />
+                            </div>
+                            <div className='space-y-2'>
+                              <Label className='text-xs'>Y Position</Label>
+                              <Input
+                                type='number'
+                                value={selectedFieldData.y}
+                                onChange={e =>
+                                  updateField(selectedField!, {
+                                    y: Number(e.target.value),
+                                  })
+                                }
+                                className='h-8 text-sm'
+                              />
+                            </div>
+                          </div>
+
+                          <div className='grid grid-cols-2 gap-2'>
+                            <div className='space-y-2'>
+                              <Label className='text-xs'>Width</Label>
+                              <Input
+                                type='number'
+                                value={selectedFieldData.width}
+                                onChange={e =>
+                                  updateField(selectedField!, {
+                                    width: Number(e.target.value),
+                                  })
+                                }
+                                className='h-8 text-sm'
+                              />
+                            </div>
+                            <div className='space-y-2'>
+                              <Label className='text-xs'>Height</Label>
+                              <Input
+                                type='number'
+                                value={selectedFieldData.height}
+                                onChange={e =>
+                                  updateField(selectedField!, {
+                                    height: Number(e.target.value),
+                                  })
+                                }
+                                className='h-8 text-sm'
+                              />
+                            </div>
+                          </div>
+
+                          {selectedFieldData.type === 'text' && (
+                            <>
+                              <div className='space-y-2'>
+                                <Label className='text-xs'>Font Size</Label>
+                                <Input
+                                  type='number'
+                                  value={selectedFieldData.fontSize || 12}
+                                  onChange={e =>
+                                    updateField(selectedField!, {
+                                      fontSize: Number(e.target.value),
+                                    })
+                                  }
+                                  className='h-8 text-sm'
+                                />
+                              </div>
+
+                              <div className='space-y-2'>
+                                <Label className='text-xs'>Font Family</Label>
+                                <Select
+                                  value={
+                                    selectedFieldData.fontFamily || 'Inter'
+                                  }
+                                  onValueChange={(value: string) =>
+                                    updateField(selectedField!, {
+                                      fontFamily: value,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className='h-8'>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {fontFamilies.map(font => (
+                                      <SelectItem key={font} value={font}>
+                                        {font}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className='space-y-2'>
+                                <Label className='text-xs'>Text Align</Label>
+                                <div className='flex space-x-1'>
+                                  {(
+                                    [
+                                      { value: 'left', icon: AlignLeft },
+                                      { value: 'center', icon: AlignCenter },
+                                      { value: 'right', icon: AlignRight },
+                                    ] as {
+                                      value: 'left' | 'center' | 'right';
+                                      icon: typeof AlignLeft;
+                                    }[]
+                                  ).map(({ value, icon: Icon }) => (
+                                    <Button
+                                      key={value}
+                                      variant={
+                                        selectedFieldData.textAlign === value
+                                          ? 'default'
+                                          : 'outline'
+                                      }
+                                      size='sm'
+                                      className='h-8 w-8 p-0'
+                                      onClick={() =>
+                                        updateField(selectedField!, {
+                                          textAlign: value as
+                                            | 'left'
+                                            | 'center'
+                                            | 'right',
+                                        })
+                                      }
+                                    >
+                                      <Icon className='w-3 h-3' />
+                                    </Button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className='space-y-2'>
+                                <Label className='text-xs'>Color</Label>
+                                <div className='flex items-center space-x-2'>
+                                  <Input
+                                    type='color'
+                                    value={selectedFieldData.color || '#000000'}
+                                    onChange={e =>
+                                      updateField(selectedField!, {
+                                        color: e.target.value,
+                                      })
+                                    }
+                                    className='w-8 h-8 p-1 border rounded'
+                                  />
+                                  <Input
+                                    value={selectedFieldData.color || '#000000'}
+                                    onChange={e =>
+                                      updateField(selectedField!, {
+                                        color: e.target.value,
+                                      })
+                                    }
+                                    className='flex-1 h-8 text-sm'
+                                  />
+                                </div>
+                              </div>
+
+                              <div className='space-y-2'>
+                                <Label className='text-xs'>Placeholder</Label>
+                                <Input
+                                  value={selectedFieldData.placeholder || ''}
+                                  onChange={e =>
+                                    updateField(selectedField!, {
+                                      placeholder: e.target.value,
+                                    })
+                                  }
+                                  className='h-8 text-sm'
+                                  placeholder='Sample text...'
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          <div className='space-y-2'>
+                            <Label className='text-xs'>Opacity</Label>
+                            <Slider
+                              value={[selectedFieldData.opacity || 100]}
+                              onValueChange={value =>
+                                updateField(selectedField!, {
+                                  opacity: value[0],
+                                })
+                              }
+                              max={100}
+                              min={0}
+                              step={1}
+                              className='w-full'
+                            />
+                            <div className='text-xs text-gray-500 text-center'>
+                              {selectedFieldData.opacity || 100}%
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value='design' className='space-y-4 mt-0'>
+                    <div className='space-y-3'>
+                      <h4 className='font-medium'>Card Appearance</h4>
+
+                      <div className='space-y-3'>
+                        <div className='space-y-2'>
+                          <Label className='text-xs'>Background Color</Label>
+                          <div className='flex items-center space-x-2'>
+                            <Input
                               type='color'
-                              value={settings.borderColor}
+                              value={settings.backgroundColor}
                               onChange={e =>
                                 setSettings({
                                   ...settings,
-                                  borderColor: e.target.value,
+                                  backgroundColor: e.target.value,
                                 })
                               }
-                              className='w-full h-8 border rounded cursor-pointer'
+                              className='w-8 h-8 p-1 border rounded'
+                            />
+                            <Input
+                              value={settings.backgroundColor}
+                              onChange={e =>
+                                setSettings({
+                                  ...settings,
+                                  backgroundColor: e.target.value,
+                                })
+                              }
+                              className='flex-1 h-8 text-sm'
                             />
                           </div>
-                          <div className='space-y-1'>
-                            <label className='text-xs text-gray-500'>
-                              Radius
-                            </label>
-                            <Input
-                              type='number'
-                              value={settings.borderRadius}
-                              onChange={e =>
-                                setSettings({
-                                  ...settings,
-                                  borderRadius: Number(e.target.value),
-                                })
-                              }
-                              min='0'
-                              max='20'
-                              className='text-sm'
-                            />
+                        </div>
+
+                        <div className='space-y-2'>
+                          <Label className='text-xs'>Border</Label>
+                          <div className='grid grid-cols-3 gap-2'>
+                            <div className='space-y-1'>
+                              <Label className='text-xs text-gray-500'>
+                                Width
+                              </Label>
+                              <Input
+                                type='number'
+                                value={settings.borderWidth}
+                                onChange={e =>
+                                  setSettings({
+                                    ...settings,
+                                    borderWidth: Number(e.target.value),
+                                  })
+                                }
+                                min='0'
+                                max='10'
+                                className='h-8 text-sm'
+                              />
+                            </div>
+                            <div className='space-y-1'>
+                              <Label className='text-xs text-gray-500'>
+                                Color
+                              </Label>
+                              <Input
+                                type='color'
+                                value={settings.borderColor}
+                                onChange={e =>
+                                  setSettings({
+                                    ...settings,
+                                    borderColor: e.target.value,
+                                  })
+                                }
+                                className='w-full h-8 p-1'
+                              />
+                            </div>
+                            <div className='space-y-1'>
+                              <Label className='text-xs text-gray-500'>
+                                Radius
+                              </Label>
+                              <Input
+                                type='number'
+                                value={settings.borderRadius}
+                                onChange={e =>
+                                  setSettings({
+                                    ...settings,
+                                    borderRadius: Number(e.target.value),
+                                  })
+                                }
+                                min='0'
+                                max='20'
+                                className='h-8 text-sm'
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='space-y-2'>
+                          <Label className='text-xs'>Print Settings</Label>
+                          <div className='grid grid-cols-3 gap-2'>
+                            <div className='space-y-1'>
+                              <Label className='text-xs text-gray-500'>
+                                Margin
+                              </Label>
+                              <Input
+                                type='number'
+                                value={settings.printMargin}
+                                onChange={e =>
+                                  setSettings({
+                                    ...settings,
+                                    printMargin: Number(e.target.value),
+                                  })
+                                }
+                                min='0'
+                                max='20'
+                                className='h-8 text-sm'
+                              />
+                            </div>
+                            <div className='space-y-1'>
+                              <Label className='text-xs text-gray-500'>
+                                Bleed
+                              </Label>
+                              <Input
+                                type='number'
+                                value={settings.bleedArea}
+                                onChange={e =>
+                                  setSettings({
+                                    ...settings,
+                                    bleedArea: Number(e.target.value),
+                                  })
+                                }
+                                min='0'
+                                max='10'
+                                className='h-8 text-sm'
+                              />
+                            </div>
+                            <div className='space-y-1'>
+                              <Label className='text-xs text-gray-500'>
+                                Safe
+                              </Label>
+                              <Input
+                                type='number'
+                                value={settings.safeArea}
+                                onChange={e =>
+                                  setSettings({
+                                    ...settings,
+                                    safeArea: Number(e.target.value),
+                                  })
+                                }
+                                min='0'
+                                max='15'
+                                className='h-8 text-sm'
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className='space-y-2'>
+                          <Label className='text-xs'>Required Elements</Label>
+                          <div className='space-y-2'>
+                            {[
+                              { key: 'logoRequired', label: 'School Logo' },
+                              { key: 'photoRequired', label: 'Photo' },
+                              { key: 'qrCodeRequired', label: 'QR Code' },
+                              { key: 'barcodeRequired', label: 'Barcode' },
+                            ].map(({ key, label }) => (
+                              <div
+                                key={key}
+                                className='flex items-center space-x-2'
+                              >
+                                <input
+                                  type='checkbox'
+                                  id={key}
+                                  checked={
+                                    settings[
+                                      key as keyof TemplateSettings
+                                    ] as boolean
+                                  }
+                                  onChange={e =>
+                                    setSettings({
+                                      ...settings,
+                                      [key]: e.target.checked,
+                                    })
+                                  }
+                                  className='rounded'
+                                />
+                                <Label htmlFor={key} className='text-sm'>
+                                  {label}
+                                </Label>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </TabsContent>
+                  </TabsContent>
+
+                  <TabsContent value='preview' className='space-y-4 mt-0'>
+                    <div className='space-y-3'>
+                      <h4 className='font-medium'>Template Summary</h4>
+                      <div className='space-y-2 text-sm'>
+                        <div className='flex justify-between'>
+                          <span className='text-gray-500'>Name:</span>
+                          <span className='font-medium'>
+                            {settings.name || 'Untitled'}
+                          </span>
+                        </div>
+                        <div className='flex justify-between'>
+                          <span className='text-gray-500'>Type:</span>
+                          <span className='font-medium'>
+                            {getSelectedTemplateType()?.label}
+                          </span>
+                        </div>
+                        <div className='flex justify-between'>
+                          <span className='text-gray-500'>Size:</span>
+                          <span className='font-medium'>
+                            {settings.dimensions} mm
+                          </span>
+                        </div>
+                        <div className='flex justify-between'>
+                          <span className='text-gray-500'>Fields:</span>
+                          <span className='font-medium'>
+                            {templateFields.length} elements
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className='space-y-2'>
+                        <Label className='text-xs'>Export Options</Label>
+                        <div className='grid grid-cols-1 gap-2'>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            className='justify-start'
+                          >
+                            <Download className='w-3 h-3 mr-2' />
+                            Export as Template
+                          </Button>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            className='justify-start'
+                          >
+                            <FileText className='w-3 h-3 mr-2' />
+                            Generate PDF
+                          </Button>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            className='justify-start'
+                          >
+                            <Printer className='w-3 h-3 mr-2' />
+                            Print Preview
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </ScrollArea>
               </div>
             </Tabs>
           </div>
 
-          {/* Main Canvas Area */}
           <div className='flex-1 flex flex-col bg-gray-100'>
-            {/* Canvas Toolbar */}
             <div className='bg-white border-b px-4 py-2 flex items-center justify-between'>
               <div className='flex items-center space-x-4'>
                 <div className='flex items-center space-x-2'>
-                  <label className='text-sm'>Zoom:</label>
-                  <select
-                    value={zoomLevel}
-                    onChange={e => setZoomLevel(Number(e.target.value))}
-                    className='px-2 py-1 border rounded text-sm'
+                  <Label className='text-sm'>Zoom:</Label>
+                  <Select
+                    value={zoomLevel.toString()}
+                    onValueChange={(value: string) =>
+                      setZoomLevel(Number(value))
+                    }
                   >
-                    <option value={50}>50%</option>
-                    <option value={75}>75%</option>
-                    <option value={100}>100%</option>
-                    <option value={125}>125%</option>
-                    <option value={150}>150%</option>
-                    <option value={200}>200%</option>
-                  </select>
+                    <SelectTrigger className='w-20'>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='50'>50%</SelectItem>
+                      <SelectItem value='75'>75%</SelectItem>
+                      <SelectItem value='100'>100%</SelectItem>
+                      <SelectItem value='125'>125%</SelectItem>
+                      <SelectItem value='150'>150%</SelectItem>
+                      <SelectItem value='200'>200%</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className='text-sm text-gray-500'>
                   {getCanvasDimensions().realWidth} ×{' '}
@@ -875,25 +1447,25 @@ export default function CreateTemplateModal({
                 <Button
                   variant='outline'
                   size='sm'
-                  onClick={() => setShowGrid(!showGrid)}
+                  onClick={() => setSelectedField(null)}
+                  className='border-blue-300 text-blue-700'
                 >
-                  <Grid
-                    className={`w-4 h-4 ${showGrid ? 'text-blue-600' : ''}`}
-                  />
+                  Clear Selection
                 </Button>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => setShowRulers(!showRulers)}
-                >
-                  <Ruler
-                    className={`w-4 h-4 ${showRulers ? 'text-blue-600' : ''}`}
-                  />
-                </Button>
+                {selectedField && (
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => duplicateField(selectedField)}
+                    className='border-blue-300 text-blue-700'
+                  >
+                    <Copy className='w-4 h-4 mr-1' />
+                    Duplicate
+                  </Button>
+                )}
               </div>
             </div>
 
-            {/* Canvas */}
             <div className='flex-1 overflow-auto p-8 flex items-center justify-center'>
               <div
                 ref={canvasRef}
@@ -915,43 +1487,125 @@ export default function CreateTemplateModal({
                 }}
                 onClick={() => setSelectedField(null)}
               >
-                {/* Render template fields here */}
-                <div className='absolute inset-4 flex items-center justify-center text-gray-500'>
-                  <div className='text-center'>
-                    <CreditCard className='w-12 h-12 mx-auto mb-2 text-gray-300' />
-                    <p className='text-sm'>Template Preview</p>
-                    <p className='text-xs'>Add fields from the left panel</p>
-                  </div>
-                </div>
+                {showRulers && (
+                  <>
+                    <div className='absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-gray-200 to-gray-100 border-b border-gray-300 text-[10px] flex items-end overflow-hidden select-none pointer-events-none'>
+                      {Array.from({
+                        length: Math.ceil(getCanvasDimensions().realWidth) + 1,
+                      }).map((_, i) => (
+                        <div
+                          key={i}
+                          className='relative'
+                          style={{
+                            width: `${getCanvasDimensions().width / getCanvasDimensions().realWidth}px`,
+                          }}
+                        >
+                          <div className='absolute bottom-0 left-0 h-3 w-px bg-gray-400' />
+                          {i % 10 === 0 && (
+                            <div className='absolute bottom-0 left-0 h-6 w-px bg-gray-500'>
+                              <span className='absolute -bottom-5 left-0 translate-x-0'>
+                                {i}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className='absolute top-0 left-0 bottom-0 w-6 bg-gradient-to-r from-gray-200 to-gray-100 border-r border-gray-300 text-[10px] flex flex-col items-end overflow-hidden select-none pointer-events-none'>
+                      {Array.from({
+                        length: Math.ceil(getCanvasDimensions().realHeight) + 1,
+                      }).map((_, i) => (
+                        <div
+                          key={i}
+                          className='relative'
+                          style={{
+                            height: `${getCanvasDimensions().height / getCanvasDimensions().realHeight}px`,
+                          }}
+                        >
+                          <div className='absolute top-0 right-0 w-3 h-px bg-gray-400' />
+                          {i % 10 === 0 && (
+                            <div className='absolute top-0 right-0 w-6 h-px bg-gray-500'>
+                              <span className='absolute top-0 right-0 translate-y-0 pr-1'>
+                                {i}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className='absolute top-6 left-6 right-0 bottom-0'>
+                      {templateFields.map(renderField)}
+                      {previewMode === 'print' && (
+                        <div
+                          className='absolute border-2 border-dashed border-red-300 pointer-events-none'
+                          style={{
+                            top: `${settings.printMargin}px`,
+                            left: `${settings.printMargin}px`,
+                            right: `${settings.printMargin}px`,
+                            bottom: `${settings.printMargin}px`,
+                            width: `calc(100% - ${settings.printMargin * 2}px)`,
+                            height: `calc(100% - ${settings.printMargin * 2}px)`,
+                          }}
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
+                {!showRulers && (
+                  <>
+                    {templateFields.map(renderField)}
+                    {previewMode === 'print' && (
+                      <div
+                        className='absolute border-2 border-dashed border-red-300 pointer-events-none'
+                        style={{
+                          top: `${settings.printMargin}px`,
+                          left: `${settings.printMargin}px`,
+                          right: `${settings.printMargin}px`,
+                          bottom: `${settings.printMargin}px`,
+                          width: `calc(100% - ${settings.printMargin * 2}px)`,
+                          height: `calc(100% - ${settings.printMargin * 2}px)`,
+                        }}
+                      />
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className='flex justify-between items-center p-4 border-t bg-white'>
+        <div className='flex justify-between items-center p-4 border-t bg-white flex-shrink-0'>
           <div className='flex items-center space-x-2'>
-            <Button variant='outline' size='sm'>
+            <Button
+              variant='default'
+              size='sm'
+              className='bg-blue-600 hover:bg-blue-700 text-white'
+            >
               <Save className='w-4 h-4 mr-2' />
               Save Draft
             </Button>
-            <Button variant='outline' size='sm'>
+            <Button
+              variant='default'
+              size='sm'
+              className='bg-blue-600 hover:bg-blue-700 text-white'
+            >
               <Eye className='w-4 h-4 mr-2' />
               Preview
             </Button>
           </div>
           <div className='flex space-x-2'>
             <Button
-              variant='outline'
+              variant='default'
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
+              className='bg-blue-600 hover:bg-blue-700 text-white'
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={isLoading}
-              className='bg-primary hover:bg-primary/90'
+              className='bg-blue-600 hover:bg-blue-700 text-white'
             >
               {isLoading ? (
                 <>
@@ -967,7 +1621,9 @@ export default function CreateTemplateModal({
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
+
+export default CreateTemplateModal;
