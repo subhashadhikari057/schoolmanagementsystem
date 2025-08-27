@@ -10,6 +10,8 @@ import { z } from 'zod';
 import { CalendarEntryType } from '../../enums/calendar/calendar-entry-type.enum';
 import { HolidayType } from '../../enums/calendar/holiday-type.enum';
 import { ExamType } from '../../enums/calendar/exam-type.enum';
+import { EmergencyClosureType } from '../../enums/calendar/emergency-closure-type.enum';
+import { EventScope } from '../../enums/calendar/event-scope.enum';
 
 /**
  * Base calendar entry schema with common fields
@@ -17,6 +19,7 @@ import { ExamType } from '../../enums/calendar/exam-type.enum';
 export const BaseCalendarEntrySchema = z.object({
   name: z.string().min(1, "Name is required").max(200, "Name too long"),
   type: z.nativeEnum(CalendarEntryType),
+  eventScope: z.nativeEnum(EventScope).optional(), // Whether event is partial or school-wide
   startDate: z.string().datetime("Invalid start date format"),
   endDate: z.string().datetime("Invalid end date format"),
   venue: z.string().optional(),
@@ -27,6 +30,10 @@ export const BaseCalendarEntrySchema = z.object({
   // Exam-specific fields
   examType: z.nativeEnum(ExamType).optional(),
   examDetails: z.string().optional(),
+  // Emergency closure specific fields
+  emergencyClosureType: z.nativeEnum(EmergencyClosureType).optional(),
+  emergencyReason: z.string().optional(),
+  affectedAreas: z.string().optional(), // JSON string for areas affected
 });
 
 /**
@@ -41,25 +48,31 @@ export const CreateCalendarEntrySchema = BaseCalendarEntrySchema
       if (data.type === CalendarEntryType.EVENT && !data.venue) {
         return false;
       }
+      if (data.type === CalendarEntryType.EVENT && !data.eventScope) {
+        return false;
+      }
       if (data.type === CalendarEntryType.EXAM && !data.examType) {
+        return false;
+      }
+      if (data.type === CalendarEntryType.EMERGENCY_CLOSURE && !data.emergencyClosureType) {
         return false;
       }
       return true;
     },
     {
-      message: 'Holiday type is required for holidays, venue is required for events, exam type is required for exams',
+      message: 'Holiday type is required for holidays, venue and event scope are required for events, exam type is required for exams, emergency closure type is required for emergency closures',
     }
   )
   .refine(
     (data) => {
       // Time fields should only be present for events and exams
-      if (data.type === CalendarEntryType.HOLIDAY && (data.startTime || data.endTime)) {
+      if ((data.type === CalendarEntryType.HOLIDAY || data.type === CalendarEntryType.EMERGENCY_CLOSURE) && (data.startTime || data.endTime)) {
         return false;
       }
       return true;
     },
     {
-      message: 'Time fields are not allowed for holidays',
+      message: 'Time fields are not allowed for holidays and emergency closures',
       path: ['startTime', 'endTime'],
     }
   )

@@ -491,17 +491,130 @@ model IDCard {
   batchName   String?
   issuedForId String
   createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   issuedFor   User           @relation(fields: [issuedForId], references: [id])
   template    IDCardTemplate @relation("IDCardTemplates", fields: [templateId], references: [id])
+
+  @@index([type])
+  @@index([templateId])
+  @@index([issuedForId])
 }
 
 model IDCardTemplate {
-  id        String   @id @default(uuid())
-  name      String
-  layout    Json
-  metadata  Json?
-  createdAt DateTime @default(now())
-  idCards   IDCard[] @relation("IDCardTemplates")
+  id               String               @id @default(uuid())
+  name             String
+  type             IDCardTemplateType
+  description      String?
+  dimensions       String               // e.g., "85.6x53.98"
+  customWidth      Float?
+  customHeight     Float?
+  orientation      TemplateOrientation  @default(HORIZONTAL)
+  backgroundColor  String               @default("#ffffff")
+  backgroundImage  String?
+  borderColor      String               @default("#000000")
+  borderWidth      Int                  @default(1)
+  borderRadius     Int                  @default(0)
+  logoRequired     Boolean              @default(true)
+  photoRequired    Boolean              @default(true)
+  qrCodeRequired   Boolean              @default(true)
+  barcodeRequired  Boolean              @default(false)
+  watermark        String?
+  printMargin      Int                  @default(5)
+  bleedArea        Int                  @default(3)
+  safeArea         Int                  @default(5)
+  status           TemplateStatus       @default(DRAFT)
+  usageCount       Int                  @default(0)
+  isDefault        Boolean              @default(false)
+  features         Json?                @default("[]")
+  metadata         Json?                @default("{}")
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  deletedAt        DateTime?
+  createdById      String?              @db.Uuid
+  updatedById      String?              @db.Uuid
+  deletedById      String?              @db.Uuid
+  fields           IDCardTemplateField[]
+  idCards          IDCard[]             @relation("IDCardTemplates")
+
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model IDCardTemplateField {
+  id              String               @id @default(uuid())
+  templateId      String
+  fieldType       TemplateFieldType
+  label           String
+  databaseField   String?              // Maps to actual database field
+  x               Float
+  y               Float
+  width           Float
+  height          Float
+  fontSize        Int?
+  fontWeight      String?
+  textAlign       TextAlignment?       @default(LEFT)
+  fontFamily      String?              @default("Inter")
+  color           String?              @default("#000000")
+  backgroundColor String?
+  borderWidth     Int?                 @default(0)
+  borderColor     String?              @default("#cccccc")
+  borderRadius    Int?                 @default(0)
+  required        Boolean              @default(false)
+  placeholder     String?
+  rotation        Float?               @default(0)
+  opacity         Int?                 @default(100)
+  zIndex          Int?                 @default(1)
+  validationRules Json?                @default("{}")
+  styleOptions    Json?                @default("{}")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  template        IDCardTemplate       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@index([fieldType])
+  @@index([databaseField])
+}
+
+enum IDCardTemplateType {
+  STUDENT
+  TEACHER
+  STAFF
+  STAFF_NO_LOGIN
+}
+
+enum TemplateOrientation {
+  HORIZONTAL
+  VERTICAL
+}
+
+enum TemplateStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum TemplateFieldType {
+  TEXT
+  IMAGE
+  QR_CODE
+  BARCODE
+  LOGO
+  PHOTO
+  DATE
+  TIME
+  SIGNATURE
+}
+
+enum TextAlignment {
+  LEFT
+  CENTER
+  RIGHT
+  JUSTIFY
 }
 
 model UserRole {
@@ -569,25 +682,30 @@ model UserSession {
 }
 
 model CalendarEntry {
-  id          String            @id @default(uuid())
-  type        CalendarEntryType
-  startDate   DateTime
-  endDate     DateTime
-  venue       String?
-  holidayType HolidayType?
-  startTime   String?
-  endTime     String?
-  examType    ExamType?
-  examDetails String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime?
-  deletedAt   DateTime?
-  createdById String?           @db.Uuid
-  updatedById String?           @db.Uuid
-  deletedById String?           @db.Uuid
-  name        String
+  id                    String                 @id @default(uuid())
+  type                  CalendarEntryType
+  eventScope            EventScope?            // Whether the event is partial or school-wide
+  startDate             DateTime
+  endDate               DateTime
+  venue                 String?
+  holidayType           HolidayType?
+  startTime             String?
+  endTime               String?
+  examType              ExamType?
+  examDetails           String?
+  emergencyClosureType  EmergencyClosureType?
+  emergencyReason       String?
+  affectedAreas         String?               // JSON string for areas affected by emergency
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime?
+  deletedAt             DateTime?
+  createdById           String?               @db.Uuid
+  updatedById           String?               @db.Uuid
+  deletedById           String?               @db.Uuid
+  name                  String
 
   @@index([type])
+  @@index([eventScope])
   @@index([startDate])
   @@index([endDate])
   @@index([createdById])
@@ -654,6 +772,7 @@ enum CalendarEntryType {
   HOLIDAY
   EVENT
   EXAM
+  EMERGENCY_CLOSURE
 }
 
 enum HolidayType {
@@ -668,6 +787,22 @@ enum ExamType {
   FINAL
   UNIT_TEST
   OTHER
+}
+
+enum EmergencyClosureType {
+  NATURAL_DISASTER
+  STRIKE
+  PANDEMIC
+  POWER_OUTAGE
+  SECURITY_CONCERN
+  INFRASTRUCTURE_DAMAGE
+  WEATHER_EMERGENCY
+  OTHER
+}
+
+enum EventScope {
+  PARTIAL
+  SCHOOL_WIDE
 }
 
 enum ClassShift {
@@ -1220,6 +1355,7 @@ model WorkingDaysTracker {
   events          Int      // Events from calendar
   exams           Int      // Exam days from calendar  
   availableDays   Int      // Calculated working days
+  emergencyClosures Int    // Emergency closure days from calendar
   createdAt       DateTime @default(now())
   updatedAt       DateTime @default(now()) @updatedAt
   

@@ -30,6 +30,7 @@ import { FeeModule } from './modules/fee/fee.module';
 import { NoticeModule } from './modules/notice/notice.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
+import { IDCardTemplateModule } from './modules/id-card-templates/id-card-template.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { ComplaintModule } from './modules/complaint/complaint.module';
     NoticeModule,
     AttendanceModule,
     ComplaintModule,
+    IDCardTemplateModule,
   ],
 })
 export class AppModule implements NestModule {

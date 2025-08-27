@@ -15,6 +15,7 @@ export interface WorkingDaysBreakdown {
   holidays: number;
   events: number;
   exams: number;
+  emergencyClosures: number;
   availableDays: number;
   isCurrentMonth?: boolean;
   lastCalculated?: string;

@@ -70,6 +70,7 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
     isExam: boolean;
     isSaturday: boolean;
     isWorkingDay: boolean;
+    isEmergencyClosure: boolean;
     eventDetails?: {
       title: string;
       type: string;
@@ -202,10 +203,11 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
           await attendanceService.checkDateStatus(selectedDate);
         setDateStatus(dateStatusResult);
 
-        // If it's a holiday or non-working day, show appropriate message
+        // If it's a holiday, event, emergency closure, or non-working day, show appropriate message
         if (
           dateStatusResult.isHoliday ||
           dateStatusResult.isEvent ||
+          dateStatusResult.isEmergencyClosure ||
           dateStatusResult.isSaturday
         ) {
           let statusMessage = '';
@@ -216,6 +218,11 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
             dateStatusResult.eventDetails
           ) {
             statusMessage = `${new Date(selectedDate).toLocaleDateString()} is a holiday: ${dateStatusResult.eventDetails.title}`;
+          } else if (
+            dateStatusResult.isEmergencyClosure &&
+            dateStatusResult.eventDetails
+          ) {
+            statusMessage = `${new Date(selectedDate).toLocaleDateString()} is an emergency closure: ${dateStatusResult.eventDetails.title}`;
           } else if (
             dateStatusResult.isEvent &&
             dateStatusResult.eventDetails
@@ -264,10 +271,11 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
             }),
           );
 
-          // If attendance exists but it's a holiday/event, don't set as error since we have date status indicator
+          // If attendance exists but it's a holiday/event/emergency closure, don't set as error since we have date status indicator
           if (
             dateStatusResult.isHoliday ||
             dateStatusResult.isEvent ||
+            dateStatusResult.isEmergencyClosure ||
             dateStatusResult.isSaturday
           ) {
             // The date status indicator will show the holiday/event information
@@ -281,10 +289,11 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
           // For previous dates with no attendance data, this is normal - not an error
           const selectedDateObj = new Date(selectedDate);
 
-          // If it's a holiday/event but no attendance, keep the status message
+          // If it's a holiday/event/emergency closure but no attendance, keep the status message
           if (
             !dateStatusResult.isHoliday &&
             !dateStatusResult.isEvent &&
+            !dateStatusResult.isEmergencyClosure &&
             !dateStatusResult.isSaturday
           ) {
             setError(null);
@@ -665,6 +674,7 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
         {dateStatus &&
           (dateStatus.isHoliday ||
             dateStatus.isEvent ||
+            dateStatus.isEmergencyClosure ||
             dateStatus.isSaturday) && (
             <div className='px-6 pb-4'>
               <div
@@ -673,7 +683,9 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
                     ? 'bg-blue-50 border-blue-500'
                     : dateStatus.isHoliday
                       ? 'bg-red-50 border-red-500'
-                      : 'bg-yellow-50 border-yellow-500'
+                      : dateStatus.isEmergencyClosure
+                        ? 'bg-red-100 border-red-600'
+                        : 'bg-yellow-50 border-yellow-500'
                 }`}
               >
                 <div className='flex items-center'>
@@ -723,14 +735,18 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
                           ? 'text-blue-800'
                           : dateStatus.isHoliday
                             ? 'text-red-800'
-                            : 'text-yellow-800'
+                            : dateStatus.isEmergencyClosure
+                              ? 'text-red-900'
+                              : 'text-yellow-800'
                       }`}
                     >
                       {dateStatus.isSaturday
                         ? 'Weekend Day'
                         : dateStatus.isHoliday
                           ? 'Holiday'
-                          : 'Event Day'}
+                          : dateStatus.isEmergencyClosure
+                            ? 'Emergency Closure'
+                            : 'Event Day'}
                     </h3>
                     <div
                       className={`mt-1 text-sm ${
@@ -738,7 +754,9 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
                           ? 'text-blue-700'
                           : dateStatus.isHoliday
                             ? 'text-red-700'
-                            : 'text-yellow-700'
+                            : dateStatus.isEmergencyClosure
+                              ? 'text-red-800'
+                              : 'text-yellow-700'
                       }`}
                     >
                       {dateStatus.isSaturday
@@ -775,6 +793,7 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
         {error &&
           !dateStatus?.isHoliday &&
           !dateStatus?.isEvent &&
+          !dateStatus?.isEmergencyClosure &&
           !dateStatus?.isSaturday && (
             <div className='px-6 pb-4'>
               <div

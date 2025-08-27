@@ -1,9 +1,0 @@
--- NOTE: This migration previously attempted to ALTER and RENAME objects on
--- FeeStructureAssignment before the table was actually created in a later
--- migration (20250823030000_fee_structure_assignment). That ordering causes
--- Prisma shadow database (used for drift detection) to fail with P3006/P1014.
--- We neutralize it to a no-op to preserve migration history without errors.
--- If the earlier version was ever applied, the later create migration would
--- have been skipped anyway. Safe to leave empty.
--- (Shadow DB = a temporary throwaway database Prisma spins up to replay all
--- migrations from scratch and detect drift; it must succeed for migrate dev.)

@@ -10,6 +10,8 @@ import {
   CalendarEntryType,
   HolidayType,
   ExamType,
+  EmergencyClosureType,
+  EventScope,
   CalendarEntryResponseDto,
   CreateCalendarEntryDto,
   UpdateCalendarEntryDto,
@@ -28,7 +30,13 @@ export type {
   BulkCalendarOperationDto,
 };
 
-export { CalendarEntryType, HolidayType, ExamType };
+export {
+  CalendarEntryType,
+  HolidayType,
+  ExamType,
+  EmergencyClosureType,
+  EventScope,
+};
 
 // Local calendar event interface (compatible with existing Event type)
 export interface CalendarEvent {
@@ -53,6 +61,7 @@ export interface CalendarEvent {
 export interface EventFormData {
   name: string;
   type: CalendarEntryType;
+  eventScope?: EventScope;
   startDate: string;
   endDate: string;
   startTime?: string;
@@ -61,6 +70,9 @@ export interface EventFormData {
   holidayType?: HolidayType;
   examType?: ExamType;
   examDetails?: string;
+  emergencyClosureType?: EmergencyClosureType;
+  emergencyReason?: string;
+  affectedAreas?: string;
 }
 
 // Modal props interface

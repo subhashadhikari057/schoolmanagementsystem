@@ -241,6 +241,7 @@ export class CalendarService {
       [CalendarEntryType.HOLIDAY]: '#EF4444', // Red
       [CalendarEntryType.EVENT]: '#3B82F6', // Blue
       [CalendarEntryType.EXAM]: '#8B5CF6', // Purple
+      [CalendarEntryType.EMERGENCY_CLOSURE]: '#DC2626', // Dark Red
     };
     return colors[type] || '#6B7280'; // Gray fallback
   }
@@ -253,6 +254,7 @@ export class CalendarService {
       [CalendarEntryType.HOLIDAY]: 'Holiday',
       [CalendarEntryType.EVENT]: 'Event',
       [CalendarEntryType.EXAM]: 'Exam',
+      [CalendarEntryType.EMERGENCY_CLOSURE]: 'Emergency Closure',
     };
     return labels[type] || 'Unknown';
   }
