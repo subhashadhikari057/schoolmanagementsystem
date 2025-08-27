@@ -31,6 +31,32 @@ export {
   ForceChangePasswordSchema,
 } from "./schemas/auth/auth.schemas";
 
+// Export fee-related schemas and DTOs
+export {
+  createFeeStructureSchema,
+  reviseFeeStructureSchema,
+  computeMonthlyFeesSchema,
+  createScholarshipDefinitionSchema,
+  assignScholarshipSchema,
+  createChargeDefinitionSchema,
+  applyChargeSchema,
+} from "./dto/finance/fee.dto";
+
+// Export fee-related types
+export type {
+  CreateFeeStructureDto,
+  ReviseFeeStructureDto,
+  ComputeMonthlyFeesDto,
+  CreateScholarshipDefinitionDto,
+  AssignScholarshipDto,
+  CreateChargeDefinitionDto,
+  ApplyChargeDto,
+} from "./dto/finance/fee.dto";
+
+// Export attendance-related types and enums
+export { AttendanceStatus } from "./enums/attendance/attendance-status.enum";
+export type { AttendanceDto } from "./dto/attendance/attendance.dto";
+
 // Export specific schemas to avoid conflicts
 export {
   ErrorCodes,
