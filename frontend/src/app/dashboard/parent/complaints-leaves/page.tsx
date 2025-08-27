@@ -6,17 +6,18 @@ import ComplaintsAndLeavePage from '@/app/dashboard/student/complaints-leave/pag
 
 // Parent wrapper: adds approve/reject for leave requests
 export default function ParentComplaintsAndLeavesPage() {
-  // You can extend ComplaintsAndLeavePage to add approve/reject buttons for leave requests
-  // For now, reuse the student page and add a note for parent actions
+  // Pass userRole='parent' to show parent-specific functionality
+  // Parents can approve/reject leave requests and resolve complaints
   return (
     <div className='p-6'>
       <h1 className='text-2xl font-bold mb-4'>Complaints & Leave Requests</h1>
       <p className='text-gray-500 mb-6'>
         As a parent, you can approve or reject leave requests submitted by your
-        children.
+        children. If approved, the request will be sent to the teacher for final
+        approval.
       </p>
-      {/* Parent can approve/reject leave requests below */}
-      <ComplaintsAndLeavePage />
+      {/* Parent can approve/reject leave requests and resolve complaints below */}
+      <ComplaintsAndLeavePage userRole='parent' />
     </div>
   );
 }
