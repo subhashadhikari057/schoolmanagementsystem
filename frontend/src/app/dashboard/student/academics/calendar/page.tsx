@@ -1,20 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import AcademicCalendar from '@/components/organisms/calendar/AcademicCalendar';
+import { useCalendarEvents } from '@/components/organisms/calendar/hooks/useCalendarEvents';
 import { CalendarLoader } from '@/components/atoms/loading';
 
 export default function StudentCalendarPage() {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  // Fetch all calendar events (same as admin/teacher)
+  const { events, loading } = useCalendarEvents({ page: 1, limit: 100 });
 
   if (loading) {
     return <CalendarLoader />;
@@ -26,6 +19,7 @@ export default function StudentCalendarPage() {
       subtitle='View academic year events, holidays, and examinations'
       showExportButton={true}
       showActionButtons={false} // Read-only for students
+      events={events} // Show all events from backend
     />
   );
 }

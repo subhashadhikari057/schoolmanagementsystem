@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { assignmentService } from '@/api/services/assignment.service';
 import { AssignmentResponse, SubmissionResponse } from '@/api/types/assignment';
 import Panel from '@/components/organisms/dashboard/UpcomingEventsPanel';
+import { useCalendarEvents } from '@/components/organisms/calendar/hooks/useCalendarEvents';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import Button from '@/components/atoms/form-controls/Button';
 import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
@@ -46,6 +47,18 @@ interface TeacherClass {
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
+  // Fetch all calendar events (exams, holidays, events)
+  const { events: calendarEvents } = useCalendarEvents({ page: 1, limit: 50 });
+  // Map backend events to UpcomingEventsPanel's Event type
+  const mappedEvents = calendarEvents.map(ev => ({
+    id: ev.id,
+    title: ev.title || ev.name || 'Untitled Event',
+    date: ev.date,
+    time: ev.time || ev.startTime || '',
+    location: ev.location || ev.venue || '',
+    status: typeof ev.status === 'string' ? ev.status : 'Active',
+    type: ev.type || 'event',
+  }));
   const router = useRouter();
   const [showAttendance, setShowAttendance] = useState(false);
   const [subjects, setSubjects] = useState<TeacherSubject[]>([]);
@@ -374,6 +387,7 @@ export default function TeacherDashboard() {
                 title='Upcoming Events'
                 maxEvents={3}
                 className='!bg-transparent !border-0 !p-0 !rounded-none !shadow-none'
+                events={mappedEvents}
               />
             </div>
             <div className='lg:col-span-4'>

@@ -2,70 +2,57 @@
 import React, { useState, useEffect } from 'react';
 import Avatar from '@/components/atoms/display/Avatar';
 import { useAuth } from '@/hooks/useAuth';
-import ChildSwitcher from '../../../components/atoms/display/ChildSwitcher';
-import ChildInfoCard from '../../../components/atoms/display/ChildInfoCard';
-import ChildSummaryCards from '../../../components/atoms/display/ChildSummaryCards';
 import NoticesList from '../../../components/atoms/display/NoticesList';
 import NotificationPanel from '@/components/organisms/dashboard/NotificationPanel';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import { PageLoader } from '@/components/atoms/loading';
 
-// Mock children data
-const children = [
-  {
-    id: '1',
-    name: 'Arjun Kumar Sharma',
-    class: '10',
-    section: 'A',
-    rollNumber: '2024001',
-    profilePic: '/uploads/students/profiles/arjun-sharma.jpg',
-    attendance: 96,
-    dueFees: 0,
-    upcomingAssignments: 2,
-    nextExam: 'Mathematics (Aug 25)',
-    grades: 'A',
-  },
-  {
-    id: '2',
-    name: 'Priya Sharma',
-    class: '7',
-    section: 'B',
-    rollNumber: '2024012',
-    profilePic: '/uploads/students/profiles/priya-sharma.jpg',
-    attendance: 89,
-    dueFees: 1500,
-    upcomingAssignments: 1,
-    nextExam: 'Science (Aug 28)',
-    grades: 'B+',
-  },
-];
-
-const notices = [
-  {
-    id: 'n1',
-    title: 'School will be closed on Aug 30 for holiday',
-    forClass: 'All',
-  },
-  { id: 'n2', title: 'Class 10A: Extra class on Aug 26', forClass: '10A' },
-];
-
 export default function ParentDashboard() {
   const { user } = useAuth();
+  const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [parentId, setParentId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
+    if (!user?.id) return;
+    const fetchParentAndChildren = async () => {
+      setLoading(true);
+      try {
+        // Step 1: Fetch parent by userId
+        const parentRes = await fetch(`/api/parent/by-user/${user.id}`);
+        const parentData = await parentRes.json();
+        if (!parentData?.id) {
+          setChildren([]);
+          setLoading(false);
+          return;
+        }
+        setParentId(parentData.id);
 
-    return () => clearTimeout(timer);
-  }, []);
+        // Step 2: Fetch children using parentId
+        const childrenRes = await fetch(`/api/parent/${parentData.id}`);
+        const childrenData = await childrenRes.json();
+        setChildren(childrenData.children || []);
+      } catch (err) {
+        setChildren([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchParentAndChildren();
+  }, [user?.id]);
+
+  const notices = [
+    {
+      id: 'n1',
+      title: 'School will be closed on Aug 30 for holiday',
+      forClass: 'All',
+    },
+    { id: 'n2', title: 'Class 10A: Extra class on Aug 26', forClass: '10A' },
+  ];
 
   const parentName = user?.full_name || user?.email || 'Parent';
   const parentEmail = user?.email || 'parent@email.com';
   const numChildren = children.length;
-  const unreadNotices = notices.length;
 
   if (loading) {
     return <PageLoader />;
@@ -138,32 +125,36 @@ export default function ParentDashboard() {
               className='text-lg font-bold mb-2'
             />
             <div className='flex flex-col gap-2'>
-              {children.map(child => (
-                <div
-                  key={child.id}
-                  className='flex items-center gap-4 py-2 border-b last:border-b-0'
-                >
-                  <Avatar
-                    src={child.profilePic}
-                    name={child.name}
-                    className='w-8 h-8 rounded-full object-cover border'
-                  />
-                  <div className='flex-1'>
-                    <div className='font-semibold text-gray-900'>
-                      {child.name}
-                    </div>
-                    <div className='text-gray-600 text-sm'>
-                      Class {child.class} • Roll {child.rollNumber}
-                    </div>
-                  </div>
-                  <a
-                    href={`/dashboard/parent/children/${child.id}`}
-                    className='text-blue-600 hover:underline text-xs font-medium'
+              {children.length === 0 ? (
+                <div>No children linked.</div>
+              ) : (
+                children.map((child: any) => (
+                  <div
+                    key={child.id}
+                    className='flex items-center gap-4 py-2 border-b last:border-b-0'
                   >
-                    View Details
-                  </a>
-                </div>
-              ))}
+                    <Avatar
+                      src={child.profilePic || ''}
+                      name={child.name}
+                      className='w-8 h-8 rounded-full object-cover border'
+                    />
+                    <div className='flex-1'>
+                      <div className='font-semibold text-gray-900'>
+                        {child.name}
+                      </div>
+                      <div className='text-gray-600 text-sm'>
+                        Class {child.class} • Roll {child.rollNumber}
+                      </div>
+                    </div>
+                    <a
+                      href={`/dashboard/parent/children/${child.id}`}
+                      className='text-blue-600 hover:underline text-xs font-medium'
+                    >
+                      View Details
+                    </a>
+                  </div>
+                ))
+              )}
             </div>
           </div>
           {/* School Notices */}

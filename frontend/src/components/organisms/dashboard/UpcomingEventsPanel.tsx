@@ -12,6 +12,7 @@ interface Event {
   time: string;
   location: string;
   status: string;
+  type?: string; // event, exam, holiday
 }
 
 type SubjectItem = {
@@ -116,6 +117,28 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
           .slice(0, maxEvents);
 
   if (variant === 'list-cards') {
+    // Helper to get badge color and label
+    const getTypeBadge = (type?: string) => {
+      if (!type || type === 'event')
+        return (
+          <span className='inline-block px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700 mr-2'>
+            Event
+          </span>
+        );
+      if (type === 'exam')
+        return (
+          <span className='inline-block px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-700 mr-2'>
+            Exam
+          </span>
+        );
+      if (type === 'holiday')
+        return (
+          <span className='inline-block px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-700 mr-2'>
+            Holiday
+          </span>
+        );
+      return null;
+    };
     return (
       <div
         className={`bg-white rounded-xl p-4 border border-gray-200 ${className}`}
@@ -137,8 +160,11 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
               key={ev.id}
               className='rounded-xl border border-gray-200 bg-white p-4 shadow-sm'
             >
-              <div className='text-sm font-medium text-gray-900 mb-1 line-clamp-1'>
-                {ev.title}
+              <div className='flex items-center mb-1'>
+                {getTypeBadge(ev.type)}
+                <span className='text-sm font-medium text-gray-900 line-clamp-1'>
+                  {ev.title}
+                </span>
               </div>
               <div className='text-xs text-gray-500 mb-3'>
                 Date: {new Date(ev.date).toLocaleDateString()} • {ev.time} •{' '}
