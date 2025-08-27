@@ -165,6 +165,14 @@ export class ScheduleService {
    * Get schedules by class ID
    */
   async getSchedulesByClass(classId: string): Promise<ScheduleResponseDto[]> {
+    // Verify class exists
+    const classExists = await this.prisma.class.findUnique({
+      where: { id: classId, deletedAt: null },
+    });
+    if (!classExists) {
+      throw new NotFoundException(`Class with ID ${classId} not found`);
+    }
+
     const schedules = await this.prisma.classSchedule.findMany({
       where: {
         classId,

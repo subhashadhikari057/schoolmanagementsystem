@@ -1,4 +1,5 @@
 // prisma/seed.ts - Simplified Seed File with Admin Login Only
+/* eslint-disable no-console */
 
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
@@ -27,6 +28,44 @@ async function main() {
         isSystemRole: role === 'SUPER_ADMIN',
       },
     });
+  }
+
+  // 1b. Ensure baseline permissions exist (extend this list as new domain actions are added)
+  const permissionCodes = [
+    'FINANCE_MANAGE_FEES',
+    'FINANCE_MANAGE_SCHOLARSHIPS',
+    'FINANCE_MANAGE_CHARGES',
+  ];
+  for (const perm of permissionCodes) {
+    await prisma.permission.upsert({
+      where: { code: perm },
+      update: {},
+      create: { code: perm, description: `${perm} permission` },
+    });
+  }
+
+  // 1c. Grant ALL permissions to SUPER_ADMIN (data-driven super admin power)
+  const allPermissions = await prisma.permission.findMany({
+    select: { id: true },
+  });
+  const superAdminRole = await prisma.role.findUnique({
+    where: { name: 'SUPER_ADMIN' },
+    select: { id: true },
+  });
+  if (superAdminRole) {
+    // Clear existing role-permission links then recreate (idempotent)
+    await prisma.rolePermission.deleteMany({
+      where: { roleId: superAdminRole.id },
+    });
+    if (allPermissions.length) {
+      await prisma.rolePermission.createMany({
+        data: allPermissions.map(p => ({
+          roleId: superAdminRole.id,
+          permissionId: p.id,
+        })),
+        skipDuplicates: true,
+      });
+    }
   }
 
   // 2. Create Super Admin User
@@ -78,6 +117,9 @@ async function main() {
   });
 
   console.log('✅ Admin seed data created successfully!');
+  console.log(
+    `🔐 SUPER_ADMIN granted ${permissionCodes.length} baseline permissions + any additional existing (${allPermissions.length} total).`,
+  );
   console.log('');
   console.log('🔐 ADMIN CREDENTIALS:');
   console.log('');

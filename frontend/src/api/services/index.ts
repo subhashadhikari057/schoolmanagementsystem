@@ -14,6 +14,7 @@ export * from './complaint.service';
 export * from './complaint-attachment.service';
 export * from './complaint-response.service';
 export * from './csrf.service';
+export * from './fee.service';
 export * from './notice.service';
 export * from './parent.service';
 export * from './staff.service';

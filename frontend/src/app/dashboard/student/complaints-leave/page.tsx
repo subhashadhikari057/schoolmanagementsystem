@@ -732,7 +732,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
   ) : null;
 };
 
-export const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
+const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [complaintModalOpen, setComplaintModalOpen] = useState(false);
   const [complaintDetailModalOpen, setComplaintDetailModalOpen] =

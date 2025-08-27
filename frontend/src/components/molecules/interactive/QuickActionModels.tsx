@@ -13,7 +13,6 @@ export function QuickActionModal({
 }) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      {/* @ts-expect-error - Headless UI compatibility */}
       <Dialog as='div' className='relative z-10' onClose={closeModal}>
         <Transition.Child
           as={Fragment}
@@ -39,7 +38,6 @@ export function QuickActionModal({
               leaveTo='opacity-0 scale-95'
             >
               <Dialog.Panel className='w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all'>
-                {/* @ts-expect-error - Headless UI compatibility */}
                 <Dialog.Title
                   as='h3'
                   className='text-lg font-medium leading-6 text-gray-900'

@@ -25,12 +25,17 @@ export const classSubjectService = {
         data: response.data as ClassSubjectResponseDto[],
       };
     } catch (error: unknown) {
+      const err = error as {
+        response?: { status?: number; data?: { message?: string } };
+      };
+      if (err?.response?.status === 404) {
+        // Treat missing assignments as empty rather than an error (first load / new class)
+        return { success: true, data: [] as ClassSubjectResponseDto[] };
+      }
       console.error('Error fetching class subjects:', error);
       return {
         success: false,
-        error:
-          (error as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message || 'Failed to fetch class subjects',
+        error: err?.response?.data?.message || 'Failed to fetch class subjects',
       };
     }
   },

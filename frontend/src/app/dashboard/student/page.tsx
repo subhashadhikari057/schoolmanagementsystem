@@ -35,7 +35,7 @@ import Label from '@/components/atoms/display/Label';
 import Link from 'next/link';
 
 // Mock data for demonstration
-export const subjects: StudentSubject[] = [
+const subjects: StudentSubject[] = [
   {
     subject: {
       id: '1',

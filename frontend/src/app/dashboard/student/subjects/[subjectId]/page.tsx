@@ -1,20 +1,13 @@
-// Helper to check if value is a Promise
-
 'use client';
-function isPromise<T>(value: any): value is Promise<T> {
-  return typeof value?.then === 'function';
-}
 
 import React from 'react';
-import { use } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
-import Label from '@/components/atoms/display/Label';
 import Button from '@/components/atoms/form-controls/Button';
 import GenericTabs from '@/components/organisms/tabs/GenericTabs';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
-import { PageLoader } from '@/components/atoms/loading';
+// import { PageLoader } from '@/components/atoms/loading';
 
 // Overview tab: summary, info, assignments (matches image)
 function OverviewTab({ subject }: { subject: any }) {
@@ -225,29 +218,9 @@ function AssignmentsTab({ subject }: { subject: any }) {
   );
 }
 
-export default function SubjectDetailsPage({
-  params,
-}: {
-  params: Promise<{ subjectId: string }> | { subjectId: string };
-}) {
+// Client component for the actual page content
+function SubjectDetailsContent({ subjectId }: { subjectId: string }) {
   const router = useRouter();
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
-  // Unwrap params if it's a Promise (Next.js 14+)
-  let subjectId: string;
-  if (isPromise<{ subjectId: string }>(params)) {
-    subjectId = (React.use(params) as { subjectId: string }).subjectId;
-  } else {
-    subjectId = params.subjectId;
-  }
   // Demo subject data (could be dynamic)
   const subject = {
     id: subjectId,
@@ -269,9 +242,10 @@ export default function SubjectDetailsPage({
     },
   ];
 
-  if (loading) {
-    return <PageLoader />;
-  }
+  // For now, no loading state - data is hardcoded
+  // if (loading) {
+  //   return <PageLoader />;
+  // }
 
   return (
     <div className='min-h-screen w-full bg-[#f7f8fa] sm:px-4 pb-12'>
@@ -294,4 +268,14 @@ export default function SubjectDetailsPage({
       </div>
     </div>
   );
+}
+
+// Server component wrapper to handle async params
+export default async function SubjectDetailsPage({
+  params,
+}: {
+  params: Promise<{ subjectId: string }>;
+}) {
+  const { subjectId } = await params;
+  return <SubjectDetailsContent subjectId={subjectId} />;
 }

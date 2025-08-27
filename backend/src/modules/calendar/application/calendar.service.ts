@@ -20,6 +20,8 @@ import {
   CalendarEntriesResponseDto,
   BulkCalendarOperationDto,
   CalendarEntryType,
+  HolidayType,
+  ExamType,
 } from '../dto/calendar.dto';
 import { CalendarEntry, Prisma } from '@prisma/client';
 
@@ -56,7 +58,7 @@ export class CalendarService {
       });
 
       return this.mapToResponseDto(entry);
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to create calendar entry');
     }
   }
@@ -148,7 +150,7 @@ export class CalendarService {
       };
 
       return response;
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to fetch calendar entries');
     }
   }
@@ -216,7 +218,7 @@ export class CalendarService {
       });
 
       return this.mapToResponseDto(updatedEntry);
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to update calendar entry');
     }
   }
@@ -244,7 +246,7 @@ export class CalendarService {
           deletedById: userId,
         },
       });
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to delete calendar entry');
     }
   }
@@ -284,7 +286,7 @@ export class CalendarService {
         }
 
         success++;
-      } catch (error) {
+      } catch {
         failed++;
       }
     }
@@ -371,14 +373,14 @@ export class CalendarService {
     return {
       id: entry.id,
       name: entry.name,
-      type: entry.type as any,
+      type: entry.type as CalendarEntryType,
       startDate: entry.startDate.toISOString(),
       endDate: entry.endDate.toISOString(),
       venue: entry.venue || undefined,
-      holidayType: entry.holidayType as any,
+      holidayType: entry.holidayType as HolidayType | undefined,
       startTime: entry.startTime || undefined,
       endTime: entry.endTime || undefined,
-      examType: entry.examType as any,
+      examType: entry.examType as ExamType | undefined,
       examDetails: entry.examDetails || undefined,
       createdAt: entry.createdAt.toISOString(),
       updatedAt: entry.updatedAt?.toISOString(),

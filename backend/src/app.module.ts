@@ -26,7 +26,9 @@ import { CalendarModule } from './modules/calendar/calendar.module';
 import { AssignmentModule } from './modules/assignment/assignment.module';
 import { ParentModule } from './modules/parent/parent.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
+import { FeeModule } from './modules/fee/fee.module';
 import { NoticeModule } from './modules/notice/notice.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
 import { LeaveRequestModule } from './modules/leave-request/leave-request.module';
 import { LeaveTypeModule } from './modules/leave-type/leave-type.module';
@@ -50,7 +52,9 @@ import { LeaveTypeModule } from './modules/leave-type/leave-type.module';
     CalendarModule,
     AssignmentModule,
     ScheduleModule,
+    FeeModule,
     NoticeModule,
+    AttendanceModule,
     ComplaintModule,
     LeaveRequestModule,
     LeaveTypeModule,

@@ -119,7 +119,7 @@ export default function AddClassModal({
         capacity: 30, // TODO: Replace with actual value from UI if needed
         roomId: formData.room, // or map to actual roomId if you have a room selector
         classTeacherId: formData.classTeacher, // or map to actual teacherId if you have a teacher selector
-        // shift: 'morning', // add if needed
+        shift: 'morning', // add if needed
       });
 
       if (response.success) {

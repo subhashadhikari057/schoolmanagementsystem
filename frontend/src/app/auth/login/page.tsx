@@ -231,7 +231,7 @@ export default function LoginPage() {
           <LoginForm
             description='login to access SMS Portal '
             title='SMS'
-            subtitle='Welcome👋,'
+            subtitle='Welcome👋'
             emailLabel='Email'
             passwordLabel='Password'
             buttonLabel={isLoading ? 'Signing in...' : 'Login'}

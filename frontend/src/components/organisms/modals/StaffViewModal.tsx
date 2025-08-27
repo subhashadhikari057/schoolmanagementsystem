@@ -29,7 +29,7 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
   onClose,
   staff,
 }) => {
-  const [staffDetails, setStaffDetails] = useState<Staff | null>(null);
+  const [staffDetails, setStaffDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [salaryHistory, setSalaryHistory] = useState<any[]>([]);
@@ -45,7 +45,16 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
       const staffId = String(staff.id);
       if (!staffId || staffId === 'undefined' || staffId === 'null') {
         setError('Invalid staff ID');
-        setStaffDetails(staff);
+        setStaffDetails({
+          ...staff,
+          name: staff.name || 'Unknown Staff',
+          designation: staff.designation || 'Staff',
+          department: staff.department || 'General',
+          status: staff.status || 'Active',
+          email: staff.email || '',
+          phone: staff.phone || '',
+          avatar: staff.avatar || '',
+        });
         setLoading(false);
         return;
       }
@@ -162,15 +171,33 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
             }
           } else {
             setError('Failed to load staff details');
-            // Fallback to basic staff data
-            setStaffDetails(staff);
+            // Fallback to basic staff data with safe defaults
+            setStaffDetails({
+              ...staff,
+              name: staff.name || 'Unknown Staff',
+              designation: staff.designation || 'Staff',
+              department: staff.department || 'General',
+              status: staff.status || 'Active',
+              email: staff.email || '',
+              phone: staff.phone || '',
+              avatar: staff.avatar || '',
+            });
           }
         })
         .catch(err => {
           console.error('Error fetching staff details:', err);
           setError('Failed to load staff details');
-          // Fallback to basic staff data
-          setStaffDetails(staff);
+          // Fallback to basic staff data with safe defaults
+          setStaffDetails({
+            ...staff,
+            name: staff.name || 'Unknown Staff',
+            designation: staff.designation || 'Staff',
+            department: staff.department || 'General',
+            status: staff.status || 'Active',
+            email: staff.email || '',
+            phone: staff.phone || '',
+            avatar: staff.avatar || '',
+          });
         })
         .finally(() => {
           setLoading(false);
@@ -267,41 +294,41 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
           <div className='flex flex-col md:flex-row gap-4 sm:gap-6 pb-6 border-b border-gray-200'>
             <div className='flex-shrink-0'>
               <Avatar
-                name={staffDetails.name}
+                name={String(staffDetails?.name || 'Unknown Staff')}
                 className='w-24 h-24 sm:w-32 sm:h-32 rounded-xl shadow-md'
                 showInitials={true}
-                src={staffDetails.avatar}
+                src={String(staffDetails?.avatar || '')}
               />
             </div>
 
             <div className='flex-grow'>
               <h3 className='text-lg sm:text-xl font-bold text-gray-900'>
-                {staffDetails.firstName && staffDetails.lastName
-                  ? staffDetails.middleName
-                    ? `${staffDetails.firstName} ${staffDetails.middleName} ${staffDetails.lastName}`
-                    : `${staffDetails.firstName} ${staffDetails.lastName}`
-                  : staffDetails.name}
+                {staffDetails?.firstName && staffDetails?.lastName
+                  ? staffDetails?.middleName
+                    ? `${String(staffDetails?.firstName || '')} ${String(staffDetails?.middleName || '')} ${String(staffDetails?.lastName || '')}`
+                    : `${String(staffDetails?.firstName || '')} ${String(staffDetails?.lastName || '')}`
+                  : String(staffDetails?.name || 'Unknown Staff')}
               </h3>
 
               <div className='flex flex-wrap gap-2 mt-2'>
                 <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
-                  {staffDetails.designation || 'Staff'}
+                  {String(staffDetails?.designation || 'Staff')}
                 </span>
                 <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800'>
-                  {staffDetails.department || 'General'}
+                  {String(staffDetails?.department || 'General')}
                 </span>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    staffDetails.status === 'Active'
+                    staffDetails?.status === 'Active'
                       ? 'bg-green-100 text-green-800'
-                      : staffDetails.status === 'On Leave'
+                      : staffDetails?.status === 'On Leave'
                         ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-red-100 text-red-800'
                   }`}
                 >
-                  {staffDetails.status}
+                  {String(staffDetails?.status || 'Active')}
                 </span>
-                {staffDetails.hasLoginAccount && (
+                {staffDetails?.hasLoginAccount && (
                   <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800'>
                     Login Account
                   </span>
@@ -311,29 +338,33 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
               <div className='grid grid-cols-1 md:grid-cols-2 gap-3 mt-4'>
                 <div className='flex items-center gap-2 text-sm text-gray-600 break-words'>
                   <Mail className='h-4 w-4 text-gray-400' />
-                  <span>{staffDetails.email || 'N/A'}</span>
+                  <span>{String(staffDetails?.email || 'N/A')}</span>
                 </div>
                 <div className='flex items-center gap-2 text-sm text-gray-600 break-words'>
                   <Phone className='h-4 w-4 text-gray-400' />
                   <span>
-                    {staffDetails.phone ||
-                      staffDetails.contactInfo?.phone ||
-                      'N/A'}
+                    {String(
+                      staffDetails?.phone ||
+                        staffDetails?.contactInfo?.phone ||
+                        'N/A',
+                    )}
                   </span>
                 </div>
                 <div className='flex items-center gap-2 text-sm text-gray-600 break-words'>
                   <MapPin className='h-4 w-4 text-gray-400' />
                   <span>
-                    {staffDetails.street
-                      ? `${staffDetails.street}, ${staffDetails.city || 'N/A'}, ${staffDetails.state || 'N/A'}, ${staffDetails.province || staffDetails.state || 'N/A'} - ${staffDetails.pinCode || 'N/A'}`
-                      : staffDetails.address ||
-                        staffDetails.contactInfo?.address ||
-                        'N/A'}
+                    {staffDetails?.street
+                      ? `${String(staffDetails?.street || '')}, ${String(staffDetails?.city || 'N/A')}, ${String(staffDetails?.state || 'N/A')}, ${String(staffDetails?.province || staffDetails?.state || 'N/A')} - ${String(staffDetails?.pinCode || 'N/A')}`
+                      : String(
+                          staffDetails?.address ||
+                            staffDetails?.contactInfo?.address ||
+                            'N/A',
+                        )}
                   </span>
                 </div>
                 <div className='flex items-center gap-2 text-sm text-gray-600'>
                   <Calendar className='h-4 w-4 text-gray-400' />
-                  <span>Joined: {formatDate(staffDetails.joinedDate)}</span>
+                  <span>Joined: {formatDate(staffDetails?.joinedDate)}</span>
                 </div>
               </div>
             </div>
@@ -353,7 +384,7 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                     Qualification
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.qualification || 'N/A'}
+                    {String(staffDetails?.qualification || 'N/A')}
                   </span>
                 </div>
                 <div>
@@ -361,8 +392,8 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                     Experience
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.experienceYears
-                      ? `${staffDetails.experienceYears} years`
+                    {staffDetails?.experienceYears
+                      ? `${String(staffDetails?.experienceYears)} years`
                       : 'N/A'}
                   </span>
                 </div>
@@ -381,7 +412,7 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                     Department
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.department || 'N/A'}
+                    {String(staffDetails?.department || 'N/A')}
                   </span>
                 </div>
                 <div>
@@ -389,7 +420,7 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                     Designation
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.designation || 'N/A'}
+                    {String(staffDetails?.designation || 'N/A')}
                   </span>
                 </div>
                 <div>
@@ -417,7 +448,7 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                     Employee ID
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.employeeId || 'N/A'}
+                    {String(staffDetails?.employeeId || 'N/A')}
                   </span>
                 </div>
                 <div>
@@ -425,7 +456,7 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                     Employment Status
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.status || 'N/A'}
+                    {String(staffDetails?.status || 'N/A')}
                   </span>
                 </div>
                 <div>
@@ -489,7 +520,7 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                 <div>
                   <span className='text-xs text-gray-500 block'>Bank Name</span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.bankName || 'N/A'}
+                    {String(staffDetails?.bankName || 'N/A')}
                   </span>
                 </div>
                 <div>
@@ -497,13 +528,13 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                     Account Number
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.bankAccountNumber || 'N/A'}
+                    {String(staffDetails?.bankAccountNumber || 'N/A')}
                   </span>
                 </div>
                 <div>
                   <span className='text-xs text-gray-500 block'>Branch</span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.bankBranch || 'N/A'}
+                    {String(staffDetails?.bankBranch || 'N/A')}
                   </span>
                 </div>
                 <div>
@@ -511,7 +542,7 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                     PAN Number
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.panNumber || 'N/A'}
+                    {String(staffDetails?.panNumber || 'N/A')}
                   </span>
                 </div>
                 <div>
@@ -519,7 +550,7 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                     Citizenship Number
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {staffDetails.citizenshipNumber || 'N/A'}
+                    {String(staffDetails?.citizenshipNumber || 'N/A')}
                   </span>
                 </div>
               </div>

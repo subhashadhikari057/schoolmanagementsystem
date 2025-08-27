@@ -14,6 +14,7 @@ import {
   ForbiddenException,
   UnauthorizedException,
   Logger,
+  SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core/services';
 import { Request } from 'express';
@@ -29,6 +30,10 @@ export const ROLES_KEY = 'roles';
  * Metadata key for storing minimum role requirement
  */
 export const MIN_ROLE_KEY = 'minRole';
+export const PERMISSIONS_KEY = 'permissions';
+
+export const Permissions = (...perms: string[]) =>
+  SetMetadata(PERMISSIONS_KEY, perms);
 
 /**
  * Decorator to specify required roles for a route
@@ -45,7 +50,7 @@ export const MIN_ROLE_KEY = 'minRole';
  */
 export const Roles = (...roles: UserRole[]) => {
   return (
-    target: any,
+    target: object,
     key?: string | symbol,
     descriptor?: PropertyDescriptor,
   ) => {
@@ -77,7 +82,7 @@ export const Roles = (...roles: UserRole[]) => {
  */
 export const MinRole = (minRole: UserRole) => {
   return (
-    target: any,
+    target: object,
     key?: string | symbol,
     descriptor?: PropertyDescriptor,
   ) => {
@@ -131,31 +136,49 @@ export class RolesGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
     const minRole = this.reflector.getAllAndOverride<UserRole>(MIN_ROLE_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
     // If no role requirements, allow access
-    if (!requiredRoles && !minRole) {
+    if (!requiredRoles && !minRole && !requiredPermissions) {
       return true;
     }
 
     const userRole = user.role;
+
+    // Permission check (all required must be present)
+    if (requiredPermissions && requiredPermissions.length) {
+      // SUPER_ADMIN bypasses fine‑grained permission checks
+      if (user.role !== UserRole.SUPER_ADMIN) {
+        const userPerms: string[] =
+          (user as AuthenticatedUser & { permissions?: string[] })
+            .permissions || [];
+        const missing = requiredPermissions.filter(p => !userPerms.includes(p));
+        if (missing.length) {
+          throw new ForbiddenException({
+            statusCode: 403,
+            error: 'Forbidden',
+            message: 'Missing required permissions',
+            details: { missing, required: requiredPermissions },
+            code: 'INSUFFICIENT_PERMISSIONS',
+          });
+        }
+      }
+    }
 
     // Check specific roles requirement
     if (requiredRoles && requiredRoles.length > 0) {
       const hasRequiredRole = requiredRoles.includes(userRole);
 
       // Debug logging
-      console.log('🔍 Role check details:', {
-        userRole,
-        requiredRoles,
-        hasRequiredRole,
-        userObject: user,
-        endpoint: request.url,
-        method: request.method,
-      });
+      // Debug logging removed in production
 
       if (!hasRequiredRole) {
         this.logger.warn(
@@ -267,7 +290,13 @@ export class RoleAccess {
    */
   static Authenticated() {
     // No role decorator needed, just requires JWT authentication
-    return (target: any, key?: string, descriptor?: PropertyDescriptor) => {};
+    return (
+      _target: object,
+      _propertyKey?: string | symbol,
+      _descriptor?: PropertyDescriptor,
+    ) => {
+      // intentionally no metadata; presence simply documents intent
+    };
   }
 
   /**
