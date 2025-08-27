@@ -11,6 +11,9 @@ export const UPLOAD_PATHS = {
   DOCUMENTS: 'uploads/documents',
   NOTICE_ATTACHMENTS: 'uploads/notices/attachments',
   COMPLAINT_ATTACHMENTS: 'uploads/complaints/attachments',
+  LEAVE_REQUEST_ATTACHMENTS: 'uploads/leave-requests/attachments',
+  TEACHER_LEAVE_REQUEST_ATTACHMENTS:
+    'uploads/teacher-leave-requests/attachments',
 } as const;
 
 // Ensure upload directories exist

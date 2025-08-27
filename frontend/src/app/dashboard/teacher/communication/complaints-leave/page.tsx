@@ -1832,174 +1832,132 @@ const ComplaintsAndLeavePage = () => {
     },
   ];
 
+  if (loading) {
+    return <div className='text-center py-8'>Loading...</div>;
+  }
+
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <div className='px-3 sm:px-4 lg:px-6 pt-2 sm:pt-3 lg:pt-4'>
-        <TeacherComplaintDetailModal
-          open={complaintDetailModalOpen}
-          onClose={() => {
-            setComplaintDetailModalOpen(false);
-            setSelectedComplaint(null);
-          }}
-          complaint={selectedComplaint}
-          onStatusUpdate={handleStatusUpdate}
-          onResponseSubmit={handleResponseSubmit}
-          currentUserId={user?.id}
-        />
+    <div className='min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6'>
+      {/* Create Complaint Modal */}
+      <CreateComplaintModal
+        open={createComplaintModalOpen}
+        onClose={() => setCreateComplaintModalOpen(false)}
+        onSubmit={handleCreateComplaint}
+      />
 
-        <CreateComplaintModal
-          open={createComplaintModalOpen}
-          onClose={() => setCreateComplaintModalOpen(false)}
-          onSubmit={handleCreateComplaint}
-        />
+      {/* Complaint Detail Modal */}
+      <TeacherComplaintDetailModal
+        open={complaintDetailModalOpen}
+        onClose={() => {
+          setComplaintDetailModalOpen(false);
+          setSelectedComplaint(null);
+        }}
+        complaint={selectedComplaint}
+        onStatusUpdate={handleStatusUpdate}
+        onResponseSubmit={handleResponseSubmit}
+        currentUserId={user?.id}
+      />
 
-        {/* Header Section */}
-        <div className='mb-6'>
-          <h1 className='text-2xl font-bold text-gray-900'>
-            Complaints & Leave Requests
-          </h1>
-          <p className='text-gray-600 mt-1'>
-            Manage complaints and leave requests
-          </p>
-          <div className='mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
-            <p className='text-sm text-blue-800'>
-              <strong>Important:</strong> When creating complaints to parents,
-              you can only select students from your class where you are the
-              class teacher. This ensures proper communication channels and
-              accountability.
+      {/* Header Section */}
+      <div className='mb-8'>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+          <div>
+            <h1 className='text-3xl font-bold bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-transparent'>
+              Teacher Dashboard - Complaints & Leave
+            </h1>
+            <p className='text-slate-600 mt-2'>
+              Manage complaints and leave requests as a teacher
             </p>
-            <div className='mt-2 text-xs text-blue-700'>
-              <p>
-                • <strong>Administration:</strong> For general school issues,
-                policies, or administrative concerns
-              </p>
-              <p>
-                • <strong>Parent:</strong> For student-specific behavioral,
-                academic, or personal issues (limited to your class students)
-              </p>
-            </div>
           </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-          <div className='bg-white rounded-lg p-4 border border-gray-200'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-gray-600 text-sm'>Active Complaints</p>
-                <p className='text-2xl font-bold text-gray-900'>
-                  {
-                    complaints.filter(
-                      c => c.status === 'OPEN' || c.status === 'IN_PROGRESS',
-                    ).length
-                  }
-                </p>
-              </div>
-              <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
-                <AlertCircle className='h-5 w-5 text-blue-600' />
-              </div>
-            </div>
-          </div>
-
-          <div className='bg-white rounded-lg p-4 border border-gray-200'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-gray-600 text-sm'>Resolved</p>
-                <p className='text-2xl font-bold text-gray-900'>
-                  {
-                    complaints.filter(
-                      c =>
-                        c.status === 'RESOLVED' ||
-                        c.status === 'CLOSED' ||
-                        c.status === 'CANCELLED',
-                    ).length
-                  }
-                </p>
-              </div>
-              <div className='w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center'>
-                <CheckCircle2 className='h-5 w-5 text-green-600' />
-              </div>
-            </div>
-          </div>
-
-          <div className='bg-white rounded-lg p-4 border border-gray-200'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-gray-600 text-sm'>Pending Leave</p>
-                <p className='text-2xl font-bold text-gray-900'>
-                  {leaveRequests.filter(l => l.status === 'pending').length}
-                </p>
-              </div>
-              <div className='w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center'>
-                <Clock className='h-5 w-5 text-yellow-600' />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className='mb-6'>
-          <h2 className='text-lg font-semibold text-gray-900 mb-3'>
-            Quick Actions
-          </h2>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          <div className='flex gap-3'>
             <button
-              type='button'
-              onClick={() =>
-                router.push(
-                  '/dashboard/teacher/communication/complaints&leave/leave-request',
-                )
-              }
-              className='bg-white rounded-lg p-4 border border-gray-200 hover:bg-gray-50 text-left'
-            >
-              <div className='flex items-start gap-3'>
-                <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
-                  <CalendarDays className='h-5 w-5 text-blue-600' />
-                </div>
-                <div className='flex-1'>
-                  <h3 className='font-medium text-gray-900 mb-1'>
-                    Request Leave
-                  </h3>
-                  <p className='text-gray-600 text-sm'>
-                    Apply for personal leave
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            <button
-              type='button'
               onClick={() => setCreateComplaintModalOpen(true)}
-              className='bg-white rounded-lg p-4 border border-gray-200 hover:bg-gray-50 text-left'
+              className='inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl'
             >
-              <div className='flex items-start gap-3'>
-                <div className='w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center'>
-                  <AlertCircle className='h-5 w-5 text-orange-600' />
-                </div>
-                <div className='flex-1'>
-                  <h3 className='font-medium text-gray-900 mb-1'>
-                    Create Complaint
-                  </h3>
-                  <p className='text-gray-600 text-sm'>
-                    Report issues or concerns
-                  </p>
-                  <p className='text-xs text-orange-600 mt-1'>
-                    Parent complaints limited to your class students where you
-                    are the class teacher
-                  </p>
-                </div>
-              </div>
+              <AlertCircle className='h-5 w-5' />
+              Create Complaint
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
-          <Tabs tabs={tabs} defaultIndex={activeTab} />
+      {/* Stats Cards */}
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
+        <div className='bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-slate-600 text-sm font-medium'>
+                Active Complaints
+              </p>
+              <p className='text-3xl font-bold text-slate-800 mt-1'>
+                {
+                  complaints.filter(
+                    c => c.status === 'OPEN' || c.status === 'IN_PROGRESS',
+                  ).length
+                }
+              </p>
+            </div>
+            <div className='w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center'>
+              <AlertCircle className='h-6 w-6 text-blue-600' />
+            </div>
+          </div>
+          <div className='mt-4 flex items-center text-sm'>
+            <span className='text-blue-600 font-medium'>Assigned</span>
+            <span className='text-slate-500 ml-2'>to you</span>
+          </div>
         </div>
+
+        <div className='bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-slate-600 text-sm font-medium'>Resolved</p>
+              <p className='text-3xl font-bold text-slate-800 mt-1'>
+                {
+                  complaints.filter(
+                    c => c.status === 'RESOLVED' || c.status === 'CLOSED',
+                  ).length
+                }
+              </p>
+            </div>
+            <div className='w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center'>
+              <CheckCircle2 className='h-6 w-6 text-green-600' />
+            </div>
+          </div>
+          <div className='mt-4 flex items-center text-sm'>
+            <span className='text-green-600 font-medium'>Completed</span>
+            <span className='text-slate-500 ml-2'>by you</span>
+          </div>
+        </div>
+
+        <div className='bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-slate-600 text-sm font-medium'>
+                Pending Leave
+              </p>
+              <p className='text-3xl font-bold text-slate-800 mt-1'>
+                {leaveRequests.filter(l => l.status === 'pending').length}
+              </p>
+            </div>
+            <div className='w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center'>
+              <Clock className='h-6 w-6 text-yellow-600' />
+            </div>
+          </div>
+          <div className='mt-4 flex items-center text-sm'>
+            <span className='text-yellow-600 font-medium'>Awaiting</span>
+            <span className='text-slate-500 ml-2'>your approval</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className='bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden'>
+        <Tabs tabs={tabs} defaultIndex={activeTab} />
       </div>
     </div>
   );
 };
 
-export default ComplaintsAndLeavePage;
+export default function TeacherComplaintsAndLeavePage() {
+  return <ComplaintsAndLeavePage />;
+}

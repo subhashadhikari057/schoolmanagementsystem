@@ -1,0 +1,8 @@
+export enum LeaveRequestType {
+  SICK = 'SICK',
+  PERSONAL = 'PERSONAL',
+  VACATION = 'VACATION',
+  EMERGENCY = 'EMERGENCY',
+  MEDICAL = 'MEDICAL',
+  FAMILY = 'FAMILY',
+}

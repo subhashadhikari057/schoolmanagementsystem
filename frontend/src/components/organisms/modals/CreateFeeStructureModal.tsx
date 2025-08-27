@@ -502,7 +502,8 @@ const CreateFeeStructureModal: React.FC<CreateFeeStructureModalProps> = ({
                 <p className='mt-1 text-[10px] text-gray-500 flex items-center gap-1'>
                   <Lock className='h-3 w-3' />{' '}
                   {Object.keys(existingYearStructures).length} class
-                  {Object.keys(existingYearStructures).length !== 1 && 'es'}{' '}
+                  {Object.keys(existingYearStructures).length !== 1 &&
+                    'es'}{' '}
                   already have a structure for{' '}
                   {form.academicYear || 'this year'} and are disabled.
                 </p>
