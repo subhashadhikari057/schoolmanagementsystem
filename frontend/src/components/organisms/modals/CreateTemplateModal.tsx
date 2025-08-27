@@ -54,9 +54,12 @@ import {
   TemplateField,
   TemplateSettings,
   ComponentTemplateField,
-  TemplateTypeInfo,
-  PredefinedDimension,
+  TemplateTypeOption,
   DatabaseField,
+  IDCardTemplateType,
+  TemplateOrientation,
+  TemplateFieldType,
+  TextAlignment,
 } from '@/types/template.types';
 import { templateApiService } from '@/services/template.service';
 
@@ -89,14 +92,14 @@ export function CreateTemplateModal({
 
   const [settings, setSettings] = useState<TemplateSettings>({
     name: editingTemplate?.name || '',
-    type: 'student',
+    type: IDCardTemplateType.STUDENT,
     description: editingTemplate?.description || '',
-    dimensions: `${editingTemplate?.width || 85.6}x${editingTemplate?.height || 53.98}`,
-    orientation: editingTemplate?.orientation || 'portrait',
+    dimensions: `${editingTemplate?.customWidth || 85.6}x${editingTemplate?.customHeight || 53.98}`,
+    orientation: editingTemplate?.orientation || TemplateOrientation.VERTICAL,
     backgroundColor: editingTemplate?.backgroundColor || '#ffffff',
     borderColor: editingTemplate?.borderColor || '#000000',
     borderWidth: editingTemplate?.borderWidth || 1,
-    borderRadius: editingTemplate?.cornerRadius || 0,
+    borderRadius: editingTemplate?.borderRadius || 0,
     logoRequired: true,
     photoRequired: true,
     qrCodeRequired: true,
@@ -110,28 +113,28 @@ export function CreateTemplateModal({
     ComponentTemplateField[]
   >(
     editingTemplate?.fields?.map(field => ({
-      id: field.id,
-      type: field.fieldName,
-      label: field.displayName,
-      databaseField: field.fieldName,
-      x: field.x,
-      y: field.y,
-      width: field.width,
-      height: field.height,
-      fontSize: field.fontSize,
-      fontWeight: field.fontWeight,
-      textAlign: field.alignment,
-      fontFamily: field.fontFamily,
-      color: field.color,
-      required: field.isRequired,
+      id: field.id || `field_${Date.now()}`,
+      type: field.fieldType,
+      label: field.label,
+      databaseField: field.databaseField || field.label,
+      x: field.x || 0,
+      y: field.y || 0,
+      width: field.width || 100,
+      height: field.height || 20,
+      fontSize: field.fontSize || 12,
+      fontWeight: (field.fontWeight as 'normal' | 'bold') || 'normal',
+      textAlign: field.textAlign || TextAlignment.LEFT,
+      fontFamily: field.fontFamily || 'Inter',
+      color: field.color || '#000000',
+      required: field.required || false,
       visible: true,
       locked: false,
-      opacity: 1,
-      zIndex: 1,
+      opacity: field.opacity || 1,
+      zIndex: field.zIndex || 1,
     })) || [
       {
         id: 'logo',
-        type: 'logo',
+        type: TemplateFieldType.TEXT,
         label: 'School Logo',
         x: 10,
         y: 10,
@@ -139,7 +142,7 @@ export function CreateTemplateModal({
         height: 30,
         fontSize: 12,
         fontWeight: 'normal' as const,
-        textAlign: 'center' as const,
+        textAlign: TextAlignment.CENTER,
         fontFamily: 'Inter',
         color: '#000000',
         required: true,
@@ -150,7 +153,7 @@ export function CreateTemplateModal({
       },
       {
         id: 'photo',
-        type: 'image',
+        type: TemplateFieldType.IMAGE,
         label: 'Photo',
         x: 200,
         y: 20,
@@ -158,7 +161,7 @@ export function CreateTemplateModal({
         height: 100,
         fontSize: 12,
         fontWeight: 'normal' as const,
-        textAlign: 'center' as const,
+        textAlign: TextAlignment.CENTER,
         fontFamily: 'Inter',
         color: '#000000',
         required: true,
@@ -169,7 +172,7 @@ export function CreateTemplateModal({
       },
       {
         id: 'name',
-        type: 'text',
+        type: TemplateFieldType.TEXT,
         label: 'Name',
         x: 60,
         y: 25,
@@ -177,7 +180,7 @@ export function CreateTemplateModal({
         height: 20,
         fontSize: 14,
         fontWeight: 'bold' as const,
-        textAlign: 'left' as const,
+        textAlign: TextAlignment.LEFT,
         fontFamily: 'Inter',
         color: '#000000',
         required: true,
@@ -188,7 +191,7 @@ export function CreateTemplateModal({
       },
       {
         id: 'id',
-        type: 'text',
+        type: TemplateFieldType.TEXT,
         label: 'ID Number',
         x: 60,
         y: 50,
@@ -196,7 +199,7 @@ export function CreateTemplateModal({
         height: 15,
         fontSize: 12,
         fontWeight: 'normal' as const,
-        textAlign: 'left' as const,
+        textAlign: TextAlignment.LEFT,
         fontFamily: 'Inter',
         color: '#666666',
         required: true,
@@ -210,7 +213,7 @@ export function CreateTemplateModal({
 
   const templateTypes = [
     {
-      value: 'student',
+      value: IDCardTemplateType.STUDENT,
       label: 'Student ID Card',
       fields: [
         'Name',
@@ -226,7 +229,7 @@ export function CreateTemplateModal({
       defaultColor: '#2563eb',
     },
     {
-      value: 'teacher',
+      value: IDCardTemplateType.TEACHER,
       label: 'Teacher ID Card',
       fields: [
         'Name',
@@ -241,7 +244,7 @@ export function CreateTemplateModal({
       defaultColor: '#16a34a',
     },
     {
-      value: 'staff',
+      value: IDCardTemplateType.STAFF,
       label: 'Staff ID Card',
       fields: [
         'Name',
@@ -296,8 +299,10 @@ export function CreateTemplateModal({
 
   const getCanvasDimensions = () => {
     const [width, height] = settings.dimensions.split('x').map(Number);
-    const baseWidth = settings.orientation === 'horizontal' ? width : height;
-    const baseHeight = settings.orientation === 'horizontal' ? height : width;
+    const baseWidth =
+      settings.orientation === TemplateOrientation.HORIZONTAL ? width : height;
+    const baseHeight =
+      settings.orientation === TemplateOrientation.HORIZONTAL ? height : width;
     const scale = zoomLevel / 100;
 
     return {
@@ -347,10 +352,10 @@ export function CreateTemplateModal({
   const resetForm = () => {
     setSettings({
       name: '',
-      type: 'student',
+      type: IDCardTemplateType.STUDENT,
       description: '',
       dimensions: '85.6x53.98',
-      orientation: 'horizontal',
+      orientation: TemplateOrientation.HORIZONTAL,
       backgroundColor: '#ffffff',
       borderColor: '#000000',
       borderWidth: 1,
@@ -369,18 +374,28 @@ export function CreateTemplateModal({
     setSelectedField(null);
   };
 
-  const addField = (type: string) => {
+  const addField = (type: TemplateFieldType) => {
     const newField: ComponentTemplateField = {
       id: `field_${Date.now()}`,
       type,
       label: `New ${type} field`,
       x: 50,
       y: 50,
-      width: type === 'text' ? 100 : type === 'qr' ? 40 : 60,
-      height: type === 'text' ? 20 : type === 'qr' ? 40 : 60,
+      width:
+        type === TemplateFieldType.TEXT
+          ? 100
+          : type === TemplateFieldType.QR_CODE
+            ? 40
+            : 60,
+      height:
+        type === TemplateFieldType.TEXT
+          ? 20
+          : type === TemplateFieldType.QR_CODE
+            ? 40
+            : 60,
       fontSize: 12,
       fontWeight: 'normal',
-      textAlign: 'left',
+      textAlign: TextAlignment.LEFT,
       fontFamily: 'Inter',
       color: '#000000',
       required: false,
@@ -462,9 +477,9 @@ export function CreateTemplateModal({
       display: 'flex',
       alignItems: 'center',
       justifyContent:
-        field.textAlign === 'center'
+        field.textAlign === TextAlignment.CENTER
           ? 'center'
-          : field.textAlign === 'right'
+          : field.textAlign === TextAlignment.RIGHT
             ? 'flex-end'
             : 'flex-start',
       padding: '2px',
@@ -472,22 +487,22 @@ export function CreateTemplateModal({
 
     const content = () => {
       switch (field.type) {
-        case 'text':
+        case TemplateFieldType.TEXT:
           return field.placeholder || field.label;
-        case 'image':
-        case 'logo':
+        case TemplateFieldType.IMAGE:
+        case TemplateFieldType.LOGO:
           return (
             <div className='w-full h-full bg-gray-100 flex items-center justify-center border border-gray-300 rounded'>
               <ImageIcon className='w-4 h-4 text-gray-400' />
             </div>
           );
-        case 'qr':
+        case TemplateFieldType.QR_CODE:
           return (
             <div className='w-full h-full bg-gray-100 flex items-center justify-center border border-gray-300 rounded'>
               <QrCode className='w-4 h-4 text-gray-600' />
             </div>
           );
-        case 'barcode':
+        case TemplateFieldType.BARCODE:
           return (
             <div className='w-full h-full bg-gray-100 flex items-center justify-center border border-gray-300 rounded'>
               <div className='text-xs'>|||||||</div>
@@ -849,7 +864,7 @@ export function CreateTemplateModal({
                         <Button
                           variant='default'
                           size='sm'
-                          onClick={() => addField('text')}
+                          onClick={() => addField(TemplateFieldType.TEXT)}
                           className='justify-start bg-blue-600 hover:bg-blue-700 text-white'
                         >
                           <Type className='w-3 h-3 mr-1' />
@@ -858,7 +873,7 @@ export function CreateTemplateModal({
                         <Button
                           variant='default'
                           size='sm'
-                          onClick={() => addField('image')}
+                          onClick={() => addField(TemplateFieldType.IMAGE)}
                           className='justify-start bg-blue-600 hover:bg-blue-700 text-white'
                         >
                           <ImageIcon className='w-3 h-3 mr-1' />
@@ -867,7 +882,7 @@ export function CreateTemplateModal({
                         <Button
                           variant='default'
                           size='sm'
-                          onClick={() => addField('qr')}
+                          onClick={() => addField(TemplateFieldType.QR_CODE)}
                           className='justify-start bg-blue-600 hover:bg-blue-700 text-white'
                         >
                           <QrCode className='w-3 h-3 mr-1' />
@@ -876,7 +891,7 @@ export function CreateTemplateModal({
                         <Button
                           variant='default'
                           size='sm'
-                          onClick={() => addField('logo')}
+                          onClick={() => addField(TemplateFieldType.LOGO)}
                           className='justify-start bg-blue-600 hover:bg-blue-700 text-white'
                         >
                           <ImageIcon className='w-3 h-3 mr-1' />
@@ -1015,7 +1030,8 @@ export function CreateTemplateModal({
                             </div>
                           </div>
 
-                          {selectedFieldData.type === 'text' && (
+                          {selectedFieldData.type ===
+                            TemplateFieldType.TEXT && (
                             <>
                               <div className='space-y-2'>
                                 <Label className='text-xs'>Font Size</Label>
@@ -1061,11 +1077,20 @@ export function CreateTemplateModal({
                                 <div className='flex space-x-1'>
                                   {(
                                     [
-                                      { value: 'left', icon: AlignLeft },
-                                      { value: 'center', icon: AlignCenter },
-                                      { value: 'right', icon: AlignRight },
+                                      {
+                                        value: TextAlignment.LEFT,
+                                        icon: AlignLeft,
+                                      },
+                                      {
+                                        value: TextAlignment.CENTER,
+                                        icon: AlignCenter,
+                                      },
+                                      {
+                                        value: TextAlignment.RIGHT,
+                                        icon: AlignRight,
+                                      },
                                     ] as {
-                                      value: 'left' | 'center' | 'right';
+                                      value: TextAlignment;
                                       icon: typeof AlignLeft;
                                     }[]
                                   ).map(({ value, icon: Icon }) => (
@@ -1080,10 +1105,7 @@ export function CreateTemplateModal({
                                       className='h-8 w-8 p-0'
                                       onClick={() =>
                                         updateField(selectedField!, {
-                                          textAlign: value as
-                                            | 'left'
-                                            | 'center'
-                                            | 'right',
+                                          textAlign: value,
                                         })
                                       }
                                     >

@@ -732,7 +732,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
   ) : null;
 };
 
-const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
+const ComplaintsAndLeavePage = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [complaintModalOpen, setComplaintModalOpen] = useState(false);
   const [complaintDetailModalOpen, setComplaintDetailModalOpen] =
@@ -863,10 +863,7 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
   ) => {
     try {
       // Call the appropriate backend API based on who is rejecting
-      if (
-        rejectorRole === 'teacher' ||
-        (userRole || user?.role) === 'teacher'
-      ) {
+      if (rejectorRole === 'teacher' || user?.role === 'teacher') {
         await rejectByTeacher(leaveRequestId, reason);
         toast.success('Leave request rejected by teacher successfully');
       } else {
@@ -1347,10 +1344,10 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                   <p className='text-2xl font-bold text-orange-600'>
                     {
                       leaveRequests.filter(l => {
-                        if ((userRole || user?.role) === 'teacher') {
+                        if (user?.role === 'teacher') {
                           // Teachers only see requests approved by parents (waiting for teacher approval)
                           return l.status === 'PENDING_TEACHER_APPROVAL';
-                        } else if ((userRole || user?.role) === 'parent') {
+                        } else if (user?.role === 'parent') {
                           // Parents see requests pending their approval
                           return l.status === 'PENDING_PARENT_APPROVAL';
                         } else {
@@ -1386,25 +1383,25 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
               <>
                 <div className='mb-8'>
                   <h4 className='text-xl font-semibold text-slate-800 mb-4'>
-                    {(userRole || user?.role) === 'teacher'
+                    {user?.role === 'teacher'
                       ? 'Parent-Approved Leave Requests'
-                      : (userRole || user?.role) === 'parent'
+                      : user?.role === 'parent'
                         ? 'Pending Leave Requests'
                         : 'Active Leave Requests'}
                   </h4>
                   <p className='text-slate-600 text-sm mb-4'>
-                    {(userRole || user?.role) === 'teacher'
+                    {user?.role === 'teacher'
                       ? 'These are leave requests approved by parents that require your approval.'
-                      : (userRole || user?.role) === 'parent'
+                      : user?.role === 'parent'
                         ? 'These are leave requests from your children that require your approval.'
                         : "These are your pending leave requests. You can cancel them if they haven't been approved by your parent yet."}
                   </p>
                   <div className='space-y-4'>
                     {leaveRequests.filter(l => {
-                      if ((userRole || user?.role) === 'teacher') {
+                      if (user?.role === 'teacher') {
                         // Teachers only see requests approved by parents (waiting for teacher approval)
                         return l.status === 'PENDING_TEACHER_APPROVAL';
-                      } else if ((userRole || user?.role) === 'parent') {
+                      } else if (user?.role === 'parent') {
                         // Parents see requests pending their approval
                         return l.status === 'PENDING_PARENT_APPROVAL';
                       } else {
@@ -1420,16 +1417,16 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                           <Clock className='h-6 w-6 text-slate-400' />
                         </div>
                         <p className='text-slate-500 font-medium'>
-                          {(userRole || user?.role) === 'teacher'
+                          {user?.role === 'teacher'
                             ? 'No parent-approved leave requests'
-                            : (userRole || user?.role) === 'parent'
+                            : user?.role === 'parent'
                               ? 'No pending leave requests'
                               : 'No pending leave requests'}
                         </p>
                         <p className='text-slate-400 text-sm mt-1'>
-                          {(userRole || user?.role) === 'teacher'
+                          {user?.role === 'teacher'
                             ? 'All leave requests are either pending parent approval or have been processed'
-                            : (userRole || user?.role) === 'parent'
+                            : user?.role === 'parent'
                               ? 'All leave requests have been processed'
                               : 'All your leave requests have been processed'}
                         </p>
@@ -1437,10 +1434,10 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                     ) : (
                       leaveRequests
                         .filter(l => {
-                          if ((userRole || user?.role) === 'teacher') {
+                          if (user?.role === 'teacher') {
                             // Teachers only see requests approved by parents (waiting for teacher approval)
                             return l.status === 'PENDING_TEACHER_APPROVAL';
-                          } else if ((userRole || user?.role) === 'parent') {
+                          } else if (user?.role === 'parent') {
                             // Parents see requests pending their approval
                             return l.status === 'PENDING_PARENT_APPROVAL';
                           } else {
@@ -1487,7 +1484,7 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                                   </span>
                                   <span className='flex items-center gap-1'>
                                     <span className='w-2 h-2 bg-yellow-500 rounded-full'></span>
-                                    {(userRole || user?.role) === 'teacher'
+                                    {user?.role === 'teacher'
                                       ? 'Parent Approved - Awaiting Teacher'
                                       : leaveRequest.status ===
                                           'PENDING_PARENT_APPROVAL'
@@ -1504,7 +1501,7 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                               <div className='ml-4'>
                                 <span
                                   className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                    (userRole || user?.role) === 'teacher'
+                                    user?.role === 'teacher'
                                       ? 'bg-green-100 text-green-700'
                                       : leaveRequest.status ===
                                           'PENDING_PARENT_APPROVAL'
@@ -1512,7 +1509,7 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                                         : 'bg-blue-100 text-blue-700'
                                   }`}
                                 >
-                                  {(userRole || user?.role) === 'teacher'
+                                  {user?.role === 'teacher'
                                     ? 'Parent Approved'
                                     : leaveRequest.status ===
                                         'PENDING_PARENT_APPROVAL'
@@ -1557,7 +1554,7 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                                 </Button>
 
                                 {/* Conditional buttons based on user role */}
-                                {(userRole || user?.role) === 'parent' ? (
+                                {user?.role === 'parent' ? (
                                   <>
                                     {/* Parent buttons */}
                                     <Button
@@ -1583,7 +1580,7 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
                                       Reject
                                     </Button>
                                   </>
-                                ) : (userRole || user?.role) === 'teacher' ? (
+                                ) : user?.role === 'teacher' ? (
                                   <>
                                     {/* Teacher buttons */}
                                     <Button
@@ -1873,7 +1870,7 @@ const ComplaintsAndLeavePage = ({ userRole }: { userRole?: string }) => {
   return (
     <div className='min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6'>
       {/* Conditionally render the appropriate complaint modal based on user role */}
-      {userRole === 'teacher' ? (
+      {user?.role === 'teacher' ? (
         <TeacherComplaintModal
           open={complaintModalOpen}
           onClose={() => setComplaintModalOpen(false)}

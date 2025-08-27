@@ -1,8 +1,5 @@
 'use client';
 
-import { Select } from '@headlessui/react';
-import React, { useState } from 'react';
-
 import ComplaintsAndLeavePage from '@/app/dashboard/student/complaints-leave/page';
 
 // Parent wrapper: adds approve/reject for leave requests and resolve for complaints
@@ -17,7 +14,7 @@ export default function ParentComplaintsAndLeavesPage() {
         children and resolve complaints where you are the recipient.
       </p>
       {/* Parent can approve/reject leave requests and resolve complaints below */}
-      <ComplaintsAndLeavePage userRole='parent' />
+      <ComplaintsAndLeavePage />
     </div>
   );
 }
