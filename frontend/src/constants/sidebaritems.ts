@@ -72,9 +72,14 @@ export const sidebarItems = {
           path: '/dashboard/admin/communication/complaints',
         },
         {
-          label: 'Leave Requests',
+          label: 'Student Leave',
           icon: 'CalendarMinus',
           path: '/dashboard/admin/communication/leave-requests',
+        },
+        {
+          label: 'Teacher Leave',
+          icon: 'UserX',
+          path: '/dashboard/admin/communication/teacher-leave',
         },
         {
           label: 'Leave Types',

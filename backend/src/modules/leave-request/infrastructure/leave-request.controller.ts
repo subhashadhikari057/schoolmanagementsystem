@@ -490,6 +490,48 @@ export class LeaveRequestController {
     return { message: 'Leave request rejected by teacher', leaveRequest };
   }
 
+  @Post(':id/admin-approve')
+  @HttpCode(HttpStatus.OK)
+  async adminApprove(@Param('id') id: string, @Req() req: any) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const leaveRequest =
+      await this.leaveRequestService.adminApproveStudentLeave(
+        id,
+        user.id,
+        userRole,
+        req.ip,
+        req.headers['user-agent'],
+      );
+    return { message: 'Leave request approved by admin', leaveRequest };
+  }
+
+  @Post(':id/admin-reject')
+  @HttpCode(HttpStatus.OK)
+  async adminReject(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @Req() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const leaveRequest = await this.leaveRequestService.adminRejectStudentLeave(
+      id,
+      body.reason,
+      user.id,
+      userRole,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    return { message: 'Leave request rejected by admin', leaveRequest };
+  }
+
   @Post(':id/cancel')
   @HttpCode(HttpStatus.OK)
   async cancel(@Param('id') id: string, @Req() req: any) {

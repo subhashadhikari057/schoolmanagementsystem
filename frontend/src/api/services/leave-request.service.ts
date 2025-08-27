@@ -15,6 +15,8 @@ export const LEAVE_REQUEST_ENDPOINTS = {
     `/api/v1/leave-requests/${id}/approve-teacher`,
   REJECT_PARENT: (id: string) => `/api/v1/leave-requests/${id}/reject-parent`,
   REJECT_TEACHER: (id: string) => `/api/v1/leave-requests/${id}/reject-teacher`,
+  ADMIN_APPROVE: (id: string) => `/api/v1/leave-requests/${id}/admin-approve`,
+  ADMIN_REJECT: (id: string) => `/api/v1/leave-requests/${id}/admin-reject`,
   CANCEL: (id: string) => `/api/v1/leave-requests/${id}/cancel`,
 } as const;
 
@@ -290,6 +292,30 @@ export class LeaveRequestService {
     const data: RejectLeaveRequestRequest = { reason };
     return this.httpClient.post<LeaveRequest>(
       LEAVE_REQUEST_ENDPOINTS.REJECT_TEACHER(id),
+      data,
+    );
+  }
+
+  /**
+   * Admin approve leave request
+   */
+  async adminApprove(id: string): Promise<ApiResponse<LeaveRequest>> {
+    return this.httpClient.post<LeaveRequest>(
+      LEAVE_REQUEST_ENDPOINTS.ADMIN_APPROVE(id),
+      {},
+    );
+  }
+
+  /**
+   * Admin reject leave request
+   */
+  async adminReject(
+    id: string,
+    reason: string,
+  ): Promise<ApiResponse<LeaveRequest>> {
+    const data: RejectLeaveRequestRequest = { reason };
+    return this.httpClient.post<LeaveRequest>(
+      LEAVE_REQUEST_ENDPOINTS.ADMIN_REJECT(id),
       data,
     );
   }

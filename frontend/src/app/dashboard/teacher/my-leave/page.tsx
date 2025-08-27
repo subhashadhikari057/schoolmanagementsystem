@@ -388,6 +388,18 @@ export default function MyLeavePage() {
                         return null;
                       }
 
+                      // Calculate usage values once to avoid repetition and ensure consistency
+                      const maxDays = Number(usageItem.leaveType?.maxDays || 0);
+                      const usedDays = Number(
+                        usageItem.usage?.yearlyUsage || 0,
+                      );
+                      const remainingDays = maxDays - usedDays;
+
+                      // Debug logging
+                      console.log(
+                        `Leave Type: ${usageItem.leaveType?.name}, MaxDays: ${maxDays}, UsedDays: ${usedDays}, Remaining: ${remainingDays}`,
+                      );
+
                       return (
                         <div
                           key={usageItem.leaveType.id || 'unknown'}
@@ -409,23 +421,19 @@ export default function MyLeavePage() {
                                 Entitlement:
                               </span>
                               <span className='font-medium'>
-                                {usageItem.leaveType?.maxDays || 0} days
+                                {maxDays} days
                               </span>
                             </div>
                             <div className='flex justify-between'>
                               <span className='text-gray-600'>Used:</span>
                               <span className='font-medium'>
-                                {usageItem.usage?.totalUsage || 0} days
+                                {usedDays} days
                               </span>
                             </div>
                             <div className='flex justify-between'>
                               <span className='text-gray-600'>Remaining:</span>
-                              <span
-                                className={`font-medium ${(usageItem.leaveType?.maxDays || 0) - (usageItem.usage?.totalUsage || 0) < 5 ? 'text-red-600' : 'text-green-600'}`}
-                              >
-                                {(usageItem.leaveType?.maxDays || 0) -
-                                  (usageItem.usage?.totalUsage || 0)}{' '}
-                                days
+                              <span className='font-medium text-green-600'>
+                                {remainingDays} days
                               </span>
                             </div>
                           </div>

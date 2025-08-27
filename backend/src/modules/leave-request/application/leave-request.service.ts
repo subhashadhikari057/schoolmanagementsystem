@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
@@ -238,7 +239,11 @@ export class LeaveRequestService {
    */
   async findAll(userId: string, userRole: UserRole, query: any = {}) {
     const { status, type, studentId, page = 1, limit = 10 } = query;
-    const skip = (page - 1) * limit;
+
+    // Convert page and limit to numbers to ensure proper types for Prisma
+    const pageNumber = parseInt(page.toString(), 10) || 1;
+    const limitNumber = parseInt(limit.toString(), 10) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
 
     const whereClause: any = { deletedAt: null };
 
@@ -352,7 +357,7 @@ export class LeaveRequestService {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: limit,
+        take: limitNumber,
       }),
       this.prisma.leaveRequest.count({ where: whereClause }),
     ]);
@@ -360,9 +365,9 @@ export class LeaveRequestService {
     return {
       leaveRequests,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: pageNumber,
+      limit: limitNumber,
+      totalPages: Math.ceil(total / limitNumber),
     };
   }
 
@@ -1120,6 +1125,176 @@ export class LeaveRequestService {
   }
 
   /**
+   * Superadmin approve student leave request
+   * Only superadmin can approve, and only after parent has already approved
+   */
+  async adminApproveStudentLeave(
+    id: string,
+    userId: string,
+    userRole: UserRole,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    if (userRole !== UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException(
+        'Only superadmin can approve student leave requests',
+      );
+    }
+
+    const leaveRequest = await this.prisma.leaveRequest.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        student: {
+          include: {
+            user: true,
+            class: true,
+          },
+        },
+      },
+    });
+
+    if (!leaveRequest) {
+      throw new NotFoundException('Leave request not found');
+    }
+
+    // Superadmin can only approve if parent has already approved (status = PENDING_TEACHER_APPROVAL)
+    if (leaveRequest.status !== LeaveRequestStatus.PENDING_TEACHER_APPROVAL) {
+      if (leaveRequest.status === LeaveRequestStatus.PENDING_PARENT_APPROVAL) {
+        throw new ForbiddenException(
+          'Cannot approve: Parent approval required first',
+        );
+      } else if (leaveRequest.status === LeaveRequestStatus.APPROVED) {
+        throw new ConflictException('Leave request is already approved');
+      } else if (leaveRequest.status === LeaveRequestStatus.REJECTED) {
+        throw new ConflictException('Cannot approve a rejected leave request');
+      } else if (leaveRequest.status === LeaveRequestStatus.CANCELLED) {
+        throw new ConflictException('Cannot approve a cancelled leave request');
+      } else {
+        throw new ForbiddenException(
+          'Invalid leave request status for approval',
+        );
+      }
+    }
+
+    const updatedLeaveRequest = await this.prisma.leaveRequest.update({
+      where: { id },
+      data: {
+        status: LeaveRequestStatus.APPROVED,
+        updatedAt: new Date(),
+        updatedById: userId,
+      },
+      include: {
+        student: {
+          include: {
+            user: true,
+            class: true,
+          },
+        },
+      },
+    });
+
+    // Log the action
+    await this.auditService.log({
+      userId,
+      action: 'LEAVE_REQUEST_SUPERADMIN_APPROVED',
+      module: 'LEAVE_REQUEST',
+      details: {
+        leaveRequestId: id,
+        approvedBy: 'Superadmin',
+        adminId: userId,
+      },
+      ipAddress,
+      userAgent,
+    });
+
+    return updatedLeaveRequest;
+  }
+
+  /**
+   * Superadmin reject student leave request
+   * Only superadmin can reject student leave requests
+   */
+  async adminRejectStudentLeave(
+    id: string,
+    reason: string,
+    userId: string,
+    userRole: UserRole,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    if (userRole !== UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException(
+        'Only superadmin can reject student leave requests',
+      );
+    }
+
+    if (!reason || reason.trim() === '') {
+      throw new BadRequestException('Rejection reason is required');
+    }
+
+    const leaveRequest = await this.prisma.leaveRequest.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        student: {
+          include: {
+            user: true,
+            class: true,
+          },
+        },
+      },
+    });
+
+    if (!leaveRequest) {
+      throw new NotFoundException('Leave request not found');
+    }
+
+    // Admin can reject any status except already rejected
+    if (leaveRequest.status === LeaveRequestStatus.REJECTED) {
+      throw new ConflictException('Leave request is already rejected');
+    }
+
+    if (leaveRequest.status === LeaveRequestStatus.CANCELLED) {
+      throw new ConflictException('Cannot reject a cancelled leave request');
+    }
+
+    const updatedLeaveRequest = await this.prisma.leaveRequest.update({
+      where: { id },
+      data: {
+        status: LeaveRequestStatus.REJECTED,
+        teacherRejectedAt: new Date(), // Use existing teacher rejection fields for superadmin actions
+        teacherRejectionReason: `Superadmin Rejection: ${reason}`,
+        updatedAt: new Date(),
+        updatedById: userId,
+      },
+      include: {
+        student: {
+          include: {
+            user: true,
+            class: true,
+          },
+        },
+      },
+    });
+
+    // Log the action
+    await this.auditService.log({
+      userId,
+      action: 'LEAVE_REQUEST_SUPERADMIN_REJECTED',
+      module: 'LEAVE_REQUEST',
+      details: {
+        leaveRequestId: id,
+        rejectedBy: 'Superadmin',
+        adminId: userId,
+        reason,
+      },
+      ipAddress,
+      userAgent,
+    });
+
+    return updatedLeaveRequest;
+  }
+
+  /**
    * Cancel leave request
    * Only the creator (student) can cancel, or super admin/admin
    */
@@ -1330,6 +1505,15 @@ export class LeaveRequestService {
         createdById: userId,
       },
       include: {
+        leaveType: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isPaid: true,
+            maxDays: true,
+          },
+        },
         teacher: {
           include: {
             user: {
@@ -1424,6 +1608,15 @@ export class LeaveRequestService {
     return this.prisma.teacherLeaveRequest.findMany({
       where: whereClause,
       include: {
+        leaveType: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isPaid: true,
+            maxDays: true,
+          },
+        },
         teacher: {
           include: {
             user: {
@@ -1456,6 +1649,15 @@ export class LeaveRequestService {
       {
         where: { id, deletedAt: null },
         include: {
+          leaveType: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isPaid: true,
+              maxDays: true,
+            },
+          },
           teacher: {
             include: {
               user: {
@@ -1553,6 +1755,15 @@ export class LeaveRequestService {
         where: { id },
         data: updateData,
         include: {
+          leaveType: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isPaid: true,
+              maxDays: true,
+            },
+          },
           teacher: {
             include: {
               user: {
@@ -1563,6 +1774,7 @@ export class LeaveRequestService {
               },
             },
           },
+          attachments: true,
         },
       });
 
@@ -1654,6 +1866,15 @@ export class LeaveRequestService {
           updatedAt: new Date(),
         },
         include: {
+          leaveType: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isPaid: true,
+              maxDays: true,
+            },
+          },
           teacher: {
             include: {
               user: {
@@ -1664,6 +1885,7 @@ export class LeaveRequestService {
               },
             },
           },
+          attachments: true,
         },
       });
 
