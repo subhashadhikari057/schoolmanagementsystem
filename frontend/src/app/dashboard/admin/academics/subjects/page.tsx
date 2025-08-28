@@ -121,8 +121,8 @@ const SubjectsPage = () => {
   const subjectStats = [
     {
       icon: Users,
-      bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
+      bgColor: 'bg-blue-600',
+      iconColor: 'text-white',
       value: subjects.length.toString(),
       label: 'Total Subjects',
       change: '3.1%',
@@ -130,8 +130,8 @@ const SubjectsPage = () => {
     },
     {
       icon: UserCheck,
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
+      bgColor: 'bg-green-600',
+      iconColor: 'text-white',
       value: subjects.filter(s => !s.deletedAt).length.toString(),
       label: 'Active Subjects',
       change: '1.8%',
@@ -139,8 +139,8 @@ const SubjectsPage = () => {
     },
     {
       icon: AlertCircle,
-      bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600',
+      bgColor: 'bg-yellow-600',
+      iconColor: 'text-white',
       value: '0', // Will be updated when curriculum is implemented
       label: 'Class Assignments',
       change: '5.2%',
@@ -148,8 +148,8 @@ const SubjectsPage = () => {
     },
     {
       icon: GraduationCap,
-      bgColor: 'bg-red-50',
-      iconColor: 'text-red-600',
+      bgColor: 'bg-red-600',
+      iconColor: 'text-white',
       value: '0', // Will be updated when curriculum is implemented
       label: 'Teachers Assigned',
       change: '2.1%',

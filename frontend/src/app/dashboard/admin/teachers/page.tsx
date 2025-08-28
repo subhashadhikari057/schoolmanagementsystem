@@ -99,8 +99,8 @@ const TeachersPage = () => {
     return [
       {
         icon: Users,
-        bgColor: 'bg-blue-50',
-        iconColor: 'text-blue-600',
+        bgColor: 'bg-blue-600',
+        iconColor: 'text-white',
         value: total.toString(),
         label: 'Total Teachers',
         change: '3.1%',
@@ -108,8 +108,8 @@ const TeachersPage = () => {
       },
       {
         icon: GraduationCap,
-        bgColor: 'bg-green-50',
-        iconColor: 'text-green-600',
+        bgColor: 'bg-green-600',
+        iconColor: 'text-white',
         value: active.toString(),
         label: 'Active Teachers',
         change: '1.8%',
@@ -117,8 +117,8 @@ const TeachersPage = () => {
       },
       {
         icon: Calendar,
-        bgColor: 'bg-yellow-50',
-        iconColor: 'text-yellow-600',
+        bgColor: 'bg-yellow-600',
+        iconColor: 'text-white',
         value: onLeave.toString(),
         label: 'On Leave',
         change: '5.2%',
@@ -126,8 +126,8 @@ const TeachersPage = () => {
       },
       {
         icon: BookOpen,
-        bgColor: 'bg-purple-50',
-        iconColor: 'text-purple-600',
+        bgColor: 'bg-purple-600',
+        iconColor: 'text-white',
         value: newHires.toString(),
         label: 'New Hires',
         change: '15.3%',

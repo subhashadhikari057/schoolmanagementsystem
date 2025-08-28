@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { GenericList } from '@/components/templates/GenericList';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import LeaveTypeModal from '@/components/organisms/modals/LeaveTypeModal';
-import { Plus, Edit, Trash2, Eye, List, DollarSign } from 'lucide-react';
+import { Edit, Trash2, Eye, List, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLeaveTypes } from '@/hooks/useLeaveTypes';
 import { QueryLeaveTypeRequest } from '@/api/services/leave-type.service';
@@ -14,9 +14,6 @@ import { showConfirmation } from '@/utils/confirmation-toast';
 export default function LeaveTypesPage() {
   const {
     leaveTypes,
-    stats,
-    loading,
-    error,
     fetchLeaveTypes,
     createLeaveType,
     updateLeaveType,
@@ -41,8 +38,8 @@ export default function LeaveTypesPage() {
   const statsData = [
     {
       icon: List,
-      bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
+      bgColor: 'bg-blue-500',
+      iconColor: 'text-white',
       value: totalTypes.toString(),
       label: 'Total Leave Types',
       change: '2 new',
@@ -50,8 +47,8 @@ export default function LeaveTypesPage() {
     },
     {
       icon: DollarSign,
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
+      bgColor: 'bg-green-500',
+      iconColor: 'text-white',
       value: paidTypes.toString(),
       label: 'Paid Leave Types',
       change: '1 new',
@@ -59,8 +56,8 @@ export default function LeaveTypesPage() {
     },
     {
       icon: List,
-      bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600',
+      bgColor: 'bg-yellow-500',
+      iconColor: 'text-white',
       value: activeTypes.toString(),
       label: 'Active Types',
       change: '100%',
@@ -68,8 +65,8 @@ export default function LeaveTypesPage() {
     },
     {
       icon: List,
-      bgColor: 'bg-red-50',
-      iconColor: 'text-red-600',
+      bgColor: 'bg-red-500',
+      iconColor: 'text-white',
       value: inactiveTypes.toString(),
       label: 'Inactive Types',
       change: '16.7%',

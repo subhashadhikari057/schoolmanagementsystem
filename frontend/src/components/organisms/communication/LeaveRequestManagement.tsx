@@ -12,6 +12,7 @@ import { HttpClient } from '@/api/client/http-client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import LeaveRequestDetailModal from '@/components/organisms/modals/LeaveRequestDetailModal';
+import SectionTitle from '@/components/atoms/display/SectionTitle';
 
 // Types for leave request data
 interface LeaveRequestData {
@@ -362,7 +363,16 @@ const LeaveRequestManagement: React.FC = () => {
 
   return (
     <div className='space-y-6'>
-      <Statsgrid stats={stats} />
+      <div className='px-14'>
+        <SectionTitle
+          text='Student Leaves'
+          className='mb-1 text-3xl font-bold'
+        />
+        <p className='text-sm text-gray-500 mt-1 mb-6'>
+          Monitor all the student leave requests in the school
+        </p>
+        <Statsgrid stats={stats} />
+      </div>
       <GenericList
         config={getListConfig('leave-requests')}
         data={leaveRequests}

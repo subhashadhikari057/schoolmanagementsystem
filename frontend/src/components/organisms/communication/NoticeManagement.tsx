@@ -441,17 +441,17 @@ const NoticeManagement: React.FC = () => {
   return (
     <div className='space-y-6'>
       {/* Section Title */}
-      <div className='mb-6'>
+      <div className='mb-6 px-14'>
         <SectionTitle
           text='Notice Management'
           className='mb-1 text-3xl font-bold'
         />
-        <p className='text-sm text-gray-500 mt-1'>
+        <p className='text-sm text-gray-500 mt-1 mb-6'>
           Manage All Notice Related Information Here
         </p>
+        <Statsgrid stats={statsConfig} />
       </div>
 
-      <Statsgrid stats={statsConfig} />
       <GenericList<Row>
         config={config}
         data={rows}

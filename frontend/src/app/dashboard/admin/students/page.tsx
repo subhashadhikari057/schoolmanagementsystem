@@ -69,8 +69,8 @@ const StudentsPage = () => {
   const studentStatsDisplay = [
     {
       icon: Users,
-      bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
+      bgColor: 'bg-blue-600',
+      iconColor: 'text-white',
       value: studentStats.total.toString(),
       label: 'Total Students',
       change: '3.1%',
@@ -78,8 +78,8 @@ const StudentsPage = () => {
     },
     {
       icon: UserCheck,
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
+      bgColor: 'bg-green-600',
+      iconColor: 'text-white',
       value: studentStats.active.toString(),
       label: 'Active Students',
       change: '1.8%',
@@ -87,8 +87,8 @@ const StudentsPage = () => {
     },
     {
       icon: AlertCircle,
-      bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600',
+      bgColor: 'bg-yellow-600',
+      iconColor: 'text-white',
       value: studentStats.warning.toString(),
       label: 'Students on Warning',
       change: '5.2%',
@@ -96,8 +96,8 @@ const StudentsPage = () => {
     },
     {
       icon: GraduationCap,
-      bgColor: 'bg-red-50',
-      iconColor: 'text-red-600',
+      bgColor: 'bg-red-600',
+      iconColor: 'text-white',
       value: studentStats.suspended.toString(),
       label: 'Suspended Students',
       change: '2.1%',

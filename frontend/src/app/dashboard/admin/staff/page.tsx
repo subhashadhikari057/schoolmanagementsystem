@@ -96,8 +96,8 @@ const StaffPage = () => {
     return [
       {
         icon: Users,
-        bgColor: 'bg-blue-50',
-        iconColor: 'text-blue-600',
+        bgColor: 'bg-blue-600',
+        iconColor: 'text-white',
         value: total.toString(),
         label: 'Total Staff',
         change: '2.5%',
@@ -105,8 +105,8 @@ const StaffPage = () => {
       },
       {
         icon: Briefcase,
-        bgColor: 'bg-green-50',
-        iconColor: 'text-green-600',
+        bgColor: 'bg-green-600',
+        iconColor: 'text-white',
         value: active.toString(),
         label: 'Active Staff',
         change: '1.2%',
@@ -114,8 +114,8 @@ const StaffPage = () => {
       },
       {
         icon: Calendar,
-        bgColor: 'bg-yellow-50',
-        iconColor: 'text-yellow-600',
+        bgColor: 'bg-yellow-600',
+        iconColor: 'text-white',
         value: onLeave.toString(),
         label: 'On Leave',
         change: '3.8%',
@@ -123,8 +123,8 @@ const StaffPage = () => {
       },
       {
         icon: Building,
-        bgColor: 'bg-purple-50',
-        iconColor: 'text-purple-600',
+        bgColor: 'bg-purple-600',
+        iconColor: 'text-white',
         value: newHires.toString(),
         label: 'New Hires',
         change: '12.7%',
@@ -540,11 +540,6 @@ const StaffPage = () => {
       {/* Main Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
         <div className='max-w-7xl mx-auto'>
-          {/* Action Buttons */}
-          <div className='flex justify-end mb-4'>
-            <ActionButtons pageType='staff' onRefresh={loadStaff} />
-          </div>
-
           {/* Enhanced Search & Filter Component */}
           <StaffSearchFilter
             onFilterChange={handleFilterChange}
@@ -556,9 +551,14 @@ const StaffPage = () => {
 
           {/* Staff Directory */}
           <div className='bg-white p-4 rounded-lg shadow'>
-            <h2 className='text-lg font-semibold text-gray-800 mb-4'>
-              Staff Directory
-            </h2>
+            <div className='flex items-center justify-between mb-4'>
+              <h2 className='text-lg font-semibold text-gray-800'>
+                Staff Directory
+              </h2>
+              <div className='flex gap-2'>
+                <ActionButtons pageType='staff' onRefresh={loadStaff} />
+              </div>
+            </div>
             <GenericTable
               data={currentStaffList}
               columns={getStaffColumns((action, staff) =>
