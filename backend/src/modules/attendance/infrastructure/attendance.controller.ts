@@ -163,9 +163,11 @@ export class AttendanceController {
   @ApiQuery({ name: 'year', required: false, type: 'number' })
   async getStudentAttendanceStats(
     @Param('studentId') studentId: string,
-    @Query('month') month?: number,
-    @Query('year') year?: number,
+    @Query() query: { month?: string; year?: string },
   ) {
+    const month = query.month ? parseInt(query.month, 10) : undefined;
+    const year = query.year ? parseInt(query.year, 10) : undefined;
+
     return this.attendanceService.getStudentAttendanceStats(
       studentId,
       month,

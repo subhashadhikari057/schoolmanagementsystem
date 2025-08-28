@@ -203,9 +203,9 @@ export class TeacherAttendanceService {
     date?: string,
   ): Promise<TeacherForAttendanceDto[]> {
     try {
-      const attendanceDate = date ? new Date(date) : new Date();
+      this.logger.log(`Getting teachers for attendance, date: ${date}`);
 
-      // Get all active teachers
+      // Simple query first - just get all active teachers with user data
       const teachers = await this.prisma.teacher.findMany({
         where: {
           deletedAt: null,
@@ -220,12 +220,21 @@ export class TeacherAttendanceService {
             },
           },
         },
-        orderBy: [{ department: 'asc' }, { user: { fullName: 'asc' } }],
+        orderBy: { designation: 'asc' }, // Simplified ordering
       });
 
-      // Get today's attendance records for all teachers
-      const todaysAttendance =
-        await this.prisma.teacherAttendanceRecord.findMany({
+      this.logger.log(`Found ${teachers.length} teachers`);
+
+      // Get attendance records for the specified date (if provided)
+      let todaysAttendance: any[] = [];
+      if (date) {
+        // Validate and parse date
+        const attendanceDate = new Date(date);
+        if (isNaN(attendanceDate.getTime())) {
+          throw new BadRequestException('Invalid date format');
+        }
+
+        todaysAttendance = await this.prisma.teacherAttendanceRecord.findMany({
           where: {
             session: {
               date: attendanceDate,
@@ -238,28 +247,32 @@ export class TeacherAttendanceService {
             markedAt: 'desc',
           },
         });
+      }
 
-      return teachers.map(teacher => {
-        // Find the latest attendance record for this teacher
-        const latestAttendance = todaysAttendance.find(
-          record => record.teacherId === teacher.id,
-        );
+      // Return teacher data with attendance information
+      return teachers
+        .filter(teacher => teacher.user) // Only include teachers with user accounts
+        .map(teacher => {
+          // Find the latest attendance record for this teacher
+          const latestAttendance = todaysAttendance.find(
+            record => record.teacherId === teacher.id,
+          );
 
-        return {
-          id: teacher.id,
-          name: teacher.user.fullName,
-          employeeId: teacher.employeeId || undefined,
-          department: teacher.department || undefined,
-          designation: teacher.designation,
-          email: teacher.user.email,
-          phone: teacher.user.phone || undefined,
-          imageUrl: teacher.imageUrl || undefined,
-          status: latestAttendance?.status || undefined,
-          lastAttendance:
-            latestAttendance?.session.date.toISOString().split('T')[0] ||
-            undefined,
-        };
-      });
+          return {
+            id: teacher.id,
+            name: teacher.user!.fullName,
+            employeeId: teacher.employeeId || undefined,
+            department: teacher.department || undefined,
+            designation: teacher.designation,
+            email: teacher.user!.email,
+            phone: teacher.user!.phone || undefined,
+            imageUrl: teacher.imageUrl || undefined,
+            status: latestAttendance?.status || undefined,
+            lastAttendance:
+              latestAttendance?.session.date.toISOString().split('T')[0] ||
+              undefined,
+          };
+        });
     } catch (error) {
       this.logger.error('Error fetching teachers for attendance:', error);
       throw error;
@@ -275,6 +288,9 @@ export class TeacherAttendanceService {
   ): Promise<TeacherAttendanceSessionResponseDto | null> {
     try {
       const attendanceDate = new Date(date);
+      if (isNaN(attendanceDate.getTime())) {
+        throw new BadRequestException('Invalid date format');
+      }
 
       const session = await this.prisma.teacherAttendanceSession.findUnique({
         where: {
@@ -311,18 +327,20 @@ export class TeacherAttendanceService {
         return null;
       }
 
-      const teachers = session.records.map(record => ({
-        id: record.teacher.id,
-        name: record.teacher.user.fullName,
-        employeeId: record.teacher.employeeId || undefined,
-        department: record.teacher.department || undefined,
-        designation: record.teacher.designation,
-        email: record.teacher.user.email,
-        phone: record.teacher.user.phone || undefined,
-        imageUrl: record.teacher.imageUrl || undefined,
-        status: record.status,
-        lastAttendance: session.date.toISOString().split('T')[0],
-      }));
+      const teachers = session.records
+        .filter(record => record.teacher.user) // Only include teachers with user accounts
+        .map(record => ({
+          id: record.teacher.id,
+          name: record.teacher.user!.fullName,
+          employeeId: record.teacher.employeeId || undefined,
+          department: record.teacher.department || undefined,
+          designation: record.teacher.designation,
+          email: record.teacher.user!.email,
+          phone: record.teacher.user!.phone || undefined,
+          imageUrl: record.teacher.imageUrl || undefined,
+          status: record.status,
+          lastAttendance: session.date.toISOString().split('T')[0],
+        }));
 
       const presentCount = session.records.filter(
         r => r.status === 'PRESENT',
