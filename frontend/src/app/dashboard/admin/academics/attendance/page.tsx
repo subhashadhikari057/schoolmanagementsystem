@@ -15,7 +15,9 @@ import WorkingDaysCounter from '@/components/organisms/attendance/WorkingDaysCou
 import { classService, type ClassResponse } from '@/api/services/class.service';
 import { attendanceService } from '@/api/services/attendance.service';
 import { teacherAttendanceService } from '@/api/services/teacher-attendance.service';
+import { staffAttendanceService } from '@/api/services/staff-attendance.service';
 import { TeacherForAttendance } from '@/api/types/teacher-attendance';
+import { StaffForAttendance } from '@/api/types/staff-attendance';
 import {
   Search,
   Plus,
@@ -77,6 +79,8 @@ export default function AttendancePage() {
   const [refreshKey, setRefreshKey] = useState(0); // Key to trigger refresh
   const [teachers, setTeachers] = useState<TeacherForAttendance[]>([]);
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
+  const [staff, setStaff] = useState<StaffForAttendance[]>([]);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(false);
 
   // Fetch today's teacher attendance
   const fetchTodaysTeacherAttendance = async () => {
@@ -101,6 +105,29 @@ export default function AttendancePage() {
     }
   };
 
+  // Fetch today's staff attendance
+  const fetchTodaysStaffAttendance = async () => {
+    try {
+      setIsLoadingStaff(true);
+      const today = new Date().toISOString().split('T')[0];
+
+      const response =
+        await staffAttendanceService.getStaffForAttendance(today);
+
+      if (response.success && response.data) {
+        setStaff(response.data);
+      } else {
+        console.error('Failed to load staff attendance:', response.message);
+        setStaff([]);
+      }
+    } catch (error) {
+      console.error('Error fetching staff attendance:', error);
+      setStaff([]);
+    } finally {
+      setIsLoadingStaff(false);
+    }
+  };
+
   // Fetch real class data and attendance statistics
   useEffect(() => {
     const fetchData = async () => {
@@ -117,8 +144,9 @@ export default function AttendancePage() {
           attendanceService.getClassWiseAttendanceStats(today), // Pass today's date
         ]);
 
-        // Also fetch teacher attendance
+        // Also fetch teacher and staff attendance
         fetchTodaysTeacherAttendance();
+        fetchTodaysStaffAttendance();
 
         console.log('Classes response:', classesResponse);
         console.log('Attendance stats response:', attendanceStatsResponse);
@@ -185,6 +213,7 @@ export default function AttendancePage() {
     console.log('Attendance marked successfully - forcing refresh');
     refreshAttendanceData(true); // Force refresh after successful attendance marking
     fetchTodaysTeacherAttendance(); // Refresh teacher attendance data
+    fetchTodaysStaffAttendance(); // Refresh staff attendance data
   }, [refreshAttendanceData]);
 
   // Auto-refresh data every 30 seconds to keep it current (paused when modal is open)
@@ -252,7 +281,10 @@ export default function AttendancePage() {
     },
     {
       title: 'Staff Present',
-      value: teachers.filter(t => t.status === 'PRESENT').length.toString(),
+      value: (
+        teachers.filter(t => t.status === 'PRESENT').length +
+        staff.filter(s => s.status === 'PRESENT').length
+      ).toString(),
       icon: UserCheck,
       color: 'bg-blue-500',
     },
@@ -630,7 +662,9 @@ export default function AttendancePage() {
                     level={3}
                     className='text-lg font-semibold text-gray-900'
                   />
-                  <Label className='text-sm text-gray-600'>0 total staff</Label>
+                  <Label className='text-sm text-gray-600'>
+                    {staff.length} total staff
+                  </Label>
                 </div>
               </div>
               <Button
@@ -644,15 +678,130 @@ export default function AttendancePage() {
           </div>
 
           <div className='p-6'>
-            <div className='text-center py-8'>
-              <UserCog className='w-12 h-12 mx-auto mb-4 text-gray-300' />
-              <p className='text-gray-500 mb-2'>
-                Support staff attendance coming soon
-              </p>
-              <p className='text-sm text-gray-400'>
-                This feature will be implemented in a future update.
-              </p>
-            </div>
+            {isLoadingStaff ? (
+              <div className='flex items-center justify-center py-8'>
+                <div className='text-center'>
+                  <RefreshCw className='w-6 h-6 animate-spin mx-auto mb-2 text-gray-400' />
+                  <p className='text-sm text-gray-500'>
+                    Loading staff attendance...
+                  </p>
+                </div>
+              </div>
+            ) : staff.length === 0 ? (
+              <div className='text-center py-8'>
+                <UserCog className='w-12 h-12 mx-auto mb-4 text-gray-300' />
+                <p className='text-gray-500 mb-2'>
+                  No attendance marked for today
+                </p>
+                <p className='text-sm text-gray-400'>
+                  Staff attendance has not been recorded yet.
+                </p>
+              </div>
+            ) : (
+              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
+                {staff.map(staffMember => {
+                  const getStatusColor = (status?: string) => {
+                    switch (status) {
+                      case 'PRESENT':
+                        return 'bg-green-100 border-green-200 text-green-800';
+                      case 'ABSENT':
+                        return 'bg-red-100 border-red-200 text-red-800';
+                      case 'LATE':
+                        return 'bg-yellow-100 border-yellow-200 text-yellow-800';
+                      case 'EXCUSED':
+                        return 'bg-purple-100 border-purple-200 text-purple-800';
+                      default:
+                        return 'bg-gray-100 border-gray-200 text-gray-600';
+                    }
+                  };
+
+                  const getStatusText = (status?: string) => {
+                    switch (status) {
+                      case 'PRESENT':
+                        return 'Present';
+                      case 'ABSENT':
+                        return 'Absent';
+                      case 'LATE':
+                        return 'Late';
+                      case 'EXCUSED':
+                        return 'Excused';
+                      default:
+                        return 'No Attendance';
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={staffMember.id}
+                      className={`p-4 border-2 rounded-lg transition-all hover:shadow-md ${getStatusColor(staffMember.status)} text-center`}
+                    >
+                      {/* Avatar */}
+                      <div className='flex justify-center mb-3'>
+                        <div className='w-16 h-16 bg-white/50 rounded-full flex items-center justify-center border relative'>
+                          <span className='text-lg font-bold'>
+                            {staffMember.name
+                              .split(' ')
+                              .map(n => n[0])
+                              .join('')
+                              .toUpperCase()}
+                          </span>
+                          {/* User account indicator */}
+                          {staffMember.hasUserAccount && (
+                            <div className='absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center'>
+                              <span className='text-xs text-white'>🔑</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Name and Info */}
+                      <div className='mb-4'>
+                        <h4
+                          className='font-semibold text-sm leading-tight mb-1'
+                          title={staffMember.name}
+                        >
+                          {staffMember.name}
+                        </h4>
+                        <p
+                          className='text-xs opacity-75 mb-1'
+                          title={staffMember.department || 'No Department'}
+                        >
+                          {staffMember.department || 'No Department'}
+                        </p>
+                        <p
+                          className='text-xs opacity-75'
+                          title={staffMember.designation || 'No Designation'}
+                        >
+                          {staffMember.designation || 'No Designation'}
+                        </p>
+                        {!staffMember.hasUserAccount && (
+                          <p className='text-xs text-blue-600 font-medium mt-1'>
+                            No Login Access
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Status */}
+                      <div className='mb-3'>
+                        <span className='inline-block px-3 py-1 text-xs font-medium rounded-full bg-white/40 border border-current'>
+                          {getStatusText(staffMember.status)}
+                        </span>
+                      </div>
+
+                      {/* Last Attendance Date */}
+                      {staffMember.lastAttendance && (
+                        <div className='text-xs opacity-75 bg-white/20 px-2 py-1 rounded'>
+                          Last:{' '}
+                          {new Date(
+                            staffMember.lastAttendance,
+                          ).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </Card>
       </div>

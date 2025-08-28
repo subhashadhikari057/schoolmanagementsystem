@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   UserCog,
   Clock,
@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   Loader2,
   Search,
-  Download,
   RotateCcw,
   GraduationCap,
   Building,
@@ -15,10 +14,11 @@ import {
 } from 'lucide-react';
 import { teacherAttendanceService } from '@/api/services/teacher-attendance.service';
 import {
-  TeacherForAttendance,
   AttendanceStatus,
   TeacherAttendanceRecord,
 } from '@/api/types/teacher-attendance';
+import { StaffAttendanceRecord } from '@/api/types/staff-attendance';
+import { staffAttendanceService } from '@/api/services/staff-attendance.service';
 
 interface StaffAttendanceModalProps {
   isOpen: boolean;
@@ -28,10 +28,21 @@ interface StaffAttendanceModalProps {
 }
 
 // Extended interface for UI state management
-interface StaffMemberUI extends TeacherForAttendance {
+interface StaffMemberUI {
+  id: string;
+  name: string;
+  employeeId?: string;
+  department?: string;
+  designation?: string; // Made optional to handle both teachers and staff
+  email: string;
+  phone?: string;
+  imageUrl?: string;
+  status?: AttendanceStatus;
+  lastAttendance?: string;
   role: 'teacher' | 'staff';
   checkIn?: string;
   checkOut?: string;
+  hasUserAccount?: boolean; // For staff members
 }
 
 export default function StaffAttendanceModal({
@@ -51,17 +62,7 @@ export default function StaffAttendanceModal({
   const [error, setError] = useState<string | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(false);
 
-  // Load teacher data when modal opens or date changes
-  useEffect(() => {
-    if (isOpen && staffType === 'teacher') {
-      loadTeacherData();
-    } else if (isOpen && staffType === 'staff') {
-      // Keep existing mock data for staff (as requested)
-      loadStaffData();
-    }
-  }, [isOpen, staffType, attendanceDate]);
-
-  const loadTeacherData = async () => {
+  const loadTeacherData = useCallback(async () => {
     setIsDataLoading(true);
     setError(null);
 
@@ -73,6 +74,7 @@ export default function StaffAttendanceModal({
         const teachersWithUI: StaffMemberUI[] = response.data.map(teacher => ({
           ...teacher,
           role: 'teacher' as const,
+          hasUserAccount: true, // Teachers always have user accounts
           checkIn:
             teacher.status && ['PRESENT', 'LATE'].includes(teacher.status)
               ? new Date().toLocaleTimeString('en-US', {
@@ -95,36 +97,52 @@ export default function StaffAttendanceModal({
     } finally {
       setIsDataLoading(false);
     }
-  };
+  }, [attendanceDate]);
 
-  const loadStaffData = () => {
-    // Mock data for staff (keeping existing functionality)
-    const mockStaffData: StaffMemberUI[] = [
-      {
-        id: 'S001',
-        name: 'John Admin',
-        role: 'staff' as const,
-        department: 'Administration',
-        designation: 'Office Manager',
-        phone: '+1 234-567-8901',
-        email: 'john.admin@school.edu',
-        status: undefined,
-        lastAttendance: '2025-01-27',
-      },
-      {
-        id: 'S002',
-        name: 'Mary Secretary',
-        role: 'staff' as const,
-        department: 'Administration',
-        designation: 'Secretary',
-        phone: '+1 234-567-8902',
-        email: 'mary.secretary@school.edu',
-        status: undefined,
-        lastAttendance: '2025-01-27',
-      },
-    ];
-    setStaffMembers(mockStaffData);
-  };
+  const loadStaffData = useCallback(async () => {
+    setIsDataLoading(true);
+    setError(null);
+
+    try {
+      const response =
+        await staffAttendanceService.getStaffForAttendance(attendanceDate);
+
+      if (response.success && response.data) {
+        const staffWithUI: StaffMemberUI[] = response.data.map(staffMember => ({
+          ...staffMember,
+          role: 'staff' as const,
+          checkIn:
+            staffMember.status &&
+            ['PRESENT', 'LATE'].includes(staffMember.status)
+              ? new Date().toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
+                })
+              : undefined,
+        }));
+        setStaffMembers(staffWithUI);
+      } else {
+        console.error('Failed to load staff data:', response.message);
+        setStaffMembers([]);
+      }
+    } catch (error) {
+      console.error('Error loading staff data:', error);
+      setError('Failed to load staff data. Please try again.');
+      setStaffMembers([]);
+    } finally {
+      setIsDataLoading(false);
+    }
+  }, [attendanceDate]);
+
+  // Load teacher data when modal opens or date changes
+  useEffect(() => {
+    if (isOpen && staffType === 'teacher') {
+      loadTeacherData();
+    } else if (isOpen && staffType === 'staff') {
+      loadStaffData();
+    }
+  }, [isOpen, staffType, attendanceDate, loadTeacherData, loadStaffData]);
 
   const updateStaffStatus = (
     staffId: string,
@@ -196,6 +214,18 @@ export default function StaffAttendanceModal({
   };
 
   const handleSubmit = async () => {
+    // Validate date is not in the future
+    const selectedDateObj = new Date(attendanceDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    if (selectedDateObj > today) {
+      setError(
+        'Cannot mark attendance for future dates. Please select today or a past date.',
+      );
+      return;
+    }
+
     const unmarkedStaff = staffMembers.filter(s => !s.status);
     if (unmarkedStaff.length > 0) {
       alert(
@@ -237,16 +267,33 @@ export default function StaffAttendanceModal({
           setError(response.message || 'Failed to save teacher attendance');
         }
       } else {
-        // Mock API call for staff (simulate delay)
-        setTimeout(() => {
-          setIsLoading(false);
+        // Use real API for staff
+        const staffRecords: StaffAttendanceRecord[] = staffMembers
+          .filter(staff => staff.status)
+          .map(staff => ({
+            staffId: staff.id,
+            status: staff.status!,
+            remarks: undefined,
+          }));
+
+        const response = await staffAttendanceService.markAttendance({
+          date: attendanceDate,
+          sessionType: 'daily',
+          staff: staffRecords,
+          notes: `Staff attendance marked for ${staffRecords.length} staff members`,
+        });
+
+        if (response.success) {
           setShowSuccess(true);
+          // Call the success callback to refresh parent data
+          onSuccess?.();
           setTimeout(() => {
             setShowSuccess(false);
             onClose();
           }, 2000);
-        }, 1500);
-        return;
+        } else {
+          setError(response.message || 'Failed to save staff attendance');
+        }
       }
     } catch (err) {
       console.error('Error saving attendance:', err);
@@ -279,7 +326,8 @@ export default function StaffAttendanceModal({
   const filteredStaff = staffMembers.filter(staff => {
     const matchesSearch =
       staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      staff.designation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (staff.designation &&
+        staff.designation.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (staff.department &&
         staff.department.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -517,17 +565,34 @@ export default function StaffAttendanceModal({
                           </div>
                         </div>
                         <div className='min-w-0'>
-                          <p className='text-sm font-medium text-gray-900 truncate'>
-                            {staff.name}
-                          </p>
-                          <p className='text-xs text-gray-500 truncate'>
-                            {staff.designation}
-                          </p>
-                          {staff.employeeId && (
-                            <p className='text-xs text-gray-400'>
-                              ID: {staff.employeeId}
+                          <div className='flex items-center space-x-2'>
+                            <p className='text-sm font-medium text-gray-900 truncate'>
+                              {staff.name}
                             </p>
-                          )}
+                            {staff.hasUserAccount && (
+                              <span
+                                className='text-xs text-blue-600'
+                                title='Has login access'
+                              >
+                                🔑
+                              </span>
+                            )}
+                          </div>
+                          <p className='text-xs text-gray-500 truncate'>
+                            {staff.designation || 'No Designation'}
+                          </p>
+                          <div className='flex items-center space-x-2'>
+                            {staff.employeeId && (
+                              <p className='text-xs text-gray-400'>
+                                ID: {staff.employeeId}
+                              </p>
+                            )}
+                            {!staff.hasUserAccount && (
+                              <span className='text-xs text-blue-600 font-medium'>
+                                No Login
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 

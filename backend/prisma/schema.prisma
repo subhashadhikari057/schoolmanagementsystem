@@ -74,6 +74,9 @@ model User {
 
   // Teacher Attendance relations
   teacherAttendanceSessionsMarked TeacherAttendanceSession[] @relation("TeacherAttendanceMarkedBy")
+  
+  // Staff Attendance relations
+  staffAttendanceSessionsMarked StaffAttendanceSession[] @relation("StaffAttendanceMarkedBy")
 
   @@index([createdById])
   @@index([updatedById])
@@ -497,6 +500,7 @@ model Staff {
   profile           StaffProfile?
   user              User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
   salaryHistory     StaffSalaryHistory[]
+  attendanceRecords StaffAttendanceRecord[] @relation("StaffAttendanceRecords")
 
   @@index([createdById])
   @@index([updatedById])
@@ -1413,6 +1417,45 @@ model TeacherAttendanceRecord {
   @@unique([sessionId, teacherId])
   @@index([sessionId])
   @@index([teacherId])
+  @@index([status])
+}
+
+// Staff Attendance Models
+model StaffAttendanceSession {
+  id          String   @id @default(uuid())
+  date        DateTime @db.Date
+  sessionType String   @default("daily") // daily, morning, afternoon
+  markedBy    String
+  markedAt    DateTime @default(now())
+  isCompleted Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime?
+  
+  marker      User     @relation("StaffAttendanceMarkedBy", fields: [markedBy], references: [id])
+  records     StaffAttendanceRecord[]
+  
+  @@unique([date, sessionType])
+  @@index([date])
+  @@index([markedBy])
+}
+
+model StaffAttendanceRecord {
+  id               String                    @id @default(uuid())
+  sessionId        String
+  staffId          String
+  status           AttendanceStatus
+  markedAt         DateTime                  @default(now())
+  remarks          String?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime?
+  
+  session          StaffAttendanceSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  staff            Staff                     @relation("StaffAttendanceRecords", fields: [staffId], references: [id], onDelete: Cascade)
+  
+  @@unique([sessionId, staffId])
+  @@index([sessionId])
+  @@index([staffId])
   @@index([status])
 }
 
