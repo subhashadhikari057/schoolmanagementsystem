@@ -46,10 +46,26 @@ export const GetAttendanceQuerySchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be in YYYY-MM-DD format')
     .optional(),
-  month: z.number().int().min(1).max(12).optional(),
-  year: z.number().int().min(2020).max(2030).optional(),
-  page: z.number().int().min(1).default(1),
-  limit: z.number().int().min(1).max(100).default(20),
+  month: z
+    .string()
+    .transform(val => parseInt(val, 10))
+    .pipe(z.number().int().min(1).max(12))
+    .optional(),
+  year: z
+    .string()
+    .transform(val => parseInt(val, 10))
+    .pipe(z.number().int().min(2020).max(2030))
+    .optional(),
+  page: z
+    .string()
+    .transform(val => parseInt(val, 10))
+    .pipe(z.number().int().min(1))
+    .default('1'),
+  limit: z
+    .string()
+    .transform(val => parseInt(val, 10))
+    .pipe(z.number().int().min(1).max(100))
+    .default('20'),
 });
 
 export type GetAttendanceQueryDto = z.infer<typeof GetAttendanceQuerySchema>;
@@ -58,8 +74,14 @@ export type GetAttendanceQueryDto = z.infer<typeof GetAttendanceQuerySchema>;
  * Working Days Calculation DTO
  */
 export const WorkingDaysCalculationSchema = z.object({
-  month: z.number().int().min(1).max(12),
-  year: z.number().int().min(2020).max(2030),
+  month: z
+    .string()
+    .transform(val => parseInt(val, 10))
+    .pipe(z.number().int().min(1).max(12)),
+  year: z
+    .string()
+    .transform(val => parseInt(val, 10))
+    .pipe(z.number().int().min(2020).max(2030)),
 });
 
 export type WorkingDaysCalculationDto = z.infer<

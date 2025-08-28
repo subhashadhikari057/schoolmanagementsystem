@@ -201,22 +201,15 @@ export class StaffAttendanceService {
    */
   async getStaffForAttendance(date?: string): Promise<StaffForAttendanceDto[]> {
     try {
-      const attendanceDate = date ? new Date(date) : new Date();
+      this.logger.log(`Getting staff for attendance, date: ${date}`);
 
-      // Get all active staff
+      // Get all active staff with profile data
       const staffMembers = await this.prisma.staff.findMany({
         where: {
           deletedAt: null,
           employmentStatus: 'active',
         },
         include: {
-          user: {
-            select: {
-              fullName: true,
-              email: true,
-              phone: true,
-            },
-          },
           profile: {
             select: {
               profilePhotoUrl: true,
@@ -226,9 +219,18 @@ export class StaffAttendanceService {
         orderBy: [{ department: 'asc' }, { fullName: 'asc' }],
       });
 
-      // Get today's attendance records for all staff
-      const todaysAttendance = await this.prisma.staffAttendanceRecord.findMany(
-        {
+      this.logger.log(`Found ${staffMembers.length} staff members`);
+
+      // Get attendance records for the specified date (if provided)
+      let todaysAttendance: any[] = [];
+      if (date) {
+        // Validate and parse date
+        const attendanceDate = new Date(date);
+        if (isNaN(attendanceDate.getTime())) {
+          throw new BadRequestException('Invalid date format');
+        }
+
+        todaysAttendance = await this.prisma.staffAttendanceRecord.findMany({
           where: {
             session: {
               date: attendanceDate,
@@ -240,9 +242,10 @@ export class StaffAttendanceService {
           orderBy: {
             markedAt: 'desc',
           },
-        },
-      );
+        });
+      }
 
+      // Return staff data with attendance information
       return staffMembers.map(staff => {
         // Find the latest attendance record for this staff member
         const latestAttendance = todaysAttendance.find(
@@ -262,7 +265,7 @@ export class StaffAttendanceService {
           lastAttendance:
             latestAttendance?.session.date.toISOString().split('T')[0] ||
             undefined,
-          hasUserAccount: !!staff.userId, // True if staff has login access
+          hasUserAccount: !!staff.userId,
         };
       });
     } catch (error) {
@@ -280,6 +283,9 @@ export class StaffAttendanceService {
   ): Promise<StaffAttendanceSessionResponseDto | null> {
     try {
       const attendanceDate = new Date(date);
+      if (isNaN(attendanceDate.getTime())) {
+        throw new BadRequestException('Invalid date format');
+      }
 
       const session = await this.prisma.staffAttendanceSession.findUnique({
         where: {

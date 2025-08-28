@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import StudentViewModal from '@/components/organisms/modals/StudentViewModal';
 import StudentEditModal from '@/components/organisms/modals/StudentEditModal';
 import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
+import StudentAttendanceViewModal from '@/components/organisms/modals/StudentAttendanceViewModal';
 
 const StudentsPage = () => {
   // State for students data
@@ -52,6 +53,7 @@ const StudentsPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -316,6 +318,13 @@ const StudentsPage = () => {
       return;
     }
 
+    // Attendance action
+    if (action === 'attendance') {
+      setSelectedStudent(student);
+      setAttendanceModalOpen(true);
+      return;
+    }
+
     // Toggle status action
     if (action === 'toggle-status') {
       try {
@@ -504,6 +513,16 @@ const StudentsPage = () => {
           setEditModalOpen(false);
           // Reload students data and statistics to reflect changes
           Promise.all([loadStudents(), loadStudentStats()]);
+        }}
+        student={selectedStudent}
+      />
+
+      {/* Student Attendance Modal */}
+      <StudentAttendanceViewModal
+        isOpen={attendanceModalOpen}
+        onClose={() => {
+          setAttendanceModalOpen(false);
+          setSelectedStudent(null);
         }}
         student={selectedStudent}
       />

@@ -228,9 +228,11 @@ export class TeacherAttendanceController {
   })
   async getTeacherAttendanceStats(
     @Param('teacherId') teacherId: string,
-    @Query('month') month?: number,
-    @Query('year') year?: number,
+    @Query() query: { month?: string; year?: string },
   ) {
+    const month = query.month ? parseInt(query.month, 10) : undefined;
+    const year = query.year ? parseInt(query.year, 10) : undefined;
+
     const data = await this.teacherAttendanceService.getTeacherAttendanceStats(
       teacherId,
       month,
