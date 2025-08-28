@@ -67,7 +67,7 @@ export default function ParentDashboard() {
         </p>
       </div>
       <div className='px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
-        <div className='max-w-7xl mx-auto space-y-6 mt-4'>
+        <div className='w-full space-y-6 mt-4'>
           {/* Stat Cards */}
           <div className='grid grid-cols-2 md:grid-cols-4 gap-6 mb-6'>
             <div className='bg-white rounded-xl shadow p-6 flex flex-col items-center justify-center'>

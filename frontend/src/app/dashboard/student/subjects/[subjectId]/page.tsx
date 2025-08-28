@@ -249,7 +249,7 @@ function SubjectDetailsContent({ subjectId }: { subjectId: string }) {
 
   return (
     <div className='min-h-screen w-full bg-[#f7f8fa] sm:px-4 pb-12'>
-      <div className='max-w-8xl mx-auto'>
+      <div className='w-full'>
         <div className='flex rounded-xl items-center gap-2 mb-6 bg-blue-700 py-20 px-5'>
           <Button
             onClick={() => router.back()}

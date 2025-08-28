@@ -363,7 +363,7 @@ const LeaveRequestManagement: React.FC = () => {
 
   return (
     <div className='space-y-6'>
-      <div className='px-14'>
+      <div>
         <SectionTitle
           text='Student Leaves'
           className='mb-1 text-3xl font-bold'

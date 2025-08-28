@@ -235,7 +235,7 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className='p-6'>
+        <div className='w-full p-6'>
           <form onSubmit={handleSubmit} className='space-y-6'>
             {/* Title */}
             <div>
@@ -1291,7 +1291,7 @@ const ComplaintsAndLeavePage = () => {
               </div>
             </div>
           </div>
-          <div className='p-6'>
+          <div className='w-full p-6'>
             {loading ? (
               <div className='text-center py-8'>Loading complaints...</div>
             ) : (
@@ -1364,7 +1364,7 @@ const ComplaintsAndLeavePage = () => {
               </div>
             </div>
           </div>
-          <div className='p-6'>
+          <div className='w-full p-6'>
             {leaveRequestsLoading ? (
               <div className='text-center py-8'>Loading leave requests...</div>
             ) : leaveRequests.length === 0 ? (
@@ -1940,7 +1940,7 @@ const ComplaintsAndLeavePage = () => {
             </div>
 
             {/* Content */}
-            <div className='p-6'>
+            <div className='w-full p-6'>
               <div className='mb-4'>
                 <p className='text-gray-700 mb-2'>
                   Are you sure you want to close the complaint:
@@ -2017,7 +2017,7 @@ const ComplaintsAndLeavePage = () => {
             </div>
 
             {/* Content */}
-            <div className='p-6'>
+            <div className='w-full p-6'>
               <div className='mb-6'>
                 <div className='flex items-start gap-3 mb-4'>
                   <div className='w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5'>
@@ -2327,7 +2327,7 @@ const ComplaintsAndLeavePage = () => {
             </div>
 
             {/* Content */}
-            <div className='p-6'>
+            <div className='w-full p-6'>
               <div className='mb-4'>
                 <h3 className='font-semibold text-gray-800 mb-2'>
                   Leave Request Details

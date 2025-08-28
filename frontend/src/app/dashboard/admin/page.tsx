@@ -84,7 +84,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className='px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
-        <div className='max-w-7xl mx-auto space-y-4 sm:space-y-5 lg:space-y-6 mt-4 sm:mt-5 lg:mt-6'>
+        <div className='w-full space-y-4 sm:space-y-5 lg:space-y-6 mt-4 sm:mt-5 lg:mt-6'>
           {/* Stats Grid - Mobile: 2x2 compact, Desktop: 1x4 */}
           <Statsgrid stats={statsData} />
 
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
             <div className='lg:col-span-4'>
               <NotificationPanel />
             </div>
-            <div className='lg:col-span-12 mt-4 lg:mt-0'>
+            <div className=' lg:col-span-12 mt-4 lg:mt-0'>
               <QuickActions actions={adminQuickActions} />
             </div>
           </div>

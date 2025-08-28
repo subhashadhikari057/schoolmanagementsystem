@@ -9,7 +9,7 @@ export default function ParentComplaintsAndLeavesPage() {
   // Pass userRole='parent' to show parent-specific functionality
   // Parents can approve/reject leave requests and resolve complaints
   return (
-    <div className='p-6'>
+    <div className='w-full p-6'>
       <h1 className='text-2xl font-bold mb-4'>Complaints & Leave Requests</h1>
       <p className='text-gray-500 mb-6'>
         As a parent, you can approve or reject leave requests submitted by your

@@ -667,27 +667,25 @@ const ClassesPage = () => {
   return (
     <div className='min-h-screen bg-background'>
       {/* Header */}
-      <div className='px-1 sm:px-2 lg:px-4 pt-3 sm:pt-4 lg:pt-6'>
-        <div className='max-w-7xl mx-auto'>
-          <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
-            Class Management
-          </h1>
-          <p className='text-sm sm:text-base lg:text-lg text-gray-600 mt-1 sm:mt-2'>
+      <div className='pt-3'>
+        <div className='w-full'>
+          <h1 className='text-xl font-bold text-gray-900'>Class Management</h1>
+          <p className='text-sm text-gray-600 mt-1'>
             Manage All Class Related Info Here
           </p>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className='px-1 sm:px-2 lg:px-4 mt-3 sm:mt-4 lg:mt-6'>
-        <div className='max-w-7xl mx-auto'>
+      <div className='mt-3'>
+        <div className='w-full'>
           <Statsgrid stats={classStats} />
         </div>
       </div>
 
       {/* Tabs & Content */}
-      <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8'>
-        <div className='max-w-7xl mx-auto'>
+      <div className='mt-4'>
+        <div className='w-full'>
           <GenericTabs tabs={tabs} defaultIndex={activeTab} />
         </div>
       </div>
