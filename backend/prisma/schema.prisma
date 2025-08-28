@@ -72,6 +72,9 @@ model User {
   teacherLeaveUsageUpdated     TeacherLeaveUsage[] @relation("TeacherLeaveUsageUpdater")
   teacherLeaveUsageDeleted     TeacherLeaveUsage[] @relation("TeacherLeaveUsageDeleter")
 
+  // Teacher Attendance relations
+  teacherAttendanceSessionsMarked TeacherAttendanceSession[] @relation("TeacherAttendanceMarkedBy")
+
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
@@ -398,6 +401,7 @@ model Teacher {
   teacherLeaveRequests  TeacherLeaveRequest[]
   teacherLeaveRequestAttachments TeacherLeaveRequestAttachment[]
   leaveUsage TeacherLeaveUsage[]
+  attendanceRecords     TeacherAttendanceRecord[] @relation("TeacherAttendanceRecords")
 
   @@index([createdById])
   @@index([updatedById])
@@ -1371,6 +1375,45 @@ enum AttendanceStatus {
   ABSENT
   LATE
   EXCUSED
+}
+
+// Teacher Attendance Models
+model TeacherAttendanceSession {
+  id          String   @id @default(uuid())
+  date        DateTime @db.Date
+  sessionType String   @default("daily") // daily, morning, afternoon
+  markedBy    String
+  markedAt    DateTime @default(now())
+  isCompleted Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime?
+  
+  marker      User     @relation("TeacherAttendanceMarkedBy", fields: [markedBy], references: [id])
+  records     TeacherAttendanceRecord[]
+  
+  @@unique([date, sessionType])
+  @@index([date])
+  @@index([markedBy])
+}
+
+model TeacherAttendanceRecord {
+  id               String                    @id @default(uuid())
+  sessionId        String
+  teacherId        String
+  status           AttendanceStatus
+  markedAt         DateTime                  @default(now())
+  remarks          String?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime?
+  
+  session          TeacherAttendanceSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  teacher          Teacher                   @relation("TeacherAttendanceRecords", fields: [teacherId], references: [id], onDelete: Cascade)
+  
+  @@unique([sessionId, teacherId])
+  @@index([sessionId])
+  @@index([teacherId])
+  @@index([status])
 }
 
 // Working Days Tracking Model
