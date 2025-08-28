@@ -79,7 +79,7 @@ export default function ParentFeesPage() {
 
   return (
     <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 lg:px-8 pt-8 pb-12'>
-      <div className='max-w-8xl mx-auto'>
+      <div className='w-full'>
         <div className='flex flex-col sm:flex-row items-center justify-between mb-6 gap-4'>
           <SectionTitle
             text="My Child's Fees"

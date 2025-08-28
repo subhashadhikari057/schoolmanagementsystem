@@ -47,7 +47,7 @@ function ExamSummaryCards() {
     },
   ];
   return (
-    <div className='flex flex-wrap gap-6 mb-8'>
+    <div className='flex flex-wrap gap-x-6 gap-y-6 w-full mb-8'>
       {cards.map(c => (
         <StatCard
           key={c.label}
@@ -58,7 +58,7 @@ function ExamSummaryCards() {
           value={c.value}
           change={c.change}
           isPositive={c.isPositive}
-          className='flex-1 min-w-[220px] max-w-xs'
+          className='flex-1 min-w-[220px]'
         />
       ))}
     </div>
@@ -68,13 +68,13 @@ export default function ExamsPage() {
   const [showModal, setShowModal] = useState(false);
   return (
     <div className='min-h-screen bg-background'>
-      <div className='px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 lg:pt-6'>
-        <div className='max-w-7xl mx-auto'>
+      <div className='pt-3'>
+        <div className='w-full'>
           <ExamSummaryCards />
         </div>
       </div>
-      <div className='flex justify-center mt-6 sm:mt-10 lg:mt-12 px-3 sm:px-4 lg:px-6 pb-6'>
-        <div className='w-full max-w-2xl'>
+      <div className='flex justify-center mt-6 pb-6'>
+        <div className='w-full'>
           <ExaminationManagementPanel onCreateExam={() => setShowModal(true)} />
         </div>
       </div>

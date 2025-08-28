@@ -212,7 +212,7 @@ export default function ClassDetailPage() {
 
       {/* Content */}
       <div className='px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 lg:pb-10'>
-        <div className='max-w-7xl mx-auto'>
+        <div className='w-full'>
           <GenericTabs tabs={tabs} className='bg-transparent' />
         </div>
       </div>

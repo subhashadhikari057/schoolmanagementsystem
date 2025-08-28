@@ -190,7 +190,11 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
             (
               section: {
                 title: string;
-                items: Array<{ label: string; icon: string; path: string }>;
+                items: ReadonlyArray<{
+                  label: string;
+                  icon?: string;
+                  path: string;
+                }>;
               },
               index: number,
             ) => (
@@ -202,17 +206,18 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                 </h3>
                 <ul className='space-y-2'>
                   {section.items.map(
-                    (item: { label: string; icon: string; path: string }) => {
-                      const Icon =
-                        (
-                          Icons as unknown as Record<
-                            string,
-                            React.ComponentType<{
-                              size?: number;
-                              className?: string;
-                            }>
-                          >
-                        )[item.icon] || Icons.Circle;
+                    (
+                      item: Readonly<{
+                        label: string;
+                        icon?: string;
+                        path: string;
+                      }>,
+                    ) => {
+                      const iconName =
+                        item.icon && typeof item.icon === 'string'
+                          ? item.icon
+                          : 'Circle';
+                      const Icon = (Icons as any)[iconName] || Icons.Circle;
                       const isActive =
                         pathname === item.path ||
                         (pathname &&

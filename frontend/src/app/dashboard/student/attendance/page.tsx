@@ -41,7 +41,7 @@ export default function AttendancePage() {
   }
 
   return (
-    <div className='p-6'>
+    <div className='w-full p-6'>
       <h1 className='text-lg font-bold mb-4'>Student Attendance Calendar</h1>
       <StudentAttendanceCalendar events={attendanceEvents} />
     </div>

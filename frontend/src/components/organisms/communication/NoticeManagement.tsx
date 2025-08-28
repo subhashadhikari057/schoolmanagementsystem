@@ -441,7 +441,7 @@ const NoticeManagement: React.FC = () => {
   return (
     <div className='space-y-6'>
       {/* Section Title */}
-      <div className='mb-6 px-14'>
+      <div className='mb-6'>
         <SectionTitle
           text='Notice Management'
           className='mb-1 text-3xl font-bold'

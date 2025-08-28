@@ -142,14 +142,7 @@ export const sidebarItems = {
   teacher: [
     {
       title: 'GENERAL',
-      items: [
-        { label: 'Dashboard', icon: 'Home', path: '/dashboard/teacher' },
-        {
-          label: 'My Leave',
-          icon: 'CalendarMinus',
-          path: '/dashboard/teacher/my-leave',
-        },
-      ],
+      items: [{ label: 'Dashboard', icon: 'Home', path: '/dashboard/teacher' }],
     },
     {
       title: 'ACADEMICS',
@@ -198,6 +191,11 @@ export const sidebarItems = {
           label: 'Complaints and Requests',
           icon: 'Mailbox',
           path: '/dashboard/teacher/communication/complaints-leave',
+        },
+        {
+          label: 'My Leave',
+          icon: 'CalendarMinus',
+          path: '/dashboard/teacher/my-leave',
         },
       ],
     },
@@ -298,4 +296,4 @@ export const sidebarItems = {
       ],
     },
   ],
-};
+} as const; // Add index signature to sidebarItems

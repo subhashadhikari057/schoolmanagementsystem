@@ -32,7 +32,7 @@ export default function ParentExamsPage() {
   }
 
   return (
-    <div className='p-6'>
+    <div className='w-full p-6'>
       <SectionTitle text='Children Exams' className='mb-2 text-2xl font-bold' />
       {/* Ensure all exam titles are bold in the tab component */}
       <p className='text-gray-500 mb-6'>

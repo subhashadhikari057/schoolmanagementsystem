@@ -76,7 +76,7 @@ export default function ParentAssignmentsPage() {
   }
 
   return (
-    <div className='p-6'>
+    <div className='w-full p-6'>
       <div className='flex items-center justify-between mb-6'>
         <SectionTitle text='Assignments' level={2} />
         <div className='flex gap-2'></div>
