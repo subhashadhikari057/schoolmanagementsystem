@@ -546,24 +546,26 @@ const ClassesPage = () => {
       icon: <School className='h-4 w-4 mr-2' />,
       content: (
         <>
-          {/* Action Buttons */}
-          <div className='flex justify-end mb-4'>
-            <ActionButtons
-              pageType='classes'
-              onRefresh={loadClasses}
-              onAddNew={() => setIsFormModalOpen(true)}
-            />
+          {/* Action Buttons above Search Filter, aligned right side */}
+          <div className='flex w-full mb-4'>
+            <div className='flex-1'></div>
+            <div className='flex-none flex justify-end'>
+              <ActionButtons
+                pageType='classes'
+                onRefresh={loadClasses}
+                onAddNew={() => setIsFormModalOpen(true)}
+              />
+            </div>
           </div>
-
           {/* Search & Filter Component */}
           <ClassSearchFilter
             onFilterChange={handleFilterChange}
             initialFilters={filters}
-            className='mb-6'
+            className='mb-0'
           />
 
           {/* Class Directory */}
-          <div className='bg-white p-4 rounded-lg shadow'>
+          <div className='bg-white p-4 rounded-lg shadow mt-4'>
             <h2 className='text-lg font-semibold text-gray-800 mb-4'>
               Class Directory
             </h2>

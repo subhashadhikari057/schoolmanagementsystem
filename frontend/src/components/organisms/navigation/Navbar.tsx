@@ -11,13 +11,8 @@ interface NavbarProps {
 export default function Navbar({ onMenuClick, onSearchClick }: NavbarProps) {
   const pathname = usePathname();
 
-  // Hide search bar on admin, teacher, parent, student, and staff pages
-  const hideSearchBar =
-    pathname.startsWith('/dashboard/admin/teachers') ||
-    pathname.startsWith('/dashboard/admin/students') ||
-    pathname.startsWith('/dashboard/admin/parents') ||
-    pathname.startsWith('/dashboard/admin/staff') ||
-    pathname.startsWith('/dashboard/system/myprofile');
+  // Show search bar only on /dashboard/admin main page
+  const showSearchBar = pathname === '/dashboard/admin';
   return (
     <header className='flex justify-between items-center px-3 md:px-6  bg-white shadow-sm z-10'>
       {/* Mobile Left Section - Hamburger */}
@@ -34,7 +29,7 @@ export default function Navbar({ onMenuClick, onSearchClick }: NavbarProps) {
       {/* Desktop Search Bar */}
       <div className='hidden md:flex items-center gap-3 flex-1 max-w-sm'>
         <div className='flex-1'>
-          {!hideSearchBar && (
+          {showSearchBar && (
             <LabeledInputField
               type='search'
               placeholder='Search'
@@ -54,7 +49,7 @@ export default function Navbar({ onMenuClick, onSearchClick }: NavbarProps) {
       {/* Right Section */}
       <div className='flex items-center gap-2'>
         {/* Mobile Search Icon */}
-        {!hideSearchBar && (
+        {showSearchBar && (
           <button
             onClick={onSearchClick}
             className='md:hidden p-2 rounded-lg hover:bg-muted-hover text-primary transition-colors'

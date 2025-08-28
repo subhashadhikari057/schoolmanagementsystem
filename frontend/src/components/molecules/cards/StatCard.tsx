@@ -74,7 +74,7 @@ export default function StatCard({
           <div className='flex-shrink-0'>
             <IconContainer
               icon={IconComponent}
-              bgColor={''}
+              bgColor={bgColor || ''}
               iconColor={iconColor || ''}
               size={size === 'sm' ? 'md' : size === 'lg' ? 'xl' : 'xl'}
             />

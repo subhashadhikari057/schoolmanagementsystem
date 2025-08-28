@@ -121,19 +121,19 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
     const getTypeBadge = (type?: string) => {
       if (!type || type === 'event')
         return (
-          <span className='inline-block px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700 mr-2'>
+          <span className='inline-block text-xs px-2 py-1 rounded font-semibold bg-blue-100 text-blue-700 mr-2'>
             Event
           </span>
         );
       if (type === 'exam')
         return (
-          <span className='inline-block px-2 py-1 rounded text-xs font-semibold bg-purple-100 text-purple-700 mr-2'>
+          <span className='inline-block text-xs px-2 py-1 rounded font-semibold bg-purple-100 text-purple-700 mr-2'>
             Exam
           </span>
         );
       if (type === 'holiday')
         return (
-          <span className='inline-block px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-700 mr-2'>
+          <span className='inline-block text-xs px-2 py-1 rounded font-semibold bg-red-100 text-red-700 mr-2'>
             Holiday
           </span>
         );
@@ -160,11 +160,11 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
               key={ev.id}
               className='rounded-xl border border-gray-200 bg-white p-4 shadow-sm'
             >
-              <div className='flex items-center mb-1'>
-                {getTypeBadge(ev.type)}
+              <div className='flex items-center justify-between mb-1'>
                 <span className='text-sm font-medium text-gray-900 line-clamp-1'>
                   {ev.title}
                 </span>
+                {getTypeBadge(ev.type)}
               </div>
               <div className='text-xs text-gray-500 mb-3'>
                 Date: {new Date(ev.date).toLocaleDateString()} • {ev.time} •{' '}
@@ -263,35 +263,84 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
   }
 
   return (
-    <div className={`bg-white rounded-xl py-2 sm:p-4 ${className}`}>
+    <div
+      className={`bg-white rounded-xl py-2 sm:p-4 min-h-[365px] ${className}`}
+    >
       <ChartHeader title='Upcoming Events' toggleLabel='All' />
 
-      <div className='space-y-4 px-2 max-h-80 overflow-y-auto modal-scrollbar'>
+      <div className='space-y-0 px-2 max-h-80 overflow-y-auto modal-scrollbar'>
         {upcomingEvents.length === 0 ? (
           <div className='text-center py-8 text-gray-500'>
             <Calendar className='w-12 h-12 mx-auto mb-3 opacity-30' />
             <p className='text-sm'>No upcoming events</p>
           </div>
         ) : (
-          upcomingEvents.map(event => {
-            const { day, month } = formatDateBadge(event.date);
-
-            return (
-              <div key={event.id} className='flex items-start gap-4'>
-                <div className='flex-shrink-0 text-center'>
-                  <div className='text-2xl font-bold text-blue-600'>{day}</div>
-                  <div className='text-xs text-gray-500 font-medium'>
-                    {month}
-                  </div>
-                </div>
-
+          upcomingEvents.map((event, idx) => (
+            <React.Fragment key={event.id}>
+              <div className='flex items-start gap-4 group transition-all duration-200 hover:bg-blue-50/60 rounded-xl p-3 mb-0 shadow-sm'>
                 <div className='flex-1 min-w-0'>
-                  <div className='flex items-start justify-between gap-2 mb-1'>
-                    <h4 className='text-sm font-semibold text-gray-900 line-clamp-2'>
+                  <div className='flex items-start justify-between gap-2'>
+                    <span className='text-base font-semibold text-gray-900 line-clamp-2'>
                       {event.title}
-                    </h4>
+                    </span>
+                    {event.type && (
+                      <span
+                        className={`inline-block text-xs px-2 py-1 rounded-full font-semibold flex-shrink-0 shadow-sm ${
+                          event.type === 'holiday'
+                            ? 'bg-red-100 text-red-700'
+                            : event.type === 'exam'
+                              ? 'bg-purple-100 text-purple-700'
+                              : event.type === 'emergency_closure'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-blue-100 text-blue-700'
+                        }`}
+                      >
+                        {event.type.charAt(0).toUpperCase() +
+                          event.type.slice(1).replace('_', ' ')}
+                      </span>
+                    )}
+                  </div>
+                  {/* Time/location left, status right, in a single row below title */}
+                  <div className='flex items-center justify-between mt-1'>
+                    <div className='flex gap-4'>
+                      {event.type === 'holiday' ? null : (
+                        <>
+                          {event.type === 'event' || event.type === 'exam' ? (
+                            <>
+                              {event.time && (
+                                <div className='flex items-center gap-1 text-xs text-gray-600 font-medium'>
+                                  <Clock className='w-3 h-3 flex-shrink-0' />
+                                  <span>{event.time}</span>
+                                </div>
+                              )}
+                              {event.location && (
+                                <div className='flex items-center gap-1 text-xs text-gray-600 font-medium'>
+                                  <MapPin className='w-3 h-3 flex-shrink-0' />
+                                  <span className='line-clamp-1'>
+                                    {event.location}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              {event.time && (
+                                <div className='text-xs text-gray-600 font-medium'>
+                                  Time: {event.time}
+                                </div>
+                              )}
+                              {event.location && (
+                                <div className='text-xs text-gray-600 font-medium'>
+                                  Location: {event.location}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
                     <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${
+                      className={`text-xs px-2 py-1 rounded-full font-semibold flex-shrink-0 shadow-sm ${
                         event.status.toLowerCase() === 'active'
                           ? 'bg-green-100 text-green-700'
                           : 'bg-orange-100 text-orange-700'
@@ -300,22 +349,13 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
                       {event.status}
                     </span>
                   </div>
-
-                  <div className='space-y-1'>
-                    <div className='flex items-center gap-1 text-xs text-gray-600'>
-                      <Clock className='w-3 h-3 flex-shrink-0' />
-                      <span>{event.time}</span>
-                    </div>
-
-                    <div className='flex items-center gap-1 text-xs text-gray-600'>
-                      <MapPin className='w-3 h-3 flex-shrink-0' />
-                      <span className='line-clamp-1'>{event.location}</span>
-                    </div>
-                  </div>
                 </div>
               </div>
-            );
-          })
+              {idx < upcomingEvents.length - 1 && (
+                <div className='border-b border-gray-200 mx-4' />
+              )}
+            </React.Fragment>
+          ))
         )}
       </div>
     </div>

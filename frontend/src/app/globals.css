@@ -212,3 +212,15 @@ body {
     0 10px 10px -5px rgba(0, 0, 0, 0.04),
     0 0 0 1px rgba(255, 255, 255, 0.05); /* Multi-layer shadow for depth */
 }
+
+/* ======== APPEND: Production UI scale (crisp, no transforms) ======== */
+/* 0.90 ≈ whole app looks like 90% zoom at real 100%. Tweak as needed. */
+:root { --ui-scale: 0.90; }
+
+/* Tailwind mostly uses rem ⇒ scaling the root font-size scales the whole UI */
+html { font-size: calc(100% * var(--ui-scale)); }
+
+/* Optional: super-thin borders remain sharp on HiDPI screens */
+@media (min-resolution: 2dppx) {
+  .hairline { border-width: 0.5px; }
+}
