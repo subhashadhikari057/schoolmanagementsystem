@@ -95,7 +95,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
     sidebar-scroll group
     fixed md:relative top-0 left-0 z-50 md:z-auto
     h-screen border-r border-gray-200 px-4 py-2 bg-white
-    transition-all duration-300 ease-in-out
+  transition-transform transition-width transition-shadow transition-opacity duration-150 cubic-bezier(0.4,0,0.2,1)
     ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
     ${expandedByHover ? 'w-64' : isCollapsed ? 'w-20' : 'w-64'}
     shadow-lg md:shadow-none
