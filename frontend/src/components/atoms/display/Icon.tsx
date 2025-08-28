@@ -7,5 +7,5 @@ export default function Icon({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <div className={`rounded-full ${className}`}>{children}</div>;
+  return <div className={`rounded-lg ${className}`}>{children}</div>;
 }

@@ -157,7 +157,7 @@ const FeeManagementPage = () => {
     {
       icon: Layers,
       bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
+      iconColor: 'text-white',
       value: apiData.length.toString(),
       label: 'Fee Structures',
       change: '',

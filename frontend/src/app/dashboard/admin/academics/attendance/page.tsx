@@ -7,7 +7,7 @@ import Button from '@/components/atoms/form-controls/Button';
 import { Card } from '@/components/ui/card';
 import Input from '@/components/atoms/form-controls/Input';
 import StatusBadge from '@/components/atoms/data/StatusBadge';
-import SimpleTabs from '@/components/molecules/navigation/SimpleTabs';
+import Tabs from '@/components/organisms/tabs/GenericTabs';
 import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
 import StaffAttendanceModal from '@/components/organisms/modals/StaffAttendanceModal';
 import AttendanceReportsModal from '@/components/organisms/modals/AttendanceReportsModal';
@@ -356,23 +356,11 @@ export default function AttendancePage() {
       block.section.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const tabItems = [
-    {
-      id: 'daily',
-      label: 'Daily Attendance',
-      icon: <GraduationCap className='w-4 h-4' />,
-    },
-    {
-      id: 'staff',
-      label: 'Staff Attendance',
-      icon: <UserCog className='w-4 h-4' />,
-    },
-    {
-      id: 'reports',
-      label: 'Attendance Reports',
-      icon: <BarChart3 className='w-4 h-4' />,
-    },
-  ];
+  // ...existing code...
+
+  // ...existing code...
+
+  // Place tabItems after all renderTab functions
 
   const renderDailyTab = () => (
     <div className='space-y-6'>
@@ -834,6 +822,22 @@ export default function AttendancePage() {
     }
   };
 
+  // Place tabItems just before return so it's in scope
+  const tabItems = [
+    {
+      name: 'Daily Attendance',
+      content: renderDailyTab(),
+    },
+    {
+      name: 'Staff Attendance',
+      content: renderStaffTab(),
+    },
+    {
+      name: 'Attendance Reports',
+      content: renderReportsTab(),
+    },
+  ];
+
   return (
     <div className='p-6 space-y-6 max-w-7xl mx-auto'>
       {/* Header with Working Days Counter */}
@@ -892,13 +896,11 @@ export default function AttendancePage() {
 
       {/* Main Content Tabs */}
       <div className='space-y-6'>
-        <SimpleTabs
+        <Tabs
           tabs={tabItems}
-          activeTab={activeTabIndex}
-          onChange={setActiveTabIndex}
+          defaultIndex={activeTabIndex}
           className='w-full'
         />
-        {renderTabContent()}
       </div>
 
       {/* Modals */}

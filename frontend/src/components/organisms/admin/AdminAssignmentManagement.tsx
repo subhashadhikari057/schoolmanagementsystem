@@ -423,7 +423,7 @@ export default function AdminAssignmentManagement() {
       </div>
 
       {/* Stats Grid */}
-      <Statsgrid variant='solid' stats={statsData} />
+      <Statsgrid stats={statsData} />
 
       {/* Error Display */}
       {error && (

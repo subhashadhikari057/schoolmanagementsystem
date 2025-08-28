@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import GenericList from '@/components/templates/GenericList';
+import ParentSearchFilter, {
+  ParentFilters,
+} from '@/components/molecules/filters/ParentSearchFilter';
 import {
   getListConfig,
   Parent,
@@ -28,8 +31,14 @@ import ParentEditModal from '@/components/organisms/modals/ParentEditModal';
 const ParentsPage = () => {
   // State for parents data
   const [parents, setParents] = useState<Parent[]>([]);
+  const [filteredParents, setFilteredParents] = useState<Parent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<ParentFilters>({
+    search: '',
+    occupation: '',
+    status: '',
+  });
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -159,6 +168,40 @@ const ParentsPage = () => {
     fetchParents(currentPage);
   }, [currentPage, fetchParents]);
 
+  // Filter parents when filters or parents change
+  useEffect(() => {
+    let filtered = parents;
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(
+        p =>
+          p.name.toLowerCase().includes(searchLower) ||
+          p.email?.toLowerCase().includes(searchLower) ||
+          p.phone?.toLowerCase().includes(searchLower),
+      );
+    }
+    if (filters.occupation) {
+      filtered = filtered.filter(p => p.occupation === filters.occupation);
+    }
+    if (filters.status) {
+      filtered = filtered.filter(p => p.accountStatus === filters.status);
+    }
+    setFilteredParents(filtered);
+  }, [filters, parents]);
+  // Occupation and status options for filter
+  const occupationOptions = Array.from(
+    new Set(
+      parents
+        .map(p => p.occupation)
+        .filter((o): o is string => typeof o === 'string' && o.length > 0),
+    ),
+  ).map(o => ({ value: o, label: o }));
+  const statusOptions = [
+    { value: 'Active', label: 'Active' },
+    { value: 'Inactive', label: 'Inactive' },
+    { value: 'Pending', label: 'Pending' },
+  ];
+
   // Handle page changes
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -218,8 +261,8 @@ const ParentsPage = () => {
   const parentStats = [
     {
       icon: Users,
-      bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
+      bgColor: 'bg-blue-600',
+      iconColor: 'text-white',
       value: stats.total.toString(),
       label: 'Total Parents',
       change: '2.1%',
@@ -227,8 +270,8 @@ const ParentsPage = () => {
     },
     {
       icon: UserCheck,
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
+      bgColor: 'bg-green-600',
+      iconColor: 'text-white',
       value: stats.active.toString(),
       label: 'Active Parents',
       change: '1.5%',
@@ -236,8 +279,8 @@ const ParentsPage = () => {
     },
     {
       icon: Phone,
-      bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600',
+      bgColor: 'bg-yellow-600',
+      iconColor: 'text-white',
       value: stats.pending.toString(),
       label: 'Pending Verification',
       change: '8.2%',
@@ -245,8 +288,8 @@ const ParentsPage = () => {
     },
     {
       icon: Mail,
-      bgColor: 'bg-purple-50',
-      iconColor: 'text-purple-600',
+      bgColor: 'bg-purple-600',
+      iconColor: 'text-white',
       value: stats.inactive.toString(),
       label: 'Inactive',
       change: '0.5%',
@@ -308,10 +351,18 @@ const ParentsPage = () => {
       {/* Main Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
         <div className='max-w-7xl mx-auto'>
-          {/* Parent List - Using Real Data */}
+          {/* Parent Search Bar & Filters */}
+          <ParentSearchFilter
+            onFilterChange={setFilters}
+            occupations={occupationOptions}
+            statuses={statusOptions}
+            initialFilters={filters}
+          />
+          <div className='mt-4'></div>
+          {/* Parent List - Using Filtered Data */}
           <GenericList<Parent>
             config={getListConfig('parents')}
-            data={parents}
+            data={filteredParents}
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={totalItems}

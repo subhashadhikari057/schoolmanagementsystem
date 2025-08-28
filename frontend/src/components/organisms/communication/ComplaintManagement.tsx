@@ -32,6 +32,7 @@ import { teacherService } from '@/api/services/teacher.service';
 import { toast } from 'sonner';
 import Button from '@/components/atoms/form-controls/Button';
 import { useAuth } from '@/hooks/useAuth';
+import SectionTitle from '@/components/atoms/display/SectionTitle';
 
 const ComplaintManagement: React.FC = () => {
   // Helper function to format status display
@@ -1110,7 +1111,16 @@ const ComplaintManagement: React.FC = () => {
 
   return (
     <div className='space-y-6'>
-      <Statsgrid stats={statsData} />
+      <div className='px-14'>
+        <SectionTitle
+          text='Complaint Management'
+          className='mb-1 text-3xl font-bold'
+        />
+        <p className='text-sm text-gray-500 mt-1 mb-6'>
+          Monitor all complaints in the school
+        </p>
+        <Statsgrid stats={statsData} />
+      </div>
 
       {loading ? (
         <div className='text-center py-8'>

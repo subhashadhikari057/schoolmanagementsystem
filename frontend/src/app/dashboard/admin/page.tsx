@@ -18,8 +18,8 @@ import { adminQuickActions } from '@/constants/mockData';
 const statsData = [
   {
     icon: Users,
-    bgColor: 'bg-blue-50',
-    iconColor: 'text-blue-600',
+    bgColor: 'bg-blue-600',
+    iconColor: 'text-white',
     value: '2,856',
     label: 'Total Students',
     change: '3.1%',
@@ -27,8 +27,8 @@ const statsData = [
   },
   {
     icon: GraduationCap,
-    bgColor: 'bg-green-50',
-    iconColor: 'text-green-600',
+    bgColor: 'bg-green-600',
+    iconColor: 'text-white',
     value: '182',
     label: 'Total Teachers',
     change: '1.8%',
@@ -36,8 +36,8 @@ const statsData = [
   },
   {
     icon: DollarSign,
-    bgColor: 'bg-yellow-50',
-    iconColor: 'text-yellow-600',
+    bgColor: 'bg-yellow-600',
+    iconColor: 'text-white',
     value: '$428,560',
     label: 'Total Fees Collected',
     change: '5.2%',
@@ -45,8 +45,8 @@ const statsData = [
   },
   {
     icon: CreditCard,
-    bgColor: 'bg-red-50',
-    iconColor: 'text-red-600',
+    bgColor: 'bg-red-600',
+    iconColor: 'text-white',
     value: '$215,400',
     label: 'Total Salaries Paid',
     change: '2.4%',
@@ -68,6 +68,7 @@ export default function AdminDashboard() {
     time: ev.time || ev.startTime || '',
     location: ev.location || ev.venue || '',
     status: typeof ev.status === 'string' ? ev.status : 'Active',
+    type: ev.type || 'event',
   }));
 
   return (

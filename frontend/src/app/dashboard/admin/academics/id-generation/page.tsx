@@ -129,7 +129,7 @@ const IDCardGenerationPage = () => {
     {
       icon: CreditCard,
       bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600',
+      iconColor: 'text-white',
       value: '248',
       label: 'Total ID Cards',
       change: '5.2%',
@@ -138,7 +138,7 @@ const IDCardGenerationPage = () => {
     {
       icon: CheckCircle,
       bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
+      iconColor: 'text-white',
       value: '195',
       label: 'Printed Cards',
       change: '12.3%',
@@ -147,7 +147,7 @@ const IDCardGenerationPage = () => {
     {
       icon: Printer,
       bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600',
+      iconColor: 'text-white',
       value: '34',
       label: 'Pending Print',
       change: '2.1%',
@@ -156,7 +156,7 @@ const IDCardGenerationPage = () => {
     {
       icon: AlertCircle,
       bgColor: 'bg-red-50',
-      iconColor: 'text-red-600',
+      iconColor: 'text-white',
       value: '19',
       label: 'Generated Only',
       change: '8.7%',
