@@ -29,6 +29,8 @@ const SUBMISSION_ENDPOINTS = {
     `api/v1/submissions/assignment/${assignmentId}`,
   GET_BY_STUDENT: (studentId: string) =>
     `api/v1/submissions/student/${studentId}`,
+  GET_STUDENT_HISTORY: (assignmentId: string, studentId: string) =>
+    `api/v1/submissions/assignment/${assignmentId}/student/${studentId}`,
 } as const;
 
 // ============================================================================
@@ -139,18 +141,27 @@ export class SubmissionService {
     assignmentId: string,
     studentId: string,
     files?: string[],
-    feedback?: string,
+    studentNotes?: string,
   ): Promise<ApiResponse<CreateSubmissionResponse>> {
+    console.log('=== SUBMISSION SERVICE: submitAssignment ===');
+    console.log('Assignment ID:', assignmentId);
+    console.log('Student ID:', studentId);
+    console.log('Files:', files);
+    console.log('Student Notes:', studentNotes);
+
     const submissionData: CreateSubmissionRequest = {
       assignmentId,
       studentId,
       submittedAt: new Date().toISOString(),
       isCompleted: false, // Initially not graded
-      feedback,
+      studentNotes,
       fileLinks: files || [],
     };
 
-    return this.createOrUpdateSubmission(submissionData);
+    console.log('Submission data being created:', submissionData);
+    const response = await this.createOrUpdateSubmission(submissionData);
+    console.log('Submit assignment response:', response);
+    return response;
   }
 
   /**
@@ -160,14 +171,14 @@ export class SubmissionService {
     assignmentId: string,
     studentId: string,
     files?: string[],
-    feedback?: string,
+    studentNotes?: string,
   ): Promise<ApiResponse<CreateSubmissionResponse>> {
     const submissionData: CreateSubmissionRequest = {
       assignmentId,
       studentId,
       submittedAt: new Date().toISOString(),
       isCompleted: false, // Keep as not graded when student updates
-      feedback,
+      studentNotes,
       fileLinks: files || [],
     };
 
@@ -292,15 +303,21 @@ export class SubmissionService {
       ...submission,
       status: this.getSubmissionStatus(submission),
       isLate: this.isSubmissionLate(submission),
-      submittedAtFormatted: submission.submittedAt
-        ? new Date(submission.submittedAt).toLocaleDateString()
-        : 'Not submitted',
-      studentName: submission.student.user.fullName,
-      studentRollNumber: submission.student.rollNumber,
-      assignmentTitle: submission.assignment?.title || 'Unknown Assignment',
-      hasFiles: submission.fileLinks.length > 0,
-      fileCount: submission.fileLinks.length,
     };
+  }
+
+  /**
+   * Get student submission history for a specific assignment
+   */
+  async getStudentSubmissionHistory(
+    assignmentId: string,
+    studentId: string,
+  ): Promise<ApiResponse<SubmissionResponse[]>> {
+    return this.httpClient.get<SubmissionResponse[]>(
+      SUBMISSION_ENDPOINTS.GET_STUDENT_HISTORY(assignmentId, studentId),
+      undefined,
+      { requiresAuth: true },
+    );
   }
 
   /**

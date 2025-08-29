@@ -10,8 +10,12 @@ import {
   UseGuards,
   Request,
   ParseUUIDPipe,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { AssignmentService } from '../application/assignment.service';
+import { AssignmentAttachmentService } from '../application/assignment-attachment.service';
 import {
   CreateAssignmentDto,
   UpdateAssignmentDto,
@@ -21,11 +25,18 @@ import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { RoleAccess, Roles } from '../../../shared/decorators/roles.decorator';
 import { UserId } from '../../../shared/decorators/user.decorator';
 import { UserRole } from '@sms/shared-types';
+import {
+  createMulterConfig,
+  UPLOAD_PATHS,
+} from '../../../shared/utils/file-upload.util';
 
 @Controller('api/v1/assignments')
 @UseGuards(JwtAuthGuard)
 export class AssignmentController {
-  constructor(private readonly assignmentService: AssignmentService) {}
+  constructor(
+    private readonly assignmentService: AssignmentService,
+    private readonly attachmentService: AssignmentAttachmentService,
+  ) {}
 
   /**
    * Create a new assignment
@@ -170,6 +181,101 @@ export class AssignmentController {
     return {
       success: true,
       data: assignments,
+    };
+  }
+
+  /**
+   * Upload attachments to assignment
+   * Available to teachers and admins
+   */
+  @Post(':id/attachments')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  @UseInterceptors(
+    FilesInterceptor(
+      'attachments',
+      5, // Maximum 5 files
+      createMulterConfig(UPLOAD_PATHS.ASSIGNMENT_ATTACHMENTS, 'document'),
+    ),
+  )
+  async uploadAttachments(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Request() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const result = await this.attachmentService.uploadAttachments(
+      id,
+      files,
+      user.id,
+      userRole,
+      req.ip,
+      req.get('User-Agent'),
+    );
+
+    return {
+      success: true,
+      message: result.message,
+      data: result.attachments,
+    };
+  }
+
+  /**
+   * Get attachments for assignment
+   * Available to all authenticated users
+   */
+  @Get(':id/attachments')
+  async getAttachments(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const attachments = await this.attachmentService.getAttachments(
+      id,
+      user.id,
+      userRole,
+    );
+
+    return {
+      success: true,
+      data: attachments,
+    };
+  }
+
+  /**
+   * Delete attachment from assignment
+   * Available to teachers and admins
+   */
+  @Delete(':id/attachments/:attachmentId')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async deleteAttachment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
+    @Request() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const result = await this.attachmentService.deleteAttachment(
+      attachmentId,
+      user.id,
+      userRole,
+      req.ip,
+      req.get('User-Agent'),
+    );
+
+    return {
+      success: true,
+      message: result.message,
     };
   }
 }

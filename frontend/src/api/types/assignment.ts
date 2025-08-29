@@ -18,6 +18,7 @@ export interface CreateAssignmentRequest {
   teacherId?: string;
   dueDate?: string; // ISO date string
   additionalMetadata?: Record<string, unknown>;
+  attachments?: File[]; // Frontend file uploads
 }
 
 export interface UpdateAssignmentRequest {
@@ -87,6 +88,9 @@ export interface AssignmentResponse {
 
   // Submissions (when detailed)
   submissions?: SubmissionResponse[];
+
+  // Attachments
+  attachments?: AssignmentAttachment[];
 }
 
 export interface CreateAssignmentResponse {
@@ -100,6 +104,32 @@ export interface UpdateAssignmentResponse {
 }
 
 // ============================================================================
+// Attachment Types
+// ============================================================================
+
+export interface AssignmentAttachment {
+  id: string;
+  assignmentId: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  uploadedAt: string;
+}
+
+export interface SubmissionAttachment {
+  id: string;
+  submissionId: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  uploadedAt: string;
+}
+
+// ============================================================================
 // Submission Request Types
 // ============================================================================
 
@@ -108,13 +138,16 @@ export interface CreateSubmissionRequest {
   studentId: string;
   submittedAt?: string; // ISO date string
   isCompleted?: boolean;
-  feedback?: string;
+  feedback?: string; // Teacher's grading remarks
+  studentNotes?: string; // Student's submission comments
   fileLinks?: string[];
+  attachments?: File[]; // Frontend file uploads
 }
 
 export interface UpdateSubmissionRequest {
   isCompleted?: boolean;
-  feedback?: string;
+  feedback?: string; // Teacher's grading remarks
+  studentNotes?: string; // Student's submission comments
   fileLinks?: string[];
 }
 
@@ -151,7 +184,8 @@ export interface SubmissionResponse {
   studentId: string;
   submittedAt?: string;
   isCompleted: boolean;
-  feedback?: string;
+  feedback?: string; // Teacher's grading remarks
+  studentNotes?: string; // Student's submission comments
   fileLinks: string[];
   createdAt: string;
   updatedAt?: string;
@@ -160,6 +194,9 @@ export interface SubmissionResponse {
   // Relations
   student: SubmissionStudentInfo;
   assignment?: SubmissionAssignmentInfo;
+
+  // Attachments
+  attachments?: SubmissionAttachment[];
 }
 
 export interface CreateSubmissionResponse {
@@ -194,6 +231,7 @@ export interface SubmissionFormData {
   feedback: string;
   fileLinks: string[];
   files?: FileList;
+  attachments?: File[]; // Frontend file uploads
 }
 
 // ============================================================================

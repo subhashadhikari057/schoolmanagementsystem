@@ -66,6 +66,7 @@ export class SubmissionService {
           submittedAt: dto.submittedAt || new Date(),
           isCompleted: dto.isCompleted,
           feedback: dto.feedback,
+          studentNotes: dto.studentNotes,
           fileLinks: dto.fileLinks || [],
           updatedById: createdById,
           updatedAt: new Date(),
@@ -92,6 +93,7 @@ export class SubmissionService {
           submittedAt: dto.submittedAt || new Date(),
           isCompleted: dto.isCompleted,
           feedback: dto.feedback,
+          studentNotes: dto.studentNotes,
           fileLinks: dto.fileLinks || [],
           createdById,
         },
@@ -141,7 +143,7 @@ export class SubmissionService {
       throw new NotFoundException('Assignment not found');
     }
 
-    return this.prisma.submission.findMany({
+    const submissions = await this.prisma.submission.findMany({
       where: {
         assignmentId,
         deletedAt: null,
@@ -151,12 +153,31 @@ export class SubmissionService {
           select: {
             id: true,
             rollNumber: true,
-            user: { select: { fullName: true } },
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            originalName: true,
+            url: true,
+            size: true,
+            mimeType: true,
+            uploadedAt: true,
           },
         },
       },
       orderBy: { submittedAt: 'desc' },
     });
+
+    return submissions;
   }
 
   /**
@@ -188,6 +209,73 @@ export class SubmissionService {
         },
       },
       orderBy: { submittedAt: 'desc' },
+    });
+  }
+
+  /**
+   * Get submission history for a specific assignment and student
+   */
+  async findByAssignmentAndStudent(assignmentId: string, studentId: string) {
+    // Validate that the assignment exists
+    const assignment = await this.prisma.assignment.findUnique({
+      where: { id: assignmentId },
+    });
+
+    if (!assignment || assignment.deletedAt) {
+      throw new NotFoundException('Assignment not found');
+    }
+
+    // Validate that the student exists
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!student || student.deletedAt) {
+      throw new NotFoundException('Student not found');
+    }
+
+    return this.prisma.submission.findMany({
+      where: {
+        assignmentId,
+        studentId,
+        deletedAt: null,
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            rollNumber: true,
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        assignment: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            dueDate: true,
+            subject: { select: { name: true } },
+            class: { select: { grade: true, section: true } },
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            originalName: true,
+            url: true,
+            size: true,
+            mimeType: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 

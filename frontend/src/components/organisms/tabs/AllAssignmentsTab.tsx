@@ -12,6 +12,8 @@ import {
   Edit2,
   Eye,
   Trash2,
+  Paperclip,
+  FileText,
 } from 'lucide-react';
 import { assignmentService } from '@/api/services/assignment.service';
 import { teacherService } from '@/api/services/teacher.service';
@@ -21,6 +23,7 @@ import CreateAssignmentModal from '../modals/CreateAssignmentModal';
 import ViewAssignmentModal from '../modals/ViewAssignmentModal';
 import DeleteConfirmationModal from '../modals/DeleteConfirmationModal';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface ProcessedAssignment {
   id: string;
@@ -32,6 +35,15 @@ interface ProcessedAssignment {
   totalStudents: number;
   submissions: number;
   graded: number;
+  attachments: number;
+  attachmentDetails?: Array<{
+    id: string;
+    filename: string;
+    originalName: string;
+    url: string;
+    mimeType: string;
+    size: number;
+  }>;
   status: 'active' | 'completed' | 'overdue';
   priority: 'low' | 'medium' | 'high';
   originalData: AssignmentResponse;
@@ -46,6 +58,7 @@ export default function AllAssignmentsTab({
   refreshTrigger,
 }: AllAssignmentsTabProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'incomplete' | 'completed'
@@ -80,12 +93,45 @@ export default function AllAssignmentsTab({
       setError(null);
 
       // First get the teacher record to get teacher ID
-      const teacherResponse = await teacherService.getCurrentTeacher();
+      let teacherResponse;
+      try {
+        teacherResponse = await teacherService.getCurrentTeacher();
+      } catch (teacherError) {
+        console.error('Failed to get teacher data:', teacherError);
+        setError(
+          'Failed to load teacher information. Please check your authentication.',
+        );
+        setLoading(false);
+        return;
+      }
+
       const teacherId = teacherResponse.data.id;
 
-      const response =
-        await assignmentService.getAssignmentsByTeacher(teacherId);
+      let response;
+      try {
+        response = await assignmentService.getAssignmentsByTeacher(teacherId);
+      } catch (assignmentError) {
+        console.error('Failed to get assignments:', assignmentError);
+        setError(
+          'Failed to load assignments. Please check your connection and try again.',
+        );
+        setLoading(false);
+        return;
+      }
+
       const assignmentData = response.data;
+
+      // Debug: Log raw assignment data (commented out for production)
+      // console.log('Raw assignment data:', assignmentData.map(a => ({
+      //   id: a.id,
+      //   title: a.title,
+      //   class: a.class,
+      //   classId: a.class?.id,
+      //   hasClass: !!a.class,
+      //   hasStudents: !!a.class?.students?.length,
+      //   studentCount: a.class?.students?.length || 0,
+      //   students: a.class?.students
+      // })));
 
       // Process assignments data
       const processedAssignments: ProcessedAssignment[] = assignmentData.map(
@@ -93,7 +139,27 @@ export default function AllAssignmentsTab({
           const submissionCount = assignment._count?.submissions || 0;
           const gradedCount =
             assignment.submissions?.filter(sub => sub.isCompleted).length || 0;
-          const totalStudents = assignment?.class?.students?.length || 0;
+
+          // Try to get student count from multiple sources
+          let totalStudents = 0;
+          if (assignment?.class?.students?.length) {
+            totalStudents = assignment.class.students.length;
+          } else {
+            // Fallback: we'll need to fetch class details separately
+            totalStudents = 0; // Will be updated if we can fetch class details
+          }
+
+          // Get attachment count and details
+          const attachmentCount = assignment.attachments?.length || 0;
+          const attachmentDetails =
+            assignment.attachments?.map(attachment => ({
+              id: attachment.id,
+              filename: attachment.filename,
+              originalName: attachment.originalName,
+              url: attachment.url,
+              mimeType: attachment.mimeType,
+              size: attachment.size,
+            })) || [];
 
           // Determine status
           let status: 'active' | 'completed' | 'overdue' = 'active';
@@ -124,6 +190,8 @@ export default function AllAssignmentsTab({
             totalStudents,
             submissions: submissionCount,
             graded: gradedCount,
+            attachments: attachmentCount,
+            attachmentDetails,
             status,
             priority,
             originalData: assignment,
@@ -131,7 +199,22 @@ export default function AllAssignmentsTab({
         },
       );
 
+      // Note: We already have student data from the backend, so we don't need to fetch class details separately
+      // The backend's findAll method includes students in the class data
+
       setAssignments(processedAssignments);
+
+      // Debug: Log assignment data to understand student count issues (commented out for production)
+      // console.log('Processed assignments:', processedAssignments.map(a => ({
+      //   id: a.id,
+      //   title: a.title,
+      //   class: a.class,
+      //   classId: a.originalData.class?.id,
+      //   totalStudents: a.totalStudents,
+      //   hasStudentsInClass: !!a.originalData.class?.students?.length,
+      //   studentCount: a.originalData.class?.students?.length || 0,
+      //   students: a.originalData.class?.students
+      // })));
 
       // Extract unique subjects and classes for filters
       const uniqueSubjects = [
@@ -169,6 +252,12 @@ export default function AllAssignmentsTab({
   const handleDeleteClick = (assignment: ProcessedAssignment) => {
     setSelectedAssignment(assignment);
     setIsDeleteModalOpen(true);
+  };
+
+  const handleViewSubmissions = (assignment: ProcessedAssignment) => {
+    router.push(
+      `/dashboard/teacher/academics/assignments/${assignment.id}/submissions`,
+    );
   };
 
   const handleEditSuccess = () => {
@@ -317,9 +406,9 @@ export default function AllAssignmentsTab({
       </div>
 
       {/* Assignments List */}
-      <div className='space-y-4'>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         {loading ? (
-          <div className='flex items-center justify-center py-16 sm:py-12'>
+          <div className='col-span-full flex items-center justify-center py-16 sm:py-12'>
             <div className='text-center'>
               <div className='animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
               <p className='text-gray-600 text-sm sm:text-base'>
@@ -328,7 +417,7 @@ export default function AllAssignmentsTab({
             </div>
           </div>
         ) : error ? (
-          <div className='flex items-center justify-center py-12'>
+          <div className='col-span-full flex items-center justify-center py-12'>
             <div className='text-center max-w-md px-4'>
               <AlertCircle className='h-10 w-10 sm:h-12 sm:w-12 text-red-500 mx-auto mb-4' />
               <p className='text-red-600 mb-4 text-sm sm:text-base'>{error}</p>
@@ -342,7 +431,7 @@ export default function AllAssignmentsTab({
             </div>
           </div>
         ) : filteredAssignments.length === 0 ? (
-          <div className='flex items-center justify-center py-12'>
+          <div className='col-span-full flex items-center justify-center py-12'>
             <div className='text-center px-4'>
               <Calendar className='h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4' />
               <p className='text-gray-600 text-sm sm:text-base'>
@@ -356,134 +445,138 @@ export default function AllAssignmentsTab({
           filteredAssignments.map(assignment => (
             <div
               key={assignment.id}
-              className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm'
+              className='bg-white rounded-lg border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow h-[280px] flex flex-col'
             >
-              <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4'>
+              {/* Header */}
+              <div className='flex items-start justify-between mb-4'>
                 <div className='flex-1 min-w-0'>
-                  <div className='flex flex-wrap items-center gap-2 sm:gap-3 mb-2'>
+                  <div className='flex items-center gap-2 mb-2'>
                     <span
-                      className={`inline-block px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium ${getStatusColor(
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
                         assignment.status,
                       )}`}
                     >
-                      {assignment.status}
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                          assignment.status === 'active'
+                            ? 'bg-blue-500'
+                            : assignment.status === 'completed'
+                              ? 'bg-green-500'
+                              : 'bg-red-500'
+                        }`}
+                      />
+                      {assignment.status === 'active'
+                        ? 'Active'
+                        : assignment.status === 'completed'
+                          ? 'Completed'
+                          : 'Overdue'}
                     </span>
-                    <span
-                      className={`inline-block px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium ${getPriorityColor(
-                        assignment.priority,
-                      )}`}
-                    >
-                      {assignment.priority} priority
-                    </span>
-                    <span className='inline-block px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-gray-100 text-gray-700'>
+                    <span className='text-xs text-gray-500'>
                       {assignment.subject}
                     </span>
                   </div>
 
-                  <h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-2 line-clamp-2'>
+                  <h3
+                    className='text-base font-semibold text-gray-900 mb-2 overflow-hidden text-ellipsis min-h-[3rem]'
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                    }}
+                  >
                     {assignment.title}
                   </h3>
 
-                  <div className='flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-gray-600'>
+                  <div className='flex items-center gap-4 text-sm text-gray-600'>
                     <div className='flex items-center gap-1.5'>
-                      <Users className='w-4 h-4 shrink-0' />
-                      <span className='truncate'>{assignment.class}</span>
+                      <Users className='w-4 h-4' />
+                      <span>{assignment.class}</span>
                     </div>
                     <div className='flex items-center gap-1.5'>
-                      <Calendar className='w-4 h-4 shrink-0' />
-                      <span>Due: {assignment.dueDate}</span>
+                      <Calendar className='w-4 h-4' />
+                      <span
+                        className={
+                          assignment.status === 'overdue'
+                            ? 'text-red-600 font-medium'
+                            : ''
+                        }
+                      >
+                        {assignment.dueDate}
+                      </span>
                     </div>
-                    <div className='flex items-center gap-1.5'>
-                      <Users className='w-4 h-4 shrink-0' />
-                      <span>{assignment.totalStudents} students</span>
-                    </div>
+                    {assignment.attachments > 0 && (
+                      <div className='flex items-center gap-1.5'>
+                        <Paperclip className='w-4 h-4' />
+                        <span>{assignment.attachments}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className='flex gap-1.5 sm:gap-2'>
+                <div className='flex gap-1'>
                   <button
                     onClick={() => handleViewClick(assignment)}
-                    className='p-2 sm:p-2.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors'
+                    className='p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
                     title='View Details'
-                    aria-label='View details'
                   >
                     <Eye className='w-4 h-4' />
                   </button>
                   <button
                     onClick={() => handleEditClick(assignment)}
-                    className='p-2 sm:p-2.5 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 rounded-lg transition-colors'
+                    className='p-2 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors'
                     title='Edit Assignment'
-                    aria-label='Edit assignment'
                   >
                     <Edit2 className='w-4 h-4' />
                   </button>
                   <button
                     onClick={() => handleDeleteClick(assignment)}
-                    className='p-2 sm:p-2.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors'
+                    className='p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors'
                     title='Delete Assignment'
-                    aria-label='Delete assignment'
                   >
                     <Trash2 className='w-4 h-4' />
                   </button>
                 </div>
               </div>
 
-              {/* Progress Bars */}
-              <div className='space-y-3'>
-                <div>
-                  <div className='flex justify-between text-xs sm:text-sm mb-1'>
-                    <span className='text-gray-600'>Submissions</span>
-                    <span className='text-gray-900'>
-                      {assignment.submissions}/{assignment.totalStudents} (
-                      {pct(assignment.submissions, assignment.totalStudents)}
-                      %)
+              {/* Spacer to push content to bottom */}
+              <div className='flex-grow'></div>
+
+              {/* Progress Summary */}
+              <div className='mt-4 pt-4 border-t border-gray-100'>
+                <div className='flex items-center justify-between text-sm mb-4'>
+                  <div className='flex items-center gap-4'>
+                    <span className='text-gray-600'>
+                      <span className='font-medium text-blue-600'>
+                        {assignment.submissions}
+                      </span>
+                      /{assignment.totalStudents} submitted
                     </span>
+                    {assignment.submissions > 0 && (
+                      <span className='text-gray-600'>
+                        <span className='font-medium text-green-600'>
+                          {assignment.graded}
+                        </span>
+                        /{assignment.submissions} graded
+                      </span>
+                    )}
                   </div>
-                  <div className='w-full bg-gray-200 rounded-full h-2'>
-                    <div
-                      className='bg-blue-600 h-2 rounded-full transition-all duration-300'
-                      style={{
-                        width: `${pctRaw(
-                          assignment.submissions,
-                          assignment.totalStudents,
-                        )}%`,
-                      }}
-                    />
-                  </div>
+                  {assignment.submissions > assignment.graded &&
+                    assignment.submissions > 0 && (
+                      <span className='text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full'>
+                        {assignment.submissions - assignment.graded} pending
+                      </span>
+                    )}
                 </div>
 
-                <div>
-                  <div className='flex justify-between text-xs sm:text-sm mb-1'>
-                    <span className='text-gray-600'>Graded</span>
-                    <span className='text-gray-900'>
-                      {assignment.graded}/{assignment.submissions} (
-                      {pct(assignment.graded, assignment.submissions)}%)
-                    </span>
-                  </div>
-                  <div className='w-full bg-gray-200 rounded-full h-2'>
-                    <div
-                      className='bg-green-600 h-2 rounded-full transition-all duration-300'
-                      style={{
-                        width: `${pctRaw(
-                          assignment.graded,
-                          assignment.submissions,
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
+                {/* View Submissions Button */}
+                <button
+                  onClick={() => handleViewSubmissions(assignment)}
+                  className='w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2'
+                >
+                  <FileText className='w-4 h-4' />
+                  View Submissions
+                </button>
               </div>
-
-              {/* Pending Review */}
-              {assignment.status === 'active' &&
-                assignment.submissions > assignment.graded && (
-                  <div className='mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200'>
-                    <span className='text-orange-600 text-xs sm:text-sm font-medium'>
-                      {assignment.submissions - assignment.graded} pending
-                      review
-                    </span>
-                  </div>
-                )}
             </div>
           ))
         )}
@@ -508,7 +601,7 @@ export default function AllAssignmentsTab({
               setSelectedAssignment(null);
             }}
             onSuccess={handleEditSuccess}
-            editAssignment={selectedAssignment}
+            editAssignment={selectedAssignment.originalData}
           />
 
           <DeleteConfirmationModal

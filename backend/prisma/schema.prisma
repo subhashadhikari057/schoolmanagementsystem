@@ -769,6 +769,7 @@ model Assignment {
   subject            Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   teacher            Teacher      @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   submissions        Submission[]
+  attachments        AssignmentAttachment[]
 
   @@index([classId])
   @@index([subjectId])
@@ -785,7 +786,8 @@ model Submission {
   studentId    String
   submittedAt  DateTime?  @default(now())
   isCompleted  Boolean    @default(false)
-  feedback     String?
+  feedback     String?    // Teacher's grading remarks
+  studentNotes String?    // Student's submission comments
   fileLinks    Json?      @default("[]")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime?
@@ -795,6 +797,7 @@ model Submission {
   deletedById  String?    @db.Uuid
   assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attachments  SubmissionAttachment[]
 
   @@unique([assignmentId, studentId])
   @@index([assignmentId])
@@ -803,6 +806,42 @@ model Submission {
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
+}
+
+model AssignmentAttachment {
+  id           String   @id @default(uuid())
+  assignmentId String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int      // Size in bytes (max 10MB = 10,485,760 bytes)
+  url          String
+  uploadedAt   DateTime @default(now())
+
+  // Relationships
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+  @@index([mimeType])
+  @@index([size])
+}
+
+model SubmissionAttachment {
+  id           String   @id @default(uuid())
+  submissionId String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int      // Size in bytes (max 10MB = 10,485,760 bytes)
+  url          String
+  uploadedAt   DateTime @default(now())
+
+  // Relationships
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([mimeType])
+  @@index([size])
 }
 
 enum CalendarEntryType {
