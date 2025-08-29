@@ -34,6 +34,8 @@ import {
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+import { studentService } from '@/api/services/student.service';
 
 // Mock data for demonstration
 const subjects: StudentSubject[] = [
@@ -150,8 +152,13 @@ const assignedSubjects = subjects.map(subjectItem => ({
 }));
 export default function Page() {
   const [loading, setLoading] = useState(true);
+  const [studentProfile, setStudentProfile] = useState<any>(null);
+  const { user } = useAuth();
+  const router = useRouter();
+
   // Fetch all calendar events (exams, holidays, events)
   const { events: calendarEvents } = useCalendarEvents({ page: 1, limit: 50 });
+
   // Map backend events to UpcomingEventsPanel's Event type
   const mappedEvents = calendarEvents.map(ev => ({
     id: ev.id,
@@ -163,23 +170,88 @@ export default function Page() {
     type: ev.type || 'event',
   }));
 
-  // Mock student info, replace with real user context if available
-  const student = {
-    name: 'Arjun Kumar Sharma',
-    class: '10',
-    section: 'A',
-    rollNumber: '2024001',
+  // Check if we have cached student profile in localStorage
+  const getCachedStudentProfile = () => {
+    if (typeof window === 'undefined') return null;
+    const cached = localStorage.getItem(`student_profile_${user?.id}`);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        // Check if data is less than 24 hours old
+        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          return parsed.data;
+        }
+      } catch (error) {
+        localStorage.removeItem(`student_profile_${user?.id}`);
+      }
+    }
+    return null;
   };
-  const router = useRouter();
 
+  // Cache student profile in localStorage
+  const setCachedStudentProfile = (data: any) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(
+      `student_profile_${user?.id}`,
+      JSON.stringify({
+        data,
+        timestamp: Date.now(),
+      }),
+    );
+  };
+
+  // Fetch student profile data only if not cached
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
+    const fetchStudentProfile = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
 
-    return () => clearTimeout(timer);
-  }, []);
+      // First check cached data
+      const cached = getCachedStudentProfile();
+      if (cached) {
+        setStudentProfile(cached);
+        setLoading(false);
+        return;
+      }
+
+      // If no cache, fetch from API
+      try {
+        setLoading(true);
+        const response = await studentService.getStudentByUserId(user.id);
+        if (response.success && response.data) {
+          setStudentProfile(response.data);
+          setCachedStudentProfile(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch student profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudentProfile();
+  }, [user?.id]);
+
+  // Student info - prioritize cached/fetched profile, fallback to auth user
+  const student = studentProfile
+    ? {
+        name:
+          studentProfile.fullName ||
+          `${studentProfile.firstName || ''} ${studentProfile.lastName || ''}`.trim() ||
+          user?.full_name ||
+          'Student',
+        class: studentProfile.className?.split(' ')[1] || '10',
+        section: studentProfile.className?.split(' ')[2] || 'A',
+        rollNumber: studentProfile.rollNumber || 'N/A',
+      }
+    : {
+        name: user?.full_name || 'Student', // Use already stored auth data
+        class: '10',
+        section: 'A',
+        rollNumber: 'N/A',
+      };
 
   if (loading) {
     return <PageLoader />;
