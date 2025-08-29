@@ -265,7 +265,6 @@ export default function StudentAssignmentsTab({
               { value: 'all', label: 'All Status' },
               { value: 'pending', label: 'Pending' },
               { value: 'submitted', label: 'Submitted' },
-              { value: 'rejected', label: 'Rejected' },
               { value: 'overdue', label: 'Overdue' },
             ]}
             selectedValue={statusFilter}
