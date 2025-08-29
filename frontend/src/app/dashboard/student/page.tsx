@@ -291,9 +291,9 @@ export default function Page() {
             const dueDate = new Date(assignment.dueDate);
             const now = new Date();
             const daysDiff = Math.floor(
-              (now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24),
+              (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
             );
-            return daysDiff <= 1; // Show assignments due within next 7 days or overdue by max 1 day only
+            return daysDiff <= 7; // Show assignments due within next 7 days or overdue by max 1 day only
           })
           .sort((a: any, b: any) => {
             // Sort by due date (upcoming first, then overdue by 1 day)
@@ -368,29 +368,60 @@ export default function Page() {
           {/* Top metrics via Statsgrid solid variant */}
           {/* Top metrics section removed for cleanup. Add back if needed. */}
 
-          {/* Attendance CTA */}
-          <div className='rounded-xl border border-blue-200 bg-blue-50/60'>
-            <div className='px-4 py-2 space-y-1 flex flex-col items-start justify-start'>
-              <Label className='!text-[11px] text-gray-600'>
-                Don't forget!
-              </Label>
-              <Label className='!text-[12px] sm:!text-sm !text-foreground'>
-                Complete your pending assignment
-              </Label>
-            </div>
-            <div className='px-3 pb-3'>
-              <div
-                className='bg-blue-600/90 text-white rounded-md py-2 text-center shadow-sm hover:bg-blue-400 cursor-pointer flex items-center justify-center px-3'
-                onClick={() =>
-                  router.push('/dashboard/student/assignments?filter=pending')
-                }
-              >
-                <span className='w-full font-semibold text-white text-xs'>
-                  View Task
-                </span>
-              </div>
-            </div>
-          </div>
+          {/* Assignment Reminder CTA */}
+          {(() => {
+            // Only count non-overdue pending assignments
+            const pendingAssignments = unsubmittedAssignments.filter(
+              (assignment: any) =>
+                !assignment.dueDate ||
+                new Date(assignment.dueDate) >= new Date(),
+            );
+
+            if (pendingAssignments.length > 0) {
+              // Show pending assignments
+              return (
+                <div className='rounded-xl border border-blue-200 bg-blue-50/60'>
+                  <div className='px-4 py-2 space-y-1 flex flex-col items-start justify-start'>
+                    <Label className='!text-[11px] text-gray-600'>
+                      Don't forget!
+                    </Label>
+                    <Label className='!text-[12px] sm:!text-sm !text-foreground'>
+                      Complete your pending assignment
+                      {pendingAssignments.length > 1 ? 's' : ''}
+                    </Label>
+                  </div>
+                  <div className='px-3 pb-3'>
+                    <div
+                      className='bg-blue-600/90 text-white rounded-md py-2 text-center shadow-sm hover:bg-blue-400 cursor-pointer flex items-center justify-center px-3'
+                      onClick={() =>
+                        router.push(
+                          '/dashboard/student/assignments?filter=pending',
+                        )
+                      }
+                    >
+                      <span className='w-full font-semibold text-white text-xs'>
+                        View Task{pendingAssignments.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            } else {
+              // All assignments submitted
+              return (
+                <div className='rounded-xl border border-green-200 bg-green-50/60'>
+                  <div className='px-4 py-3 flex flex-col items-center justify-center text-center'>
+                    <Label className='!text-[11px] text-green-600 font-medium'>
+                      Great job!
+                    </Label>
+                    <Label className='!text-[12px] sm:!text-sm !text-foreground'>
+                      All assignments submitted !
+                    </Label>
+                  </div>
+                </div>
+              );
+            }
+          })()}
 
           {/* Today Classes */}
           <div className='space-y-2'>

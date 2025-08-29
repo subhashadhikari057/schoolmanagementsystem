@@ -13,6 +13,8 @@ import {
   FileText,
   Image,
   File,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 import { AssignmentResponse } from '@/api/types/assignment';
 import Button from '@/components/atoms/form-controls/Button';
@@ -53,17 +55,89 @@ export default function ViewAssignmentModal({
     userRole &&
     ['teacher', 'admin', 'superadmin'].includes(userRole.toLowerCase());
 
+  // Calculate assignment status and colors
+  const getAssignmentStatus = () => {
+    if (!assignment.dueDate) {
+      return {
+        status: 'No Due Date',
+        severity: 'info',
+        bgGradient: 'from-gray-50 to-gray-100',
+        borderColor: 'border-gray-200',
+        statusColor: 'bg-gray-100 text-gray-700 border-gray-200',
+        icon: Clock,
+      };
+    }
+
+    const dueDate = new Date(assignment.dueDate);
+    const now = new Date();
+    const daysDiff = Math.ceil(
+      (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (daysDiff < 0) {
+      return {
+        status: 'Overdue',
+        severity: 'critical',
+        bgGradient: 'from-red-50 to-pink-100',
+        borderColor: 'border-red-200',
+        statusColor: 'bg-red-100 text-red-700 border-red-200',
+        icon: AlertCircle,
+      };
+    } else if (daysDiff === 0) {
+      return {
+        status: 'Due Today',
+        severity: 'warning',
+        bgGradient: 'from-yellow-50 to-orange-100',
+        borderColor: 'border-yellow-200',
+        statusColor: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+        icon: AlertCircle,
+      };
+    } else if (daysDiff === 1) {
+      return {
+        status: 'Due Tomorrow',
+        severity: 'warning',
+        bgGradient: 'from-yellow-50 to-orange-100',
+        borderColor: 'border-yellow-200',
+        statusColor: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+        icon: AlertCircle,
+      };
+    } else if (daysDiff <= 3) {
+      return {
+        status: `Due in ${daysDiff} days`,
+        severity: 'warning',
+        bgGradient: 'from-yellow-50 to-orange-100',
+        borderColor: 'border-yellow-200',
+        statusColor: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+        icon: AlertCircle,
+      };
+    } else {
+      return {
+        status: `Due in ${daysDiff} days`,
+        severity: 'info',
+        bgGradient: 'from-blue-50 to-indigo-100',
+        borderColor: 'border-blue-200',
+        statusColor: 'bg-blue-100 text-blue-700 border-blue-200',
+        icon: Clock,
+      };
+    }
+  };
+
+  const assignmentStatus = getAssignmentStatus();
+  const StatusIcon = assignmentStatus.icon;
+
   return (
     <div
       className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4'
       onClick={onClose}
     >
       <div
-        className='bg-white rounded-xl w-full max-w-2xl shadow-2xl animate-in fade-in duration-300'
+        className={`bg-white rounded-xl w-full max-w-2xl shadow-2xl animate-in fade-in duration-300 border ${assignmentStatus.borderColor}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className='bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-t-xl border-b border-gray-100'>
+        <div
+          className={`bg-gradient-to-r ${assignmentStatus.bgGradient} p-4 rounded-t-xl border-b ${assignmentStatus.borderColor}`}
+        >
           <button
             onClick={onClose}
             className='absolute top-3 right-3 p-1 rounded-full hover:bg-white/50 transition-colors'
@@ -71,10 +145,24 @@ export default function ViewAssignmentModal({
             <X className='h-4 w-4 text-gray-500' />
           </button>
 
-          <h2 className='text-xl font-bold text-gray-800'>
-            Assignment Details
-          </h2>
-          <p className='text-base text-gray-600 mt-1'>{assignment.title}</p>
+          <div className='flex items-start justify-between pr-8'>
+            <div>
+              <h2 className='text-xl font-bold text-gray-800'>
+                Assignment Details
+              </h2>
+              <p className='text-base text-gray-600 mt-1'>{assignment.title}</p>
+            </div>
+
+            {/* Status Badge */}
+            <div className='flex items-center gap-2'>
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${assignmentStatus.statusColor}`}
+              >
+                <StatusIcon className='w-4 h-4 mr-1' />
+                {assignmentStatus.status}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Content */}

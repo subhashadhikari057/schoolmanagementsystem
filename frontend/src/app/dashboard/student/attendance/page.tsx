@@ -141,17 +141,58 @@ export default function AttendancePage() {
       {/* Attendance Statistics */}
       {attendanceData && (
         <div className='grid grid-cols-2 gap-4 mb-6'>
-          <div className='bg-white p-4 rounded-lg shadow-sm border'>
-            <div className='text-2xl font-bold text-green-600'>
-              {attendanceData.stats?.presentDays || 0}
+          {/* Present Days Card */}
+          <div className='bg-gradient-to-br from-green-50 to-emerald-100 p-4 rounded-lg shadow-sm border border-green-200 hover:shadow-md transition-all duration-200'>
+            <div className='flex items-center justify-between'>
+              <div className='p-2 bg-green-100 rounded-lg'>
+                <svg
+                  className='w-5 h-5 text-green-600'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+                  />
+                </svg>
+              </div>
+              <div className='text-right'>
+                <div className='text-2xl font-bold text-green-700'>
+                  {attendanceData.stats?.presentDays || 0}
+                </div>
+                <div className='text-sm text-green-600'>Present Days</div>
+              </div>
             </div>
-            <div className='text-sm text-gray-600'>Present Days</div>
           </div>
-          <div className='bg-white p-4 rounded-lg shadow-sm border'>
-            <div className='text-2xl font-bold text-red-600'>
-              {attendanceData.stats?.absentDays || 0}
+
+          {/* Absent Days Card */}
+          <div className='bg-gradient-to-br from-red-50 to-pink-100 p-4 rounded-lg shadow-sm border border-red-200 hover:shadow-md transition-all duration-200'>
+            <div className='flex items-center justify-between'>
+              <div className='p-2 bg-red-100 rounded-lg'>
+                <svg
+                  className='w-5 h-5 text-red-600'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M6 18L18 6M6 6l12 12'
+                  />
+                </svg>
+              </div>
+              <div className='text-right'>
+                <div className='text-2xl font-bold text-red-700'>
+                  {attendanceData.stats?.absentDays || 0}
+                </div>
+                <div className='text-sm text-red-600'>Absent Days</div>
+              </div>
             </div>
-            <div className='text-sm text-gray-600'>Absent Days</div>
           </div>
         </div>
       )}
