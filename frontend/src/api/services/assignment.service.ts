@@ -380,27 +380,43 @@ export class AssignmentService {
   async uploadSubmissionAttachments(
     submissionId: string,
     files: File[],
-  ): Promise<
-    ApiResponse<{ message: string; attachments: SubmissionAttachment[] }>
-  > {
+  ): Promise<ApiResponse<SubmissionAttachment[]>> {
+    console.log('=== ASSIGNMENT SERVICE: uploadSubmissionAttachments ===');
+    console.log('Submission ID:', submissionId);
+    console.log(
+      'Files to upload:',
+      files.map(f => ({ name: f.name, size: f.size, type: f.type })),
+    );
+    console.log(
+      'Endpoint:',
+      ASSIGNMENT_ENDPOINTS.UPLOAD_SUBMISSION_ATTACHMENTS(submissionId),
+    );
+
     const formData = new FormData();
     files.forEach(file => {
       formData.append('attachments', file);
     });
 
-    return this.httpClient.post<{
-      message: string;
-      attachments: SubmissionAttachment[];
-    }>(
-      ASSIGNMENT_ENDPOINTS.UPLOAD_SUBMISSION_ATTACHMENTS(submissionId),
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+    console.log('FormData created with', files.length, 'files');
+
+    try {
+      const response = await this.httpClient.post<SubmissionAttachment[]>(
+        ASSIGNMENT_ENDPOINTS.UPLOAD_SUBMISSION_ATTACHMENTS(submissionId),
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          requiresAuth: true,
         },
-        requiresAuth: true,
-      },
-    );
+      );
+
+      console.log('Upload response:', response);
+      return response;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
   }
 
   /**

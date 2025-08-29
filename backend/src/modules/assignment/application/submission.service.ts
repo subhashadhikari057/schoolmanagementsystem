@@ -192,6 +192,72 @@ export class SubmissionService {
   }
 
   /**
+   * Get submission history for a specific assignment and student
+   */
+  async findByAssignmentAndStudent(assignmentId: string, studentId: string) {
+    // Validate that the assignment exists
+    const assignment = await this.prisma.assignment.findUnique({
+      where: { id: assignmentId },
+    });
+
+    if (!assignment || assignment.deletedAt) {
+      throw new NotFoundException('Assignment not found');
+    }
+
+    // Validate that the student exists
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!student || student.deletedAt) {
+      throw new NotFoundException('Student not found');
+    }
+
+    return this.prisma.submission.findMany({
+      where: {
+        assignmentId,
+        studentId,
+        deletedAt: null,
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            rollNumber: true,
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        assignment: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            dueDate: true,
+            subject: { select: { name: true } },
+            class: { select: { grade: true, section: true } },
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            url: true,
+            size: true,
+            mimeType: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
    * Grade a submission (mark as complete/incomplete)
    */
   async gradeSubmission(

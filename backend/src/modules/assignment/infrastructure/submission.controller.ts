@@ -158,6 +158,26 @@ export class SubmissionController {
   }
 
   /**
+   * Get submission history for a specific assignment and student
+   * Available to all authenticated users
+   */
+  @Get('assignment/:assignmentId/student/:studentId')
+  async findByAssignmentAndStudent(
+    @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ) {
+    const submissions = await this.submissionService.findByAssignmentAndStudent(
+      assignmentId,
+      studentId,
+    );
+
+    return {
+      success: true,
+      data: submissions,
+    };
+  }
+
+  /**
    * Upload attachments to submission
    * Available to students, teachers, and admins
    */
