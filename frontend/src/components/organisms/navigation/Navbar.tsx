@@ -109,30 +109,105 @@ export default function Navbar({ onMenuClick, onSearchClick }: NavbarProps) {
                 icon={<Search className='text-primary cursor-pointer' />}
               />
               {showDropdown && (
-                <div className='absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded shadow-lg z-50 max-h-64 overflow-auto'>
-                  {searchResults.map(item => {
-                    const Icon = (Icons as any)[item.icon] || Icons.Search;
-                    return (
-                      <a
-                        key={item.path + item.label}
-                        href={item.path}
-                        className='flex items-center gap-2 px-4 py-2 hover:bg-blue-50 text-gray-800 text-sm cursor-pointer'
-                        onClick={() => {
-                          setSearchTerm('');
-                          setShowDropdown(false);
-                        }}
-                      >
-                        <Icon size={16} className='text-gray-400' />
-                        <span className='font-semibold'>{item.label}</span>
-                        <span className='ml-2 text-gray-400'>{item.path}</span>
-                      </a>
-                    );
-                  })}
-                  {searchResults.length === 0 && (
-                    <div className='px-4 py-2 text-gray-500 text-sm'>
-                      No results found
-                    </div>
-                  )}
+                <div className='absolute left-0 top-full mt-2 bg-white border border-gray-200 rounded shadow-lg z-50 w-[340px] min-w-[260px] max-w-[360px]'>
+                  <div className='py-2'>
+                    {searchResults.length === 0 ? (
+                      <div className='px-4 py-2 text-gray-500 text-sm'>
+                        No results found
+                      </div>
+                    ) : (
+                      <>
+                        {searchResults.slice(0, 7).map(item => {
+                          const Icon =
+                            (Icons as any)[item.icon] || Icons.Search;
+                          let description =
+                            'Navigate to ' + item.label + ' page.';
+                          if (item.label === 'Dashboard')
+                            description = 'Main dashboard overview.';
+                          if (item.label === 'Parents')
+                            description = 'Manage and view parent information.';
+                          if (item.label === 'Students')
+                            description =
+                              'Manage and view student information.';
+                          if (item.label === 'Teachers')
+                            description =
+                              'Manage and view teacher information.';
+                          if (item.label === 'Staff')
+                            description = 'Manage and view staff information.';
+                          if (item.label === 'Classes')
+                            description = 'View and manage academic classes.';
+                          if (item.label === 'Subjects')
+                            description = 'View and manage academic subjects.';
+                          if (item.label === 'Attendance')
+                            description =
+                              'Track and manage attendance records.';
+                          if (item.label === 'Assignments')
+                            description = 'View and manage assignments.';
+                          if (item.label === 'Exams')
+                            description = 'View and manage exams.';
+                          if (item.label === 'Notices')
+                            description = 'View important notices.';
+                          if (
+                            item.label === 'Complaints and leaves' ||
+                            item.label === 'Complaints' ||
+                            item.label === 'Complaints and Requests'
+                          )
+                            description =
+                              'Submit or review complaints and leave requests.';
+                          if (item.label === 'Fees')
+                            description = 'View and manage fee information.';
+                          if (item.label === 'TimeTable')
+                            description = 'View class timetable.';
+                          if (item.label === 'ID Management')
+                            description =
+                              'Generate and manage student/teacher IDs.';
+                          if (item.label === 'Academic Calendar')
+                            description = 'View academic calendar and events.';
+                          if (item.label === 'Finance Overview')
+                            description = 'Overview of school finances.';
+                          if (item.label === 'Fee Management')
+                            description = 'Manage fee collection and records.';
+                          if (item.label === 'Expenses')
+                            description = 'Track and manage expenses.';
+                          if (item.label === 'Reports')
+                            description = 'View school reports.';
+                          if (item.label === 'Analytics')
+                            description = 'View analytics and statistics.';
+                          if (item.label === 'Notifications')
+                            description = 'View system notifications.';
+                          if (item.label === 'Settings')
+                            description = 'System settings and configuration.';
+                          return (
+                            <a
+                              key={item.path + item.label}
+                              href={item.path}
+                              className='flex items-start gap-3 px-4 py-3 hover:bg-blue-50 text-gray-800 text-sm cursor-pointer rounded-md transition-colors'
+                              onClick={() => {
+                                setSearchTerm('');
+                                setShowDropdown(false);
+                              }}
+                              style={{ textDecoration: 'none' }}
+                            >
+                              <Icon size={20} className='text-gray-400 mt-1' />
+                              <div className='flex flex-col'>
+                                <span className='font-semibold text-base'>
+                                  {item.label}
+                                </span>
+                                <span className='text-xs text-gray-500'>
+                                  {description}
+                                </span>
+                              </div>
+                            </a>
+                          );
+                        })}
+                        {searchResults.length > 7 && (
+                          <div className='px-4 py-2 text-center text-xs text-blue-600 cursor-pointer hover:underline'>
+                            More results available...
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

@@ -33,6 +33,8 @@ interface ActionButtonConfig {
 import AddEventModal from '@/components/organisms/modals/AddEventModal';
 import ManageEventsModal from '@/components/organisms/modals/ManageEventsModal';
 import CreateNoticeModal from '@/components/organisms/modals/CreateNoticeModal';
+import AddExpenseModal from '@/components/organisms/modals/AddExpenseModal';
+import AddSalaryModal from '@/components/organisms/modals/AddSalaryModal';
 
 interface ActionButtonsProps {
   pageType:
@@ -49,7 +51,9 @@ interface ActionButtonsProps {
     | 'complaints'
     | 'leave-requests'
     | 'leave-types'
-    | 'fee-management';
+    | 'fee-management'
+    | 'expenses'
+    | 'salaries';
   onRefresh?: () => void;
   onAddNew?: () => void;
   events?: CalendarEvent[]; // For calendar events
@@ -60,6 +64,64 @@ const getActionButtonsConfig = (
   openAddModal: () => void,
   openSendCommModal?: () => void,
 ): ActionButtonConfig[] => {
+  if (pageType === 'expenses') {
+    return [
+      {
+        id: 'import-expenses',
+        label: 'Import Expenses',
+        variant: 'import',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Upload size={16} />,
+        onClick: () => alert('Import Expenses feature coming soon!'),
+      },
+      {
+        id: 'export-expenses',
+        label: 'Export Data',
+        variant: 'export',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: () => alert('Export Expenses feature coming soon!'),
+      },
+      {
+        id: 'add-expense',
+        label: 'Add Expense',
+        className: 'bg-red-600 text-white hover:bg-red-700 rounded-lg',
+        variant: 'primary',
+        icon: <Plus size={16} />,
+        onClick: openAddModal,
+      },
+    ];
+  }
+
+  if (pageType === 'salaries') {
+    return [
+      {
+        id: 'import-salaries',
+        label: 'Import Salaries',
+        variant: 'import',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Upload size={16} />,
+        onClick: () => alert('Import Salaries feature coming soon!'),
+      },
+      {
+        id: 'export-salaries',
+        label: 'Export Data',
+        variant: 'export',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: () => alert('Export Salaries feature coming soon!'),
+      },
+      {
+        id: 'add-salary',
+        label: 'Add Salary',
+        className: 'bg-green-600 text-white hover:bg-green-700 rounded-lg',
+        variant: 'primary',
+        icon: <Plus size={16} />,
+        onClick: openAddModal,
+      },
+    ];
+  }
+
   if (pageType === 'fee-management') {
     return [
       {
@@ -487,6 +549,18 @@ export const ActionButtons = ({
             handleSuccess();
             onRefresh?.();
           }}
+        />
+      ) : pageType === 'expenses' ? (
+        <AddExpenseModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
+        />
+      ) : pageType === 'salaries' ? (
+        <AddSalaryModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
         />
       ) : null}
 
