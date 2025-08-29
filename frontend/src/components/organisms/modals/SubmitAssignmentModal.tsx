@@ -163,7 +163,7 @@ export default function SubmitAssignmentModal({
         assignment.id,
         studentId,
         [],
-        content || 'Assignment submitted with attachments',
+        content || undefined, // Student notes
       );
 
       // Extract submission ID from response
@@ -209,7 +209,7 @@ export default function SubmitAssignmentModal({
             assignment.id,
             studentId,
             fileLinks,
-            content || 'Assignment submitted with attachments',
+            content || undefined, // Student notes
           );
           console.log('Submission updated with file links successfully');
         } else {

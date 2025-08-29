@@ -10,6 +10,9 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
+  MessageCircle,
+  User,
+  GraduationCap,
 } from 'lucide-react';
 import Button from '@/components/atoms/form-controls/Button';
 import { submissionService } from '@/api/services/submission.service';
@@ -195,18 +198,6 @@ export const ViewMySubmissionModal = ({
                     </div>
                   </div>
 
-                  {/* Submission Content */}
-                  {submission.feedback && (
-                    <div className='mb-4'>
-                      <h4 className='text-sm font-medium text-gray-700 mb-2'>
-                        Notes/Feedback:
-                      </h4>
-                      <p className='text-sm text-gray-600 bg-white rounded-md p-3 border'>
-                        {submission.feedback}
-                      </p>
-                    </div>
-                  )}
-
                   {/* Attachments */}
                   {submission.attachments &&
                     submission.attachments.length > 0 && (
@@ -226,7 +217,8 @@ export const ViewMySubmissionModal = ({
                                   <FileText className='w-4 h-4 text-blue-600' />
                                   <div>
                                     <p className='text-sm font-medium text-gray-700'>
-                                      {attachment.filename}
+                                      {attachment.originalName ||
+                                        attachment.filename}
                                     </p>
                                     <p className='text-xs text-gray-500'>
                                       {(attachment.size / 1024).toFixed(1)} KB
@@ -246,7 +238,8 @@ export const ViewMySubmissionModal = ({
                                     onClick={() =>
                                       handleDownloadFile(
                                         attachment.url,
-                                        attachment.filename,
+                                        attachment.originalName ||
+                                          attachment.filename,
                                       )
                                     }
                                     className='p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md transition-colors'
@@ -261,15 +254,42 @@ export const ViewMySubmissionModal = ({
                       </div>
                     )}
 
-                  {/* Teacher Feedback (if graded) */}
-                  {submission.isCompleted && submission.feedback && (
-                    <div className='bg-blue-50 rounded-md p-3 border border-blue-200'>
-                      <h4 className='text-sm font-medium text-blue-700 mb-2'>
-                        Teacher Feedback:
-                      </h4>
-                      <p className='text-sm text-blue-800'>
-                        {submission.feedback}
-                      </p>
+                  {/* Remarks Section - Inline Display */}
+                  {(submission.studentNotes || submission.feedback) && (
+                    <div className='mt-4 pt-4 border-t border-gray-200 space-y-3'>
+                      {/* Student Notes */}
+                      {submission.studentNotes && (
+                        <div className='bg-green-50 border border-green-200 rounded-lg p-3'>
+                          <div className='flex items-center gap-2 mb-2'>
+                            <div className='w-5 h-5 bg-green-100 rounded-full flex items-center justify-center'>
+                              <User className='w-3 h-3 text-green-600' />
+                            </div>
+                            <span className='text-sm font-medium text-green-800'>
+                              Your Note
+                            </span>
+                          </div>
+                          <p className='text-sm text-green-700 leading-relaxed whitespace-pre-wrap pl-7'>
+                            {submission.studentNotes}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Teacher Feedback */}
+                      {submission.feedback && (
+                        <div className='bg-blue-50 border border-blue-200 rounded-lg p-3'>
+                          <div className='flex items-center gap-2 mb-2'>
+                            <div className='w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center'>
+                              <GraduationCap className='w-3 h-3 text-blue-600' />
+                            </div>
+                            <span className='text-sm font-medium text-blue-800'>
+                              Teacher Feedback
+                            </span>
+                          </div>
+                          <p className='text-sm text-blue-700 leading-relaxed whitespace-pre-wrap pl-7'>
+                            {submission.feedback}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

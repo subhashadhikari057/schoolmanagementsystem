@@ -138,14 +138,16 @@ export interface CreateSubmissionRequest {
   studentId: string;
   submittedAt?: string; // ISO date string
   isCompleted?: boolean;
-  feedback?: string;
+  feedback?: string; // Teacher's grading remarks
+  studentNotes?: string; // Student's submission comments
   fileLinks?: string[];
   attachments?: File[]; // Frontend file uploads
 }
 
 export interface UpdateSubmissionRequest {
   isCompleted?: boolean;
-  feedback?: string;
+  feedback?: string; // Teacher's grading remarks
+  studentNotes?: string; // Student's submission comments
   fileLinks?: string[];
 }
 
@@ -182,7 +184,8 @@ export interface SubmissionResponse {
   studentId: string;
   submittedAt?: string;
   isCompleted: boolean;
-  feedback?: string;
+  feedback?: string; // Teacher's grading remarks
+  studentNotes?: string; // Student's submission comments
   fileLinks: string[];
   createdAt: string;
   updatedAt?: string;

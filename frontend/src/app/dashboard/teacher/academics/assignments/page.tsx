@@ -5,9 +5,9 @@ import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Button from '@/components/atoms/form-controls/Button';
 import { Plus, BookOpen, Users, Clock, CheckCircle } from 'lucide-react';
-import Tabs from '@/components/organisms/tabs/GenericTabs';
+
 import AllAssignmentsTab from '@/components/organisms/tabs/AllAssignmentsTab';
-import SubmissionsTab from '@/components/organisms/tabs/SubmissionsTab';
+
 import GradingTab from '@/components/organisms/tabs/GradingTab';
 import DeadlinesTab from '@/components/organisms/tabs/DeadlinesTab';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
@@ -193,20 +193,10 @@ export default function AssignmentsPage() {
                 }))}
               />
 
-              {/* Tabs */}
-              <Tabs
-                tabs={[
-                  {
-                    name: 'All',
-                    content: (
-                      <AllAssignmentsTab
-                        refreshTrigger={refreshTrigger}
-                        statusFilter='all'
-                      />
-                    ),
-                  },
-                  { name: 'Submissions', content: <SubmissionsTab /> },
-                ]}
+              {/* All Assignments */}
+              <AllAssignmentsTab
+                refreshTrigger={refreshTrigger}
+                statusFilter='all'
               />
             </>
           )}

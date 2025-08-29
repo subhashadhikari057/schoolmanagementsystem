@@ -786,7 +786,8 @@ model Submission {
   studentId    String
   submittedAt  DateTime?  @default(now())
   isCompleted  Boolean    @default(false)
-  feedback     String?
+  feedback     String?    // Teacher's grading remarks
+  studentNotes String?    // Student's submission comments
   fileLinks    Json?      @default("[]")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime?

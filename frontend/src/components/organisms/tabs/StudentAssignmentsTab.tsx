@@ -89,12 +89,19 @@ export default function StudentAssignmentsTab({
         // Map backend assignments to StudentAssignment type
         const mappedAssignments = (assignmentRes.data || []).map(a => {
           let status: 'active' | 'completed' | 'overdue' = 'active';
-          if (a.deletedAt) status = 'overdue';
-          else if (
+
+          // Check if assignment is completed (graded)
+          if (
             a.submissions &&
             a.submissions.some(s => s.studentId === student.id && s.isCompleted)
-          )
+          ) {
             status = 'completed';
+          }
+          // Check if assignment is overdue (due date has passed)
+          else if (a.dueDate && new Date(a.dueDate) < new Date()) {
+            status = 'overdue';
+          }
+          // Otherwise it's active
           return {
             id: a.id,
             title: a.title,
@@ -141,6 +148,11 @@ export default function StudentAssignmentsTab({
 
   // Handle submit assignment
   const handleSubmitAssignment = (assignment: StudentAssignment) => {
+    // Prevent submission if assignment is overdue
+    if (assignment.status === 'overdue') {
+      return;
+    }
+
     if (assignment.originalAssignment) {
       setSelectedAssignment(assignment.originalAssignment);
       setSubmitModalOpen(true);
@@ -407,10 +419,19 @@ export default function StudentAssignmentsTab({
 
                 <Button
                   onClick={() => handleSubmitAssignment(assignment)}
-                  className='flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 text-sm font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2'
+                  disabled={assignment.status === 'overdue'}
+                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 ${
+                    assignment.status === 'overdue'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700 text-white'
+                  }`}
                 >
                   <Upload className='w-4 h-4' />
-                  {assignment.submissions === 1 ? 'Resubmit' : 'Submit'}
+                  {assignment.status === 'overdue'
+                    ? 'Submission Closed'
+                    : assignment.submissions === 1
+                      ? 'Resubmit'
+                      : 'Submit'}
                 </Button>
               </div>
 

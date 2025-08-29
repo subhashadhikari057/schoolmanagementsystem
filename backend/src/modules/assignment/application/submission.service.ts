@@ -66,6 +66,7 @@ export class SubmissionService {
           submittedAt: dto.submittedAt || new Date(),
           isCompleted: dto.isCompleted,
           feedback: dto.feedback,
+          studentNotes: dto.studentNotes,
           fileLinks: dto.fileLinks || [],
           updatedById: createdById,
           updatedAt: new Date(),
@@ -92,6 +93,7 @@ export class SubmissionService {
           submittedAt: dto.submittedAt || new Date(),
           isCompleted: dto.isCompleted,
           feedback: dto.feedback,
+          studentNotes: dto.studentNotes,
           fileLinks: dto.fileLinks || [],
           createdById,
         },
@@ -141,7 +143,7 @@ export class SubmissionService {
       throw new NotFoundException('Assignment not found');
     }
 
-    return this.prisma.submission.findMany({
+    const submissions = await this.prisma.submission.findMany({
       where: {
         assignmentId,
         deletedAt: null,
@@ -151,12 +153,31 @@ export class SubmissionService {
           select: {
             id: true,
             rollNumber: true,
-            user: { select: { fullName: true } },
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            originalName: true,
+            url: true,
+            size: true,
+            mimeType: true,
+            uploadedAt: true,
           },
         },
       },
       orderBy: { submittedAt: 'desc' },
     });
+
+    return submissions;
   }
 
   /**
@@ -247,6 +268,7 @@ export class SubmissionService {
           select: {
             id: true,
             filename: true,
+            originalName: true,
             url: true,
             size: true,
             mimeType: true,

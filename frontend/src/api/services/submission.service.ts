@@ -141,20 +141,20 @@ export class SubmissionService {
     assignmentId: string,
     studentId: string,
     files?: string[],
-    feedback?: string,
+    studentNotes?: string,
   ): Promise<ApiResponse<CreateSubmissionResponse>> {
     console.log('=== SUBMISSION SERVICE: submitAssignment ===');
     console.log('Assignment ID:', assignmentId);
     console.log('Student ID:', studentId);
     console.log('Files:', files);
-    console.log('Feedback:', feedback);
+    console.log('Student Notes:', studentNotes);
 
     const submissionData: CreateSubmissionRequest = {
       assignmentId,
       studentId,
       submittedAt: new Date().toISOString(),
       isCompleted: false, // Initially not graded
-      feedback,
+      studentNotes,
       fileLinks: files || [],
     };
 
@@ -171,14 +171,14 @@ export class SubmissionService {
     assignmentId: string,
     studentId: string,
     files?: string[],
-    feedback?: string,
+    studentNotes?: string,
   ): Promise<ApiResponse<CreateSubmissionResponse>> {
     const submissionData: CreateSubmissionRequest = {
       assignmentId,
       studentId,
       submittedAt: new Date().toISOString(),
       isCompleted: false, // Keep as not graded when student updates
-      feedback,
+      studentNotes,
       fileLinks: files || [],
     };
 
