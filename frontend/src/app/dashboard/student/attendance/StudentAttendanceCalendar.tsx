@@ -240,11 +240,11 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
               className={`text-center py-2 px-2 rounded-lg shadow-sm ${index === 6 ? 'bg-gradient-to-b from-red-500 to-red-600' : calendarType === 'BS' ? 'bg-gradient-to-b from-blue-100 to-blue-200' : 'bg-gradient-to-b from-gray-100 to-gray-200'}`}
             >
               <span
-                className={`text-sm font-semibold ${index === 6 ? 'text-white' : 'text-gray-700'}`}
+                className={`text-sm font-semibold ${index === 6 ? 'text-slate-200 font-bold drop-shadow-lg' : 'text-gray-700'}`}
               >
                 {day}
                 {index === 6 && (
-                  <span className='block text-xs text-red-100 mt-1'>
+                  <span className='block text-xs text-slate-200 mt-1 font-medium'>
                     {calendarType === 'BS' ? 'बिदा' : 'Holiday'}
                   </span>
                 )}
