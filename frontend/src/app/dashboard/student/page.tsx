@@ -24,18 +24,28 @@ import { useCalendarEvents } from '@/components/organisms/calendar/hooks/useCale
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import Button from '@/components/atoms/form-controls/Button';
 import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
+import ViewAssignmentModal from '@/components/organisms/modals/ViewAssignmentModal';
 import {
   BookOpen,
   FlaskConical,
   Calculator,
   Users,
   ChevronRight,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  Calendar,
+  FileText,
+  User,
+  Info,
 } from 'lucide-react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { studentService } from '@/api/services/student.service';
+import { assignmentService } from '@/api/services/assignment.service';
+import { submissionService } from '@/api/services/submission.service';
 
 // Mock data for demonstration
 const subjects: StudentSubject[] = [
@@ -153,6 +163,13 @@ const assignedSubjects = subjects.map(subjectItem => ({
 export default function Page() {
   const [loading, setLoading] = useState(true);
   const [studentProfile, setStudentProfile] = useState<any>(null);
+  const [unsubmittedAssignments, setUnsubmittedAssignments] = useState<any[]>(
+    [],
+  );
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [showColorLegend, setShowColorLegend] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -233,6 +250,73 @@ export default function Page() {
 
     fetchStudentProfile();
   }, [user?.id]);
+
+  // Fetch unsubmitted assignments
+  useEffect(() => {
+    const fetchUnsubmittedAssignments = async () => {
+      if (!studentProfile?.id || !studentProfile?.classId) {
+        return;
+      }
+
+      try {
+        setAssignmentsLoading(true);
+
+        // Get all assignments for the student's class
+        const assignmentsResponse =
+          await assignmentService.getAssignmentsByClass(studentProfile.classId);
+        if (!assignmentsResponse.success || !assignmentsResponse.data) {
+          setUnsubmittedAssignments([]);
+          return;
+        }
+
+        // Get all submissions for this student
+        const submissionsResponse =
+          await submissionService.getSubmissionsByStudent(studentProfile.id);
+        const studentSubmissions = submissionsResponse.success
+          ? submissionsResponse.data
+          : [];
+
+        // Find assignments without submissions
+        const submittedAssignmentIds = new Set(
+          studentSubmissions.map((submission: any) => submission.assignmentId),
+        );
+
+        const unsubmitted = assignmentsResponse.data
+          .filter(
+            (assignment: any) => !submittedAssignmentIds.has(assignment.id),
+          )
+          .filter((assignment: any) => {
+            // Only show non-overdue assignments or assignments overdue by max 1 day
+            if (!assignment.dueDate) return true;
+            const dueDate = new Date(assignment.dueDate);
+            const now = new Date();
+            const daysDiff = Math.floor(
+              (now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24),
+            );
+            return daysDiff <= 1; // Show assignments due within next 7 days or overdue by max 1 day only
+          })
+          .sort((a: any, b: any) => {
+            // Sort by due date (upcoming first, then overdue by 1 day)
+            if (!a.dueDate && !b.dueDate) return 0;
+            if (!a.dueDate) return 1;
+            if (!b.dueDate) return -1;
+            return (
+              new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+            );
+          })
+          .slice(0, 5); // Show max 5 assignments
+
+        setUnsubmittedAssignments(unsubmitted);
+      } catch (error) {
+        console.error('Failed to fetch assignments:', error);
+        setUnsubmittedAssignments([]);
+      } finally {
+        setAssignmentsLoading(false);
+      }
+    };
+
+    fetchUnsubmittedAssignments();
+  }, [studentProfile?.id, studentProfile?.classId]);
 
   // Student info - prioritize cached/fetched profile, fallback to auth user
   const student = studentProfile
@@ -372,27 +456,214 @@ export default function Page() {
                 level={3}
                 className='text-sm font-semibold text-gray-700'
               />
-              <span
-                className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'
-                onClick={() => router.push('/dashboard/student/assignments')}
-              >
-                View All
-              </span>
+              <div className='flex items-center gap-3'>
+                <button
+                  onClick={() => setShowColorLegend(!showColorLegend)}
+                  className='p-1 text-gray-400 hover:text-gray-600 transition-colors'
+                  title='Color Legend'
+                >
+                  <Info className='w-4 h-4' />
+                </button>
+                <span
+                  className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'
+                  onClick={() => router.push('/dashboard/student/assignments')}
+                >
+                  View All
+                </span>
+              </div>
             </div>
-            <Statsgrid
-              variant='assignments'
-              items={assignments.map(a => ({
-                ...a,
-                actionLabel: a.status === 'submitted' ? 'View' : 'Submit',
-                statusBadge: (
-                  <span
-                    className={`inline-block px-2 py-1 rounded text-xs font-semibold ${a.status === 'submitted' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}
-                  >
-                    {a.status === 'submitted' ? 'Submitted' : 'Unsubmitted'}
-                  </span>
-                ),
-              }))}
-            />
+
+            {/* Color Legend - Collapsible */}
+            {showColorLegend && (
+              <div className='flex items-center gap-4 text-xs text-gray-600 mb-3 p-2 bg-gray-50 rounded-lg border border-gray-200'>
+                <div className='flex items-center gap-1.5'>
+                  <div className='w-3 h-3 rounded-full bg-blue-200 border border-blue-300'></div>
+                  <span>Normal</span>
+                </div>
+                <div className='flex items-center gap-1.5'>
+                  <div className='w-3 h-3 rounded-full bg-yellow-200 border border-yellow-300'></div>
+                  <span>Urgent (1-2 days)</span>
+                </div>
+                <div className='flex items-center gap-1.5'>
+                  <div className='w-3 h-3 rounded-full bg-red-200 border border-red-300'></div>
+                  <span>Overdue (1 day)</span>
+                </div>
+              </div>
+            )}
+
+            {assignmentsLoading ? (
+              <div className='flex items-center justify-center py-8'>
+                <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600'></div>
+                <span className='ml-2 text-sm text-gray-600'>
+                  Loading assignments...
+                </span>
+              </div>
+            ) : unsubmittedAssignments.length === 0 ? (
+              <div className='flex flex-col items-center justify-center py-8 bg-green-50 rounded-lg border border-green-200'>
+                <div className='text-green-600 mb-2'>
+                  <CheckCircle className='w-12 h-12' />
+                </div>
+                <h3 className='text-lg font-semibold text-green-800 mb-1'>
+                  All caught up!{' '}
+                </h3>
+                <p className='text-sm text-green-600 text-center'>
+                  No pending assignments. Great work keeping up with your
+                  studies!
+                </p>
+              </div>
+            ) : (
+              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3'>
+                {unsubmittedAssignments.map((assignment: any) => {
+                  const isOverdue =
+                    assignment.dueDate &&
+                    new Date(assignment.dueDate) < new Date();
+                  const daysUntilDue = assignment.dueDate
+                    ? Math.ceil(
+                        (new Date(assignment.dueDate).getTime() -
+                          new Date().getTime()) /
+                          (1000 * 60 * 60 * 24),
+                      )
+                    : null;
+
+                  const dueDateDisplay = assignment.dueDate
+                    ? new Date(assignment.dueDate).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year:
+                          new Date(assignment.dueDate).getFullYear() !==
+                          new Date().getFullYear()
+                            ? 'numeric'
+                            : undefined,
+                      })
+                    : 'No due date';
+
+                  const statusText = isOverdue
+                    ? 'Overdue'
+                    : daysUntilDue !== null && daysUntilDue === 0
+                      ? 'Due Today'
+                      : daysUntilDue !== null && daysUntilDue === 1
+                        ? 'Due Tomorrow'
+                        : daysUntilDue !== null && daysUntilDue > 1
+                          ? `Due in ${daysUntilDue} days`
+                          : 'Pending';
+
+                  // Determine colors and icons based on status
+                  let statusColor = 'bg-blue-100 text-blue-700 border-blue-200';
+                  let iconColor = 'text-blue-600';
+                  let bgGradient = 'from-blue-50 to-blue-100';
+                  let borderColor = 'border-blue-200';
+                  let UrgencyIcon = Clock;
+
+                  if (isOverdue) {
+                    statusColor = 'bg-red-100 text-red-700 border-red-200';
+                    iconColor = 'text-red-600';
+                    bgGradient = 'from-red-50 to-red-100';
+                    borderColor = 'border-red-200';
+                    UrgencyIcon = AlertCircle;
+                  } else if (daysUntilDue !== null && daysUntilDue <= 2) {
+                    statusColor =
+                      'bg-yellow-100 text-yellow-700 border-yellow-200';
+                    iconColor = 'text-yellow-600';
+                    bgGradient = 'from-yellow-50 to-yellow-100';
+                    borderColor = 'border-yellow-200';
+                    UrgencyIcon = AlertCircle;
+                  }
+
+                  return (
+                    <div
+                      key={assignment.id}
+                      className={`relative overflow-hidden rounded-xl border ${borderColor} bg-gradient-to-br ${bgGradient} p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group`}
+                      onClick={() => {
+                        setSelectedAssignment(assignment);
+                        setIsAssignmentModalOpen(true);
+                      }}
+                    >
+                      {/* Status Badge */}
+                      <div className='absolute top-2 right-2'>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusColor}`}
+                        >
+                          <UrgencyIcon className='w-3 h-3 mr-0.5' />
+                          <span className='hidden sm:inline'>{statusText}</span>
+                          <span className='sm:hidden'>
+                            {isOverdue
+                              ? '!'
+                              : daysUntilDue !== null && daysUntilDue <= 2
+                                ? '!'
+                                : '•'}
+                          </span>
+                        </span>
+                      </div>
+
+                      {/* Assignment Icon */}
+                      <div className='flex items-start space-x-2 mb-3'>
+                        <div
+                          className={`p-1.5 rounded-lg bg-white/80 ${iconColor} flex-shrink-0`}
+                        >
+                          <FileText className='w-4 h-4' />
+                        </div>
+                        <div className='flex-1 min-w-0'>
+                          <h3 className='text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-700 transition-colors'>
+                            {assignment.title || 'Untitled Assignment'}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* Subject and Class Info */}
+                      <div className='mb-3 space-y-1.5'>
+                        <div className='flex items-center text-xs text-gray-600'>
+                          <BookOpen className='w-3 h-3 mr-1' />
+                          <span className='font-medium truncate'>
+                            {assignment.subject?.name || 'Unknown Subject'}
+                          </span>
+                          <span className='mx-1'>•</span>
+                          <span className='truncate'>
+                            {assignment.class?.grade || ''}
+                            {assignment.class?.section || ''}
+                          </span>
+                        </div>
+
+                        <div className='flex items-center text-xs text-gray-600'>
+                          <User className='w-3 h-3 mr-1' />
+                          <span className='truncate'>
+                            {assignment.teacher?.user?.fullName ||
+                              'Unknown Teacher'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Due Date and Action */}
+                      <div className='flex items-center justify-between pt-2 border-t border-white/50'>
+                        <div className='flex items-center text-xs text-gray-600'>
+                          <Calendar className='w-3 h-3 mr-1' />
+                          <span className='font-medium truncate'>
+                            Due: {dueDateDisplay}
+                          </span>
+                        </div>
+
+                        <button
+                          className='px-2 py-1 text-xs font-medium rounded-md bg-white/80 text-gray-700 hover:bg-white transition-colors border border-white/60 group-hover:border-blue-300 group-hover:text-blue-700 flex-shrink-0 cursor-pointer'
+                          onClick={e => {
+                            e.stopPropagation();
+                            setSelectedAssignment(assignment);
+                            setIsAssignmentModalOpen(true);
+                          }}
+                        >
+                          View
+                        </button>
+                      </div>
+
+                      {/* Progress indicator for overdue assignments */}
+                      {isOverdue && (
+                        <div className='absolute bottom-0 left-0 right-0 h-1 bg-red-200'>
+                          <div className='h-full bg-red-500 animate-pulse'></div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Events and My Subjects */}
@@ -410,6 +681,19 @@ export default function Page() {
           </div>
         </div>
       </div>
+
+      {/* Assignment Modal */}
+      {selectedAssignment && (
+        <ViewAssignmentModal
+          isOpen={isAssignmentModalOpen}
+          onClose={() => {
+            setIsAssignmentModalOpen(false);
+            setSelectedAssignment(null);
+          }}
+          assignment={selectedAssignment}
+          userRole={user?.role}
+        />
+      )}
     </div>
   );
 }
