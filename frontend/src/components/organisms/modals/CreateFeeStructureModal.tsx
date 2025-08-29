@@ -227,7 +227,28 @@ const CreateFeeStructureModal: React.FC<CreateFeeStructureModalProps> = ({
       } else toast.error('Failed to load classes');
     } catch (err) {
       console.error(err);
-      toast.error('Error loading classes');
+      const errorObj = err as unknown as {
+        error?: { message?: string };
+        message?: string;
+      };
+      let msg =
+        errorObj?.error?.message ||
+        errorObj?.message ||
+        'Failed to load classes';
+
+      if (msg.includes('Network Error') || msg.includes('ERR_NETWORK')) {
+        msg =
+          'Network connection failed. Please check your internet connection.';
+      } else if (msg.includes('Unauthorized')) {
+        msg = 'Your session has expired. Please refresh the page.';
+      } else if (msg.includes('Forbidden')) {
+        msg = 'You do not have permission to view classes.';
+      }
+
+      toast.error('Failed to Load Classes', {
+        description: msg,
+        duration: 5000,
+      });
     }
   };
 
@@ -352,6 +373,10 @@ const CreateFeeStructureModal: React.FC<CreateFeeStructureModalProps> = ({
       }
       toast.success(
         `Created fee structure for ${cleanedIds.length} class${cleanedIds.length > 1 ? 'es' : ''}`,
+        {
+          description: `Successfully created fee structure "${payload.name}" for ${cleanedIds.length} class${cleanedIds.length > 1 ? 'es' : ''} in academic year ${payload.academicYear}.`,
+          duration: 4000,
+        },
       );
       onSuccess(payload); // pass original for parent refresh logic
       onClose();
@@ -361,11 +386,60 @@ const CreateFeeStructureModal: React.FC<CreateFeeStructureModalProps> = ({
         error?: { message?: string };
         message?: string;
       };
-      const msg =
+      let msg =
         errorObj?.error?.message ||
         errorObj?.message ||
         'Failed to create structure';
-      toast.error(msg);
+
+      // Handle specific database precision errors with user-friendly messages
+      if (
+        msg.includes('numeric field overflow') ||
+        msg.includes('precision 10, scale 2')
+      ) {
+        msg =
+          'One or more amounts are too large. Please ensure amounts are less than 100,000,000 (100 million).';
+      } else if (msg.includes('A field with precision')) {
+        msg =
+          'Amount value is too large for the database. Please use a smaller amount.';
+      } else if (msg.includes('Network Error') || msg.includes('ERR_NETWORK')) {
+        msg =
+          'Network connection failed. Please check your internet connection and try again.';
+      } else if (msg.includes('timeout') || msg.includes('TIMEOUT')) {
+        msg = 'Request timed out. Please try again in a few moments.';
+      } else if (
+        msg.includes('Unauthorized') ||
+        msg.includes('Authentication failed')
+      ) {
+        msg =
+          'Your session has expired. Please refresh the page and log in again.';
+      } else if (msg.includes('Forbidden') || msg.includes('Access denied')) {
+        msg = 'You do not have permission to create fee structures.';
+      } else if (msg.includes('Duplicate')) {
+        msg =
+          'A fee structure already exists for one or more selected classes in this academic year.';
+      } else if (msg.includes('Class not found')) {
+        msg =
+          'One or more selected classes could not be found. Please refresh and try again.';
+      } else if (msg.includes('Invalid academic year')) {
+        msg =
+          'The selected academic year is invalid. Please choose a valid year.';
+      } else if (msg.includes('Invalid date')) {
+        msg = 'Please enter a valid effective date.';
+      } else if (msg.includes('Date in the past')) {
+        msg =
+          'The effective date cannot be in the past. Please select a future date.';
+      } else if (
+        msg.includes('Server error') ||
+        msg.includes('Internal server error')
+      ) {
+        msg =
+          'Server error occurred. Please try again later or contact support.';
+      }
+
+      toast.error('Failed to Create Fee Structure', {
+        description: msg,
+        duration: 6000,
+      });
     } finally {
       setSaving(false);
     }
@@ -374,7 +448,7 @@ const CreateFeeStructureModal: React.FC<CreateFeeStructureModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto'>
+    <div className='fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/20 backdrop-blur-sm p-4 overflow-y-auto'>
       <div className='relative w-full max-w-3xl bg-white rounded-xl shadow-lg border border-gray-200 animate-in fade-in zoom-in duration-150'>
         {/* Header */}
         <div className='flex items-center justify-between px-5 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl'>

@@ -332,6 +332,7 @@ export default function Page() {
                 maxEvents={3}
                 className='!bg-transparent !border-0 !p-0 !rounded-none !shadow-none'
                 events={mappedEvents}
+                viewAllHref={'/dashboard/student/academics/calendar'}
               />
             </div>
           </div>

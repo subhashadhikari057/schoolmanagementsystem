@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import StatCard from '@/components/molecules/cards/StatCard';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { FileText, Clock, CheckCircle2, XCircle } from 'lucide-react';
@@ -45,12 +45,20 @@ interface StatsData {
 const LeaveRequestManagement: React.FC = () => {
   // State management
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequestData[]>([]);
+  const [allLeaveRequests, setAllLeaveRequests] = useState<LeaveRequestData[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StatsData[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [itemsPerPage] = useState(10);
+
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   // Modal state
   const [selectedLeaveRequest, setSelectedLeaveRequest] = useState<any>(null);
@@ -191,36 +199,25 @@ const LeaveRequestManagement: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await leaveRequestService.getLeaveRequests({
-        page,
-        limit: itemsPerPage,
+      // Fetch all leave requests for filtering and stats
+      const allResponse = await leaveRequestService.getLeaveRequests({
+        page: 1,
+        limit: 1000, // Get all for filtering and stats
       });
 
-      if (response.success && response.data) {
-        const transformedData = transformLeaveRequestData(
-          response.data.leaveRequests,
+      if (allResponse.success && allResponse.data) {
+        const allTransformedData = transformLeaveRequestData(
+          allResponse.data.leaveRequests,
         );
-        setLeaveRequests(transformedData);
-        setTotalItems(response.data.total);
-        setTotalPages(response.data.totalPages);
-        setCurrentPage(response.data.page);
+        setAllLeaveRequests(allTransformedData);
 
-        // Calculate stats from all data (fetch with high limit for accurate stats)
-        const statsResponse = await leaveRequestService.getLeaveRequests({
-          page: 1,
-          limit: 1000, // Get all for accurate stats
-        });
-        if (statsResponse.success && statsResponse.data) {
-          const calculatedStats = calculateStats(
-            statsResponse.data.leaveRequests,
-          );
-          setStats(calculatedStats);
-        }
+        const calculatedStats = calculateStats(allResponse.data.leaveRequests);
+        setStats(calculatedStats);
       }
     } catch (error) {
       console.error('Error loading leave requests:', error);
       toast.error('Failed to load student leave requests');
-      setLeaveRequests([]);
+      setAllLeaveRequests([]);
       setStats([
         {
           icon: FileText,
@@ -269,9 +266,87 @@ const LeaveRequestManagement: React.FC = () => {
     loadLeaveRequests(1);
   }, [user?.id]);
 
+  // Filter and paginate data based on search and filter criteria
+  const filteredAndPaginatedData = useMemo(() => {
+    let filtered = [...allLeaveRequests];
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        item =>
+          item.applicant.name.toLowerCase().includes(search) ||
+          item.leaveType.toLowerCase().includes(search) ||
+          item.status.toLowerCase().includes(search) ||
+          item.reason.toLowerCase().includes(search),
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'Pending') {
+        filtered = filtered.filter(item => item.status.includes('Pending'));
+      } else {
+        filtered = filtered.filter(item => item.status === statusFilter);
+      }
+    }
+
+    // Apply type filter
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(item => item.leaveType === typeFilter);
+    }
+
+    // Calculate pagination
+    const totalFiltered = filtered.length;
+    const totalPagesCalculated = Math.ceil(totalFiltered / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedData = filtered.slice(startIndex, endIndex);
+
+    return {
+      data: paginatedData,
+      totalItems: totalFiltered,
+      totalPages: totalPagesCalculated,
+    };
+  }, [
+    allLeaveRequests,
+    searchTerm,
+    statusFilter,
+    typeFilter,
+    currentPage,
+    itemsPerPage,
+  ]);
+
+  // Update leaveRequests when filtered data changes
+  useEffect(() => {
+    setLeaveRequests(filteredAndPaginatedData.data);
+    setTotalItems(filteredAndPaginatedData.totalItems);
+    setTotalPages(filteredAndPaginatedData.totalPages);
+  }, [filteredAndPaginatedData]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, typeFilter]);
+
+  // Handle search
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+  };
+
+  // Handle status filter change
+  const handleStatusFilterChange = (status: string) => {
+    setStatusFilter(status);
+  };
+
+  // Handle type filter change
+  const handleTypeFilterChange = (type: string) => {
+    setTypeFilter(type);
+  };
+
   // Handle page changes
   const handlePageChange = (page: number) => {
-    loadLeaveRequests(page);
+    setCurrentPage(page);
   };
 
   // Handle item actions (view, approve, reject)
@@ -293,7 +368,10 @@ const LeaveRequestManagement: React.FC = () => {
       setActionLoading('approve');
       await leaveRequestService.adminApprove(item.id);
       toast.success('Leave request approved successfully');
-      loadLeaveRequests(currentPage); // Refresh data
+      // Refresh data after a short delay to ensure backend consistency
+      setTimeout(() => {
+        loadLeaveRequests(1);
+      }, 500);
     } catch (error: any) {
       console.error('Error approving leave request:', error);
       let errorMessage = 'Failed to approve leave request';
@@ -312,6 +390,7 @@ const LeaveRequestManagement: React.FC = () => {
       }
 
       toast.error(errorMessage);
+      return;
     } finally {
       setActionLoading(null);
     }
@@ -334,7 +413,10 @@ const LeaveRequestManagement: React.FC = () => {
       setIsRejectModalOpen(false);
       setRejectionReason('');
       setSelectedLeaveRequest(null);
-      loadLeaveRequests(currentPage); // Refresh data
+      // Refresh data after a short delay to ensure backend consistency
+      setTimeout(() => {
+        loadLeaveRequests(1);
+      }, 500);
     } catch (error: any) {
       console.error('Error rejecting leave request:', error);
       let errorMessage = 'Failed to reject leave request';
@@ -350,6 +432,7 @@ const LeaveRequestManagement: React.FC = () => {
       }
 
       toast.error(errorMessage);
+      return;
     } finally {
       setActionLoading(null);
     }
@@ -360,6 +443,26 @@ const LeaveRequestManagement: React.FC = () => {
     setIsDetailModalOpen(false);
     setSelectedLeaveRequest(null);
   };
+
+  // Memoized configuration to prevent focus loss
+  const leaveRequestsConfig = useMemo(() => {
+    const config = getListConfig('leave-requests');
+    return {
+      ...config,
+      searchValue: searchTerm,
+      onSearchChange: handleSearch,
+      primaryFilter: {
+        ...config.primaryFilter,
+        value: statusFilter,
+        onChange: handleStatusFilterChange,
+      },
+      secondaryFilter: {
+        ...config.secondaryFilter,
+        value: typeFilter,
+        onChange: handleTypeFilterChange,
+      },
+    };
+  }, [searchTerm, statusFilter, typeFilter]);
 
   return (
     <div className='space-y-6'>
@@ -374,7 +477,7 @@ const LeaveRequestManagement: React.FC = () => {
         <Statsgrid stats={stats} />
       </div>
       <GenericList
-        config={getListConfig('leave-requests')}
+        config={leaveRequestsConfig}
         data={leaveRequests}
         currentPage={currentPage}
         totalPages={totalPages}
@@ -382,6 +485,9 @@ const LeaveRequestManagement: React.FC = () => {
         itemsPerPage={itemsPerPage}
         onPageChange={handlePageChange}
         onItemAction={handleItemAction}
+        onSearch={handleSearch}
+        onPrimaryFilterChange={handleStatusFilterChange}
+        onSecondaryFilterChange={handleTypeFilterChange}
         customActions={<ActionButtons pageType='leave-requests' />}
       />
 

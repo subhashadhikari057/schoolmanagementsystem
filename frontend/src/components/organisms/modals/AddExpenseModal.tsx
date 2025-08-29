@@ -252,8 +252,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       typeof formData.amount === 'number'
         ? formData.amount
         : parseFloat(formData.amount) || 0;
-    if (!amount || amount <= 0)
-      newErrors.amount = 'Amount must be greater than 0';
+    // Remove validation that requires amount > 0 - accept any number
 
     if (!formData.date) newErrors.date = 'Date is required';
 
@@ -359,8 +358,6 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   value={formData.amount}
                   onChange={handleInputChange}
                   placeholder='Enter amount'
-                  required
-                  min='0.01'
                   error={errors.amount}
                 />
 

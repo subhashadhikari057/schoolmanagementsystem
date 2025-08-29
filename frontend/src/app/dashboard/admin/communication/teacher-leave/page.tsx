@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import Button from '@/components/atoms/form-controls/Button';
+import Dropdown from '@/components/molecules/interactive/Dropdown';
 import { PageLoader } from '@/components/atoms/loading';
 import {
   Users,
@@ -322,9 +323,9 @@ export default function TeacherLeaveManagementPage() {
                 <h3 className='font-medium text-gray-900'>Filters</h3>
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+              <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
                 {/* Search */}
-                <div className='relative'>
+                <div className='relative flex-1 max-w-md'>
                   <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
                   <input
                     type='text'
@@ -335,30 +336,44 @@ export default function TeacherLeaveManagementPage() {
                   />
                 </div>
 
-                {/* Status Filter */}
-                <select
-                  value={statusFilter}
-                  onChange={e => setStatusFilter(e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                >
-                  <option value='ALL'>All Status</option>
-                  <option value='PENDING_ADMINISTRATION'>Pending Review</option>
-                  <option value='APPROVED'>Approved</option>
-                  <option value='REJECTED'>Rejected</option>
-                  <option value='CANCELLED'>Cancelled</option>
-                </select>
+                {/* Filters - Right aligned with minimal gap */}
+                <div className='flex justify-end gap-2'>
+                  {/* Status Filter */}
+                  <Dropdown
+                    type='filter'
+                    title='Status'
+                    options={[
+                      { value: 'ALL', label: 'All Status' },
+                      {
+                        value: 'PENDING_ADMINISTRATION',
+                        label: 'Pending Review',
+                      },
+                      { value: 'APPROVED', label: 'Approved' },
+                      { value: 'REJECTED', label: 'Rejected' },
+                      { value: 'CANCELLED', label: 'Cancelled' },
+                    ]}
+                    selectedValue={statusFilter}
+                    onSelect={setStatusFilter}
+                    placeholder='All Status'
+                    className='min-w-[140px]'
+                  />
 
-                {/* Date Filter */}
-                <select
-                  value={dateFilter}
-                  onChange={e => setDateFilter(e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                >
-                  <option value='ALL'>All Time</option>
-                  <option value='TODAY'>Today</option>
-                  <option value='WEEK'>This Week</option>
-                  <option value='MONTH'>This Month</option>
-                </select>
+                  {/* Date Filter */}
+                  <Dropdown
+                    type='filter'
+                    title='Date Range'
+                    options={[
+                      { value: 'ALL', label: 'All Time' },
+                      { value: 'TODAY', label: 'Today' },
+                      { value: 'WEEK', label: 'This Week' },
+                      { value: 'MONTH', label: 'This Month' },
+                    ]}
+                    selectedValue={dateFilter}
+                    onSelect={setDateFilter}
+                    placeholder='All Time'
+                    className='min-w-[120px]'
+                  />
+                </div>
               </div>
             </div>
           </div>

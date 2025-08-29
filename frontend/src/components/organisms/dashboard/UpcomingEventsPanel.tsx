@@ -30,6 +30,7 @@ interface UpcomingEventsPanelProps {
   title?: string;
   className?: string;
   itemActionLabel?: string;
+  viewAllHref?: string;
 }
 
 const formatDateBadge = (dateStr: string) => {
@@ -49,6 +50,7 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
   title,
   className,
   itemActionLabel = 'Learn More',
+  viewAllHref,
 }) => {
   // Mock data for upcoming events
   const mockUpcomingEvents: Event[] = [
@@ -148,8 +150,8 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
             {title || 'Upcoming Events'}
           </div>
           <a
-            className='text-xs text-blue-600 hover:text-blue-800 font-medium'
-            href='#'
+            className='text-xs text-blue-600 hover:text-blue-800 font-medium pt-4 sm:pt-0'
+            href={viewAllHref || '#'}
           >
             View All
           </a>
