@@ -109,7 +109,7 @@ const gradePerformance = [
 
 export default function AcademicDashboard() {
   return (
-    <div className='w-full max-w-7xl mx-auto space-y-8'>
+    <div className='w-full space-y-8'>
       {/* Stats Grid */}
       <Statsgrid stats={stats} />
 

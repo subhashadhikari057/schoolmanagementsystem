@@ -77,7 +77,7 @@ export default function ParentAttendancePage() {
   }
 
   return (
-    <div className='p-6'>
+    <div className='w-full p-6'>
       <div className='flex items-center justify-between mb-6'>
         <SectionTitle text='Attendance' level={2} />
         <Dropdown

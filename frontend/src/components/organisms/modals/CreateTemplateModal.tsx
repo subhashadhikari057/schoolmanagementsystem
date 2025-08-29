@@ -472,7 +472,11 @@ export function CreateTemplateModal({
         : undefined,
       fontFamily: field.fontFamily,
       fontWeight: field.fontWeight,
-      textAlign: field.textAlign,
+      textAlign: field.textAlign?.toLowerCase() as
+        | 'left'
+        | 'center'
+        | 'right'
+        | 'justify',
       color: field.color,
       display: 'flex',
       alignItems: 'center',

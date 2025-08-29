@@ -295,7 +295,7 @@ export default function TemplateEditModal({
       <CreateTemplateModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
-        editingTemplate={template}
+        editingTemplate={undefined}
       />
     </>
   );

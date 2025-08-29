@@ -180,7 +180,7 @@ export default function MyLeavePage() {
       </div>
 
       <div className='px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
-        <div className='max-w-7xl mx-auto mt-4 sm:mt-5 lg:mt-6'>
+        <div className='w-full mt-4 sm:mt-5 lg:mt-6'>
           {/* Tab Navigation */}
           <div className='bg-white rounded-lg border border-gray-200 mb-6'>
             <div className='px-6 py-4'>

@@ -95,7 +95,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
     sidebar-scroll group
     fixed md:relative top-0 left-0 z-50 md:z-auto
     h-screen border-r border-gray-200 px-4 py-2 bg-white
-    transition-all duration-300 ease-in-out
+  transition-transform transition-width transition-shadow transition-opacity duration-150 cubic-bezier(0.4,0,0.2,1)
     ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
     ${expandedByHover ? 'w-64' : isCollapsed ? 'w-20' : 'w-64'}
     shadow-lg md:shadow-none
@@ -190,7 +190,11 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
             (
               section: {
                 title: string;
-                items: Array<{ label: string; icon: string; path: string }>;
+                items: ReadonlyArray<{
+                  label: string;
+                  icon?: string;
+                  path: string;
+                }>;
               },
               index: number,
             ) => (
@@ -202,17 +206,18 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                 </h3>
                 <ul className='space-y-2'>
                   {section.items.map(
-                    (item: { label: string; icon: string; path: string }) => {
-                      const Icon =
-                        (
-                          Icons as unknown as Record<
-                            string,
-                            React.ComponentType<{
-                              size?: number;
-                              className?: string;
-                            }>
-                          >
-                        )[item.icon] || Icons.Circle;
+                    (
+                      item: Readonly<{
+                        label: string;
+                        icon?: string;
+                        path: string;
+                      }>,
+                    ) => {
+                      const iconName =
+                        item.icon && typeof item.icon === 'string'
+                          ? item.icon
+                          : 'Circle';
+                      const Icon = (Icons as any)[iconName] || Icons.Circle;
                       const isActive =
                         pathname === item.path ||
                         (pathname &&

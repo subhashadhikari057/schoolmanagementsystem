@@ -248,7 +248,7 @@ export default function TeacherLeaveManagementPage() {
       </div>
 
       <div className='px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
-        <div className='max-w-7xl mx-auto mt-4 sm:mt-5 lg:mt-6'>
+        <div className='w-full mt-4 sm:mt-5 lg:mt-6'>
           {/* Statistics Cards */}
           {statistics && (
             <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6'>

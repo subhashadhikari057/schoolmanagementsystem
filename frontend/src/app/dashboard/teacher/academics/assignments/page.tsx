@@ -156,7 +156,7 @@ export default function AssignmentsPage() {
         </div>
       </div>
       <div className='px-2 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
-        <div className='max-w-7xl mx-auto space-y-4 sm:space-y-5 lg:space-y-6 mt-4 sm:mt-5 lg:mt-6'>
+        <div className='w-full space-y-4 sm:space-y-5 lg:space-y-6 mt-4 sm:mt-5 lg:mt-6'>
           {/* Loading State */}
           {loading ? (
             <div className='flex items-center justify-center py-8'>

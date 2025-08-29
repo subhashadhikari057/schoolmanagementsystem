@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import StudentViewModal from '@/components/organisms/modals/StudentViewModal';
 import StudentEditModal from '@/components/organisms/modals/StudentEditModal';
 import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
+import StudentAttendanceViewModal from '@/components/organisms/modals/StudentAttendanceViewModal';
 
 const StudentsPage = () => {
   // State for students data
@@ -52,6 +53,7 @@ const StudentsPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -316,6 +318,13 @@ const StudentsPage = () => {
       return;
     }
 
+    // Attendance action
+    if (action === 'attendance') {
+      setSelectedStudent(student);
+      setAttendanceModalOpen(true);
+      return;
+    }
+
     // Toggle status action
     if (action === 'toggle-status') {
       try {
@@ -415,7 +424,7 @@ const StudentsPage = () => {
     <div className='min-h-screen bg-background'>
       {/* Header */}
       <div className='px-1 sm:px-2 lg:px-4 pt-3 sm:pt-4 lg:pt-6'>
-        <div className='max-w-7xl mx-auto'>
+        <div className='w-full'>
           <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
             Student Management
           </h1>
@@ -427,14 +436,14 @@ const StudentsPage = () => {
 
       {/* Stats Grid */}
       <div className='px-1 sm:px-2 lg:px-4 mt-3 sm:mt-4 lg:mt-6'>
-        <div className='max-w-7xl mx-auto'>
+        <div className='w-full'>
           <Statsgrid stats={studentStatsDisplay} />
         </div>
       </div>
 
       {/* Main Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
-        <div className='max-w-7xl mx-auto'>
+        <div className='w-full'>
           {/* Search and Filter */}
           <div className='mb-6'>
             <StudentSearchFilter
@@ -504,6 +513,16 @@ const StudentsPage = () => {
           setEditModalOpen(false);
           // Reload students data and statistics to reflect changes
           Promise.all([loadStudents(), loadStudentStats()]);
+        }}
+        student={selectedStudent}
+      />
+
+      {/* Student Attendance Modal */}
+      <StudentAttendanceViewModal
+        isOpen={attendanceModalOpen}
+        onClose={() => {
+          setAttendanceModalOpen(false);
+          setSelectedStudent(null);
         }}
         student={selectedStudent}
       />

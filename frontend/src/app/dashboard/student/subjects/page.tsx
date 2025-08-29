@@ -121,7 +121,7 @@ export default function StudentSubjectsPage() {
   if (loading) {
     return (
       <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 pt-8 pb-12'>
-        <div className='max-w-8xl mx-auto'>
+        <div className='w-full'>
           <CardGridLoader
             cards={21}
             columns='grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
@@ -134,7 +134,7 @@ export default function StudentSubjectsPage() {
 
   return (
     <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 pt-8 pb-12'>
-      <div className='max-w-8xl mx-auto'>
+      <div className='w-full'>
         <SectionTitle
           text='My Subjects'
           level={1}

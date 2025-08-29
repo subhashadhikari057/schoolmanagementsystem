@@ -1,5 +1,12 @@
 import React from 'react';
-import { Eye, Edit, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react';
+import {
+  Eye,
+  Edit,
+  ToggleLeft,
+  ToggleRight,
+  Trash2,
+  Calendar,
+} from 'lucide-react';
 
 interface ActionsCellProps {
   onAction?: (action: string) => void;
@@ -47,6 +54,12 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
       action: 'view',
       title: 'View Details',
       color: 'text-blue-600 hover:text-blue-800',
+    },
+    {
+      icon: Calendar,
+      action: 'attendance',
+      title: 'View Attendance',
+      color: 'text-purple-600 hover:text-purple-800',
     },
     {
       icon: Edit,
@@ -100,8 +113,12 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
           ['view', 'edit', 'delete'].includes(action.action),
         );
       case 'student':
-        // For students: view, edit, toggle-status, delete
-        return allActions;
+        // For students: view, attendance, edit, toggle-status, delete
+        return allActions.filter(action =>
+          ['view', 'attendance', 'edit', 'toggle-status', 'delete'].includes(
+            action.action,
+          ),
+        );
       default:
         // For parents: view, edit, toggle-status (no delete)
         return allActions.filter(action => action.action !== 'delete');

@@ -331,7 +331,7 @@ const ParentsPage = () => {
     <div className='min-h-screen bg-background'>
       {/* Header */}
       <div className='px-1 sm:px-2 lg:px-4 pt-3 sm:pt-4 lg:pt-6'>
-        <div className='max-w-7xl mx-auto'>
+        <div className='w-full'>
           <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
             Parent Management
           </h1>
@@ -343,14 +343,14 @@ const ParentsPage = () => {
 
       {/* Stats Grid */}
       <div className='px-1 sm:px-2 lg:px-4 mt-3 sm:mt-4 lg:mt-6'>
-        <div className='max-w-7xl mx-auto'>
+        <div className='w-full'>
           <Statsgrid stats={parentStats} />
         </div>
       </div>
 
       {/* Main Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
-        <div className='max-w-7xl mx-auto'>
+        <div className='w-full'>
           {/* Parent Search Bar & Filters */}
           <ParentSearchFilter
             onFilterChange={setFilters}

@@ -7,7 +7,7 @@ export default function ParentComplaintsAndLeavesPage() {
   // You can extend ComplaintsAndLeavePage to add approve/reject buttons for leave requests
   // For now, reuse the student page and add a note for parent actions
   return (
-    <div className='p-6'>
+    <div className='w-full p-6'>
       <h1 className='text-2xl font-bold mb-4'>Complaints & Leave Requests</h1>
       <p className='text-gray-500 mb-6'>
         As a parent, you can approve or reject leave requests submitted by your

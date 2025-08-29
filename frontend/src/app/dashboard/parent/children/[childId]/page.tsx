@@ -53,7 +53,7 @@ export default function ChildProfilePage() {
   }
 
   return (
-    <div className='p-8 max-w-2xl mx-auto space-y-6'>
+    <div className='p-8 w-full space-y-6'>
       <SectionTitle text='Child Profile' className='text-2xl font-bold mb-4' />
       <div className='flex items-center gap-6 bg-white rounded-xl shadow p-6'>
         <Avatar
