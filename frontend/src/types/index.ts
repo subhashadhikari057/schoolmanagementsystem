@@ -7,6 +7,8 @@
  */
 
 export * from './api';
+export * from './generation-results.types';
+export * from './template.types';
 
 // Common UI types
 export interface ComponentProps {

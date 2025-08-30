@@ -47,7 +47,9 @@ export const idCardApiService = {
    * Generate an individual ID card from template
    */
   async generateIDCard(dto: GenerateIDCardDto): Promise<IDCardData> {
-    const response = await httpClient.post('/api/id-cards/generate', dto);
+    const response = await httpClient.post('/api/id-cards/generate', dto, {
+      requiresAuth: true,
+    });
     return response.data;
   },
 
@@ -57,7 +59,9 @@ export const idCardApiService = {
   async generateBulkIDCards(
     dto: GenerateBulkIDCardsDto,
   ): Promise<IDCardData[]> {
-    const response = await httpClient.post('/api/id-cards/generate-bulk', dto);
+    const response = await httpClient.post('/api/id-cards/generate-bulk', dto, {
+      requiresAuth: true,
+    });
     return response.data;
   },
 
@@ -65,7 +69,11 @@ export const idCardApiService = {
    * Get all ID cards for a user
    */
   async getUserIDCards(userId: string): Promise<IDCardData[]> {
-    const response = await httpClient.get(`/api/id-cards/user/${userId}`);
+    const response = await httpClient.get(
+      `/api/id-cards/user/${userId}`,
+      undefined,
+      { requiresAuth: true },
+    );
     return response.data;
   },
 
@@ -73,7 +81,11 @@ export const idCardApiService = {
    * Get specific ID card with rendered data
    */
   async getIDCard(idCardId: string): Promise<IDCardData> {
-    const response = await httpClient.get(`/api/id-cards/${idCardId}`);
+    const response = await httpClient.get(
+      `/api/id-cards/${idCardId}`,
+      undefined,
+      { requiresAuth: true },
+    );
     return response.data;
   },
 };

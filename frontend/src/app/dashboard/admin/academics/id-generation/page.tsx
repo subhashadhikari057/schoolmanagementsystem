@@ -1,42 +1,50 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import GenericList from '@/components/templates/GenericList';
-import {
-  getListConfig,
-  IDCard,
-} from '@/components/templates/listConfigurations';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
-import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
 import CreateTemplateModal from '@/components/organisms/modals/CreateTemplateModal';
 import TemplatePreviewModal from '@/components/organisms/modals/TemplatePreviewModal';
-import TemplateEditModal from '@/components/organisms/modals/TemplateEditModal';
 import TemplateCopyModal from '@/components/organisms/modals/TemplateCopyModal';
 import TemplatesGrid from '@/components/organisms/templates/TemplatesGrid';
 import { templateApiService } from '@/services/template.service';
 import { IDCardTemplate, TemplateStats } from '@/types/template.types';
+import PersonSearch from '@/components/organisms/id-generation/PersonSearch';
+import TemplateSelection from '@/components/organisms/id-generation/TemplateSelection';
+import BulkGeneration from '@/components/organisms/id-generation/BulkGeneration';
+import GenerationResults from '@/components/organisms/id-generation/GenerationResults';
+import { IDCardGenerationResults } from '@/types/generation-results.types';
+
+interface Person {
+  id: string;
+  name: string;
+  type: 'student' | 'teacher' | 'staff';
+  info: string;
+  rollNumber?: string;
+  employeeId?: string;
+  email?: string;
+}
 import {
   CreditCard,
   Printer,
   CheckCircle,
-  AlertCircle,
   Plus,
   Upload,
   Layout,
   Palette,
   FileText,
+  User,
+  Users,
+  GraduationCap,
+  UserCog,
 } from 'lucide-react';
 
 const IDCardGenerationPage = () => {
-  const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
-  const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  // Template management states
   const [createTemplateModalOpen, setCreateTemplateModalOpen] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
   const [copyModalOpen, setCopyModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] =
     useState<IDCardTemplate | null>(null);
@@ -46,10 +54,19 @@ const IDCardGenerationPage = () => {
   );
   const [isLoading, setIsLoading] = useState(true);
 
-  const handleSelectionChange = (selectedIds: (string | number)[]) => {
-    setSelectedItems(selectedIds);
-    console.log('Selected ID cards:', selectedIds);
-  };
+  // ID Generation states
+  const [generationType, setGenerationType] = useState<
+    'individual' | 'bulk' | null
+  >(null);
+  const [selectedPersonType, setSelectedPersonType] = useState<
+    'student' | 'teacher' | 'staff' | null
+  >(null);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  const [currentStep, setCurrentStep] = useState<
+    'type' | 'person' | 'template' | 'bulk' | 'results'
+  >('type');
+  const [generationResults, setGenerationResults] =
+    useState<IDCardGenerationResults | null>(null);
   // Fetch templates and stats from backend
   const fetchTemplates = async () => {
     try {
@@ -110,13 +127,76 @@ const IDCardGenerationPage = () => {
     console.log('New template created:', newTemplate);
     fetchTemplates(); // Refresh the templates list
   };
+
+  // ID Generation handlers
+  const handlePersonSelect = (person: Person) => {
+    setSelectedPerson(person);
+    setCurrentStep('template');
+  };
+
+  const handleBackToPersonSearch = () => {
+    setSelectedPerson(null);
+    setCurrentStep('person');
+  };
+
+  const handleBackToPersonType = () => {
+    setSelectedPersonType(null);
+    setSelectedPerson(null);
+    setCurrentStep('type');
+  };
+
+  const handleGenerateIDCard = async (
+    person: Person,
+    template: IDCardTemplate,
+    expiryDate: string,
+  ) => {
+    try {
+      console.log('Generating ID card:', { person, template, expiryDate });
+      // The actual API call is handled in TemplateSelection component
+      // This is just the success callback
+
+      // Show success message and transition to results if needed
+      alert(`ID card generated successfully for ${person.name}!`);
+
+      // Reset to initial state after successful generation
+      setGenerationType(null);
+      setSelectedPersonType(null);
+      setSelectedPerson(null);
+      setCurrentStep('type');
+    } catch (error) {
+      console.error('Error generating ID card:', error);
+      alert('Failed to generate ID card. Please try again.');
+    }
+  };
+
+  const handleBulkGenerationComplete = (results: IDCardGenerationResults) => {
+    setGenerationResults(results);
+    setCurrentStep('results');
+  };
+
+  const handleBackToBulkGeneration = () => {
+    setCurrentStep('bulk');
+    setGenerationResults(null);
+  };
+
+  const handleStartNewGeneration = () => {
+    resetGenerationFlow();
+    setGenerationResults(null);
+  };
+
+  const resetGenerationFlow = () => {
+    setGenerationType(null);
+    setSelectedPersonType(null);
+    setSelectedPerson(null);
+    setCurrentStep('type');
+  };
   const idCardStats = [
     {
-      icon: CreditCard,
+      icon: Layout,
       bgColor: 'bg-blue-50',
       iconColor: 'text-white',
-      value: '248',
-      label: 'Total ID Cards',
+      value: templateStats?.totalTemplates?.toString() || '0',
+      label: 'Available Templates',
       change: '5.2%',
       isPositive: true,
     },
@@ -124,110 +204,28 @@ const IDCardGenerationPage = () => {
       icon: CheckCircle,
       bgColor: 'bg-green-50',
       iconColor: 'text-white',
-      value: '195',
-      label: 'Printed Cards',
+      value: templateStats?.activeTemplates?.toString() || '0',
+      label: 'Active Templates',
       change: '12.3%',
       isPositive: true,
     },
     {
-      icon: Printer,
-      bgColor: 'bg-yellow-50',
+      icon: CreditCard,
+      bgColor: 'bg-purple-50',
       iconColor: 'text-white',
-      value: '34',
-      label: 'Pending Print',
+      value: templateStats?.totalUsage?.toString() || '0',
+      label: 'Cards Generated',
       change: '2.1%',
-      isPositive: false,
+      isPositive: true,
     },
     {
-      icon: AlertCircle,
-      bgColor: 'bg-red-50',
+      icon: Users,
+      bgColor: 'bg-orange-50',
       iconColor: 'text-white',
-      value: '19',
-      label: 'Generated Only',
-      change: '8.7%',
-      isPositive: false,
-    },
-  ];
-
-  // Sample ID Card data
-  const idCardsData: IDCard[] = [
-    {
-      id: 1,
-      cardId: 'STU2025001',
-      holderName: 'Emily Johnson',
-      holderType: 'Student',
-      holderInfo: 'Grade 10A',
-      generatedDate: '2025-01-15',
-      expiryDate: '2026-07-31',
-      printStatus: 'Printed',
-      template: 'Student Template A',
-      hasPhoto: true,
-      hasQR: true,
-      printCount: 1,
-      lastPrintDate: '2025-01-16',
-      avatar: undefined,
-    },
-    {
-      id: 2,
-      cardId: 'TCH2025001',
-      holderName: 'Dr. Sarah Mitchell',
-      holderType: 'Teacher',
-      holderInfo: 'Mathematics Dept',
-      generatedDate: '2025-01-10',
-      expiryDate: '2026-12-31',
-      printStatus: 'Printed',
-      template: 'Staff Template A',
-      hasPhoto: true,
-      hasQR: true,
-      printCount: 1,
-      lastPrintDate: '2025-01-11',
-      avatar: undefined,
-    },
-    {
-      id: 3,
-      cardId: 'STU2025002',
-      holderName: 'James Smith',
-      holderType: 'Student',
-      holderInfo: 'Grade 11B',
-      generatedDate: '2025-01-27',
-      expiryDate: '2026-07-31',
-      printStatus: 'Pending Print',
-      template: 'Student Template A',
-      hasPhoto: true,
-      hasQR: true,
-      printCount: 0,
-      avatar: undefined,
-    },
-    {
-      id: 4,
-      cardId: 'STF2025001',
-      holderName: 'John Wilson',
-      holderType: 'Staff',
-      holderInfo: 'Administration',
-      generatedDate: '2025-01-28',
-      expiryDate: '2026-12-31',
-      printStatus: 'Generated',
-      template: 'Staff Template A',
-      hasPhoto: false,
-      hasQR: true,
-      printCount: 0,
-      avatar: undefined,
-    },
-    {
-      id: 5,
-      cardId: 'STU2025003',
-      holderName: 'Sophia Brown',
-      holderType: 'Student',
-      holderInfo: 'Grade 9C',
-      generatedDate: '2025-01-25',
-      expiryDate: '2026-07-31',
-      printStatus: 'Printed',
-      template: 'Student Template A',
-      hasPhoto: true,
-      hasQR: true,
-      printCount: 2,
-      lastPrintDate: '2025-01-26',
-      avatar: undefined,
+      value: '0',
+      label: 'Ready to Generate',
+      change: '0%',
+      isPositive: true,
     },
   ];
 
@@ -255,11 +253,11 @@ const IDCardGenerationPage = () => {
       {/* Main Content - Tabs */}
       <div className='mt-4 mb-6'>
         <div className='w-full'>
-          <Tabs defaultValue='id-cards' className='w-full'>
+          <Tabs defaultValue='generate' className='w-full'>
             <TabsList className='grid w-full grid-cols-2 mb-6'>
-              <TabsTrigger value='id-cards' className='flex items-center gap-2'>
+              <TabsTrigger value='generate' className='flex items-center gap-2'>
                 <CreditCard className='w-4 h-4' />
-                ID Card List
+                Generate ID Cards
               </TabsTrigger>
               <TabsTrigger
                 value='templates'
@@ -270,37 +268,206 @@ const IDCardGenerationPage = () => {
               </TabsTrigger>
             </TabsList>
 
-            {/* ID Cards Tab Content */}
-            <TabsContent value='id-cards' className='space-y-4'>
-              <div className='flex justify-between items-center'>
-                <div>
-                  <h2 className='text-lg font-semibold text-gray-900'>
-                    ID Card Management
-                  </h2>
-                  <p className='text-sm text-gray-600'>
-                    Generate, print, and manage all ID cards
-                  </p>
-                </div>
-                <Button
-                  onClick={() => setGenerateModalOpen(true)}
-                  className='flex items-center gap-2'
-                >
-                  <Plus className='w-4 h-4' />
-                  Generate ID Card
-                </Button>
-              </div>
+            {/* ID Card Generation Tab Content */}
+            <TabsContent value='generate' className='space-y-6'>
+              {!generationType ? (
+                // Generation Type Selection
+                <div className='space-y-4'>
+                  <div>
+                    <h2 className='text-lg font-semibold text-gray-900'>
+                      Choose Generation Type
+                    </h2>
+                    <p className='text-sm text-gray-600'>
+                      Select how you want to generate ID cards
+                    </p>
+                  </div>
 
-              <GenericList<IDCard>
-                config={getListConfig('id-cards')}
-                data={idCardsData}
-                currentPage={1}
-                totalPages={25}
-                totalItems={248}
-                itemsPerPage={10}
-                customActions={<ActionButtons pageType='id-cards' />}
-                selectedItems={selectedItems}
-                onSelectionChange={handleSelectionChange}
-              />
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    {/* Individual Generation Block */}
+                    <Card
+                      className='p-6 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-blue-300'
+                      onClick={() => setGenerationType('individual')}
+                    >
+                      <div className='text-center space-y-4'>
+                        <div className='w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto'>
+                          <User className='w-8 h-8 text-blue-600' />
+                        </div>
+                        <div>
+                          <h3 className='text-lg font-semibold text-gray-900'>
+                            Individual Generation
+                          </h3>
+                          <p className='text-sm text-gray-600 mt-2'>
+                            Generate ID card for a single person by selecting
+                            them individually
+                          </p>
+                        </div>
+                        <div className='space-y-2 text-sm text-gray-500'>
+                          <div>
+                            • Select specific student, teacher, or staff
+                          </div>
+                          <div>• Choose from available templates</div>
+                          <div>• Generate with real data and QR codes</div>
+                        </div>
+                        <Button className='w-full bg-blue-600 hover:bg-blue-700 text-white'>
+                          Start Individual Generation
+                        </Button>
+                      </div>
+                    </Card>
+
+                    {/* Bulk Generation Block */}
+                    <Card
+                      className='p-6 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-green-300'
+                      onClick={() => {
+                        setGenerationType('bulk');
+                        setCurrentStep('bulk');
+                      }}
+                    >
+                      <div className='text-center space-y-4'>
+                        <div className='w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center mx-auto'>
+                          <Users className='w-8 h-8 text-green-600' />
+                        </div>
+                        <div>
+                          <h3 className='text-lg font-semibold text-gray-900'>
+                            Bulk Generation
+                          </h3>
+                          <p className='text-sm text-gray-600 mt-2'>
+                            Generate ID cards for multiple people at once
+                          </p>
+                        </div>
+                        <div className='space-y-2 text-sm text-gray-500'>
+                          <div>• Class-wise student ID cards</div>
+                          <div>• All teachers at once</div>
+                          <div>• All staff members at once</div>
+                        </div>
+                        <Button className='w-full bg-green-600 hover:bg-green-700 text-white'>
+                          Start Bulk Generation
+                        </Button>
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+              ) : generationType === 'individual' ? (
+                // Individual Generation Flow
+                <div className='space-y-6'>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <h2 className='text-lg font-semibold text-gray-900'>
+                        Individual ID Card Generation
+                      </h2>
+                      <p className='text-sm text-gray-600'>
+                        Select a person and generate their ID card
+                      </p>
+                    </div>
+                    <Button variant='outline' onClick={resetGenerationFlow}>
+                      Back to Selection
+                    </Button>
+                  </div>
+
+                  {currentStep === 'type' ? (
+                    // Person Type Selection
+                    <div className='space-y-4'>
+                      <h3 className='text-md font-medium text-gray-900'>
+                        Select Person Type
+                      </h3>
+                      <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                        <Card
+                          className='p-4 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-blue-300'
+                          onClick={() => {
+                            setSelectedPersonType('student');
+                            setCurrentStep('person');
+                          }}
+                        >
+                          <div className='text-center space-y-3'>
+                            <div className='w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto'>
+                              <GraduationCap className='w-6 h-6 text-blue-600' />
+                            </div>
+                            <div>
+                              <h4 className='font-medium text-gray-900'>
+                                Student
+                              </h4>
+                              <p className='text-sm text-gray-600'>
+                                Generate student ID card
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+
+                        <Card
+                          className='p-4 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-green-300'
+                          onClick={() => {
+                            setSelectedPersonType('teacher');
+                            setCurrentStep('person');
+                          }}
+                        >
+                          <div className='text-center space-y-3'>
+                            <div className='w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto'>
+                              <User className='w-6 h-6 text-green-600' />
+                            </div>
+                            <div>
+                              <h4 className='font-medium text-gray-900'>
+                                Teacher
+                              </h4>
+                              <p className='text-sm text-gray-600'>
+                                Generate teacher ID card
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+
+                        <Card
+                          className='p-4 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-purple-300'
+                          onClick={() => {
+                            setSelectedPersonType('staff');
+                            setCurrentStep('person');
+                          }}
+                        >
+                          <div className='text-center space-y-3'>
+                            <div className='w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto'>
+                              <UserCog className='w-6 h-6 text-purple-600' />
+                            </div>
+                            <div>
+                              <h4 className='font-medium text-gray-900'>
+                                Staff
+                              </h4>
+                              <p className='text-sm text-gray-600'>
+                                Generate staff ID card
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
+                    </div>
+                  ) : currentStep === 'person' && selectedPersonType ? (
+                    // Person Search
+                    <PersonSearch
+                      personType={selectedPersonType}
+                      onPersonSelect={handlePersonSelect}
+                      onBack={handleBackToPersonType}
+                    />
+                  ) : currentStep === 'template' && selectedPerson ? (
+                    // Template Selection and Generation
+                    <TemplateSelection
+                      selectedPerson={selectedPerson}
+                      onBack={handleBackToPersonSearch}
+                      onGenerate={handleGenerateIDCard}
+                    />
+                  ) : null}
+                </div>
+              ) : currentStep === 'bulk' ? (
+                // Bulk Generation Flow
+                <BulkGeneration
+                  onBack={resetGenerationFlow}
+                  onComplete={handleBulkGenerationComplete}
+                />
+              ) : currentStep === 'results' && generationResults ? (
+                // Generation Results
+                <GenerationResults
+                  results={generationResults}
+                  isBulk={generationType === 'bulk'}
+                  onBack={handleBackToBulkGeneration}
+                  onStartNew={handleStartNewGeneration}
+                />
+              ) : null}
             </TabsContent>
 
             {/* Templates Tab Content */}
@@ -416,15 +583,6 @@ const IDCardGenerationPage = () => {
       </div>
 
       {/* Modals */}
-      <GenerateIDCardModal
-        isOpen={generateModalOpen}
-        onClose={() => setGenerateModalOpen(false)}
-        onSuccess={() => {
-          setGenerateModalOpen(false);
-          // Refresh data if needed
-        }}
-      />
-
       <CreateTemplateModal
         isOpen={createTemplateModalOpen}
         onClose={() => {
@@ -442,12 +600,6 @@ const IDCardGenerationPage = () => {
       <TemplatePreviewModal
         open={previewModalOpen}
         onOpenChange={setPreviewModalOpen}
-        template={selectedTemplate}
-      />
-
-      <TemplateEditModal
-        open={editModalOpen}
-        onOpenChange={setEditModalOpen}
         template={selectedTemplate}
       />
 

@@ -7,7 +7,6 @@ import {
   TemplateStats,
 } from '@/types/template.types';
 import { httpClient } from '@/api/client';
-import { ApiResponse } from '@/api/types/common';
 
 class TemplateApiService {
   private readonly endpoints = {
@@ -20,6 +19,7 @@ class TemplateApiService {
     const response = await httpClient.post<IDCardTemplate>(
       this.endpoints.templates,
       data,
+      { requiresAuth: true },
     );
     return response.data;
   }
@@ -30,6 +30,7 @@ class TemplateApiService {
       {
         params: filters,
       },
+      { requiresAuth: true },
     );
     return response.data;
   }
@@ -37,6 +38,8 @@ class TemplateApiService {
   async getTemplateById(id: string): Promise<IDCardTemplate> {
     const response = await httpClient.get<IDCardTemplate>(
       `${this.endpoints.templates}/${id}`,
+      undefined,
+      { requiresAuth: true },
     );
     return response.data;
   }
@@ -48,6 +51,7 @@ class TemplateApiService {
     const response = await httpClient.put<IDCardTemplate>(
       `${this.endpoints.templates}/${id}`,
       data,
+      { requiresAuth: true },
     );
     return response.data;
   }
@@ -55,6 +59,7 @@ class TemplateApiService {
   async deleteTemplate(id: string): Promise<{ message: string }> {
     const response = await httpClient.delete<{ message: string }>(
       `${this.endpoints.templates}/${id}`,
+      { requiresAuth: true },
     );
     return response.data;
   }
@@ -62,6 +67,8 @@ class TemplateApiService {
   async duplicateTemplate(id: string): Promise<IDCardTemplate> {
     const response = await httpClient.post<IDCardTemplate>(
       `${this.endpoints.templates}/${id}/duplicate`,
+      undefined,
+      { requiresAuth: true },
     );
     return response.data;
   }
@@ -69,6 +76,8 @@ class TemplateApiService {
   async setDefaultTemplate(id: string): Promise<{ message: string }> {
     const response = await httpClient.put<{ message: string }>(
       `${this.endpoints.templates}/${id}/set-default`,
+      undefined,
+      { requiresAuth: true },
     );
     return response.data;
   }
@@ -76,6 +85,8 @@ class TemplateApiService {
   async publishTemplate(id: string): Promise<IDCardTemplate> {
     const response = await httpClient.put<IDCardTemplate>(
       `${this.endpoints.templates}/${id}/publish`,
+      undefined,
+      { requiresAuth: true },
     );
     return response.data;
   }
@@ -83,6 +94,8 @@ class TemplateApiService {
   async unpublishTemplate(id: string): Promise<IDCardTemplate> {
     const response = await httpClient.put<IDCardTemplate>(
       `${this.endpoints.templates}/${id}/unpublish`,
+      undefined,
+      { requiresAuth: true },
     );
     return response.data;
   }
@@ -90,12 +103,18 @@ class TemplateApiService {
   async getAvailableFields(): Promise<DatabaseField[]> {
     const response = await httpClient.get<{ fields: DatabaseField[] }>(
       this.endpoints.fields,
+      undefined,
+      { requiresAuth: true },
     );
     return response.data.fields;
   }
 
   async getTemplateStats(): Promise<TemplateStats> {
-    const response = await httpClient.get<TemplateStats>(this.endpoints.stats);
+    const response = await httpClient.get<TemplateStats>(
+      this.endpoints.stats,
+      undefined,
+      { requiresAuth: true },
+    );
     return response.data;
   }
 }

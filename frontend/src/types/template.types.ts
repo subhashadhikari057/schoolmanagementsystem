@@ -352,19 +352,7 @@ export interface TemplateStats {
 export interface CreateTemplateRequest extends CreateTemplateDto {}
 export interface UpdateTemplateRequest extends UpdateTemplateDto {}
 
-// API Response Types
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  errors?: string[];
-}
-
-export interface ApiError {
-  message: string;
-  statusCode: number;
-  errors?: string[];
-}
+// Note: ApiResponse and ApiError are imported from '@/api/types/common'
 
 // Modal Props Types
 export interface CreateTemplateModalProps {

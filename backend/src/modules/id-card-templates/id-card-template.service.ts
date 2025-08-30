@@ -297,7 +297,10 @@ export class IDCardTemplateService {
   private transformTemplate(template: any) {
     return {
       ...template,
-      // Remove isActive logic - all templates are usable
+      // Map status to isPublished for frontend compatibility
+      isPublished: template.status === 'ACTIVE',
+      // Remove status from the response since frontend uses isPublished
+      status: undefined,
     };
   }
 
