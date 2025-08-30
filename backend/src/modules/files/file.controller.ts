@@ -21,6 +21,7 @@ export class FileController {
       'complaints',
       'leave-requests',
       'teacher-leave-requests',
+      'templates', // Add templates folder for logo uploads
     ];
     if (!allowedFolders.includes(folder)) {
       throw new NotFoundException('Invalid folder');
@@ -35,7 +36,9 @@ export class FileController {
         folder === 'leave-requests' ||
         folder === 'teacher-leave-requests'
         ? 'attachments'
-        : 'profiles',
+        : folder === 'templates'
+          ? 'logos'
+          : 'profiles',
       filename,
     );
 

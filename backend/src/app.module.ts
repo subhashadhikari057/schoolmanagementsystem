@@ -31,9 +31,9 @@ import { NoticeModule } from './modules/notice/notice.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
 import { IDCardTemplateModule } from './modules/id-card-templates/id-card-template.module';
+import { IDCardModule } from './modules/id-cards/id-card.module';
 import { LeaveRequestModule } from './modules/leave-request/leave-request.module';
 import { LeaveTypeModule } from './modules/leave-type/leave-type.module';
-
 
 @Module({
   imports: [
@@ -59,6 +59,7 @@ import { LeaveTypeModule } from './modules/leave-type/leave-type.module';
     AttendanceModule,
     ComplaintModule,
     IDCardTemplateModule,
+    IDCardModule,
     LeaveRequestModule,
     LeaveTypeModule,
   ],

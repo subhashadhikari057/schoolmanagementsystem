@@ -132,6 +132,22 @@ export class CreateTemplateFieldDto {
   @IsOptional()
   @IsNumber()
   zIndex?: number;
+
+  @IsOptional()
+  @IsString()
+  dataSource?: string; // 'static' | 'database'
+
+  @IsOptional()
+  @IsString()
+  staticText?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  qrData?: string;
 }
 
 export class CreateTemplateDto {

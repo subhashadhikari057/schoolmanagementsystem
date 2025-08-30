@@ -147,7 +147,7 @@ export interface IDCardTemplate {
   features?: string[];
   metadata?: Record<string, unknown>;
   isDefault: boolean;
-  isActive: boolean;
+  // Removed isActive - all templates are usable
   isPublished: boolean;
   usageCount: number;
   createdAt: string;
@@ -185,6 +185,11 @@ export interface TemplateField {
   rotation?: number;
   opacity?: number;
   zIndex?: number;
+  // New fields for enhanced template functionality
+  dataSource?: string;
+  staticText?: string;
+  imageUrl?: string;
+  qrData?: string;
 }
 
 // ============================================================================
@@ -314,7 +319,7 @@ export interface TemplateFilters {
   search?: string;
   type?: IDCardTemplateType;
   orientation?: TemplateOrientation;
-  isActive?: boolean;
+  // Removed isActive filter - all templates are usable
   isDefault?: boolean;
   sortBy?: 'name' | 'createdAt' | 'updatedAt' | 'usageCount';
   sortOrder?: 'asc' | 'desc';

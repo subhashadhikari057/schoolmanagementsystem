@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GenericList from '@/components/templates/GenericList';
 import {
   getListConfig,
@@ -12,11 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import GenerateIDCardModal from '@/components/organisms/modals/GenerateIDCardModal';
-import CreateTemplateModal from '@/components/modals/CreateTemplateModal';
+import CreateTemplateModal from '@/components/organisms/modals/CreateTemplateModal';
 import TemplatePreviewModal from '@/components/organisms/modals/TemplatePreviewModal';
 import TemplateEditModal from '@/components/organisms/modals/TemplateEditModal';
 import TemplateCopyModal from '@/components/organisms/modals/TemplateCopyModal';
 import TemplatesGrid from '@/components/organisms/templates/TemplatesGrid';
+import { templateApiService } from '@/services/template.service';
+import { IDCardTemplate, TemplateStats } from '@/types/template.types';
 import {
   CreditCard,
   Printer,
@@ -29,18 +31,6 @@ import {
   FileText,
 } from 'lucide-react';
 
-interface Template {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  dimensions: string;
-  usageCount: number;
-  lastModified: string;
-  description?: string;
-  features?: string[];
-}
-
 const IDCardGenerationPage = () => {
   const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
@@ -48,82 +38,77 @@ const IDCardGenerationPage = () => {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [copyModalOpen, setCopyModalOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<IDCardTemplate | null>(null);
+  const [templates, setTemplates] = useState<IDCardTemplate[]>([]);
+  const [templateStats, setTemplateStats] = useState<TemplateStats | null>(
     null,
   );
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleSelectionChange = (selectedIds: (string | number)[]) => {
     setSelectedItems(selectedIds);
     console.log('Selected ID cards:', selectedIds);
   };
-  // Sample template data
-  const templatesData: Template[] = [
-    {
-      id: 'TPL001',
-      name: 'Student Standard Template',
-      type: 'student',
-      status: 'Active',
-      dimensions: '85.6x53.98',
-      usageCount: 125,
-      lastModified: '2025-01-15',
-      description:
-        'Standard template for student ID cards with school logo and QR code',
-      features: ['QR Code', 'Photo', 'School Logo', 'Emergency Contact'],
-    },
-    {
-      id: 'TPL002',
-      name: 'Teacher Professional Template',
-      type: 'teacher',
-      status: 'Active',
-      dimensions: '85.6x53.98',
-      usageCount: 45,
-      lastModified: '2025-01-10',
-      description:
-        'Professional template for teaching staff with department info',
-      features: ['Barcode', 'Photo', 'Department', 'Signature Area'],
-    },
-    {
-      id: 'TPL003',
-      name: 'Staff Access Template',
-      type: 'staff',
-      status: 'Draft',
-      dimensions: '85.6x53.98',
-      usageCount: 0,
-      lastModified: '2025-01-28',
-      description: 'Access control template for administrative staff',
-      features: ['RFID', 'Photo', 'Access Level', 'Valid Until'],
-    },
-    {
-      id: 'TPL004',
-      name: 'Visitor Pass Template',
-      type: 'visitor',
-      status: 'Active',
-      dimensions: '85.6x53.98',
-      usageCount: 78,
-      lastModified: '2025-01-20',
-      description: 'Temporary pass template for school visitors',
-      features: ['Date Stamp', 'Photo', 'Host Info', 'Time Limit'],
-    },
-  ];
+  // Fetch templates and stats from backend
+  const fetchTemplates = async () => {
+    try {
+      setIsLoading(true);
+      const [templatesResponse, statsResponse] = await Promise.all([
+        templateApiService.getTemplates(),
+        templateApiService.getTemplateStats(),
+      ]);
+      setTemplates(templatesResponse.templates);
+      setTemplateStats(statsResponse);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleTemplatePreview = (template: Template) => {
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const handleTemplatePreview = (template: IDCardTemplate) => {
     setSelectedTemplate(template);
     setPreviewModalOpen(true);
   };
 
-  const handleTemplateEdit = (template: Template) => {
+  const handleTemplateEdit = (template: IDCardTemplate) => {
     setSelectedTemplate(template);
-    setEditModalOpen(true);
+    setCreateTemplateModalOpen(true); // Use create modal in edit mode
   };
 
-  const handleTemplateCopy = (template: Template) => {
-    setSelectedTemplate(template);
-    setCopyModalOpen(true);
+  const handleTemplateCopy = (template: IDCardTemplate) => {
+    // Create a copy of the template with modified name and reset data sources
+    const copiedTemplate: IDCardTemplate = {
+      ...template,
+      id: '', // Clear ID for new template
+      name: `${template.name} - Copy`,
+      usageCount: 0, // Reset usage count
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      // Reset data sources for fields to allow re-selection for different user types
+      fields:
+        template.fields?.map(field => ({
+          ...field,
+          id: '', // Clear field ID
+          dataSource:
+            field.fieldType === 'TEXT' ? 'database' : field.dataSource, // Reset text fields to database
+          staticText: undefined, // Clear static text to force re-selection
+          databaseField: undefined, // Clear database field to force re-selection
+        })) || [],
+    };
+
+    setSelectedTemplate(copiedTemplate);
+    setCreateTemplateModalOpen(true); // Use create modal in copy mode
   };
 
-  const handleNewTemplateCopy = (newTemplate: Template) => {
+  const handleNewTemplateCopy = (newTemplate: IDCardTemplate) => {
     console.log('New template created:', newTemplate);
-    // Add to templates data or refresh list
+    fetchTemplates(); // Refresh the templates list
   };
   const idCardStats = [
     {
@@ -354,9 +339,14 @@ const IDCardGenerationPage = () => {
                     <FileText className='h-4 w-4 text-muted-foreground' />
                   </CardHeader>
                   <CardContent>
-                    <div className='text-2xl font-bold'>4</div>
+                    <div className='text-2xl font-bold'>
+                      {templateStats?.totalTemplates || 0}
+                    </div>
                     <p className='text-xs text-muted-foreground'>
-                      2 active, 2 drafts
+                      {templateStats?.activeTemplates || 0} active,{' '}
+                      {(templateStats?.totalTemplates || 0) -
+                        (templateStats?.activeTemplates || 0)}{' '}
+                      drafts
                     </p>
                   </CardContent>
                 </Card>
@@ -394,7 +384,9 @@ const IDCardGenerationPage = () => {
                     <Printer className='h-4 w-4 text-muted-foreground' />
                   </CardHeader>
                   <CardContent>
-                    <div className='text-2xl font-bold'>248</div>
+                    <div className='text-2xl font-bold'>
+                      {templateStats?.totalUsage || 0}
+                    </div>
                     <p className='text-xs text-muted-foreground'>
                       Cards generated
                     </p>
@@ -403,12 +395,21 @@ const IDCardGenerationPage = () => {
               </div>
 
               {/* Templates Grid */}
-              <TemplatesGrid
-                templates={templatesData}
-                onPreview={handleTemplatePreview}
-                onEdit={handleTemplateEdit}
-                onCopy={handleTemplateCopy}
-              />
+              {isLoading ? (
+                <div className='flex items-center justify-center py-12'>
+                  <div className='text-center'>
+                    <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4'></div>
+                    <p className='text-gray-500'>Loading templates...</p>
+                  </div>
+                </div>
+              ) : (
+                <TemplatesGrid
+                  templates={templates}
+                  onPreview={handleTemplatePreview}
+                  onEdit={handleTemplateEdit}
+                  onCopy={handleTemplateCopy}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>
@@ -426,11 +427,16 @@ const IDCardGenerationPage = () => {
 
       <CreateTemplateModal
         isOpen={createTemplateModalOpen}
-        onClose={() => setCreateTemplateModalOpen(false)}
+        onClose={() => {
+          setCreateTemplateModalOpen(false);
+          setSelectedTemplate(null); // Clear selected template
+        }}
         onSuccess={() => {
           setCreateTemplateModalOpen(false);
-          // Refresh templates list
+          setSelectedTemplate(null); // Clear selected template
+          fetchTemplates(); // Refresh templates list with real data
         }}
+        editTemplate={selectedTemplate} // Pass selected template for editing
       />
 
       <TemplatePreviewModal

@@ -18,24 +18,17 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-interface Template {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  dimensions: string;
-  usageCount: number;
-  lastModified: string;
-  description?: string;
-  features?: string[];
-}
+import {
+  IDCardTemplate,
+  IDCardTemplateType,
+  TemplateOrientation,
+} from '@/types/template.types';
 
 interface TemplateCopyModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  template: Template | null;
-  onCopy?: (newTemplate: Template) => void;
+  template: IDCardTemplate | null;
+  onCopy: (newTemplate: IDCardTemplate) => void;
 }
 
 export default function TemplateCopyModal({
@@ -52,7 +45,6 @@ export default function TemplateCopyModal({
     copyFields: true,
     copyDesign: true,
     copyFeatures: true,
-    makeActive: false,
     newType: template?.type || 'student',
   });
 
@@ -66,16 +58,32 @@ export default function TemplateCopyModal({
 
     // Simulate API call
     setTimeout(() => {
-      const newTemplate: Template = {
+      const newTemplate: IDCardTemplate = {
         id: `TPL${Date.now()}`,
         name: formData.name,
         description: formData.description,
-        type: formData.newType,
-        status: formData.makeActive ? 'Active' : 'Draft',
+        type: formData.newType as IDCardTemplateType,
         dimensions: template?.dimensions || '85.6x53.98',
-        lastModified: new Date().toLocaleDateString(),
-        usageCount: 0,
+        orientation: template?.orientation || TemplateOrientation.HORIZONTAL,
+        backgroundColor: template?.backgroundColor || '#ffffff',
+        borderColor: template?.borderColor || '#e5e7eb',
+        borderWidth: template?.borderWidth || 1,
+        borderRadius: template?.borderRadius || 4,
+        logoRequired: template?.logoRequired || false,
+        photoRequired: template?.photoRequired || false,
+        qrCodeRequired: template?.qrCodeRequired || false,
+        barcodeRequired: template?.barcodeRequired || false,
+        printMargin: template?.printMargin || 5,
+        bleedArea: template?.bleedArea || 3,
+        safeArea: template?.safeArea || 5,
         features: formData.copyFeatures ? template?.features : [],
+        metadata: template?.metadata || {},
+        isDefault: false,
+        isPublished: false,
+        usageCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        fields: template?.fields || [],
       };
 
       setIsLoading(false);
@@ -92,8 +100,7 @@ export default function TemplateCopyModal({
           copyFields: true,
           copyDesign: true,
           copyFeatures: true,
-          makeActive: false,
-          newType: template?.type || 'student',
+          newType: template?.type || IDCardTemplateType.STUDENT,
         });
       }, 1500);
     }, 2000);
@@ -166,25 +173,19 @@ export default function TemplateCopyModal({
                   <div className='flex items-center space-x-2'>
                     <span
                       className={`px-2 py-1 text-xs rounded-full capitalize ${
-                        template.type === 'student'
+                        template.type === IDCardTemplateType.STUDENT
                           ? 'bg-blue-100 text-blue-800'
-                          : template.type === 'teacher'
+                          : template.type === IDCardTemplateType.TEACHER
                             ? 'bg-green-100 text-green-800'
-                            : template.type === 'staff'
+                            : template.type === IDCardTemplateType.STAFF
                               ? 'bg-purple-100 text-purple-800'
                               : 'bg-orange-100 text-orange-800'
                       }`}
                     >
                       {template.type}
                     </span>
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        template.status === 'Active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {template.status}
+                    <span className='px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800'>
+                      Available
                     </span>
                   </div>
                 </div>
@@ -204,7 +205,9 @@ export default function TemplateCopyModal({
                 </div>
                 <div>
                   <span className='text-gray-500'>Modified:</span>
-                  <p className='font-medium'>{template.lastModified}</p>
+                  <p className='font-medium'>
+                    {new Date(template.updatedAt).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
             </div>
@@ -258,10 +261,18 @@ export default function TemplateCopyModal({
                     }
                     className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent'
                   >
-                    <option value='student'>Student ID Card</option>
-                    <option value='teacher'>Teacher ID Card</option>
-                    <option value='staff'>Staff ID Card</option>
-                    <option value='visitor'>Visitor ID Card</option>
+                    <option value={IDCardTemplateType.STUDENT}>
+                      Student ID Card
+                    </option>
+                    <option value={IDCardTemplateType.TEACHER}>
+                      Teacher ID Card
+                    </option>
+                    <option value={IDCardTemplateType.STAFF}>
+                      Staff ID Card
+                    </option>
+                    <option value={IDCardTemplateType.STAFF_NO_LOGIN}>
+                      Staff (No Login)
+                    </option>
                   </select>
                 </div>
               </div>
@@ -352,31 +363,7 @@ export default function TemplateCopyModal({
                       </div>
                     </div>
 
-                    <div className='flex items-center space-x-2'>
-                      <input
-                        type='checkbox'
-                        id='makeActive'
-                        checked={formData.makeActive}
-                        onChange={e =>
-                          setFormData({
-                            ...formData,
-                            makeActive: e.target.checked,
-                          })
-                        }
-                        className='rounded'
-                      />
-                      <div>
-                        <label
-                          htmlFor='makeActive'
-                          className='text-sm font-medium'
-                        >
-                          Make Active Immediately
-                        </label>
-                        <p className='text-xs text-gray-500'>
-                          Template will be available for use right away
-                        </p>
-                      </div>
-                    </div>
+                    {/* Removed "Make Active" option - all templates are available by default */}
                   </div>
                 </div>
 
