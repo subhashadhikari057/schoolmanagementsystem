@@ -426,19 +426,25 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
               <Button
                 type='button'
                 onClick={isSubmitting ? undefined : handleClose}
-                className={`w-full sm:w-auto bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 ${
-                  isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className={`w-full sm:w-auto bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-6 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg transition-all duration-200 font-medium ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 Cancel
               </Button>
               <Button
                 type='submit'
-                className={`w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 ${
-                  isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className={`w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2.5 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Complaint'}
+                {isSubmitting ? (
+                  <>
+                    <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className='h-4 w-4' />
+                    <span>Submit Complaint</span>
+                  </>
+                )}
               </Button>
             </div>
           </form>
@@ -706,16 +712,16 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                         toast.error('Failed to resolve complaint');
                       }
                     }}
-                    className='w-full sm:w-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm inline-flex items-center justify-center gap-2'
+                    className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium flex items-center justify-center gap-2 text-sm'
                   >
                     <CheckCircle className='h-4 w-4' />
-                    Resolve
+                    <span>Resolve</span>
                   </button>
                 )}
 
               <button
                 onClick={onClose}
-                className='w-full sm:w-auto px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm'
+                className='w-full sm:w-auto bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-4 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg transition-all duration-200 font-medium text-sm'
               >
                 Close
               </button>
@@ -848,7 +854,7 @@ const ComplaintsAndLeavePage = () => {
     rejectorRole?: 'parent' | 'teacher',
   ) => {
     try {
-      if (rejectorRole === 'teacher' || user?.role === 'teacher') {
+      if (rejectorRole === 'teacher' || user?.role === 'TEACHER') {
         await rejectByTeacher(leaveRequestId, reason);
         toast.success('Leave request rejected by teacher successfully');
       } else {
@@ -1169,9 +1175,10 @@ const ComplaintsAndLeavePage = () => {
                 <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
                   <Button
                     onClick={() => handleViewComplaint(complaint)}
-                    className='w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200'
+                    className='w-full sm:w-auto bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2.5 rounded-lg hover:from-slate-700 hover:to-slate-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                   >
                     <Eye className='h-4 w-4' />
+                    <span>View Details</span>
                   </Button>
 
                   {user &&
@@ -1180,10 +1187,10 @@ const ComplaintsAndLeavePage = () => {
                       complaint.status === 'IN_PROGRESS') && (
                       <Button
                         onClick={() => handleResolveComplaint(complaint)}
-                        className='w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl'
+                        className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                       >
-                        <CheckCircle className='h-4 w-4 mr-2' />
-                        Resolve
+                        <CheckCircle className='h-4 w-4' />
+                        <span>Resolve</span>
                       </Button>
                     )}
 
@@ -1193,9 +1200,10 @@ const ComplaintsAndLeavePage = () => {
                       complaint.status === 'IN_PROGRESS') && (
                       <Button
                         onClick={() => handleCancelComplaint(complaint)}
-                        className='w-full sm:w-auto bg-gradient-to-r from-orange-600 to-orange-700 text-white px-4 py-2 rounded-xl hover:from-orange-700 hover:to-orange-800 shadow-lg hover:shadow-xl'
+                        className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                       >
                         <X className='h-4 w-4' />
+                        <span>Cancel</span>
                       </Button>
                     )}
                 </div>
@@ -1294,9 +1302,9 @@ const ComplaintsAndLeavePage = () => {
                   <p className='text-2xl font-bold text-orange-600'>
                     {
                       leaveRequests.filter(l => {
-                        if (user?.role === 'teacher') {
+                        if (user?.role === 'TEACHER') {
                           return l.status === 'PENDING_TEACHER_APPROVAL';
-                        } else if (user?.role === 'parent') {
+                        } else if (user?.role === 'PARENT') {
                           return l.status === 'PENDING_PARENT_APPROVAL';
                         } else {
                           return (
@@ -1332,25 +1340,25 @@ const ComplaintsAndLeavePage = () => {
                 {/* Pending / Active */}
                 <div className='mb-8'>
                   <h4 className='text-lg sm:text-xl font-semibold text-slate-800 mb-2 sm:mb-4'>
-                    {user?.role === 'teacher'
+                    {user?.role === 'TEACHER'
                       ? 'Parent-Approved Leave Requests'
-                      : user?.role === 'parent'
+                      : user?.role === 'PARENT'
                         ? 'Pending Leave Requests'
                         : 'Active Leave Requests'}
                   </h4>
                   <p className='text-slate-600 text-sm mb-3 sm:mb-4'>
-                    {user?.role === 'teacher'
+                    {user?.role === 'TEACHER'
                       ? 'These are leave requests approved by parents that require your approval.'
-                      : user?.role === 'parent'
+                      : user?.role === 'PARENT'
                         ? 'These are leave requests from your children that require your approval.'
                         : "These are your pending leave requests. You can cancel them if they haven't been approved by your parent yet."}
                   </p>
 
                   <div className='space-y-4'>
                     {leaveRequests.filter(l => {
-                      if (user?.role === 'teacher') {
+                      if (user?.role === 'TEACHER') {
                         return l.status === 'PENDING_TEACHER_APPROVAL';
-                      } else if (user?.role === 'parent') {
+                      } else if (user?.role === 'PARENT') {
                         return l.status === 'PENDING_PARENT_APPROVAL';
                       } else {
                         return (
@@ -1364,16 +1372,16 @@ const ComplaintsAndLeavePage = () => {
                           <Clock className='h-6 w-6 text-slate-400' />
                         </div>
                         <p className='text-slate-500 font-medium'>
-                          {user?.role === 'teacher'
+                          {user?.role === 'TEACHER'
                             ? 'No parent-approved leave requests'
-                            : user?.role === 'parent'
+                            : user?.role === 'PARENT'
                               ? 'No pending leave requests'
                               : 'No pending leave requests'}
                         </p>
                         <p className='text-slate-400 text-sm mt-1'>
-                          {user?.role === 'teacher'
+                          {user?.role === 'TEACHER'
                             ? 'All leave requests are either pending parent approval or have been processed'
-                            : user?.role === 'parent'
+                            : user?.role === 'PARENT'
                               ? 'All leave requests have been processed'
                               : 'All your leave requests have been processed'}
                         </p>
@@ -1381,9 +1389,9 @@ const ComplaintsAndLeavePage = () => {
                     ) : (
                       leaveRequests
                         .filter(l => {
-                          if (user?.role === 'teacher') {
+                          if (user?.role === 'TEACHER') {
                             return l.status === 'PENDING_TEACHER_APPROVAL';
-                          } else if (user?.role === 'parent') {
+                          } else if (user?.role === 'PARENT') {
                             return l.status === 'PENDING_PARENT_APPROVAL';
                           } else {
                             return (
@@ -1429,7 +1437,7 @@ const ComplaintsAndLeavePage = () => {
                                   </span>
                                   <span className='inline-flex items-center gap-1.5'>
                                     <span className='w-2 h-2 bg-yellow-500 rounded-full' />
-                                    {user?.role === 'teacher'
+                                    {user?.role === 'TEACHER'
                                       ? 'Parent Approved - Awaiting Teacher'
                                       : leaveRequest.status ===
                                           'PENDING_PARENT_APPROVAL'
@@ -1447,7 +1455,7 @@ const ComplaintsAndLeavePage = () => {
                               <div className='sm:ml-4 sm:justify-self-end'>
                                 <span
                                   className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-medium ${
-                                    user?.role === 'teacher'
+                                    user?.role === 'TEACHER'
                                       ? 'bg-green-50 text-green-700'
                                       : leaveRequest.status ===
                                           'PENDING_PARENT_APPROVAL'
@@ -1455,7 +1463,7 @@ const ComplaintsAndLeavePage = () => {
                                         : 'bg-blue-50 text-blue-700'
                                   }`}
                                 >
-                                  {user?.role === 'teacher'
+                                  {user?.role === 'TEACHER'
                                     ? 'Parent Approved'
                                     : leaveRequest.status ===
                                         'PENDING_PARENT_APPROVAL'
@@ -1488,26 +1496,29 @@ const ComplaintsAndLeavePage = () => {
                                 </span>
                               </div>
 
-                              <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
+                              <div className='flex flex-col sm:flex-row gap-3 w-full sm:w-auto'>
+                                {/* View Details Button - Always Available */}
                                 <Button
                                   onClick={() =>
                                     handleViewLeaveRequest(leaveRequest)
                                   }
-                                  className='w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200'
+                                  className='w-full sm:w-auto bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2.5 rounded-lg hover:from-slate-700 hover:to-slate-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
                                   <Eye className='h-4 w-4' />
+                                  <span>View Details</span>
                                 </Button>
 
-                                {user?.role === 'parent' ? (
+                                {/* Role-Specific Action Buttons */}
+                                {user?.role === 'PARENT' ? (
                                   <>
                                     <Button
                                       onClick={() =>
                                         handleParentApprove(leaveRequest.id)
                                       }
-                                      className='w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl'
+                                      className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                     >
-                                      <CheckCircle className='h-4 w-4 mr-2' />
-                                      Approve
+                                      <CheckCircle className='h-4 w-4' />
+                                      <span>Approve as Parent</span>
                                     </Button>
                                     <Button
                                       onClick={() => {
@@ -1517,22 +1528,22 @@ const ComplaintsAndLeavePage = () => {
                                         });
                                         setRejectReasonModalOpen(true);
                                       }}
-                                      className='w-full sm:w-auto bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl'
+                                      className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                     >
-                                      <X className='h-4 w-4 mr-2' />
-                                      Reject
+                                      <X className='h-4 w-4' />
+                                      <span>Reject Request</span>
                                     </Button>
                                   </>
-                                ) : user?.role === 'teacher' ? (
+                                ) : user?.role === 'TEACHER' ? (
                                   <>
                                     <Button
                                       onClick={() =>
                                         handleTeacherApprove(leaveRequest.id)
                                       }
-                                      className='w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl'
+                                      className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                     >
-                                      <CheckCircle className='h-4 w-4 mr-2' />
-                                      Approve
+                                      <CheckCircle className='h-4 w-4' />
+                                      <span>Approve as Teacher</span>
                                     </Button>
                                     <Button
                                       onClick={() => {
@@ -1542,10 +1553,10 @@ const ComplaintsAndLeavePage = () => {
                                         });
                                         setRejectReasonModalOpen(true);
                                       }}
-                                      className='w-full sm:w-auto bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl'
+                                      className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                     >
-                                      <X className='h-4 w-4 mr-2' />
-                                      Reject
+                                      <X className='h-4 w-4' />
+                                      <span>Reject Request</span>
                                     </Button>
                                   </>
                                 ) : (
@@ -1556,9 +1567,10 @@ const ComplaintsAndLeavePage = () => {
                                         setLeaveRequestToCancel(leaveRequest);
                                         setCancelConfirmationModalOpen(true);
                                       }}
-                                      className='w-full sm:w-auto bg-gradient-to-r from-orange-600 to-orange-700 text-white px-4 py-2 rounded-xl hover:from-orange-700 hover:to-orange-800 shadow-lg hover:shadow-xl'
+                                      className='w-full sm:w-auto bg-gradient-to-r from-amber-600 to-amber-700 text-white px-4 py-2.5 rounded-lg hover:from-amber-700 hover:to-amber-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                     >
-                                      <X className='h-4 w-4 mr-2' />
+                                      <X className='h-4 w-4' />
+                                      <span>Cancel Request</span>
                                     </Button>
                                   )
                                 )}
@@ -1666,14 +1678,15 @@ const ComplaintsAndLeavePage = () => {
                                 </span>
                               </div>
 
-                              <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
+                              <div className='flex flex-col sm:flex-row gap-3 w-full sm:w-auto'>
                                 <Button
                                   onClick={() =>
                                     handleViewLeaveRequest(leaveRequest)
                                   }
-                                  className='w-full sm:w-auto bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-200'
+                                  className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
                                   <Eye className='h-4 w-4' />
+                                  <span>View Approved</span>
                                 </Button>
                               </div>
                             </div>
@@ -1779,14 +1792,15 @@ const ComplaintsAndLeavePage = () => {
                                 </span>
                               </div>
 
-                              <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
+                              <div className='flex flex-col sm:flex-row gap-3 w-full sm:w-auto'>
                                 <Button
                                   onClick={() =>
                                     handleViewLeaveRequest(leaveRequest)
                                   }
-                                  className='w-full sm:w-auto bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transition-all duration-200'
+                                  className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
                                   <Eye className='h-4 w-4' />
+                                  <span>View Rejected</span>
                                 </Button>
                               </div>
                             </div>
@@ -1810,7 +1824,7 @@ const ComplaintsAndLeavePage = () => {
   return (
     <div className='min-h-screen p-4 sm:p-6'>
       {/* Conditionally render the appropriate complaint modal based on user role */}
-      {user?.role === 'teacher' ? (
+      {user?.role === 'TEACHER' ? (
         <TeacherComplaintModal
           open={complaintModalOpen}
           onClose={() => setComplaintModalOpen(false)}
@@ -2024,7 +2038,7 @@ const ComplaintsAndLeavePage = () => {
                   setLeaveRequestToCancel(null);
                 }}
                 disabled={cancelling}
-                className='w-full sm:w-auto bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium'
+                className='w-full sm:w-auto bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-6 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm hover:shadow-md transition-all duration-200'
               >
                 Keep Request
               </Button>
@@ -2037,7 +2051,7 @@ const ComplaintsAndLeavePage = () => {
                   setCancelling(false);
                 }}
                 disabled={cancelling}
-                className='w-full sm:w-auto bg-orange-600 text-white px-6 py-2.5 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 font-medium shadow-sm'
+                className='w-full sm:w-auto bg-gradient-to-r from-amber-600 to-amber-700 text-white px-6 py-2.5 rounded-lg hover:from-amber-700 hover:to-amber-800 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 font-medium shadow-md hover:shadow-lg transition-all duration-200'
               >
                 {cancelling ? (
                   <>
@@ -2344,15 +2358,16 @@ const ComplaintsAndLeavePage = () => {
                       setRejectReasonModalOpen(false);
                       setLeaveRequestToReject(null);
                     }}
-                    className='w-full sm:w-auto bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300'
+                    className='w-full sm:w-auto bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-6 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 shadow-sm hover:shadow-md transition-all duration-200 font-medium'
                   >
                     Cancel
                   </Button>
                   <Button
                     type='submit'
-                    className='w-full sm:w-auto bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700'
+                    className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-6 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium flex items-center justify-center gap-2'
                   >
-                    Reject Request
+                    <X className='h-4 w-4' />
+                    <span>Reject Request</span>
                   </Button>
                 </div>
               </form>
