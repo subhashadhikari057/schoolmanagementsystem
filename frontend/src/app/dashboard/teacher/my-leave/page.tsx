@@ -171,10 +171,10 @@ export default function MyLeavePage() {
           </div>
           <Button
             onClick={() => setIsCreateModalOpen(true)}
-            className='bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 flex items-center gap-2 w-full sm:w-auto justify-center'
+            className='bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 sm:px-6 py-2.5 rounded-lg text-sm font-medium hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 w-full sm:w-auto'
           >
             <Plus className='w-4 h-4' />
-            <span>New Leave Request</span>
+            <span>Create Leave Request</span>
           </Button>
         </div>
       </div>
@@ -353,10 +353,10 @@ export default function MyLeavePage() {
                               <Button
                                 onClick={() => handleCancelRequest(request)}
                                 disabled={cancelLoading}
-                                className='px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-100 hover:border-red-300 transition-colors disabled:opacity-50 flex items-center gap-1.5'
+                                className='px-4 py-2 bg-gradient-to-r from-rose-600 to-rose-700 text-white border border-rose-600 rounded-lg text-sm font-medium hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2'
                               >
                                 <Trash2 className='w-4 h-4' />
-                                Cancel
+                                <span>Cancel Request</span>
                               </Button>
                             )}
                           </div>
@@ -497,24 +497,24 @@ export default function MyLeavePage() {
                   })
                 }
                 disabled={cancelLoading}
-                className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50'
+                className='px-4 py-2.5 text-gray-700 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-lg transition-all duration-200 disabled:opacity-50 font-medium text-sm shadow-sm hover:shadow-md'
               >
                 Keep Request
               </Button>
               <Button
                 onClick={confirmCancelRequest}
                 disabled={cancelLoading}
-                className='px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2'
+                className='px-4 py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 text-white hover:from-rose-700 hover:to-rose-800 rounded-lg transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 font-medium text-sm shadow-md hover:shadow-lg'
               >
                 {cancelLoading ? (
                   <>
                     <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-                    Cancelling...
+                    <span>Cancelling...</span>
                   </>
                 ) : (
                   <>
                     <Trash2 className='h-4 w-4' />
-                    Yes, Cancel Request
+                    <span>Yes, Cancel Request</span>
                   </>
                 )}
               </Button>

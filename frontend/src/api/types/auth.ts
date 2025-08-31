@@ -23,7 +23,14 @@ export interface LoginResponse {
   user: {
     id: string;
     full_name: string;
-    role: 'admin' | 'student' | 'teacher' | 'parent' | 'superadmin';
+    role:
+      | 'ADMIN'
+      | 'STUDENT'
+      | 'TEACHER'
+      | 'PARENT'
+      | 'SUPER_ADMIN'
+      | 'ACCOUNTANT'
+      | 'STAFF';
   };
 }
 
@@ -47,7 +54,14 @@ export interface RefreshTokenResponse {
 export interface MeResponse {
   id: string;
   email: string;
-  role: 'admin' | 'student' | 'teacher' | 'parent' | 'superadmin';
+  role:
+    | 'ADMIN'
+    | 'STUDENT'
+    | 'TEACHER'
+    | 'PARENT'
+    | 'SUPER_ADMIN'
+    | 'ACCOUNTANT'
+    | 'STAFF';
   isActive: boolean;
   full_name?: string; // Not in backend response, will need to get from other source
   phone?: string;
@@ -104,7 +118,14 @@ export interface AuthErrorResponse {
 export interface AuthUser {
   id: string;
   email: string;
-  role: 'admin' | 'student' | 'teacher' | 'parent' | 'superadmin';
+  role:
+    | 'ADMIN'
+    | 'STUDENT'
+    | 'TEACHER'
+    | 'PARENT'
+    | 'SUPER_ADMIN'
+    | 'ACCOUNTANT'
+    | 'STAFF';
   isActive: boolean;
   full_name?: string; // Optional - not in backend response
   phone?: string;
