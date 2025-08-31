@@ -29,7 +29,11 @@ export class CreateSubmissionDto {
 
   @IsString()
   @IsOptional()
-  feedback?: string;
+  feedback?: string; // Teacher's grading remarks
+
+  @IsString()
+  @IsOptional()
+  studentNotes?: string; // Student's submission comments
 
   @IsArray()
   @IsOptional()
@@ -43,7 +47,11 @@ export class UpdateSubmissionDto {
 
   @IsString()
   @IsOptional()
-  feedback?: string;
+  feedback?: string; // Teacher's grading remarks
+
+  @IsString()
+  @IsOptional()
+  studentNotes?: string; // Student's submission comments
 
   @IsArray()
   @IsOptional()

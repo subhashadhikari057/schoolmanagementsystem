@@ -11,17 +11,28 @@ interface TabItem {
 interface TabsProps {
   tabs: TabItem[];
   defaultIndex?: number;
+  selectedIndex?: number; // For controlled state
+  onChange?: (index: number) => void; // For controlled state
   className?: string;
 }
 
 export default function Tabs({
   tabs,
   defaultIndex = 0,
+  selectedIndex,
+  onChange,
   className = '',
 }: TabsProps) {
+  // Use controlled state if provided, otherwise use defaultIndex
+  const isControlled = selectedIndex !== undefined && onChange !== undefined;
+
   return (
     <div className={` w-full ${className}`}>
-      <TabGroup defaultIndex={defaultIndex}>
+      <TabGroup
+        selectedIndex={isControlled ? selectedIndex : undefined}
+        defaultIndex={isControlled ? undefined : defaultIndex}
+        onChange={isControlled ? onChange : undefined}
+      >
         <TabList className='flex rounded-full items-center justify-between mb-2 bg-white shadow-sm p-2 overflow-x-auto no-scrollbar'>
           {tabs.map((tab, _idx) => (
             <Tab key={tab.name} className='flex-1 focus:outline-none'>

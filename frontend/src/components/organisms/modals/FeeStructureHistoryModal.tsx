@@ -16,6 +16,61 @@ import { format } from 'date-fns';
 import { feeService } from '@/api/services/fee.service';
 import { toast } from 'sonner';
 
+// Enhanced error handler for history modal
+const getErrorMessage = (error: unknown): string => {
+  if (error && typeof error === 'object') {
+    const apiError = error as {
+      message?: string;
+      response?: { data?: { message?: string } };
+      error?: { message?: string };
+    };
+
+    const errorMessage =
+      apiError.message ||
+      apiError.response?.data?.message ||
+      apiError.error?.message;
+
+    // Map specific API errors to user-friendly messages
+    switch (errorMessage) {
+      case 'Network Error':
+      case 'ERR_NETWORK':
+        return 'Network connection failed. Please check your internet connection and try again.';
+      case 'Request timeout':
+      case 'TIMEOUT':
+        return 'Request timed out. The server is taking too long to respond. Please try again.';
+      case 'Unauthorized':
+      case 'Authentication failed':
+        return 'Your session has expired. Please refresh the page and log in again.';
+      case 'Forbidden':
+      case 'Access denied':
+        return 'You do not have permission to view this fee structure history.';
+      case 'Fee structure not found':
+      case 'Structure not found':
+        return 'The fee structure could not be found. It may have been deleted.';
+      case 'No history available':
+        return 'No history records are available for this fee structure.';
+      case 'Invalid structure ID':
+        return 'Invalid fee structure identifier. Please try again from the main list.';
+      case 'Database connection failed':
+        return 'Database connection error. Please try again in a few moments.';
+      case 'Server error':
+      case 'Internal server error':
+        return 'Server error occurred. Please try again later or contact support.';
+      default:
+        return (
+          errorMessage ||
+          'Failed to load fee structure history. Please try again.'
+        );
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message || 'An error occurred while loading the history.';
+  }
+
+  return 'An unexpected error occurred while loading the history.';
+};
+
 interface HistoryEntry {
   id: string;
   version: number;
@@ -71,8 +126,12 @@ const FeeStructureHistoryModal: React.FC<FeeStructureHistoryModalProps> = ({
         })
         .catch(err => {
           console.error('Error fetching history:', err);
-          setError('Failed to load fee structure history');
-          toast.error('Failed to load history');
+          const errorMessage = getErrorMessage(err);
+          setError(errorMessage);
+          toast.error('Failed to Load Fee Structure History', {
+            description: errorMessage,
+            duration: 5000,
+          });
         })
         .finally(() => {
           setLoading(false);
@@ -126,17 +185,59 @@ const FeeStructureHistoryModal: React.FC<FeeStructureHistoryModalProps> = ({
     );
   }
 
-  // Show error state
+  // Show error state with enhanced messaging
   if (error) {
     return (
-      <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+      <div className='fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
         <div className='bg-white rounded-xl p-8 w-full max-w-md shadow-2xl animate-in fade-in duration-300'>
           <div className='text-center mb-4'>
             <AlertCircle className='h-8 w-8 text-red-500 mx-auto mb-2' />
-            <p className='text-red-500 font-medium'>Error loading history</p>
+            <p className='text-red-500 font-medium'>Error Loading History</p>
             <p className='text-gray-600 text-sm mt-1'>{error}</p>
           </div>
-          <div className='flex justify-end'>
+          <div className='flex justify-end space-x-3'>
+            <button
+              onClick={() => {
+                try {
+                  setError(null);
+                  // Retry loading history
+                  if (structureId) {
+                    setLoading(true);
+                    feeService
+                      .history(structureId)
+                      .then(historyData => {
+                        setHistory(historyData || []);
+                        if (historyData && historyData.length > 0) {
+                          setSelectedVersion(
+                            historyData[historyData.length - 1].version,
+                          );
+                        }
+                        toast.success('History loaded successfully');
+                      })
+                      .catch(err => {
+                        console.error('Retry error:', err);
+                        const retryErrorMessage = getErrorMessage(err);
+                        setError(retryErrorMessage);
+                        toast.error('Retry Failed', {
+                          description: retryErrorMessage,
+                        });
+                      })
+                      .finally(() => {
+                        setLoading(false);
+                      });
+                  }
+                } catch (err) {
+                  console.error('Error during retry:', err);
+                  toast.error('Unable to retry', {
+                    description:
+                      'An error occurred while retrying. Please close and try again.',
+                  });
+                }
+              }}
+              className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+            >
+              Retry
+            </button>
             <button
               onClick={onClose}
               className='px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors'
@@ -150,7 +251,7 @@ const FeeStructureHistoryModal: React.FC<FeeStructureHistoryModalProps> = ({
   }
 
   return (
-    <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto'>
+    <div className='fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto'>
       <div className='bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-300'>
         {/* Header */}
         <div className='flex items-center justify-between p-6 border-b bg-gradient-to-r from-purple-50 to-indigo-50'>
@@ -202,7 +303,17 @@ const FeeStructureHistoryModal: React.FC<FeeStructureHistoryModalProps> = ({
                             ? 'bg-blue-100 border-blue-300 shadow-sm'
                             : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
                         }`}
-                        onClick={() => setSelectedVersion(entry.version)}
+                        onClick={() => {
+                          try {
+                            setSelectedVersion(entry.version);
+                          } catch (err) {
+                            console.error('Error selecting version:', err);
+                            toast.error('Failed to Select Version', {
+                              description:
+                                'Unable to select this version. Please try again.',
+                            });
+                          }
+                        }}
                       >
                         <div className='flex items-center justify-between mb-2'>
                           <div className='flex items-center space-x-2'>

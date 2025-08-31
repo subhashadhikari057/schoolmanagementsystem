@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   Award,
@@ -94,72 +94,142 @@ interface AssignForm {
   reason?: string;
 }
 
-/**
- * Enhanced Error Handling for Fee Management
- *
- * This component now includes sophisticated error handling that provides
- * user-friendly feedback for common API errors, including:
- *
- * 1. Duplicate Assignment Prevention:
- *    - "Student already has this scholarship assigned"
- *    - Shows detailed explanation with actionable steps
- *
- * 2. Resource Not Found Errors:
- *    - Scholarship/Charge/Student not found scenarios
- *    - Provides context about why it might happen
- *
- * 3. Validation Errors:
- *    - Date validation with specific guidance
- *    - Required field validation
- *
- * 4. Network/System Errors:
- *    - Connection issues, timeouts
- *    - Graceful degradation with retry suggestions
- *
- * Usage Example:
- * When API returns: {"message": "Student already has this scholarship assigned"}
- * User sees: Detailed multi-line explanation with emojis and action steps
- */
+// Enhanced Error Handling for Fee Management
+//
+// This component now includes sophisticated error handling that provides
+// user-friendly feedback for common API errors, including:
+//
+// 1. Network and Connection Errors:
+//    - Network failures, timeouts, connection issues
+//    - Provides retry suggestions and clear explanations
+//
+// 2. Authentication and Authorization Errors:
+//    - Session expiry, permission denied scenarios
+//    - Guides users to appropriate actions
+//
+// 3. Duplicate Assignment Prevention:
+//    - "Student already has this scholarship assigned"
+//    - Shows detailed explanation with actionable steps
+//
+// 4. Resource Not Found Errors:
+//    - Scholarship/Charge/Student not found scenarios
+//    - Provides context about why it might happen
+//
+// 5. Validation Errors:
+//    - Date validation with specific guidance
+//    - Required field validation with clear instructions
+//
+// 6. Database and Server Errors:
+//    - Database connection issues, server errors
+//    - Graceful degradation with retry suggestions
+//
+// Usage Example:
+// When API returns: {"message": "Student already has this scholarship assigned"}
+// User sees: Detailed popup with explanation and action steps
 
-// Error handling utility to provide user-friendly messages
-// Simple error handler that extracts user-friendly messages
+// Enhanced error handler that extracts user-friendly messages
 const getErrorMessage = (error: unknown): string => {
   if (error && typeof error === 'object') {
     const apiError = error as {
       message?: string;
       response?: { data?: { message?: string } };
+      error?: { message?: string };
     };
 
-    const errorMessage = apiError.message || apiError.response?.data?.message;
+    const errorMessage =
+      apiError.message ||
+      apiError.response?.data?.message ||
+      apiError.error?.message;
 
     // Map specific API errors to user-friendly messages
     switch (errorMessage) {
+      // Network and connection errors
+      case 'Network Error':
+      case 'ERR_NETWORK':
+        return 'Network connection failed. Please check your internet connection and try again.';
+      case 'Request timeout':
+      case 'TIMEOUT':
+        return 'Request timed out. The server is taking too long to respond. Please try again.';
+
+      // Authentication and authorization errors
+      case 'Unauthorized':
+      case 'Authentication failed':
+        return 'Your session has expired. Please refresh the page and log in again.';
+      case 'Forbidden':
+      case 'Access denied':
+        return 'You do not have permission to perform this action. Contact your administrator.';
+
+      // Assignment and duplicate errors
       case 'Student already has this scholarship assigned':
-        return 'This scholarship is already assigned to selected student(s)';
+        return 'This scholarship is already assigned to one or more selected students. Please check existing assignments.';
       case 'Student already has this charge assigned':
-        return 'This charge is already applied to selected student(s)';
+        return 'This charge is already applied to one or more selected students. Please check existing charges.';
+
+      // Resource not found errors
       case 'Scholarship not found':
-        return 'Scholarship not found - please refresh and try again';
+        return 'The scholarship could not be found. It may have been deleted or deactivated.';
       case 'Charge not found':
-        return 'Charge not found - please refresh and try again';
+        return 'The charge could not be found. It may have been deleted or deactivated.';
       case 'Student not found':
-        return 'One or more students not found - please refresh student list';
+        return 'One or more students could not be found. Please refresh the student list and try again.';
+
+      // Validation errors
       case 'Invalid effective date':
-        return 'Please enter a valid date';
+        return 'Please enter a valid date in the correct format (YYYY-MM-DD).';
       case 'Effective date cannot be in the past':
-        return 'Date cannot be in the past';
+        return "The effective date cannot be in the past. Please select today's date or a future date.";
       case 'Expires date must be after effective date':
-        return 'End date must be after start date';
+        return 'The expiry date must be after the effective date. Please adjust the dates.';
+      case 'Invalid month format':
+        return 'Please enter a valid month in YYYY-MM format.';
+      case 'Month cannot be in the past':
+        return 'The selected month cannot be in the past. Please choose the current month or a future month.';
+
+      // Data validation errors
+      case 'Missing required fields':
+        return 'Please fill in all required fields before submitting.';
+      case 'Invalid value type':
+        return 'Please select a valid value type (percentage or fixed amount).';
+      case 'Invalid amount':
+        return 'Please enter a valid positive amount.';
+      case 'Amount too large':
+        return 'The amount is too large. Please enter a smaller value.';
+      case 'Name already exists':
+        return 'A scholarship or charge with this name already exists. Please choose a different name.';
+
+      // Database and server errors
+      case 'Database connection failed':
+        return 'Database connection error. Please try again in a few moments.';
+      case 'Server error':
+      case 'Internal server error':
+        return 'Server error occurred. Our technical team has been notified. Please try again later.';
+      case 'Service unavailable':
+        return 'The service is temporarily unavailable. Please try again in a few minutes.';
+
+      // Default cases
       default:
-        return errorMessage || 'Operation failed - please try again';
+        // Handle specific database precision errors
+        if (
+          errorMessage?.includes('numeric field overflow') ||
+          errorMessage?.includes('precision 10, scale 2')
+        ) {
+          return 'One or more amounts are too large. Please ensure amounts are less than 100,000,000 (100 million).';
+        }
+        if (errorMessage?.includes('A field with precision')) {
+          return 'Amount value is too large for the database. Please use a smaller amount.';
+        }
+        return (
+          errorMessage ||
+          'Operation failed. Please try again or contact support if the problem persists.'
+        );
     }
   }
 
   if (error instanceof Error) {
-    return error.message || 'An error occurred';
+    return error.message || 'An error occurred while processing your request.';
   }
 
-  return 'An unexpected error occurred';
+  return 'An unexpected error occurred. Please try again.';
 };
 
 export const ScholarshipsChargesTab: React.FC = () => {
@@ -226,8 +296,14 @@ export const ScholarshipsChargesTab: React.FC = () => {
         description: `${item.type} scholarship - ${item.valueType === 'PERCENTAGE' ? item.value + '%' : '$' + item.value}`,
       }));
       setScholarships(extendedData);
+      toast.success('Scholarships loaded successfully');
     } catch (error) {
       console.error('Failed to load scholarships:', error);
+      const errorMessage = getErrorMessage(error);
+      toast.error('Failed to Load Scholarships', {
+        description: errorMessage,
+        duration: 5000,
+      });
     } finally {
       setLoading(false);
     }
@@ -243,8 +319,14 @@ export const ScholarshipsChargesTab: React.FC = () => {
         description: `${item.type} charge - ${item.valueType === 'PERCENTAGE' ? item.value + '%' : '$' + item.value}`,
       }));
       setCharges(extendedData);
+      toast.success('Charges loaded successfully');
     } catch (error) {
       console.error('Failed to load charges:', error);
+      const errorMessage = getErrorMessage(error);
+      toast.error('Failed to Load Charges', {
+        description: errorMessage,
+        duration: 5000,
+      });
     } finally {
       setLoading(false);
     }
@@ -278,8 +360,12 @@ export const ScholarshipsChargesTab: React.FC = () => {
         setCharges(extendedCharges);
       } catch (error) {
         console.error('Failed to load initial data:', error);
-        // Use alert for immediate feedback
-        alert(`Error: ${getErrorMessage(error)}`);
+        const errorMessage = getErrorMessage(error);
+        // Show user-friendly popup instead of generic alert
+        toast.error('Failed to Load Initial Data', {
+          description: errorMessage,
+          duration: 6000,
+        });
       } finally {
         setLoading(false);
       }
@@ -294,7 +380,10 @@ export const ScholarshipsChargesTab: React.FC = () => {
     try {
       setLoading(true);
       await feeService.createScholarship(createScholarshipForm);
-      toast.success('Scholarship created successfully');
+      toast.success('Scholarship Created Successfully', {
+        description: `"${createScholarshipForm.name}" has been created and is now available for assignment.`,
+        duration: 4000,
+      });
       setShowCreateScholarship(false);
       setCreateScholarshipForm({
         name: '',
@@ -305,7 +394,13 @@ export const ScholarshipsChargesTab: React.FC = () => {
       });
       loadScholarships();
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const errorMessage = getErrorMessage(error);
+      toast.error('Failed to Create Scholarship', {
+        description: errorMessage,
+        duration: 5000,
+      });
+      // Prevent error from propagating to Next.js error boundary
+      return;
     } finally {
       setLoading(false);
     }
@@ -316,7 +411,10 @@ export const ScholarshipsChargesTab: React.FC = () => {
     try {
       setLoading(true);
       await feeService.createCharge(createChargeForm);
-      toast.success('Charge created successfully');
+      toast.success('Charge Created Successfully', {
+        description: `"${createChargeForm.name}" has been created and is now available for application.`,
+        duration: 4000,
+      });
       setShowCreateCharge(false);
       setCreateChargeForm({
         name: '',
@@ -329,7 +427,13 @@ export const ScholarshipsChargesTab: React.FC = () => {
       });
       loadCharges();
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const errorMessage = getErrorMessage(error);
+      toast.error('Failed to Create Charge', {
+        description: errorMessage,
+        duration: 5000,
+      });
+      // Prevent error from propagating to Next.js error boundary
+      return;
     } finally {
       setLoading(false);
     }
@@ -341,8 +445,9 @@ export const ScholarshipsChargesTab: React.FC = () => {
     try {
       setLoading(true);
       if (selectedStudents.length === 0)
-        throw new Error('Select at least one student');
-      if (!assignForm.effectiveFrom) throw new Error('Effective date required');
+        throw new Error('Please select at least one student');
+      if (!assignForm.effectiveFrom)
+        throw new Error('Effective date is required');
 
       const effectiveFromISO = new Date(assignForm.effectiveFrom).toISOString();
       const expiresAtISO = assignForm.expiresAt
@@ -355,13 +460,21 @@ export const ScholarshipsChargesTab: React.FC = () => {
         effectiveFrom: effectiveFromISO,
         expiresAt: expiresAtISO,
       });
-      toast.success(
-        `Scholarship assigned to ${selectedStudents.length} student(s)`,
-      );
+
+      toast.success('Scholarship Assigned Successfully', {
+        description: `Scholarship assigned to ${selectedStudents.length} student${selectedStudents.length > 1 ? 's' : ''}.`,
+        duration: 4000,
+      });
       setShowAssignModal(false);
       resetAssignForm();
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const errorMessage = getErrorMessage(error);
+      toast.error('Failed to Assign Scholarship', {
+        description: errorMessage,
+        duration: 5000,
+      });
+      // Prevent error from propagating to Next.js error boundary
+      return;
     } finally {
       setLoading(false);
     }
@@ -372,8 +485,9 @@ export const ScholarshipsChargesTab: React.FC = () => {
     try {
       setLoading(true);
       if (selectedStudents.length === 0)
-        throw new Error('Select at least one student');
-      if (!assignForm.appliedMonth) throw new Error('Month required (YYYY-MM)');
+        throw new Error('Please select at least one student');
+      if (!assignForm.appliedMonth)
+        throw new Error('Month is required (YYYY-MM format)');
 
       await feeService.applyCharge({
         chargeId: assignForm.chargeId!,
@@ -381,11 +495,21 @@ export const ScholarshipsChargesTab: React.FC = () => {
         appliedMonth: assignForm.appliedMonth!,
         reason: assignForm.reason || undefined,
       });
-      toast.success(`Charge applied to ${selectedStudents.length} student(s)`);
+
+      toast.success('Charge Applied Successfully', {
+        description: `Charge applied to ${selectedStudents.length} student${selectedStudents.length > 1 ? 's' : ''}.`,
+        duration: 4000,
+      });
       setShowAssignModal(false);
       resetAssignForm();
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const errorMessage = getErrorMessage(error);
+      toast.error('Failed to Apply Charge', {
+        description: errorMessage,
+        duration: 5000,
+      });
+      // Prevent error from propagating to Next.js error boundary
+      return;
     } finally {
       setLoading(false);
     }
@@ -459,13 +583,26 @@ export const ScholarshipsChargesTab: React.FC = () => {
         <div className='flex items-center gap-1'>
           <button
             onClick={() => {
-              if (!row.isActive) {
-                toast.error('Cannot assign deactivated scholarship');
-                return;
+              try {
+                if (!row.isActive) {
+                  toast.error('Cannot Assign Deactivated Scholarship', {
+                    description:
+                      'This scholarship is currently deactivated. Please activate it first to assign to students.',
+                    duration: 4000,
+                  });
+                  return;
+                }
+                setSelectedItem(row);
+                setAssignForm(prev => ({ ...prev, scholarshipId: row.id }));
+                setShowAssignModal(true);
+              } catch (err) {
+                console.error('Error opening assignment modal:', err);
+                toast.error('Failed to Open Assignment Form', {
+                  description:
+                    'Unable to prepare scholarship assignment. Please try again.',
+                  duration: 4000,
+                });
               }
-              setSelectedItem(row);
-              setAssignForm(prev => ({ ...prev, scholarshipId: row.id }));
-              setShowAssignModal(true);
             }}
             className={`p-1.5 rounded-md ${
               row.isActive
@@ -494,14 +631,27 @@ export const ScholarshipsChargesTab: React.FC = () => {
               try {
                 if (row.isActive) {
                   await feeService.deactivateScholarship(row.id);
-                  toast.success('Scholarship deactivated successfully');
+                  toast.success('Scholarship Deactivated', {
+                    description: `"${row.name}" has been deactivated successfully.`,
+                    duration: 3000,
+                  });
                 } else {
                   await feeService.reactivateScholarship(row.id);
-                  toast.success('Scholarship reactivated successfully');
+                  toast.success('Scholarship Activated', {
+                    description: `"${row.name}" has been reactivated successfully.`,
+                    duration: 3000,
+                  });
                 }
                 loadScholarships();
               } catch (error) {
-                toast.error((error as Error).message);
+                const errorMessage = getErrorMessage(error);
+                toast.error(
+                  `Failed to ${row.isActive ? 'Deactivate' : 'Activate'} Scholarship`,
+                  {
+                    description: errorMessage,
+                    duration: 4000,
+                  },
+                );
               }
             }}
             className={`p-1.5 rounded-md transition-colors ${
@@ -593,9 +743,18 @@ export const ScholarshipsChargesTab: React.FC = () => {
         <div className='flex items-center gap-1'>
           <button
             onClick={() => {
-              setSelectedItem(row);
-              setAssignForm(prev => ({ ...prev, chargeId: row.id }));
-              setShowAssignModal(true);
+              try {
+                setSelectedItem(row);
+                setAssignForm(prev => ({ ...prev, chargeId: row.id }));
+                setShowAssignModal(true);
+              } catch (err) {
+                console.error('Error opening charge application modal:', err);
+                toast.error('Failed to Open Charge Application Form', {
+                  description:
+                    'Unable to prepare charge application. Please try again.',
+                  duration: 4000,
+                });
+              }
             }}
             className='p-1.5 rounded-md hover:bg-red-50 text-red-600 hover:text-red-800'
             title='Apply to Students'
@@ -617,14 +776,27 @@ export const ScholarshipsChargesTab: React.FC = () => {
               try {
                 if (row.isActive) {
                   await feeService.deactivateCharge(row.id);
-                  toast.success('Charge deactivated successfully');
+                  toast.success('Charge Deactivated', {
+                    description: `"${row.name}" has been deactivated successfully.`,
+                    duration: 3000,
+                  });
                 } else {
                   await feeService.reactivateCharge(row.id);
-                  toast.success('Charge reactivated successfully');
+                  toast.success('Charge Activated', {
+                    description: `"${row.name}" has been reactivated successfully.`,
+                    duration: 3000,
+                  });
                 }
                 loadCharges();
               } catch (error) {
-                toast.error((error as Error).message);
+                const errorMessage = getErrorMessage(error);
+                toast.error(
+                  `Failed to ${row.isActive ? 'Deactivate' : 'Activate'} Charge`,
+                  {
+                    description: errorMessage,
+                    duration: 4000,
+                  },
+                );
               }
             }}
             className={`p-1.5 rounded-md transition-colors ${
@@ -645,18 +817,44 @@ export const ScholarshipsChargesTab: React.FC = () => {
     },
   ];
 
-  // Filter data based on search and status
-  const filteredScholarships = scholarships.filter(
-    s =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.type.toLowerCase().includes(search.toLowerCase()),
-  );
+  // Enhanced filter data based on search and status with useMemo optimization
+  const filteredScholarships = useMemo(() => {
+    return scholarships.filter(s => {
+      // Search filter - case insensitive across multiple fields
+      const searchLower = search.toLowerCase();
+      const matchesSearch =
+        s.name.toLowerCase().includes(searchLower) ||
+        s.type.toLowerCase().includes(searchLower) ||
+        (s.description && s.description.toLowerCase().includes(searchLower));
 
-  const filteredCharges = charges.filter(
-    c =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.type.toLowerCase().includes(search.toLowerCase()),
-  );
+      // Status filter
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && s.isActive) ||
+        (statusFilter === 'inactive' && !s.isActive);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [scholarships, search, statusFilter]);
+
+  const filteredCharges = useMemo(() => {
+    return charges.filter(c => {
+      // Search filter - case insensitive across multiple fields
+      const searchLower = search.toLowerCase();
+      const matchesSearch =
+        c.name.toLowerCase().includes(searchLower) ||
+        c.type.toLowerCase().includes(searchLower) ||
+        (c.description && c.description.toLowerCase().includes(searchLower));
+
+      // Status filter
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && c.isActive) ||
+        (statusFilter === 'inactive' && !c.isActive);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [charges, search, statusFilter]);
 
   return (
     <div className='space-y-6'>
@@ -673,14 +871,34 @@ export const ScholarshipsChargesTab: React.FC = () => {
         </div>
         <div className='flex gap-2'>
           <button
-            onClick={() => setShowCreateScholarship(true)}
+            onClick={() => {
+              try {
+                setShowCreateScholarship(true);
+              } catch (err) {
+                console.error('Error opening scholarship creation modal:', err);
+                toast.error('Failed to Open Creation Form', {
+                  description:
+                    'Unable to open scholarship creation form. Please try again.',
+                });
+              }
+            }}
             className='inline-flex items-center text-xs px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors'
           >
             <Award className='h-4 w-4 mr-1' />
             New Scholarship
           </button>
           <button
-            onClick={() => setShowCreateCharge(true)}
+            onClick={() => {
+              try {
+                setShowCreateCharge(true);
+              } catch (err) {
+                console.error('Error opening charge creation modal:', err);
+                toast.error('Failed to Open Creation Form', {
+                  description:
+                    'Unable to open charge creation form. Please try again.',
+                });
+              }
+            }}
             className='inline-flex items-center text-xs px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors'
           >
             <AlertTriangle className='h-4 w-4 mr-1' />
@@ -717,11 +935,38 @@ export const ScholarshipsChargesTab: React.FC = () => {
             <div className='flex-1 min-w-[220px] relative'>
               <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4' />
               <input
+                id='scholarships-charges-search'
+                key='scholarships-charges-search-input'
+                type='text'
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder={`Search ${activeSubTab}...`}
-                className='w-full bg-gray-50 focus:bg-white rounded-md pl-10 pr-3 py-2 text-sm border border-gray-200 focus:border-blue-400 focus:outline-none'
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    setSearch('');
+                    e.currentTarget.blur();
+                  }
+                }}
+                placeholder={`Search ${activeSubTab} by name, type, or description...`}
+                className='w-full bg-gray-50 focus:bg-white rounded-md pl-10 pr-10 py-2 text-sm border border-gray-200 focus:border-blue-400 focus:outline-none transition-colors'
+                autoComplete='off'
               />
+              {search && (
+                <button
+                  type='button'
+                  onClick={() => {
+                    try {
+                      setSearch('');
+                      toast.success('Search cleared');
+                    } catch (err) {
+                      console.error('Error clearing search:', err);
+                    }
+                  }}
+                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors'
+                  title='Clear search (ESC)'
+                >
+                  <X className='h-4 w-4' />
+                </button>
+              )}
             </div>
             <select
               value={statusFilter}
@@ -734,8 +979,20 @@ export const ScholarshipsChargesTab: React.FC = () => {
             </select>
             <button
               onClick={() => {
-                setSearch('');
-                setStatusFilter('all');
+                try {
+                  setSearch('');
+                  setStatusFilter('all');
+                  toast.success('Filters Reset', {
+                    description: 'All filters have been cleared successfully.',
+                    duration: 2000,
+                  });
+                } catch (err) {
+                  console.error('Error resetting filters:', err);
+                  toast.error('Failed to Reset Filters', {
+                    description:
+                      'Unable to clear filters. Please refresh the page.',
+                  });
+                }
               }}
               className='text-xs px-3 py-2 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600'
             >
@@ -743,21 +1000,67 @@ export const ScholarshipsChargesTab: React.FC = () => {
             </button>
           </div>
 
-          {/* Tables */}
+          {/* Results Count */}
+          <div className='mb-4'>
+            <p className='text-xs text-gray-500'>
+              {activeSubTab === 'scholarships' ? (
+                <>
+                  Showing {filteredScholarships.length} of {scholarships.length}{' '}
+                  scholarships
+                  {search && ` matching "${search}"`}
+                  {statusFilter !== 'all' && ` with status "${statusFilter}"`}
+                </>
+              ) : (
+                <>
+                  Showing {filteredCharges.length} of {charges.length} charges
+                  {search && ` matching "${search}"`}
+                  {statusFilter !== 'all' && ` with status "${statusFilter}"`}
+                </>
+              )}
+            </p>
+          </div>
+
+          {/* Tables with improved empty states */}
           {activeSubTab === 'scholarships' && (
-            <GenericTable<ExtendedScholarshipDefinition>
-              data={filteredScholarships}
-              columns={scholarshipColumns}
-              emptyMessage='No scholarships found. Create one to get started.'
-            />
+            <>
+              <GenericTable<ExtendedScholarshipDefinition>
+                data={filteredScholarships}
+                columns={scholarshipColumns}
+                emptyMessage={
+                  search || statusFilter !== 'all'
+                    ? `No scholarships found matching your filters. Try adjusting your search criteria.`
+                    : 'No scholarships found. Create one to get started.'
+                }
+              />
+              {!loading && (
+                <div className='mt-4 text-xs text-gray-500'>
+                  Total scholarships: {scholarships.length} | Active:{' '}
+                  {scholarships.filter(s => s.isActive).length} | Inactive:{' '}
+                  {scholarships.filter(s => !s.isActive).length}
+                </div>
+              )}
+            </>
           )}
 
           {activeSubTab === 'charges' && (
-            <GenericTable<ExtendedChargeDefinition>
-              data={filteredCharges}
-              columns={chargeColumns}
-              emptyMessage='No charges found. Create one to get started.'
-            />
+            <>
+              <GenericTable<ExtendedChargeDefinition>
+                data={filteredCharges}
+                columns={chargeColumns}
+                emptyMessage={
+                  search || statusFilter !== 'all'
+                    ? `No charges found matching your filters. Try adjusting your search criteria.`
+                    : 'No charges found. Create one to get started.'
+                }
+              />
+              {!loading && (
+                <div className='mt-4 text-xs text-gray-500'>
+                  Total charges: {charges.length} | Active:{' '}
+                  {charges.filter(c => c.isActive).length} | Inactive:{' '}
+                  {charges.filter(c => !c.isActive).length}
+                </div>
+              )}
+            </>
           )}
 
           {loading && (
@@ -770,7 +1073,7 @@ export const ScholarshipsChargesTab: React.FC = () => {
 
       {/* Create Scholarship Modal */}
       {showCreateScholarship && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+        <div className='fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
           <div className='bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto'>
             <div className='p-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-4'>
@@ -901,7 +1204,7 @@ export const ScholarshipsChargesTab: React.FC = () => {
 
       {/* Create Charge Modal */}
       {showCreateCharge && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+        <div className='fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
           <div className='bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto'>
             <div className='p-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-4'>
@@ -1071,7 +1374,7 @@ export const ScholarshipsChargesTab: React.FC = () => {
 
       {/* Assignment Modal */}
       {showAssignModal && selectedItem && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+        <div className='fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
           <div className='bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto'>
             <div className='p-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-4'>
@@ -1218,7 +1521,7 @@ export const ScholarshipsChargesTab: React.FC = () => {
 
       {/* View Modal */}
       {showViewModal && selectedItem && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+        <div className='fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
           <div className='bg-white rounded-lg shadow-xl max-w-md w-full'>
             <div className='p-6'>
               <div className='flex justify-between items-start mb-4'>

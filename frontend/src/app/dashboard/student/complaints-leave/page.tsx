@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Tabs from '@/components/organisms/tabs/GenericTabs';
-import SectionTitle from '@/components/atoms/display/SectionTitle';
 import {
   FileText,
   Clock,
@@ -212,22 +211,22 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
   };
 
   return open ? (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8'>
-      <div className='bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto shadow-xl'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-6 px-3 sm:px-0'>
+      <div className='bg-white rounded-xl w-full max-w-2xl mx-auto max-h-[90vh] overflow-auto shadow-xl'>
         {/* Header */}
-        <div className='bg-gradient-to-r from-yellow-50 to-yellow-100 p-6 border-b border-yellow-200'>
-          <div className='flex justify-between items-start'>
+        <div className='bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 sm:p-6 border-b border-yellow-200'>
+          <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3'>
             <div>
-              <h2 className='text-xl font-bold text-gray-800'>
+              <h2 className='text-lg sm:text-xl font-bold text-gray-800'>
                 Submit a Complaint
               </h2>
-              <p className='text-sm text-gray-600 mt-1'>
+              <p className='text-xs sm:text-sm text-gray-600 mt-1'>
                 Raise a concern or issue
               </p>
             </div>
             <button
               onClick={isSubmitting ? undefined : handleClose}
-              className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+              className='justify-self-start sm:justify-self-end text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
             >
               <X size={20} />
             </button>
@@ -235,16 +234,16 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className='w-full p-6'>
-          <form onSubmit={handleSubmit} className='space-y-6'>
+        <div className='w-full p-4 sm:p-6'>
+          <form onSubmit={handleSubmit} className='space-y-5 sm:space-y-6'>
             {/* Title */}
             <div>
-              <label className='block mb-2 font-medium'>
+              <label className='block mb-2 font-medium text-sm sm:text-base'>
                 Complaint Title <span className='text-red-500'>*</span>
               </label>
               <input
                 type='text'
-                className={`w-full border rounded-lg p-3 ${
+                className={`w-full border rounded-lg p-3 text-sm sm:text-base ${
                   errors.title ? 'border-red-500' : 'border-gray-300'
                 } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 value={formData.title}
@@ -255,17 +254,19 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
                 readOnly={isSubmitting}
               />
               {errors.title && (
-                <p className='text-red-500 text-sm mt-1'>{errors.title}</p>
+                <p className='text-red-500 text-xs sm:text-sm mt-1'>
+                  {errors.title}
+                </p>
               )}
             </div>
 
             {/* Description */}
             <div>
-              <label className='block mb-2 font-medium'>
+              <label className='block mb-2 font-medium text-sm sm:text-base'>
                 Complaint Details <span className='text-red-500'>*</span>
               </label>
               <textarea
-                className={`w-full border rounded-lg p-3 ${
+                className={`w-full border rounded-lg p-3 text-sm sm:text-base ${
                   errors.description ? 'border-red-500' : 'border-gray-300'
                 } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 rows={4}
@@ -280,20 +281,20 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
                 readOnly={isSubmitting}
               />
               {errors.description && (
-                <p className='text-red-500 text-sm mt-1'>
+                <p className='text-red-500 text-xs sm:text-sm mt-1'>
                   {errors.description}
                 </p>
               )}
             </div>
 
             {/* Type and Priority */}
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
               <div>
-                <label className='block mb-2 font-medium'>
+                <label className='block mb-2 font-medium text-sm sm:text-base'>
                   Complaint Type <span className='text-red-500'>*</span>
                 </label>
                 <select
-                  className='w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base'
                   value={formData.type}
                   onChange={e =>
                     setFormData(prev => ({
@@ -312,11 +313,11 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
               </div>
 
               <div>
-                <label className='block mb-2 font-medium'>
+                <label className='block mb-2 font-medium text-sm sm:text-base'>
                   Priority <span className='text-red-500'>*</span>
                 </label>
                 <select
-                  className='w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base'
                   value={formData.priority}
                   onChange={e =>
                     setFormData(prev => ({
@@ -337,11 +338,11 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
 
             {/* Recipient Type */}
             <div>
-              <label className='block mb-2 font-medium'>
+              <label className='block mb-2 font-medium text-sm sm:text-base'>
                 Recipient Type <span className='text-red-500'>*</span>
               </label>
               <select
-                className='w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                className='w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base'
                 value={formData.recipientType}
                 onChange={e =>
                   setFormData(prev => ({
@@ -361,7 +362,7 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
 
             {/* Attachments */}
             <div>
-              <label className='block mb-2 font-medium'>
+              <label className='block mb-2 font-medium text-sm sm:text-base'>
                 Attachments (Optional)
               </label>
               <div className='border-2 border-dashed border-gray-300 rounded-lg p-4 text-center'>
@@ -395,9 +396,9 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
                       key={index}
                       className='flex items-center justify-between bg-gray-50 p-2 rounded'
                     >
-                      <div className='flex items-center space-x-2'>
-                        <span className='text-sm'>{file.name}</span>
-                        <span className='text-xs text-gray-500'>
+                      <div className='flex items-center space-x-2 min-w-0'>
+                        <span className='text-sm truncate'>{file.name}</span>
+                        <span className='text-xs text-gray-500 whitespace-nowrap'>
                           ({complaintService.formatFileSize(file.size)})
                         </span>
                       </div>
@@ -408,7 +409,9 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
                             ? undefined
                             : () => removeAttachment(index)
                         }
-                        className={`text-red-500 hover:text-red-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`text-red-500 hover:text-red-700 ${
+                          isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       >
                         <X size={16} />
                       </button>
@@ -419,19 +422,29 @@ const ComplaintModal: React.FC<ComplaintModalProps> = ({
             </div>
 
             {/* Submit buttons */}
-            <div className='flex justify-end gap-3 pt-4'>
+            <div className='flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-2 sm:pt-4'>
               <Button
                 type='button'
                 onClick={isSubmitting ? undefined : handleClose}
-                className={`bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`w-full sm:w-auto bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-6 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg transition-all duration-200 font-medium ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 Cancel
               </Button>
               <Button
                 type='submit'
-                className={`bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2.5 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Complaint'}
+                {isSubmitting ? (
+                  <>
+                    <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className='h-4 w-4' />
+                    <span>Submit Complaint</span>
+                  </>
+                )}
               </Button>
             </div>
           </form>
@@ -469,24 +482,14 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
 
     setLoading(true);
     try {
-      // First, try to use responses that are already included in the complaint data
       if (complaint.responses && complaint.responses.length > 0) {
-        console.log(
-          'Using responses from complaint data:',
-          complaint.responses,
-        );
         setResponses(complaint.responses);
         setLoading(false);
         return;
       }
 
-      // If no responses in complaint data, fetch them separately
-      console.log('Fetching responses separately for complaint:', complaint.id);
       const response = await complaintService.getResponses(complaint.id);
       if (response.success && response.data) {
-        console.log('Fetched responses:', response.data);
-        // The backend returns { message: 'Responses retrieved', responses: ComplaintResponse[] }
-        // So we need to access response.data.responses, not response.data directly
         const responsesData = (response.data as any).responses || response.data;
         setResponses(responsesData);
       }
@@ -498,19 +501,18 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
     }
   };
 
-  // Don't render if complaint is null or undefined
   if (!complaint) return null;
 
   return open ? (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8'>
-      <div className='bg-white rounded-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-auto shadow-xl'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-6 px-3 sm:px-0'>
+      <div className='bg-white rounded-xl w-full max-w-4xl mx-auto max-h-[90vh] overflow-auto shadow-xl'>
         {/* Header */}
-        <div className='bg-gradient-to-r from-yellow-50 to-yellow-100 p-6 border-b border-yellow-200'>
-          <div className='flex justify-between items-start'>
+        <div className='bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 sm:p-6 border-b border-yellow-200'>
+          <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3'>
             <div>
-              <div className='mb-2 flex items-center gap-2'>
+              <div className='mb-2 flex flex-wrap items-center gap-2'>
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-medium 
+                  className={`inline-block px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium 
                   ${
                     complaint.priority === 'URGENT'
                       ? 'bg-red-100 text-red-700'
@@ -523,18 +525,19 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                 >
                   {complaint.priority?.toLowerCase() || 'unknown'}
                 </span>
-                <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700'>
+                <span className='inline-block px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-blue-100 text-blue-700'>
                   {complaint.type?.toLowerCase() || 'unknown'}
                 </span>
               </div>
 
-              <h2 className='text-xl font-bold text-gray-800'>
+              <h2 className='text-lg sm:text-xl font-bold text-gray-800'>
                 {complaint.title || 'Untitled Complaint'}
               </h2>
-              <div className='mt-2 text-sm text-gray-600 flex items-center gap-2'>
+
+              <div className='mt-2 text-xs sm:text-sm text-gray-600 flex flex-wrap items-center gap-2'>
                 <span className='font-medium'>From:</span>
                 <span>{complaint.complainant?.fullName || 'Unknown'}</span>
-                <span className='inline-block w-1 h-1 rounded-full bg-gray-400'></span>
+                <span className='inline-block w-1 h-1 rounded-full bg-gray-400' />
                 <span className='font-medium'>To:</span>
                 <span>
                   {complaint.recipientType === 'ADMINISTRATION'
@@ -552,9 +555,9 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                 </span>
               </div>
 
-              <div className='mt-2 text-sm text-gray-600 flex items-center gap-2'>
+              <div className='mt-2 text-xs sm:text-sm text-gray-600 flex flex-wrap items-center gap-2'>
                 <span>By {complaint.complainant?.fullName || 'Unknown'}</span>
-                <span className='inline-block w-1 h-1 rounded-full bg-gray-400'></span>
+                <span className='inline-block w-1 h-1 rounded-full bg-gray-400' />
                 <span>
                   {complaint.createdAt
                     ? new Date(complaint.createdAt).toLocaleDateString()
@@ -565,7 +568,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
 
             <button
               onClick={onClose}
-              className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+              className='bg-white h-8 w-8 p-1 rounded-full shadow-sm hover:shadow-lg'
             >
               <X size={20} />
             </button>
@@ -573,14 +576,14 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className='p-6 space-y-4'>
+        <div className='p-4 sm:p-6 space-y-4'>
           {/* Recipients */}
-          <div className='bg-gray-50 p-3 rounded-lg'>
+          <div className='bg-gray-50 p-3 sm:p-4 rounded-lg'>
             <div className='text-sm font-medium text-gray-700 mb-1'>
               Recipient:
             </div>
-            <div className='flex items-center gap-2'>
-              <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700'>
+            <div className='flex flex-wrap items-center gap-2'>
+              <span className='inline-block px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-purple-100 text-purple-700'>
                 {complaint.recipientType
                   ? complaintService.getRecipientTypeLabel(
                       complaint.recipientType,
@@ -598,7 +601,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
           {/* Attachments */}
           {complaint.attachments && complaint.attachments.length > 0 && (
             <div className='bg-gray-50 p-4 rounded-lg'>
-              <h3 className='text-md font-semibold mb-3 flex items-center gap-2 text-gray-700'>
+              <h3 className='text-sm sm:text-base font-semibold mb-3 flex items-center gap-2 text-gray-700'>
                 <FileText className='w-5 h-5 text-blue-600' />
                 Attachments ({complaint.attachments.length})
               </h3>
@@ -608,17 +611,17 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                   (attachment: ComplaintAttachment) => (
                     <li
                       key={attachment.id}
-                      className='flex items-center justify-between p-2 rounded-lg border border-gray-200 bg-white hover:bg-blue-50'
+                      className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 rounded-lg border border-gray-200 bg-white hover:bg-blue-50'
                     >
-                      <div className='flex items-center gap-2'>
+                      <div className='flex items-center gap-2 min-w-0'>
                         <FileText className='w-5 h-5 text-blue-500' />
-                        <span className='text-sm text-gray-700'>
+                        <span className='text-sm text-gray-700 truncate'>
                           {attachment.originalName}
                         </span>
                       </div>
 
-                      <div className='flex items-center gap-3'>
-                        <span className='bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1'>
+                      <div className='flex flex-wrap items-center gap-2'>
+                        <span className='bg-gray-100 text-gray-700 px-2 py-1 rounded text-[11px] sm:text-xs font-medium inline-flex items-center gap-1'>
                           <FileText className='w-4 h-4' />
                           {attachment.mimeType?.split('/')[1]?.toUpperCase() ||
                             'FILE'}
@@ -627,7 +630,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                           href={attachment.url}
                           target='_blank'
                           rel='noreferrer'
-                          className='bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-blue-700 flex items-center gap-1'
+                          className='w-full sm:w-auto text-center bg-blue-600 text-white px-3 py-1 rounded text-[11px] sm:text-xs font-medium hover:bg-blue-700 inline-flex items-center justify-center gap-1'
                         >
                           <ExternalLink className='w-3 h-3' />
                           View Attachment
@@ -642,7 +645,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
 
           {/* Responses */}
           <div>
-            <h4 className='font-medium mb-2 flex items-center'>
+            <h4 className='font-medium mb-2 flex items-center text-sm sm:text-base'>
               <MessageSquare className='h-4 w-4 mr-2' />
               Responses ({responses.length})
             </h4>
@@ -652,7 +655,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
               <div className='space-y-3'>
                 {responses.map(response => (
                   <div key={response.id} className='bg-gray-50 p-3 rounded'>
-                    <div className='flex justify-between items-start mb-2'>
+                    <div className='flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-start mb-2'>
                       <span className='font-medium text-sm'>
                         {response.responder?.fullName || 'Unknown'}
                       </span>
@@ -674,18 +677,17 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className='flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2 text-sm text-gray-500 pt-4 border-t border-gray-200 mt-6'>
+          <div className='flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3 text-sm text-gray-500 pt-4 border-t border-gray-200 mt-6'>
             <div className='flex flex-col gap-1'>
               <div className='font-medium text-gray-700'>Complaint Status:</div>
-              <div className='flex items-center gap-2'>
-                <span className='bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs'>
+              <div className='flex flex-wrap items-center gap-2'>
+                <span className='bg-blue-50 text-blue-700 px-2 py-1 rounded text-[11px] sm:text-xs'>
                   Status: {complaint.status?.toLowerCase() || 'unknown'}
                 </span>
               </div>
             </div>
 
-            <div className='flex gap-2'>
-              {/* Show resolve button if user is the recipient and complaint is open/in progress */}
+            <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
               {user &&
                 complaint.recipientId === user.id &&
                 (complaint.status === 'OPEN' ||
@@ -701,7 +703,6 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                         if (response.success) {
                           toast.success('Complaint resolved successfully');
                           onClose();
-                          // Refresh the complaints list
                           window.location.reload();
                         } else {
                           toast.error('Failed to resolve complaint');
@@ -711,16 +712,16 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                         toast.error('Failed to resolve complaint');
                       }
                     }}
-                    className='px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm flex items-center gap-2'
+                    className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium flex items-center justify-center gap-2 text-sm'
                   >
                     <CheckCircle className='h-4 w-4' />
-                    Resolve
+                    <span>Resolve</span>
                   </button>
                 )}
 
               <button
                 onClick={onClose}
-                className='px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm'
+                className='w-full sm:w-auto bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-4 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg transition-all duration-200 font-medium text-sm'
               >
                 Close
               </button>
@@ -759,7 +760,6 @@ const ComplaintsAndLeavePage = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Use the leave requests hook
   const {
     leaveRequests: realLeaveRequests,
     loading: leaveRequestsLoading,
@@ -774,13 +774,11 @@ const ComplaintsAndLeavePage = () => {
   const { user } = useAuth();
   const router = useRouter();
 
-  // Load complaints and leave requests on component mount
   useEffect(() => {
     loadComplaints();
     loadLeaveRequests();
   }, []);
 
-  // Update local state when real leave requests change
   useEffect(() => {
     if (realLeaveRequests) {
       setLeaveRequests(realLeaveRequests);
@@ -822,10 +820,8 @@ const ComplaintsAndLeavePage = () => {
 
   const handleApproveLeaveRequest = async (leaveRequestId: string) => {
     try {
-      // Call the backend API to approve the leave request
       await approveByParent(leaveRequestId);
       toast.success('Leave request approved successfully');
-      // The hook will automatically update the local state
     } catch (error) {
       console.error('Error approving leave request:', error);
       toast.error('Failed to approve leave request');
@@ -834,10 +830,8 @@ const ComplaintsAndLeavePage = () => {
 
   const handleParentApprove = async (leaveRequestId: string) => {
     try {
-      // Call the backend API to approve the leave request by parent
       await approveByParent(leaveRequestId);
       toast.success('Leave request approved by parent successfully');
-      // The hook will automatically update the local state
     } catch (error) {
       console.error('Error approving leave request:', error);
       toast.error('Failed to approve leave request');
@@ -846,10 +840,8 @@ const ComplaintsAndLeavePage = () => {
 
   const handleTeacherApprove = async (leaveRequestId: string) => {
     try {
-      // Call the backend API to approve the leave request by teacher
       await approveByTeacher(leaveRequestId);
       toast.success('Leave request approved by teacher successfully');
-      // The hook will automatically update the local state
     } catch (error) {
       console.error('Error approving leave request:', error);
       toast.error('Failed to approve leave request');
@@ -862,15 +854,13 @@ const ComplaintsAndLeavePage = () => {
     rejectorRole?: 'parent' | 'teacher',
   ) => {
     try {
-      // Call the appropriate backend API based on who is rejecting
-      if (rejectorRole === 'teacher' || user?.role === 'teacher') {
+      if (rejectorRole === 'teacher' || user?.role === 'TEACHER') {
         await rejectByTeacher(leaveRequestId, reason);
         toast.success('Leave request rejected by teacher successfully');
       } else {
         await rejectByParent(leaveRequestId, reason);
         toast.success('Leave request rejected by parent successfully');
       }
-      // The hook will automatically update the local state
     } catch (error) {
       console.error('Error rejecting leave request:', error);
       toast.error('Failed to reject leave request');
@@ -879,17 +869,12 @@ const ComplaintsAndLeavePage = () => {
 
   const handleCancelLeaveRequest = async (leaveRequestId: string) => {
     try {
-      // Call the backend API to cancel the leave request
       await cancelLeaveRequest(leaveRequestId);
       toast.success('Leave request cancelled successfully');
-      // The hook will automatically update the local state
-      // No need to manually refresh
     } catch (error) {
       console.error('Error cancelling leave request:', error);
 
-      // Handle specific error messages from the backend
       if (error instanceof Error) {
-        // Check if it's a forbidden error with a specific message
         if (
           error.message.includes(
             'Cannot cancel leave request after approval process has started',
@@ -906,19 +891,16 @@ const ComplaintsAndLeavePage = () => {
           toast.error(error.message || 'Failed to cancel leave request');
         }
       } else {
-        // Fallback for other error types
         toast.error('Failed to cancel leave request');
       }
     }
   };
 
   const refreshLeaveRequests = () => {
-    // Refresh leave requests from the API
     loadLeaveRequests();
   };
 
   const handleLeaveRequestSuccess = () => {
-    // Refresh the page to show the new leave request
     window.location.reload();
   };
 
@@ -927,27 +909,18 @@ const ComplaintsAndLeavePage = () => {
     attachments: File[] = [],
   ) => {
     try {
-      // First, create the complaint
       const response = await complaintService.createComplaint(complaintData);
 
-      console.log('Complaint creation response:', response);
-
       if (response.success && response.data) {
-        // The backend returns { message: 'Complaint created', complaint }
-        // So the complaint ID is in response.data.complaint.id
         const complaintId =
           (response.data as any).complaint?.id || (response.data as any).id;
-        console.log('Complaint ID:', complaintId);
 
         if (!complaintId) {
-          console.error('No complaint ID received from backend');
           throw new Error('Failed to get complaint ID from response');
         }
 
-        // Then, upload attachments if any
         if (attachments.length > 0) {
           try {
-            console.log('Uploading attachments for complaint ID:', complaintId);
             await complaintService.uploadAttachments(complaintId, attachments);
             toast.success(
               `Complaint submitted successfully with ${attachments.length} attachment(s)`,
@@ -960,80 +933,53 @@ const ComplaintsAndLeavePage = () => {
           toast.success('Complaint submitted successfully');
         }
 
-        // Refresh complaints list
         await loadComplaints();
       } else {
-        console.error('Complaint creation failed:', response);
         throw new Error('Failed to create complaint');
       }
     } catch (error) {
       console.error('Error creating complaint:', error);
-      throw error; // Re-throw to be handled by the modal
+      throw error;
     }
   };
 
   const handleViewComplaint = async (complaint: Complaint) => {
     try {
-      console.log('Opening complaint with ID:', complaint.id);
-      console.log('Complaint data:', complaint);
-      console.log('Complaint ID type:', typeof complaint.id);
-      console.log('Complaint ID length:', complaint.id?.length);
-
-      // Validate complaint ID
       if (
         !complaint.id ||
         complaint.id === 'undefined' ||
         complaint.id === 'null'
       ) {
-        console.error('Invalid complaint ID:', complaint.id);
         toast.error('Invalid complaint ID');
         return;
       }
 
-      // Use the complaint data from the list directly
-      // This avoids the complex permission issues with getComplaintById
-      console.log('Using complaint data from list:', complaint);
-
-      // Try to fetch responses separately if needed
       let complaintWithResponses = { ...complaint };
       try {
         const response = await complaintService.getResponses(complaint.id);
         if (response.success && response.data) {
-          console.log('Successfully fetched responses:', response.data);
-          // The backend returns { message: 'Responses retrieved', responses: ComplaintResponse[] }
-          // So we need to access response.data.responses, not response.data directly
           const responsesData =
             (response.data as any).responses || response.data;
-          // Update the complaint with responses
           complaintWithResponses = { ...complaint, responses: responsesData };
         }
       } catch (responseError) {
         console.error('Error fetching responses:', responseError);
-        // Don't show error for responses, just log it
       }
 
       setSelectedComplaint(complaintWithResponses);
       setComplaintDetailModalOpen(true);
     } catch (error) {
       console.error('Error in handleViewComplaint:', error);
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        error: error,
-      });
-
       toast.error('Failed to open complaint details');
     }
   };
 
   const handleCancelComplaint = async (complaint: Complaint) => {
-    // Only allow cancellation if the student created the complaint
     if (complaint.complainantId !== user?.id) {
       toast.error('You can only cancel complaints that you created');
       return;
     }
 
-    // Only allow cancellation if the complaint is still open or in progress
     if (complaint.status !== 'OPEN' && complaint.status !== 'IN_PROGRESS') {
       toast.error(
         'You can only cancel complaints that are open or in progress',
@@ -1046,7 +992,6 @@ const ComplaintsAndLeavePage = () => {
   };
 
   const handleResolveComplaint = async (complaint: Complaint) => {
-    // Only allow resolution if the user is the recipient of the complaint
     if (complaint.recipientId !== user?.id) {
       toast.error(
         'You can only resolve complaints where you are the recipient',
@@ -1054,7 +999,6 @@ const ComplaintsAndLeavePage = () => {
       return;
     }
 
-    // Only allow resolution if the complaint is still open or in progress
     if (complaint.status !== 'OPEN' && complaint.status !== 'IN_PROGRESS') {
       toast.error(
         'You can only resolve complaints that are open or in progress',
@@ -1069,7 +1013,6 @@ const ComplaintsAndLeavePage = () => {
       );
       if (response.success) {
         toast.success('Complaint resolved successfully');
-        // Update the complaint status in local state
         setComplaints(prev =>
           prev.map(c =>
             c.id === complaint.id ? { ...c, status: 'RESOLVED' } : c,
@@ -1094,7 +1037,6 @@ const ComplaintsAndLeavePage = () => {
       );
       if (response.success) {
         toast.success('Complaint closed successfully');
-        // Update the complaint status in local state
         setComplaints(prev =>
           prev.map(c =>
             c.id === complaintToCancel.id ? { ...c, status: 'CLOSED' } : c,
@@ -1112,7 +1054,6 @@ const ComplaintsAndLeavePage = () => {
   };
 
   useEffect(() => {
-    // Simulate loading time
     const timer = setTimeout(() => {
       setLoading(false);
     }, 1300);
@@ -1120,7 +1061,6 @@ const ComplaintsAndLeavePage = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Tab content with approved/unapproved sections
   interface CardListProps {
     title: string;
     items: Complaint[];
@@ -1128,13 +1068,17 @@ const ComplaintsAndLeavePage = () => {
 
   const CardList = ({ title, items }: CardListProps) => (
     <div className='mb-8'>
-      <div className='flex items-center justify-between mb-4'>
-        <h4 className='text-xl font-semibold text-slate-800'>{title}</h4>
-        <span className='text-sm text-slate-500'>{items.length} items</span>
+      <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-4 mb-4'>
+        <h4 className='text-lg sm:text-xl font-semibold text-slate-800'>
+          {title}
+        </h4>
+        <span className='justify-self-start sm:justify-self-end text-sm text-slate-500'>
+          {items.length} items
+        </span>
       </div>
       <div className='space-y-4'>
         {items.length === 0 ? (
-          <div className='text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200'>
+          <div className='text-center py-10 sm:py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 px-4'>
             <div className='w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4'>
               <FileText className='h-8 w-8 text-slate-400' />
             </div>
@@ -1147,56 +1091,73 @@ const ComplaintsAndLeavePage = () => {
           items.map(complaint => (
             <div
               key={complaint.id}
-              className='group bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'
+              className='group bg-white rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-100 hover:shadow-xl'
             >
-              <div className='flex items-start justify-between mb-4'>
-                <div className='flex-1'>
-                  <h3 className='font-semibold text-slate-800 text-lg mb-2 line-clamp-2'>
+              {/* Header (responsive) */}
+              <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-4 mb-4'>
+                {/* Left: content */}
+                <div className='min-w-0'>
+                  <h3 className='font-semibold text-slate-900 text-sm sm:text-lg mb-1.5 line-clamp-2 break-words'>
                     {complaint.title || 'Untitled Complaint'}
                   </h3>
-                  <div className='text-sm text-gray-600 mb-2'>
-                    <span className='font-medium'>From:</span>{' '}
-                    {complaint.complainant?.fullName || 'Unknown'}
-                  </div>
-                  <div className='text-sm text-gray-600 mb-2'>
-                    <span className='font-medium'>To:</span>{' '}
-                    {complaint.recipientType === 'ADMINISTRATION'
-                      ? 'Administration'
-                      : complaint.recipientType === 'PARENT'
-                        ? 'Parent'
-                        : complaint.recipientType === 'CLASS_TEACHER'
-                          ? 'Class Teacher'
-                          : 'Unknown'}
-                    {complaint.assignedTo && (
-                      <span className='ml-2 text-gray-500'>
-                        ({complaint.assignedTo.fullName})
+
+                  <div className='space-y-1 sm:space-y-2'>
+                    <div className='text-xs sm:text-sm text-gray-600'>
+                      <span className='font-medium'>From:</span>{' '}
+                      {complaint.complainant?.fullName || 'Unknown'}
+                    </div>
+
+                    <div className='text-xs sm:text-sm text-gray-600'>
+                      <span className='font-medium'>To:</span>{' '}
+                      {complaint.recipientType === 'ADMINISTRATION'
+                        ? 'Administration'
+                        : complaint.recipientType === 'PARENT'
+                          ? 'Parent'
+                          : complaint.recipientType === 'CLASS_TEACHER'
+                            ? 'Class Teacher'
+                            : 'Unknown'}
+                      {complaint.assignedTo && (
+                        <span className='ml-1.5 text-gray-500'>
+                          ({complaint.assignedTo.fullName})
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Date • Type • Priority */}
+                    <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-600'>
+                      <span className='inline-flex items-center gap-1.5'>
+                        <CalendarDays className='h-4 w-4 shrink-0' />
+                        <time
+                          dateTime={new Date(complaint.createdAt).toISOString()}
+                        >
+                          {new Date(complaint.createdAt).toLocaleDateString()}
+                        </time>
                       </span>
-                    )}
-                  </div>
-                  <div className='flex items-center gap-4 text-sm text-slate-600 mb-3'>
-                    <span className='flex items-center gap-1'>
-                      <CalendarDays className='h-4 w-4' />
-                      {new Date(complaint.createdAt).toLocaleDateString()}
-                    </span>
-                    <span className='flex items-center gap-1'>
-                      <span className='w-2 h-2 bg-blue-500 rounded-full'></span>
-                      {complaintService.getTypeLabel(complaint.type)}
-                    </span>
-                    <span className='flex items-center gap-1'>
-                      <span className='w-2 h-2 bg-orange-500 rounded-full'></span>
-                      {complaintService.getPriorityLabel(complaint.priority)}
-                    </span>
+
+                      <span className='inline-flex items-center gap-1.5'>
+                        <span className='w-2 h-2 rounded-full bg-blue-500' />
+                        {complaintService.getTypeLabel(complaint.type)}
+                      </span>
+
+                      <span className='inline-flex items-center gap-1.5'>
+                        <span className='w-2 h-2 rounded-full bg-orange-500' />
+                        {complaintService.getPriorityLabel(complaint.priority)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className='ml-4'>
-                  <span className='bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-medium'>
+
+                {/* Right: status */}
+                <div className='sm:ml-4 sm:justify-self-end'>
+                  <span className='inline-block bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-medium capitalize'>
                     {complaint.status?.toLowerCase() || 'unknown'}
                   </span>
                 </div>
               </div>
 
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center gap-4 text-sm text-slate-500'>
+              {/* Footer/actions (responsive) */}
+              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                <div className='flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-500'>
                   {complaint._count && (
                     <span className='flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full'>
                       <MessageSquare className='h-4 w-4' />
@@ -1211,40 +1172,38 @@ const ComplaintsAndLeavePage = () => {
                   )}
                 </div>
 
-                <div className='flex items-center gap-2'>
+                <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
                   <Button
                     onClick={() => handleViewComplaint(complaint)}
-                    className='bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                    className='w-full sm:w-auto bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2.5 rounded-lg hover:from-slate-700 hover:to-slate-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                   >
-                    <Eye className='h-4 w-4 mr-2' />
-                    View Details
+                    <Eye className='h-4 w-4' />
+                    <span>View Details</span>
                   </Button>
 
-                  {/* Show resolve button if user is the recipient of the complaint and it's still open/in progress */}
                   {user &&
                     complaint.recipientId === user.id &&
                     (complaint.status === 'OPEN' ||
                       complaint.status === 'IN_PROGRESS') && (
                       <Button
                         onClick={() => handleResolveComplaint(complaint)}
-                        className='bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl'
+                        className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                       >
-                        <CheckCircle className='h-4 w-4 mr-2' />
-                        Resolve
+                        <CheckCircle className='h-4 w-4' />
+                        <span>Resolve</span>
                       </Button>
                     )}
 
-                  {/* Show close button only if user is the creator of the complaint and it's still open/in progress */}
                   {user &&
                     complaint.complainantId === user.id &&
                     (complaint.status === 'OPEN' ||
                       complaint.status === 'IN_PROGRESS') && (
                       <Button
                         onClick={() => handleCancelComplaint(complaint)}
-                        className='bg-gradient-to-r from-orange-600 to-orange-700 text-white px-4 py-2 rounded-xl hover:from-orange-700 hover:to-orange-800 shadow-lg hover:shadow-xl'
+                        className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                       >
                         <X className='h-4 w-4' />
-                        Close
+                        <span>Cancel</span>
                       </Button>
                     )}
                 </div>
@@ -1256,7 +1215,6 @@ const ComplaintsAndLeavePage = () => {
     </div>
   );
 
-  // Parent action handler for leave requests (unchanged)
   const handleParentAction = (id: string, newStatus: string) => {
     setLeaveRequests(prev =>
       prev.map(l => (l.id === id ? { ...l, status: newStatus } : l)),
@@ -1268,8 +1226,8 @@ const ComplaintsAndLeavePage = () => {
       name: 'Complaints',
       content: (
         <>
-          <div className='p-6 border-b border-slate-200 bg-slate-50'>
-            <div className='flex justify-between items-center'>
+          <div className='p-4 sm:p-6 border-b border-slate-200 bg-slate-50'>
+            <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3'>
               <div>
                 <h3 className='text-lg font-semibold text-slate-800'>
                   Complaints Overview
@@ -1278,7 +1236,7 @@ const ComplaintsAndLeavePage = () => {
                   Track and manage your submitted complaints
                 </p>
               </div>
-              <div className='flex items-center gap-3'>
+              <div className='flex items-center gap-3 justify-self-start sm:justify-self-end'>
                 <div className='text-right'>
                   <p className='text-sm text-slate-600'>Total Complaints</p>
                   <p className='text-2xl font-bold text-slate-800'>
@@ -1291,7 +1249,7 @@ const ComplaintsAndLeavePage = () => {
               </div>
             </div>
           </div>
-          <div className='w-full p-6'>
+          <div className='w-full p-4 sm:p-6'>
             {loading ? (
               <div className='text-center py-8'>Loading complaints...</div>
             ) : (
@@ -1321,8 +1279,8 @@ const ComplaintsAndLeavePage = () => {
       name: 'Leave Requests',
       content: (
         <>
-          <div className='p-6 border-b border-slate-200 bg-slate-50'>
-            <div className='flex justify-between items-center'>
+          <div className='p-4 sm:p-6 border-b border-slate-200 bg-slate-50'>
+            <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3'>
               <div>
                 <h3 className='text-lg font-semibold text-slate-800'>
                   Leave Requests Overview
@@ -1331,27 +1289,24 @@ const ComplaintsAndLeavePage = () => {
                   Track and manage your submitted leave requests
                 </p>
               </div>
-              <div className='flex items-center gap-3'>
+              <div className='flex items-center gap-3 justify-self-start sm:justify-self-end'>
                 <div className='text-right'>
                   <p className='text-sm text-slate-600'>Total Requests</p>
                   <p className='text-2xl font-bold text-slate-800'>
                     {leaveRequests.filter(l => l.status !== 'CANCELLED').length}
                   </p>
                 </div>
-                <div className='w-px h-8 bg-slate-300'></div>
+                <div className='w-px h-8 bg-slate-300' />
                 <div className='text-right'>
                   <p className='text-sm text-slate-600'>Pending</p>
                   <p className='text-2xl font-bold text-orange-600'>
                     {
                       leaveRequests.filter(l => {
-                        if (user?.role === 'teacher') {
-                          // Teachers only see requests approved by parents (waiting for teacher approval)
+                        if (user?.role === 'TEACHER') {
                           return l.status === 'PENDING_TEACHER_APPROVAL';
-                        } else if (user?.role === 'parent') {
-                          // Parents see requests pending their approval
+                        } else if (user?.role === 'PARENT') {
                           return l.status === 'PENDING_PARENT_APPROVAL';
                         } else {
-                          // Students see their pending requests
                           return (
                             l.status === 'PENDING_PARENT_APPROVAL' ||
                             l.status === 'PENDING_TEACHER_APPROVAL'
@@ -1364,11 +1319,12 @@ const ComplaintsAndLeavePage = () => {
               </div>
             </div>
           </div>
-          <div className='w-full p-6'>
+
+          <div className='w-full p-4 sm:p-6'>
             {leaveRequestsLoading ? (
               <div className='text-center py-8'>Loading leave requests...</div>
             ) : leaveRequests.length === 0 ? (
-              <div className='text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200'>
+              <div className='text-center py-10 sm:py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 px-4'>
                 <div className='w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4'>
                   <CalendarDays className='h-8 w-8 text-slate-400' />
                 </div>
@@ -1381,52 +1337,51 @@ const ComplaintsAndLeavePage = () => {
               </div>
             ) : (
               <>
+                {/* Pending / Active */}
                 <div className='mb-8'>
-                  <h4 className='text-xl font-semibold text-slate-800 mb-4'>
-                    {user?.role === 'teacher'
+                  <h4 className='text-lg sm:text-xl font-semibold text-slate-800 mb-2 sm:mb-4'>
+                    {user?.role === 'TEACHER'
                       ? 'Parent-Approved Leave Requests'
-                      : user?.role === 'parent'
+                      : user?.role === 'PARENT'
                         ? 'Pending Leave Requests'
                         : 'Active Leave Requests'}
                   </h4>
-                  <p className='text-slate-600 text-sm mb-4'>
-                    {user?.role === 'teacher'
+                  <p className='text-slate-600 text-sm mb-3 sm:mb-4'>
+                    {user?.role === 'TEACHER'
                       ? 'These are leave requests approved by parents that require your approval.'
-                      : user?.role === 'parent'
+                      : user?.role === 'PARENT'
                         ? 'These are leave requests from your children that require your approval.'
                         : "These are your pending leave requests. You can cancel them if they haven't been approved by your parent yet."}
                   </p>
+
                   <div className='space-y-4'>
                     {leaveRequests.filter(l => {
-                      if (user?.role === 'teacher') {
-                        // Teachers only see requests approved by parents (waiting for teacher approval)
+                      if (user?.role === 'TEACHER') {
                         return l.status === 'PENDING_TEACHER_APPROVAL';
-                      } else if (user?.role === 'parent') {
-                        // Parents see requests pending their approval
+                      } else if (user?.role === 'PARENT') {
                         return l.status === 'PENDING_PARENT_APPROVAL';
                       } else {
-                        // Students see their pending requests
                         return (
                           l.status === 'PENDING_PARENT_APPROVAL' ||
                           l.status === 'PENDING_TEACHER_APPROVAL'
                         );
                       }
                     }).length === 0 ? (
-                      <div className='text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200'>
+                      <div className='text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 px-4'>
                         <div className='w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3'>
                           <Clock className='h-6 w-6 text-slate-400' />
                         </div>
                         <p className='text-slate-500 font-medium'>
-                          {user?.role === 'teacher'
+                          {user?.role === 'TEACHER'
                             ? 'No parent-approved leave requests'
-                            : user?.role === 'parent'
+                            : user?.role === 'PARENT'
                               ? 'No pending leave requests'
                               : 'No pending leave requests'}
                         </p>
                         <p className='text-slate-400 text-sm mt-1'>
-                          {user?.role === 'teacher'
+                          {user?.role === 'TEACHER'
                             ? 'All leave requests are either pending parent approval or have been processed'
-                            : user?.role === 'parent'
+                            : user?.role === 'PARENT'
                               ? 'All leave requests have been processed'
                               : 'All your leave requests have been processed'}
                         </p>
@@ -1434,14 +1389,11 @@ const ComplaintsAndLeavePage = () => {
                     ) : (
                       leaveRequests
                         .filter(l => {
-                          if (user?.role === 'teacher') {
-                            // Teachers only see requests approved by parents (waiting for teacher approval)
+                          if (user?.role === 'TEACHER') {
                             return l.status === 'PENDING_TEACHER_APPROVAL';
-                          } else if (user?.role === 'parent') {
-                            // Parents see requests pending their approval
+                          } else if (user?.role === 'PARENT') {
                             return l.status === 'PENDING_PARENT_APPROVAL';
                           } else {
-                            // Students see their pending requests
                             return (
                               l.status === 'PENDING_PARENT_APPROVAL' ||
                               l.status === 'PENDING_TEACHER_APPROVAL'
@@ -1451,40 +1403,41 @@ const ComplaintsAndLeavePage = () => {
                         .map(leaveRequest => (
                           <div
                             key={leaveRequest.id}
-                            className='group bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'
+                            className='group bg-white rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-100 hover:shadow-xl'
                           >
-                            <div className='flex items-start justify-between mb-4'>
-                              <div className='flex-1'>
-                                <h3 className='font-semibold text-slate-800 text-lg mb-2 line-clamp-2'>
+                            {/* Header */}
+                            <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-4 mb-4'>
+                              <div className='min-w-0'>
+                                <h3 className='font-semibold text-slate-800 text-base sm:text-lg mb-1.5 sm:mb-2 line-clamp-2 break-words'>
                                   {leaveRequest.title}
                                 </h3>
-                                <div className='text-sm text-gray-600 mb-2'>
+                                <div className='text-xs sm:text-sm text-gray-600 mb-1.5 sm:mb-2'>
                                   <span className='font-medium'>Type:</span>{' '}
                                   {leaveRequest.type}
                                 </div>
-                                <div className='text-sm text-gray-600 mb-2'>
+                                <div className='text-xs sm:text-sm text-gray-600 mb-1.5 sm:mb-2'>
                                   <span className='font-medium'>Duration:</span>{' '}
                                   {leaveRequest.days} day
                                   {leaveRequest.days !== 1 ? 's' : ''}
                                 </div>
-                                <div className='flex items-center gap-4 text-sm text-slate-600 mb-3'>
-                                  <span className='flex items-center gap-1'>
+                                <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-600 mb-2 sm:mb-3'>
+                                  <span className='inline-flex items-center gap-1.5'>
                                     <CalendarDays className='h-4 w-4' />
                                     {new Date(
                                       leaveRequest.startDate,
                                     ).toLocaleDateString()}{' '}
-                                    -{' '}
+                                    –{' '}
                                     {new Date(
                                       leaveRequest.endDate,
                                     ).toLocaleDateString()}
                                   </span>
-                                  <span className='flex items-center gap-1'>
-                                    <span className='w-2 h-2 bg-blue-500 rounded-full'></span>
+                                  <span className='inline-flex items-center gap-1.5'>
+                                    <span className='w-2 h-2 bg-blue-500 rounded-full' />
                                     {leaveRequest.type}
                                   </span>
-                                  <span className='flex items-center gap-1'>
-                                    <span className='w-2 h-2 bg-yellow-500 rounded-full'></span>
-                                    {user?.role === 'teacher'
+                                  <span className='inline-flex items-center gap-1.5'>
+                                    <span className='w-2 h-2 bg-yellow-500 rounded-full' />
+                                    {user?.role === 'TEACHER'
                                       ? 'Parent Approved - Awaiting Teacher'
                                       : leaveRequest.status ===
                                           'PENDING_PARENT_APPROVAL'
@@ -1493,23 +1446,24 @@ const ComplaintsAndLeavePage = () => {
                                   </span>
                                 </div>
                                 {leaveRequest.description && (
-                                  <p className='text-slate-600 text-sm line-clamp-2'>
+                                  <p className='text-slate-600 text-xs sm:text-sm line-clamp-2'>
                                     {leaveRequest.description}
                                   </p>
                                 )}
                               </div>
-                              <div className='ml-4'>
+
+                              <div className='sm:ml-4 sm:justify-self-end'>
                                 <span
-                                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                    user?.role === 'teacher'
-                                      ? 'bg-green-100 text-green-700'
+                                  className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-medium ${
+                                    user?.role === 'TEACHER'
+                                      ? 'bg-green-50 text-green-700'
                                       : leaveRequest.status ===
                                           'PENDING_PARENT_APPROVAL'
-                                        ? 'bg-yellow-100 text-yellow-700'
-                                        : 'bg-blue-100 text-blue-700'
+                                        ? 'bg-yellow-50 text-yellow-700'
+                                        : 'bg-blue-50 text-blue-700'
                                   }`}
                                 >
-                                  {user?.role === 'teacher'
+                                  {user?.role === 'TEACHER'
                                     ? 'Parent Approved'
                                     : leaveRequest.status ===
                                         'PENDING_PARENT_APPROVAL'
@@ -1519,8 +1473,9 @@ const ComplaintsAndLeavePage = () => {
                               </div>
                             </div>
 
-                            <div className='flex items-center justify-between'>
-                              <div className='flex items-center gap-4 text-sm text-slate-500'>
+                            {/* Footer/actions */}
+                            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                              <div className='flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-500'>
                                 {leaveRequest.attachments &&
                                   leaveRequest.attachments.length > 0 && (
                                     <span className='flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full'>
@@ -1541,30 +1496,29 @@ const ComplaintsAndLeavePage = () => {
                                 </span>
                               </div>
 
-                              <div className='flex items-center gap-2'>
-                                {/* View Details button - always shown */}
+                              <div className='flex flex-col sm:flex-row gap-3 w-full sm:w-auto'>
+                                {/* View Details Button - Always Available */}
                                 <Button
                                   onClick={() =>
                                     handleViewLeaveRequest(leaveRequest)
                                   }
-                                  className='bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                  className='w-full sm:w-auto bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2.5 rounded-lg hover:from-slate-700 hover:to-slate-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
-                                  <Eye className='h-4 w-4 mr-2' />
-                                  View Details
+                                  <Eye className='h-4 w-4' />
+                                  <span>View Details</span>
                                 </Button>
 
-                                {/* Conditional buttons based on user role */}
-                                {user?.role === 'parent' ? (
+                                {/* Role-Specific Action Buttons */}
+                                {user?.role === 'PARENT' ? (
                                   <>
-                                    {/* Parent buttons */}
                                     <Button
                                       onClick={() =>
                                         handleParentApprove(leaveRequest.id)
                                       }
-                                      className='bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                      className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                     >
-                                      <CheckCircle className='h-4 w-4 mr-2' />
-                                      Approve
+                                      <CheckCircle className='h-4 w-4' />
+                                      <span>Approve as Parent</span>
                                     </Button>
                                     <Button
                                       onClick={() => {
@@ -1574,23 +1528,22 @@ const ComplaintsAndLeavePage = () => {
                                         });
                                         setRejectReasonModalOpen(true);
                                       }}
-                                      className='bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                      className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                     >
-                                      <X className='h-4 w-4 mr-2' />
-                                      Reject
+                                      <X className='h-4 w-4' />
+                                      <span>Reject Request</span>
                                     </Button>
                                   </>
-                                ) : user?.role === 'teacher' ? (
+                                ) : user?.role === 'TEACHER' ? (
                                   <>
-                                    {/* Teacher buttons */}
                                     <Button
                                       onClick={() =>
                                         handleTeacherApprove(leaveRequest.id)
                                       }
-                                      className='bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                      className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                     >
-                                      <CheckCircle className='h-4 w-4 mr-2' />
-                                      Approve
+                                      <CheckCircle className='h-4 w-4' />
+                                      <span>Approve as Teacher</span>
                                     </Button>
                                     <Button
                                       onClick={() => {
@@ -1600,14 +1553,13 @@ const ComplaintsAndLeavePage = () => {
                                         });
                                         setRejectReasonModalOpen(true);
                                       }}
-                                      className='bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                      className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                     >
-                                      <X className='h-4 w-4 mr-2' />
-                                      Reject
+                                      <X className='h-4 w-4' />
+                                      <span>Reject Request</span>
                                     </Button>
                                   </>
                                 ) : (
-                                  /* Student buttons - only show cancel if still pending parent approval */
                                   leaveRequest.status ===
                                     'PENDING_PARENT_APPROVAL' && (
                                     <Button
@@ -1615,10 +1567,10 @@ const ComplaintsAndLeavePage = () => {
                                         setLeaveRequestToCancel(leaveRequest);
                                         setCancelConfirmationModalOpen(true);
                                       }}
-                                      className='bg-gradient-to-r from-orange-600 to-orange-700 text-white px-4 py-2 rounded-xl hover:from-orange-700 hover:to-orange-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                      className='w-full sm:w-auto bg-gradient-to-r from-amber-600 to-amber-700 text-white px-4 py-2.5 rounded-lg hover:from-amber-700 hover:to-amber-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                     >
-                                      <X className='h-4 w-4 mr-2' />
-                                      Cancel
+                                      <X className='h-4 w-4' />
+                                      <span>Cancel Request</span>
                                     </Button>
                                   )
                                 )}
@@ -1630,14 +1582,15 @@ const ComplaintsAndLeavePage = () => {
                   </div>
                 </div>
 
+                {/* Approved */}
                 <div className='mb-8'>
-                  <h4 className='text-xl font-semibold text-slate-800 mb-4'>
+                  <h4 className='text-lg sm:text-xl font-semibold text-slate-800 mb-2 sm:mb-4'>
                     Approved Leave Requests
                   </h4>
                   <div className='space-y-4'>
                     {leaveRequests.filter(l => l.status === 'APPROVED')
                       .length === 0 ? (
-                      <div className='text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200'>
+                      <div className='text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 px-4'>
                         <div className='w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3'>
                           <CheckCircle2 className='h-6 w-6 text-slate-400' />
                         </div>
@@ -1654,57 +1607,57 @@ const ComplaintsAndLeavePage = () => {
                         .map(leaveRequest => (
                           <div
                             key={leaveRequest.id}
-                            className='group bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'
+                            className='group bg-white rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-100 hover:shadow-xl'
                           >
-                            <div className='flex items-start justify-between mb-4'>
-                              <div className='flex-1'>
-                                <h3 className='font-semibold text-slate-800 text-lg mb-2 line-clamp-2'>
+                            <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-4 mb-4'>
+                              <div className='min-w-0'>
+                                <h3 className='font-semibold text-slate-800 text-base sm:text-lg mb-1.5 sm:mb-2 line-clamp-2 break-words'>
                                   {leaveRequest.title}
                                 </h3>
-                                <div className='text-sm text-gray-600 mb-2'>
+                                <div className='text-xs sm:text-sm text-gray-600 mb-1.5 sm:mb-2'>
                                   <span className='font-medium'>Type:</span>{' '}
                                   {leaveRequest.type}
                                 </div>
-                                <div className='text-sm text-gray-600 mb-2'>
+                                <div className='text-xs sm:text-sm text-gray-600 mb-1.5 sm:mb-2'>
                                   <span className='font-medium'>Duration:</span>{' '}
                                   {leaveRequest.days} day
                                   {leaveRequest.days !== 1 ? 's' : ''}
                                 </div>
-                                <div className='flex items-center gap-4 text-sm text-slate-600 mb-3'>
-                                  <span className='flex items-center gap-1'>
+                                <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-600 mb-2 sm:mb-3'>
+                                  <span className='inline-flex items-center gap-1.5'>
                                     <CalendarDays className='h-4 w-4' />
                                     {new Date(
                                       leaveRequest.startDate,
                                     ).toLocaleDateString()}{' '}
-                                    -{' '}
+                                    –{' '}
                                     {new Date(
                                       leaveRequest.endDate,
                                     ).toLocaleDateString()}
                                   </span>
-                                  <span className='flex items-center gap-1'>
-                                    <span className='w-2 h-2 bg-blue-500 rounded-full'></span>
+                                  <span className='inline-flex items-center gap-1.5'>
+                                    <span className='w-2 h-2 bg-blue-500 rounded-full' />
                                     {leaveRequest.type}
                                   </span>
-                                  <span className='flex items-center gap-1'>
-                                    <span className='w-2 h-2 bg-green-500 rounded-full'></span>
+                                  <span className='inline-flex items-center gap-1.5'>
+                                    <span className='w-2 h-2 bg-green-500 rounded-full' />
                                     Approved
                                   </span>
                                 </div>
                                 {leaveRequest.description && (
-                                  <p className='text-slate-600 text-sm line-clamp-2'>
+                                  <p className='text-slate-600 text-xs sm:text-sm line-clamp-2'>
                                     {leaveRequest.description}
                                   </p>
                                 )}
                               </div>
-                              <div className='ml-4'>
-                                <span className='bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium'>
+                              <div className='sm:ml-4 sm:justify-self-end'>
+                                <span className='inline-block bg-green-50 text-green-700 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-medium'>
                                   Approved
                                 </span>
                               </div>
                             </div>
 
-                            <div className='flex items-center justify-between'>
-                              <div className='flex items-center gap-4 text-sm text-slate-500'>
+                            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                              <div className='flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-500'>
                                 {leaveRequest.attachments &&
                                   leaveRequest.attachments.length > 0 && (
                                     <span className='flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full'>
@@ -1725,15 +1678,15 @@ const ComplaintsAndLeavePage = () => {
                                 </span>
                               </div>
 
-                              <div className='flex items-center gap-2'>
+                              <div className='flex flex-col sm:flex-row gap-3 w-full sm:w-auto'>
                                 <Button
                                   onClick={() =>
                                     handleViewLeaveRequest(leaveRequest)
                                   }
-                                  className='bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                  className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
-                                  <Eye className='h-4 w-4 mr-2' />
-                                  View Details
+                                  <Eye className='h-4 w-4' />
+                                  <span>View Approved</span>
                                 </Button>
                               </div>
                             </div>
@@ -1743,14 +1696,15 @@ const ComplaintsAndLeavePage = () => {
                   </div>
                 </div>
 
-                <div className='mb-8'>
-                  <h4 className='text-xl font-semibold text-slate-800 mb-4'>
+                {/* Rejected */}
+                <div className='mb-2 sm:mb-8'>
+                  <h4 className='text-lg sm:text-xl font-semibold text-slate-800 mb-2 sm:mb-4'>
                     Rejected Leave Requests
                   </h4>
                   <div className='space-y-4'>
                     {leaveRequests.filter(l => l.status === 'REJECTED')
                       .length === 0 ? (
-                      <div className='text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200'>
+                      <div className='text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 px-4'>
                         <div className='w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3'>
                           <XCircle className='h-6 w-6 text-slate-400' />
                         </div>
@@ -1767,57 +1721,57 @@ const ComplaintsAndLeavePage = () => {
                         .map(leaveRequest => (
                           <div
                             key={leaveRequest.id}
-                            className='group bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'
+                            className='group bg-white rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-100 hover:shadow-xl'
                           >
-                            <div className='flex items-start justify-between mb-4'>
-                              <div className='flex-1'>
-                                <h3 className='font-semibold text-slate-800 text-lg mb-2 line-clamp-2'>
+                            <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-4 mb-4'>
+                              <div className='min-w-0'>
+                                <h3 className='font-semibold text-slate-800 text-base sm:text-lg mb-1.5 sm:mb-2 line-clamp-2 break-words'>
                                   {leaveRequest.title}
                                 </h3>
-                                <div className='text-sm text-gray-600 mb-2'>
+                                <div className='text-xs sm:text-sm text-gray-600 mb-1.5 sm:mb-2'>
                                   <span className='font-medium'>Type:</span>{' '}
                                   {leaveRequest.type}
                                 </div>
-                                <div className='text-sm text-gray-600 mb-2'>
+                                <div className='text-xs sm:text-sm text-gray-600 mb-1.5 sm:mb-2'>
                                   <span className='font-medium'>Duration:</span>{' '}
                                   {leaveRequest.days} day
                                   {leaveRequest.days !== 1 ? 's' : ''}
                                 </div>
-                                <div className='flex items-center gap-4 text-sm text-slate-600 mb-3'>
-                                  <span className='flex items-center gap-1'>
+                                <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-600 mb-2 sm:mb-3'>
+                                  <span className='inline-flex items-center gap-1.5'>
                                     <CalendarDays className='h-4 w-4' />
                                     {new Date(
                                       leaveRequest.startDate,
                                     ).toLocaleDateString()}{' '}
-                                    -{' '}
+                                    –{' '}
                                     {new Date(
                                       leaveRequest.endDate,
                                     ).toLocaleDateString()}
                                   </span>
-                                  <span className='flex items-center gap-1'>
-                                    <span className='w-2 h-2 bg-blue-500 rounded-full'></span>
+                                  <span className='inline-flex items-center gap-1.5'>
+                                    <span className='w-2 h-2 bg-blue-500 rounded-full' />
                                     {leaveRequest.type}
                                   </span>
-                                  <span className='flex items-center gap-1'>
-                                    <span className='w-2 h-2 bg-red-500 rounded-full'></span>
+                                  <span className='inline-flex items-center gap-1.5'>
+                                    <span className='w-2 h-2 bg-red-500 rounded-full' />
                                     Rejected
                                   </span>
                                 </div>
                                 {leaveRequest.description && (
-                                  <p className='text-slate-600 text-sm line-clamp-2'>
+                                  <p className='text-slate-600 text-xs sm:text-sm line-clamp-2'>
                                     {leaveRequest.description}
                                   </p>
                                 )}
                               </div>
-                              <div className='ml-4'>
-                                <span className='bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium'>
+                              <div className='sm:ml-4 sm:justify-self-end'>
+                                <span className='inline-block bg-red-50 text-red-700 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-medium'>
                                   Rejected
                                 </span>
                               </div>
                             </div>
 
-                            <div className='flex items-center justify-between'>
-                              <div className='flex items-center gap-4 text-sm text-slate-500'>
+                            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                              <div className='flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-500'>
                                 {leaveRequest.attachments &&
                                   leaveRequest.attachments.length > 0 && (
                                     <span className='flex items-center gap-1 bg-slate-50 px-3 py-1 rounded-full'>
@@ -1838,15 +1792,15 @@ const ComplaintsAndLeavePage = () => {
                                 </span>
                               </div>
 
-                              <div className='flex items-center gap-2'>
+                              <div className='flex flex-col sm:flex-row gap-3 w-full sm:w-auto'>
                                 <Button
                                   onClick={() =>
                                     handleViewLeaveRequest(leaveRequest)
                                   }
-                                  className='bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-2 rounded-xl hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl transition-all duration-200 group-hover:scale-105'
+                                  className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
-                                  <Eye className='h-4 w-4 mr-2' />
-                                  View Details
+                                  <Eye className='h-4 w-4' />
+                                  <span>View Rejected</span>
                                 </Button>
                               </div>
                             </div>
@@ -1868,9 +1822,9 @@ const ComplaintsAndLeavePage = () => {
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6'>
+    <div className='min-h-screen p-4 sm:p-6'>
       {/* Conditionally render the appropriate complaint modal based on user role */}
-      {user?.role === 'teacher' ? (
+      {user?.role === 'TEACHER' ? (
         <TeacherComplaintModal
           open={complaintModalOpen}
           onClose={() => setComplaintModalOpen(false)}
@@ -1914,16 +1868,16 @@ const ComplaintsAndLeavePage = () => {
 
       {/* Close Confirmation Modal */}
       {cancelModalOpen && complaintToCancel && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8'>
-          <div className='bg-white rounded-xl max-w-md w-full mx-4 shadow-xl'>
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-6 px-3 sm:px-0'>
+          <div className='bg-white rounded-xl w-full max-w-md mx-auto shadow-xl'>
             {/* Header */}
-            <div className='bg-gradient-to-r from-orange-50 to-orange-100 p-6 border-b border-orange-200'>
-              <div className='flex justify-between items-start'>
+            <div className='bg-gradient-to-r from-orange-50 to-orange-100 p-4 sm:p-6 border-b border-orange-200'>
+              <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2'>
                 <div>
-                  <h2 className='text-xl font-bold text-gray-800'>
+                  <h2 className='text-lg sm:text-xl font-bold text-gray-800'>
                     Close Complaint
                   </h2>
-                  <p className='text-sm text-gray-600 mt-1'>
+                  <p className='text-xs sm:text-sm text-gray-600 mt-1'>
                     This will mark the complaint as closed
                   </p>
                 </div>
@@ -1932,7 +1886,7 @@ const ComplaintsAndLeavePage = () => {
                     setCancelModalOpen(false);
                     setComplaintToCancel(null);
                   }}
-                  className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+                  className='justify-self-start sm:justify-self-end text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
                 >
                   <X size={20} />
                 </button>
@@ -1940,7 +1894,7 @@ const ComplaintsAndLeavePage = () => {
             </div>
 
             {/* Content */}
-            <div className='w-full p-6'>
+            <div className='w-full p-4 sm:p-6'>
               <div className='mb-4'>
                 <p className='text-gray-700 mb-2'>
                   Are you sure you want to close the complaint:
@@ -1963,19 +1917,19 @@ const ComplaintsAndLeavePage = () => {
             </div>
 
             {/* Footer */}
-            <div className='flex justify-end gap-3 p-6 border-t border-gray-200'>
+            <div className='flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200'>
               <Button
                 onClick={() => {
                   setCancelModalOpen(false);
                   setComplaintToCancel(null);
                 }}
-                className='bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400'
+                className='w-full sm:w-auto bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400'
               >
                 No, Keep Active
               </Button>
               <Button
                 onClick={confirmCancelComplaint}
-                className='bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700'
+                className='w-full sm:w-auto bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700'
               >
                 Yes, Close Complaint
               </Button>
@@ -1986,20 +1940,20 @@ const ComplaintsAndLeavePage = () => {
 
       {/* Custom Cancel Confirmation Modal */}
       {cancelConfirmationModalOpen && leaveRequestToCancel && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8 animate-in fade-in duration-200'>
-          <div className='bg-white rounded-xl max-w-md w-full mx-4 shadow-xl animate-in zoom-in-95 duration-200'>
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-6 px-3 sm:px-0 animate-in fade-in duration-200'>
+          <div className='bg-white rounded-xl w-full max-w-md mx-auto shadow-xl animate-in zoom-in-95 duration-200'>
             {/* Header */}
-            <div className='bg-gradient-to-r from-orange-50 to-orange-100 p-6 border-b border-orange-200'>
-              <div className='flex justify-between items-start'>
+            <div className='bg-gradient-to-r from-orange-50 to-orange-100 p-4 sm:p-6 border-b border-orange-200'>
+              <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2'>
                 <div className='flex items-center gap-3'>
                   <div className='w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center'>
                     <X className='h-5 w-5 text-orange-600' />
                   </div>
                   <div>
-                    <h2 className='text-xl font-bold text-gray-800'>
+                    <h2 className='text-lg sm:text-xl font-bold text-gray-800'>
                       Cancel Leave Request
                     </h2>
-                    <p className='text-sm text-gray-600 mt-1'>
+                    <p className='text-xs sm:text-sm text-gray-600 mt-1'>
                       This action cannot be undone
                     </p>
                   </div>
@@ -2009,7 +1963,7 @@ const ComplaintsAndLeavePage = () => {
                     setCancelConfirmationModalOpen(false);
                     setLeaveRequestToCancel(null);
                   }}
-                  className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+                  className='justify-self-start sm:justify-self-end text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
                 >
                   <X size={20} />
                 </button>
@@ -2017,7 +1971,7 @@ const ComplaintsAndLeavePage = () => {
             </div>
 
             {/* Content */}
-            <div className='w-full p-6'>
+            <div className='w-full p-4 sm:p-6'>
               <div className='mb-6'>
                 <div className='flex items-start gap-3 mb-4'>
                   <div className='w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5'>
@@ -2031,12 +1985,12 @@ const ComplaintsAndLeavePage = () => {
                 </div>
 
                 <div className='bg-gray-50 p-4 rounded-lg border border-gray-200'>
-                  <h3 className='font-semibold text-gray-800 text-lg mb-2'>
+                  <h3 className='font-semibold text-gray-800 text-base sm:text-lg mb-2'>
                     {leaveRequestToCancel.title}
                   </h3>
-                  <div className='flex items-center gap-4 text-sm text-gray-600'>
+                  <div className='flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-600'>
                     <span className='flex items-center gap-1'>
-                      <span className='w-2 h-2 bg-blue-500 rounded-full'></span>
+                      <span className='w-2 h-2 bg-blue-500 rounded-full' />
                       {leaveRequestToCancel.type}
                     </span>
                     <span className='flex items-center gap-1'>
@@ -2045,11 +1999,11 @@ const ComplaintsAndLeavePage = () => {
                       {leaveRequestToCancel.days !== 1 ? 's' : ''}
                     </span>
                   </div>
-                  <p className='text-sm text-gray-500 mt-2'>
+                  <p className='text-xs sm:text-sm text-gray-500 mt-2'>
                     {new Date(
                       leaveRequestToCancel.startDate,
                     ).toLocaleDateString()}{' '}
-                    -{' '}
+                    –{' '}
                     {new Date(
                       leaveRequestToCancel.endDate,
                     ).toLocaleDateString()}
@@ -2077,14 +2031,14 @@ const ComplaintsAndLeavePage = () => {
             </div>
 
             {/* Footer */}
-            <div className='flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50'>
+            <div className='flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 bg-gray-50'>
               <Button
                 onClick={() => {
                   setCancelConfirmationModalOpen(false);
                   setLeaveRequestToCancel(null);
                 }}
                 disabled={cancelling}
-                className='bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium'
+                className='w-full sm:w-auto bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-6 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm hover:shadow-md transition-all duration-200'
               >
                 Keep Request
               </Button>
@@ -2097,11 +2051,11 @@ const ComplaintsAndLeavePage = () => {
                   setCancelling(false);
                 }}
                 disabled={cancelling}
-                className='bg-orange-600 text-white px-6 py-2.5 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-sm'
+                className='w-full sm:w-auto bg-gradient-to-r from-amber-600 to-amber-700 text-white px-6 py-2.5 rounded-lg hover:from-amber-700 hover:to-amber-800 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 font-medium shadow-md hover:shadow-lg transition-all duration-200'
               >
                 {cancelling ? (
                   <>
-                    <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+                    <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
                     Cancelling...
                   </>
                 ) : (
@@ -2115,19 +2069,19 @@ const ComplaintsAndLeavePage = () => {
 
       {/* Header Section */}
       <div className='mb-8'>
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4'>
           <div>
-            <h1 className='text-3xl font-bold bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-transparent'>
+            <h1 className='text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-transparent'>
               Requests & Complaints
             </h1>
-            <p className='text-slate-600 mt-2'>
+            <p className='text-slate-600 mt-1 sm:mt-2 text-sm sm:text-base'>
               Manage your complaints and leave requests efficiently
             </p>
           </div>
-          <div className='flex gap-3'>
+          <div className='flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto'>
             <button
               onClick={() => setComplaintModalOpen(true)}
-              className='inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl'
+              className='w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl'
             >
               <AlertCircle className='h-5 w-5' />
               New Complaint
@@ -2137,14 +2091,14 @@ const ComplaintsAndLeavePage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
-        <div className='bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'>
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8'>
+        <div className='bg-white rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-100 hover:shadow-xl'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-slate-600 text-sm font-medium'>
                 Active Complaints
               </p>
-              <p className='text-3xl font-bold text-slate-800 mt-1'>
+              <p className='text-2xl sm:text-3xl font-bold text-slate-800 mt-1'>
                 {
                   complaints.filter(
                     c => c.status === 'OPEN' || c.status === 'IN_PROGRESS',
@@ -2162,11 +2116,11 @@ const ComplaintsAndLeavePage = () => {
           </div>
         </div>
 
-        <div className='bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300'>
+        <div className='bg-white rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-slate-600 text-sm font-medium'>Resolved</p>
-              <p className='text-3xl font-bold text-slate-800 mt-1'>
+              <p className='text-2xl sm:text-3xl font-bold text-slate-800 mt-1'>
                 {
                   complaints.filter(
                     c =>
@@ -2187,13 +2141,13 @@ const ComplaintsAndLeavePage = () => {
           </div>
         </div>
 
-        <div className='bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300'>
+        <div className='bg-white rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-slate-600 text-sm font-medium'>
                 Pending Leave
               </p>
-              <p className='text-3xl font-bold text-slate-800 mt-1'>
+              <p className='text-2xl sm:text-3xl font-bold text-slate-800 mt-1'>
                 {
                   leaveRequests.filter(
                     l =>
@@ -2216,21 +2170,21 @@ const ComplaintsAndLeavePage = () => {
 
       {/* Quick Actions */}
       <div className='mb-8'>
-        <h2 className='text-xl font-semibold text-slate-800 mb-4'>
+        <h2 className='text-lg sm:text-xl font-semibold text-slate-800 mb-3 sm:mb-4'>
           Quick Actions
         </h2>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <button
             type='button'
             onClick={() => setLeaveRequestModalOpen(true)}
-            className='group relative bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] text-left'
+            className='group relative bg-white rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] text-left'
           >
             <div className='flex items-start gap-4'>
               <div className='w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200'>
                 <CalendarDays className='h-6 w-6 text-white' />
               </div>
               <div className='flex-1'>
-                <h3 className='font-semibold text-slate-800 text-lg mb-1'>
+                <h3 className='font-semibold text-slate-800 text-base sm:text-lg mb-1'>
                   Request Leave
                 </h3>
                 <p className='text-slate-600 text-sm'>
@@ -2259,14 +2213,14 @@ const ComplaintsAndLeavePage = () => {
           <button
             type='button'
             onClick={() => setComplaintModalOpen(true)}
-            className='group relative bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] text-left'
+            className='group relative bg-white rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] text-left'
           >
             <div className='flex items-start gap-4'>
               <div className='w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200'>
                 <AlertCircle className='h-6 w-6 text-white' />
               </div>
               <div className='flex-1'>
-                <h3 className='font-semibold text-slate-800 text-lg mb-1'>
+                <h3 className='font-semibold text-slate-800 text-base sm:text-lg mb-1'>
                   Submit Complaint
                 </h3>
                 <p className='text-slate-600 text-sm'>
@@ -2301,16 +2255,16 @@ const ComplaintsAndLeavePage = () => {
 
       {/* Reject Reason Modal */}
       {rejectReasonModalOpen && leaveRequestToReject && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8'>
-          <div className='bg-white rounded-xl max-w-md w-full mx-4 shadow-xl'>
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-6 px-3 sm:px-0'>
+          <div className='bg-white rounded-xl w-full max-w-md mx-auto shadow-xl'>
             {/* Header */}
-            <div className='bg-gradient-to-r from-red-50 to-red-100 p-6 border-b border-red-200'>
-              <div className='flex justify-between items-start'>
+            <div className='bg-gradient-to-r from-red-50 to-red-100 p-4 sm:p-6 border-b border-red-200'>
+              <div className='grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2'>
                 <div>
-                  <h2 className='text-xl font-bold text-gray-800'>
+                  <h2 className='text-lg sm:text-xl font-bold text-gray-800'>
                     Reject Leave Request
                   </h2>
-                  <p className='text-sm text-gray-600 mt-1'>
+                  <p className='text-xs sm:text-sm text-gray-600 mt-1'>
                     Provide a reason for rejection
                   </p>
                 </div>
@@ -2319,7 +2273,7 @@ const ComplaintsAndLeavePage = () => {
                     setRejectReasonModalOpen(false);
                     setLeaveRequestToReject(null);
                   }}
-                  className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+                  className='justify-self-start sm:justify-self-end text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
                 >
                   <X size={20} />
                 </button>
@@ -2327,7 +2281,7 @@ const ComplaintsAndLeavePage = () => {
             </div>
 
             {/* Content */}
-            <div className='w-full p-6'>
+            <div className='w-full p-4 sm:p-6'>
               <div className='mb-4'>
                 <h3 className='font-semibold text-gray-800 mb-2'>
                   Leave Request Details
@@ -2351,7 +2305,7 @@ const ComplaintsAndLeavePage = () => {
                     {new Date(
                       leaveRequestToReject.startDate,
                     ).toLocaleDateString()}{' '}
-                    -{' '}
+                    –{' '}
                     {new Date(
                       leaveRequestToReject.endDate,
                     ).toLocaleDateString()}
@@ -2397,22 +2351,23 @@ const ComplaintsAndLeavePage = () => {
                   />
                 </div>
 
-                <div className='flex items-center gap-3 pt-4'>
+                <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-2'>
                   <Button
                     type='button'
                     onClick={() => {
                       setRejectReasonModalOpen(false);
                       setLeaveRequestToReject(null);
                     }}
-                    className='bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300'
+                    className='w-full sm:w-auto bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-6 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 shadow-sm hover:shadow-md transition-all duration-200 font-medium'
                   >
                     Cancel
                   </Button>
                   <Button
                     type='submit'
-                    className='bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700'
+                    className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-6 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium flex items-center justify-center gap-2'
                   >
-                    Reject Request
+                    <X className='h-4 w-4' />
+                    <span>Reject Request</span>
                   </Button>
                 </div>
               </form>

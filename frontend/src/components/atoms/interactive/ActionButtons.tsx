@@ -546,8 +546,13 @@ export const ActionButtons = ({
             closeModal();
           }}
           onSuccess={() => {
+            console.log('CreateFeeStructureModal onSuccess called');
             handleSuccess();
-            onRefresh?.();
+            // Add a small delay to ensure backend has committed the transaction
+            setTimeout(() => {
+              console.log('Calling onRefresh after delay');
+              onRefresh?.();
+            }, 500);
           }}
         />
       ) : pageType === 'expenses' ? (

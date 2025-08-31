@@ -299,8 +299,7 @@ const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
       typeof formData.basicSalary === 'number'
         ? formData.basicSalary
         : parseFloat(formData.basicSalary) || 0;
-    if (!basicSalary || basicSalary <= 0)
-      newErrors.basicSalary = 'Basic salary must be greater than 0';
+    // Remove validation that requires basicSalary > 0 - accept any number
 
     if (!formData.payDate) newErrors.payDate = 'Pay date is required';
     if (!formData.payPeriod) newErrors.payPeriod = 'Pay period is required';
@@ -443,8 +442,6 @@ const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
                   value={formData.basicSalary}
                   onChange={handleInputChange}
                   placeholder='Enter basic salary'
-                  required
-                  min='0'
                   error={errors.basicSalary}
                 />
 
@@ -455,7 +452,6 @@ const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
                   value={formData.allowances}
                   onChange={handleInputChange}
                   placeholder='Enter allowances'
-                  min='0'
                 />
 
                 <LabeledInput
@@ -465,7 +461,6 @@ const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
                   value={formData.deductions}
                   onChange={handleInputChange}
                   placeholder='Enter deductions'
-                  min='0'
                 />
 
                 <div className='relative'>

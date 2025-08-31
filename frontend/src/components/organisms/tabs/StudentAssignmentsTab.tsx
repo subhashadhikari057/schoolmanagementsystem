@@ -4,10 +4,25 @@ import React, { useMemo, useState, useEffect } from 'react';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import Button from '@/components/atoms/form-controls/Button';
-import { Users, Calendar, AlertCircle } from 'lucide-react';
+import {
+  Users,
+  Calendar,
+  AlertCircle,
+  Eye,
+  Upload,
+  CheckCircle,
+  Clock,
+  FileText,
+  Paperclip,
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { studentService } from '@/api/services/student.service';
 import { assignmentService } from '@/api/services/assignment.service';
+import { submissionService } from '@/api/services/submission.service';
+import ViewAssignmentModal from '../modals/ViewAssignmentModal';
+import SubmitAssignmentModal from '../modals/SubmitAssignmentModal';
+import { AssignmentResponse } from '@/api/types/assignment';
+import { ViewMySubmissionModal } from '../modals/ViewMySubmissionModal';
 
 // Backend assignments state
 const initialAssignments: StudentAssignment[] = [];
@@ -23,6 +38,9 @@ interface StudentAssignment {
   submissions: number;
   graded: number;
   totalStudents: number;
+  description?: string;
+  attachments?: any[];
+  originalAssignment?: AssignmentResponse;
 }
 
 interface StudentAssignmentsTabProps {
@@ -40,6 +58,15 @@ export default function StudentAssignmentsTab({
   const [assignments, setAssignments] =
     useState<StudentAssignment[]>(initialAssignments);
   const [loading, setLoading] = useState(true);
+
+  // Modal states
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [submitModalOpen, setSubmitModalOpen] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] =
+    useState<AssignmentResponse | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [viewMySubmissionModalOpen, setViewMySubmissionModalOpen] =
+    useState(false);
 
   // Fetch student info and assignments
   useEffect(() => {
@@ -62,12 +89,19 @@ export default function StudentAssignmentsTab({
         // Map backend assignments to StudentAssignment type
         const mappedAssignments = (assignmentRes.data || []).map(a => {
           let status: 'active' | 'completed' | 'overdue' = 'active';
-          if (a.deletedAt) status = 'overdue';
-          else if (
+
+          // Check if assignment is completed (graded)
+          if (
             a.submissions &&
             a.submissions.some(s => s.studentId === student.id && s.isCompleted)
-          )
+          ) {
             status = 'completed';
+          }
+          // Check if assignment is overdue (due date has passed)
+          else if (a.dueDate && new Date(a.dueDate) < new Date()) {
+            status = 'overdue';
+          }
+          // Otherwise it's active
           return {
             id: a.id,
             title: a.title,
@@ -89,6 +123,9 @@ export default function StudentAssignmentsTab({
                 ? 1
                 : 0,
             totalStudents: a.class.students?.length || 0,
+            description: a.description,
+            attachments: a.attachments,
+            originalAssignment: a,
           };
         });
         setAssignments(mappedAssignments);
@@ -99,7 +136,40 @@ export default function StudentAssignmentsTab({
       }
     };
     fetchAssignments();
-  }, [user]);
+  }, [user, refreshTrigger]);
+
+  // Handle view assignment
+  const handleViewAssignment = (assignment: StudentAssignment) => {
+    if (assignment.originalAssignment) {
+      setSelectedAssignment(assignment.originalAssignment);
+      setViewModalOpen(true);
+    }
+  };
+
+  // Handle submit assignment
+  const handleSubmitAssignment = (assignment: StudentAssignment) => {
+    // Prevent submission if assignment is overdue
+    if (assignment.status === 'overdue') {
+      return;
+    }
+
+    if (assignment.originalAssignment) {
+      setSelectedAssignment(assignment.originalAssignment);
+      setSubmitModalOpen(true);
+    }
+  };
+
+  const handleViewMySubmission = (assignment: StudentAssignment) => {
+    if (assignment.originalAssignment) {
+      setSelectedAssignment(assignment.originalAssignment);
+      setViewMySubmissionModalOpen(true);
+    }
+  };
+
+  // Handle submission success
+  const handleSubmissionSuccess = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   // Extract unique subjects for filter
   const subjects = useMemo(() => {
@@ -138,18 +208,42 @@ export default function StudentAssignmentsTab({
         return 'bg-gray-100 text-gray-700';
     }
   };
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-100 text-red-700';
-      case 'medium':
-        return 'bg-orange-100 text-orange-700';
-      case 'low':
-        return 'bg-green-100 text-green-700';
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Clock className='w-4 h-4' />;
+      case 'completed':
+        return <CheckCircle className='w-4 h-4' />;
+      case 'overdue':
+        return <AlertCircle className='w-4 h-4' />;
       default:
-        return 'bg-gray-100 text-gray-700';
+        return <Clock className='w-4 h-4' />;
     }
   };
+
+  const formatDueDate = (dueDate: string) => {
+    if (!dueDate) return 'No due date';
+    const date = new Date(dueDate);
+    const now = new Date();
+    const diffTime = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return `${Math.abs(diffDays)} days overdue`;
+    } else if (diffDays === 0) {
+      return 'Due today';
+    } else if (diffDays === 1) {
+      return 'Due tomorrow';
+    } else {
+      return `Due in ${diffDays} days`;
+    }
+  };
+
+  const getAttachmentCount = (assignment: StudentAssignment) => {
+    return assignment.attachments?.length || 0;
+  };
+
   return (
     <div className='space-y-6'>
       {/* Search and Filters */}
@@ -194,10 +288,11 @@ export default function StudentAssignmentsTab({
           />
         </div>
       </div>
+
       {/* Assignments List */}
-      <div className='space-y-4'>
+      <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
         {filteredAssignments.length === 0 ? (
-          <div className='flex items-center justify-center py-12'>
+          <div className='col-span-full flex items-center justify-center py-12'>
             <div className='text-center'>
               <Calendar className='h-12 w-12 text-gray-400 mx-auto mb-4' />
               <p className='text-gray-600'>
@@ -209,46 +304,67 @@ export default function StudentAssignmentsTab({
           filteredAssignments.map(assignment => (
             <div
               key={assignment.id}
-              className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'
+              className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-200 group'
             >
+              {/* Header with status */}
               <div className='flex items-start justify-between mb-4'>
-                <div className='flex-1'>
-                  <div className='flex items-center gap-3 mb-3'>
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}
-                    >
-                      {assignment.status}
-                    </span>
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(assignment.priority)}`}
-                    >
-                      {assignment.priority} priority
-                    </span>
-                    <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700'>
-                      {assignment.subject}
-                    </span>
-                  </div>
-                  <h3 className='text-lg font-semibold text-gray-900 mb-2'>
-                    {assignment.title}
-                  </h3>
-                  <div className='flex items-center gap-6 text-sm text-gray-600'>
-                    <div className='flex items-center gap-2'>
-                      <Users className='w-4 h-4' />
-                      <span>{assignment.class}</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <Calendar className='w-4 h-4' />
-                      <span>Due: {assignment.dueDate}</span>
-                    </div>
-                  </div>
+                <div className='flex items-center gap-2'>
+                  {getStatusIcon(assignment.status)}
+                  <span
+                    className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}
+                  >
+                    {assignment.status}
+                  </span>
                 </div>
               </div>
-              {/* Submission Status */}
-              <div className='space-y-3'>
+
+              {/* Subject badge */}
+              <div className='mb-4'>
+                <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700'>
+                  {assignment.subject}
+                </span>
+              </div>
+
+              {/* Title */}
+              <h3 className='text-lg font-semibold text-gray-900 mb-3 line-clamp-2'>
+                {assignment.title}
+              </h3>
+
+              {/* Class, Due Date, and Attachments */}
+              <div className='space-y-2 mb-4'>
+                <div className='flex items-center gap-2 text-sm text-gray-600'>
+                  <Users className='w-4 h-4' />
+                  <span>{assignment.class}</span>
+                </div>
+                <div className='flex items-center gap-2 text-sm text-gray-600'>
+                  <Calendar className='w-4 h-4' />
+                  <span
+                    className={
+                      assignment.status === 'overdue'
+                        ? 'text-red-600 font-medium'
+                        : ''
+                    }
+                  >
+                    {formatDueDate(assignment.dueDate)}
+                  </span>
+                </div>
+                <div className='flex items-center gap-2 text-sm text-gray-600'>
+                  <Paperclip className='w-4 h-4' />
+                  <span>
+                    {getAttachmentCount(assignment)} attachment
+                    {getAttachmentCount(assignment) !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress indicators */}
+              <div className='space-y-3 mb-6'>
                 <div>
                   <div className='flex justify-between text-sm mb-1'>
                     <span className='text-gray-600'>Submission</span>
-                    <span className='text-gray-900'>
+                    <span
+                      className={`font-medium ${assignment.submissions === 1 ? 'text-green-600' : 'text-gray-500'}`}
+                    >
                       {assignment.submissions === 1
                         ? 'Submitted'
                         : 'Not Submitted'}
@@ -256,7 +372,7 @@ export default function StudentAssignmentsTab({
                   </div>
                   <div className='w-full bg-gray-200 rounded-full h-2'>
                     <div
-                      className={`h-2 rounded-full transition-all duration-300 ${assignment.submissions === 1 ? 'bg-blue-600' : 'bg-gray-400'}`}
+                      className={`h-2 rounded-full transition-all duration-300 ${assignment.submissions === 1 ? 'bg-green-600' : 'bg-gray-400'}`}
                       style={{
                         width: assignment.submissions === 1 ? '100%' : '0%',
                       }}
@@ -266,30 +382,109 @@ export default function StudentAssignmentsTab({
                 <div>
                   <div className='flex justify-between text-sm mb-1'>
                     <span className='text-gray-600'>Graded</span>
-                    <span className='text-gray-900'>
+                    <span
+                      className={`font-medium ${assignment.graded === 1 ? 'text-blue-600' : 'text-gray-500'}`}
+                    >
                       {assignment.graded === 1 ? 'Graded' : 'Not Graded'}
                     </span>
                   </div>
                   <div className='w-full bg-gray-200 rounded-full h-2'>
                     <div
-                      className={`h-2 rounded-full transition-all duration-300 ${assignment.graded === 1 ? 'bg-green-600' : 'bg-gray-400'}`}
+                      className={`h-2 rounded-full transition-all duration-300 ${assignment.graded === 1 ? 'bg-blue-600' : 'bg-gray-400'}`}
                       style={{ width: assignment.graded === 1 ? '100%' : '0%' }}
                     ></div>
                   </div>
                 </div>
               </div>
-              {/* Overdue Notice */}
+
+              {/* Action buttons */}
+              <div className='flex gap-2'>
+                <Button
+                  onClick={() => handleViewAssignment(assignment)}
+                  className='flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 py-2 px-3 text-sm font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2'
+                >
+                  <Eye className='w-4 h-4' />
+                  View
+                </Button>
+
+                {assignment.submissions === 1 && (
+                  <Button
+                    onClick={() => handleViewMySubmission(assignment)}
+                    className='flex-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 py-2 px-3 text-sm font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2'
+                  >
+                    <FileText className='w-4 h-4' />
+                    My Submission
+                  </Button>
+                )}
+
+                <Button
+                  onClick={() => handleSubmitAssignment(assignment)}
+                  disabled={assignment.status === 'overdue'}
+                  className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 ${
+                    assignment.status === 'overdue'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700 text-white'
+                  }`}
+                >
+                  <Upload className='w-4 h-4' />
+                  {assignment.status === 'overdue'
+                    ? 'Submission Closed'
+                    : assignment.submissions === 1
+                      ? 'Resubmit'
+                      : 'Submit'}
+                </Button>
+              </div>
+
+              {/* Overdue notice */}
               {assignment.status === 'overdue' && (
                 <div className='mt-4 pt-4 border-t border-gray-200'>
-                  <span className='text-red-600 text-sm font-medium'>
-                    Overdue
-                  </span>
+                  <div className='flex items-center gap-2 text-red-600 text-sm font-medium'>
+                    <AlertCircle className='w-4 h-4' />
+                    Assignment Overdue
+                  </div>
                 </div>
               )}
             </div>
           ))
         )}
       </div>
+
+      {/* View Assignment Modal */}
+      {selectedAssignment && (
+        <ViewAssignmentModal
+          isOpen={viewModalOpen}
+          onClose={() => {
+            setViewModalOpen(false);
+            setSelectedAssignment(null);
+          }}
+          assignment={selectedAssignment}
+        />
+      )}
+
+      {/* Submit Assignment Modal */}
+      {selectedAssignment && (
+        <SubmitAssignmentModal
+          isOpen={submitModalOpen}
+          onClose={() => {
+            setSubmitModalOpen(false);
+            setSelectedAssignment(null);
+          }}
+          assignment={selectedAssignment}
+          onSubmissionSuccess={handleSubmissionSuccess}
+        />
+      )}
+
+      {/* View My Submission Modal */}
+      {selectedAssignment && (
+        <ViewMySubmissionModal
+          isOpen={viewMySubmissionModalOpen}
+          onClose={() => {
+            setViewMySubmissionModalOpen(false);
+            setSelectedAssignment(null);
+          }}
+          assignmentId={selectedAssignment.id}
+        />
+      )}
     </div>
   );
 }
