@@ -7,9 +7,16 @@ import {
   Param,
   Body,
   Query,
+  Request,
   HttpStatus,
   HttpCode,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { IDCardTemplateService } from './id-card-template.service';
 import {
@@ -28,9 +35,12 @@ export class IDCardTemplateController {
   @ApiResponse({ status: 201, description: 'Template created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 409, description: 'Template name already exists' })
-  async createTemplate(@Body() createTemplateDto: CreateTemplateDto) {
-    // TODO: Get user ID from auth context
-    const userId = 'system'; // Temporary
+  async createTemplate(
+    @Body() createTemplateDto: CreateTemplateDto,
+    @Request() req: { user?: { id: string } },
+  ) {
+    // Get user ID from auth context
+    const userId = req.user?.id || null; // Allow null for system operations
     return this.templateService.createTemplate(createTemplateDto, userId);
   }
 
@@ -74,9 +84,9 @@ export class IDCardTemplateController {
   async updateTemplate(
     @Param('id') id: string,
     @Body() updateTemplateDto: UpdateTemplateDto,
+    @Request() req: { user?: { id: string } },
   ) {
-    // TODO: Get user ID from auth context
-    const userId = 'system'; // Temporary
+    const userId = req.user?.id || null;
     return this.templateService.updateTemplate(id, updateTemplateDto, userId);
   }
 
@@ -139,5 +149,80 @@ export class IDCardTemplateController {
     // TODO: Get user ID from auth context
     const userId = 'system'; // Temporary
     return this.templateService.unpublishTemplate(id, userId);
+  }
+
+  @Put(':id/activate')
+  @ApiOperation({ summary: 'Activate template for ID generation' })
+  @ApiResponse({ status: 200, description: 'Template activated successfully' })
+  @ApiResponse({
+    status: 400,
+    description: 'Template not ready for activation',
+  })
+  @ApiResponse({ status: 404, description: 'Template not found' })
+  async activateTemplate(@Param('id') id: string) {
+    // TODO: Get user ID from auth context
+    const userId = 'system'; // Temporary
+    return this.templateService.activateTemplate(id, userId);
+  }
+
+  @Get(':id/validate-for-generation')
+  @ApiOperation({ summary: 'Check if template is ready for ID generation' })
+  @ApiResponse({ status: 200, description: 'Validation result returned' })
+  async validateForGeneration(@Param('id') id: string) {
+    const isValid =
+      await this.templateService.validateTemplateForGeneration(id);
+    return { valid: isValid };
+  }
+
+  @Post('upload-logo')
+  @UseInterceptors(
+    FileInterceptor('logo', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = join(
+            process.cwd(),
+            'uploads',
+            'templates',
+            'logos',
+          );
+          if (!existsSync(uploadPath)) {
+            mkdirSync(uploadPath, { recursive: true });
+          }
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, `logo-${uniqueSuffix}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|gif|svg)$/)) {
+          return cb(new Error('Only image files are allowed!'), false);
+        }
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+      },
+    }),
+  )
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Upload logo for template' })
+  @ApiResponse({ status: 201, description: 'Logo uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid file format or size' })
+  async uploadLogo(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new Error('No file uploaded');
+    }
+
+    const logoUrl = `/api/v1/files/templates/${file.filename}`;
+    return {
+      success: true,
+      logoUrl,
+      filename: file.filename,
+      originalName: file.originalname,
+      size: file.size,
+    };
   }
 }

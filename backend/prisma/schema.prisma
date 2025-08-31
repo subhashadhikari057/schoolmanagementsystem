@@ -8,75 +8,61 @@ datasource db {
 }
 
 model User {
-  id                 String                @id @default(uuid())
-  email              String                @unique
-  phone              String?               @unique
-  passwordHash       String
-  fullName           String
-  isActive           Boolean               @default(true)
-  lastLoginAt        DateTime?
-  lastPasswordChange DateTime?
-  needPasswordChange Boolean               @default(false)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime?
-  deletedAt          DateTime?
-  createdById        String?               @db.Uuid
-  updatedById        String?               @db.Uuid
-  deletedById        String?               @db.Uuid
-  auditLogs          AuditLog[]
-  idCards            IDCard[]
-  parent             Parent?
-  student            Student?
-  teacher            Teacher?
-  staff              Staff?
-  roles              UserRole[]
-  sessions           UserSession[]
-  teacherSalaryApprovals TeacherSalaryHistory[] @relation("SalaryApprover")
-  staffSalaryApprovals   StaffSalaryHistory[]   @relation("StaffSalaryApprover")
-  noticesCreated     Notice[] @relation("NoticeCreator")
-  noticesUpdated     Notice[] @relation("NoticeUpdater")
-  noticesDeleted     Notice[] @relation("NoticeDeleter")
-  noticesReceived    NoticeRecipient[]
-  attendanceSessionsMarked AttendanceSession[]
-
-  // Complaint relations
-  complaintsCreated     Complaint[] @relation("ComplaintCreator")
-  complaintsUpdated     Complaint[] @relation("ComplaintUpdater")
-  complaintsDeleted     Complaint[] @relation("ComplaintDeleter")
-  complaintsAsComplainant Complaint[] @relation("ComplaintComplainant")
-  complaintsAsRecipient    Complaint[] @relation("ComplaintRecipient")
-  complaintsAsAssigned     Complaint[] @relation("ComplaintAssignedTo")
-  complaintResponses    ComplaintResponse[]
-  complaintAuditLogs    ComplaintAuditLog[]
-
-  // Leave Request relations
-  leaveRequestsCreated     LeaveRequest[] @relation("LeaveRequestCreator")
-  leaveRequestsUpdated     LeaveRequest[] @relation("LeaveRequestUpdater")
-  leaveRequestsDeleted     LeaveRequest[] @relation("LeaveRequestDeleter")
-  leaveRequestAuditLogs    LeaveRequestAuditLog[]
-
-  // Teacher Leave Request relations
-  teacherLeaveRequestsCreated     TeacherLeaveRequest[] @relation("TeacherLeaveRequestCreator")
-  teacherLeaveRequestsUpdated     TeacherLeaveRequest[] @relation("TeacherLeaveRequestUpdater")
-  teacherLeaveRequestsDeleted     TeacherLeaveRequest[] @relation("TeacherLeaveRequestDeleter")
+  id                              String                        @id @default(uuid())
+  email                           String                        @unique
+  phone                           String?                       @unique
+  passwordHash                    String
+  fullName                        String
+  isActive                        Boolean                       @default(true)
+  lastLoginAt                     DateTime?
+  lastPasswordChange              DateTime?
+  needPasswordChange              Boolean                       @default(false)
+  createdAt                       DateTime                      @default(now())
+  updatedAt                       DateTime?
+  deletedAt                       DateTime?
+  createdById                     String?                       @db.Uuid
+  updatedById                     String?                       @db.Uuid
+  deletedById                     String?                       @db.Uuid
+  attendanceSessionsMarked        AttendanceSession[]
+  auditLogs                       AuditLog[]
+  complaintsAsAssigned            Complaint[]                   @relation("ComplaintAssignedTo")
+  complaintsAsComplainant         Complaint[]                   @relation("ComplaintComplainant")
+  complaintsCreated               Complaint[]                   @relation("ComplaintCreator")
+  complaintsDeleted               Complaint[]                   @relation("ComplaintDeleter")
+  complaintsAsRecipient           Complaint[]                   @relation("ComplaintRecipient")
+  complaintsUpdated               Complaint[]                   @relation("ComplaintUpdater")
+  complaintAuditLogs              ComplaintAuditLog[]
+  complaintResponses              ComplaintResponse[]
+  idCards                         IDCard[]
+  leaveRequestsCreated            LeaveRequest[]                @relation("LeaveRequestCreator")
+  leaveRequestsDeleted            LeaveRequest[]                @relation("LeaveRequestDeleter")
+  leaveRequestsUpdated            LeaveRequest[]                @relation("LeaveRequestUpdater")
+  leaveRequestAuditLogs           LeaveRequestAuditLog[]
+  leaveTypesCreated               LeaveType[]                   @relation("LeaveTypeCreator")
+  leaveTypesDeleted               LeaveType[]                   @relation("LeaveTypeDeleter")
+  leaveTypesUpdated               LeaveType[]                   @relation("LeaveTypeUpdater")
+  noticesCreated                  Notice[]                      @relation("NoticeCreator")
+  noticesDeleted                  Notice[]                      @relation("NoticeDeleter")
+  noticesUpdated                  Notice[]                      @relation("NoticeUpdater")
+  noticesReceived                 NoticeRecipient[]
+  parent                          Parent?
+  staff                           Staff?
+  staffAttendanceSessionsMarked   StaffAttendanceSession[]      @relation("StaffAttendanceMarkedBy")
+  staffSalaryApprovals            StaffSalaryHistory[]          @relation("StaffSalaryApprover")
+  student                         Student?
+  teacher                         Teacher?
+  teacherAttendanceSessionsMarked TeacherAttendanceSession[]    @relation("TeacherAttendanceMarkedBy")
+  teacherLeaveRequestsAsAdmin     TeacherLeaveRequest[]         @relation("TeacherLeaveRequestAdmin")
+  teacherLeaveRequestsCreated     TeacherLeaveRequest[]         @relation("TeacherLeaveRequestCreator")
+  teacherLeaveRequestsDeleted     TeacherLeaveRequest[]         @relation("TeacherLeaveRequestDeleter")
+  teacherLeaveRequestsUpdated     TeacherLeaveRequest[]         @relation("TeacherLeaveRequestUpdater")
   teacherLeaveRequestAuditLogs    TeacherLeaveRequestAuditLog[]
-  teacherLeaveRequestsAsAdmin     TeacherLeaveRequest[] @relation("TeacherLeaveRequestAdmin")
-
-  // Leave Type relations
-  leaveTypesCreated     LeaveType[] @relation("LeaveTypeCreator")
-  leaveTypesUpdated     LeaveType[] @relation("LeaveTypeUpdater")
-  leaveTypesDeleted     LeaveType[] @relation("LeaveTypeDeleter")
-
-  // Teacher Leave Usage relations
-  teacherLeaveUsageCreated     TeacherLeaveUsage[] @relation("TeacherLeaveUsageCreator")
-  teacherLeaveUsageUpdated     TeacherLeaveUsage[] @relation("TeacherLeaveUsageUpdater")
-  teacherLeaveUsageDeleted     TeacherLeaveUsage[] @relation("TeacherLeaveUsageDeleter")
-
-  // Teacher Attendance relations
-  teacherAttendanceSessionsMarked TeacherAttendanceSession[] @relation("TeacherAttendanceMarkedBy")
-  
-  // Staff Attendance relations
-  staffAttendanceSessionsMarked StaffAttendanceSession[] @relation("StaffAttendanceMarkedBy")
+  teacherLeaveUsageCreated        TeacherLeaveUsage[]           @relation("TeacherLeaveUsageCreator")
+  teacherLeaveUsageDeleted        TeacherLeaveUsage[]           @relation("TeacherLeaveUsageDeleter")
+  teacherLeaveUsageUpdated        TeacherLeaveUsage[]           @relation("TeacherLeaveUsageUpdater")
+  teacherSalaryApprovals          TeacherSalaryHistory[]        @relation("SalaryApprover")
+  roles                           UserRole[]
+  sessions                        UserSession[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -100,45 +86,44 @@ model Subject {
   deletedById        String?          @db.Uuid
   assignments        Assignment[]
   assignedClasses    ClassSubject[]
-  teacherAssignments TeacherSubject[] @relation("SubjectTeacherAssignments")
   scheduleSlots      ScheduleSlot[]
+  teacherAssignments TeacherSubject[] @relation("SubjectTeacherAssignments")
 
+  @@unique([code, deletedAt], name: "unique_subject_code_when_active")
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
-  @@unique([code, deletedAt], name: "unique_subject_code_when_active")
 }
 
 model Class {
-  id                 String          @id @default(uuid())
-  name               String?
-  grade              Int
-  section            String
-  capacity           Int
-  currentEnrollment  Int             @default(0)
-  shift              ClassShift      @default(MORNING)
-  status             String          @default("active")
-  roomId             String
-  classTeacherId     String
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime?
-  deletedAt          DateTime?
-  createdById        String?         @db.Uuid
-  updatedById        String?         @db.Uuid
-  deletedById        String?         @db.Uuid
-  assignments        Assignment[]
-  classTeacher       Teacher?        @relation("ClassTeacher", fields: [classTeacherId], references: [id])
-  room               Classroom       @relation(fields: [roomId], references: [id])
-  assignedSubjects   ClassSubject[]
-  students           Student[]
-
-  teacherAssignments TeacherClass[]  @relation("ClassTeacherAssignments")
-  timeslots          ClassTimeslot[]
-  schedules          ClassSchedule[]
-  notices            Notice[] @relation("NoticeClass")
-  feeStructures      FeeStructure[]
+  id                      String                   @id @default(uuid())
+  name                    String?
+  grade                   Int
+  section                 String
+  capacity                Int
+  currentEnrollment       Int                      @default(0)
+  shift                   ClassShift               @default(MORNING)
+  status                  String                   @default("active")
+  roomId                  String
+  classTeacherId          String
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime?
+  deletedAt               DateTime?
+  createdById             String?                  @db.Uuid
+  updatedById             String?                  @db.Uuid
+  deletedById             String?                  @db.Uuid
+  assignments             Assignment[]
+  attendanceSessions      AttendanceSession[]
+  classTeacher            Teacher                  @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  room                    Classroom                @relation(fields: [roomId], references: [id])
+  schedules               ClassSchedule[]
+  assignedSubjects        ClassSubject[]
+  timeslots               ClassTimeslot[]
+  feeStructures           FeeStructure[]
   feeStructureAssignments FeeStructureAssignment[]
-  attendanceSessions AttendanceSession[]
+  notices                 Notice[]                 @relation("NoticeClass")
+  students                Student[]
+  teacherAssignments      TeacherClass[]           @relation("ClassTeacherAssignments")
 
   @@index([createdById])
   @@index([updatedById])
@@ -149,22 +134,22 @@ model Class {
 }
 
 model Classroom {
-  id          String         @id @default(uuid())
-  roomNo      String         @unique
-  name        String?
-  capacity    Int            @default(30)
-  floor       Int            @default(1)
-  building    String?
-  note        String?
-  status      String         @default("active")
-  isAvailable Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime?
-  deletedAt   DateTime?
-  createdById String?        @db.Uuid
-  updatedById String?        @db.Uuid
-  deletedById String?        @db.Uuid
-  classes     Class[]
+  id            String         @id @default(uuid())
+  roomNo        String         @unique
+  name          String?
+  capacity      Int            @default(30)
+  floor         Int            @default(1)
+  building      String?
+  note          String?
+  status        String         @default("active")
+  isAvailable   Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdById   String?        @db.Uuid
+  updatedById   String?        @db.Uuid
+  deletedById   String?        @db.Uuid
+  classes       Class[]
   scheduleSlots ScheduleSlot[]
 
   @@index([createdById])
@@ -196,64 +181,65 @@ model ClassSubject {
 }
 
 model Student {
-  id                String              @id @default(uuid())
-  userId            String              @unique
-  classId           String
-  rollNumber        String
-  admissionDate     DateTime
-  email             String
-  dob               DateTime
-  gender            String
-  bloodGroup        String?
-  ethnicity         String?
-  imageUrl          String?
-  fatherPhone       String?
-  motherPhone       String?
-  fatherEmail       String?
-  motherEmail       String?
-  fatherOccupation  String?
-  motherOccupation  String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime?
-  deletedAt         DateTime?
-  academicStatus    String              @default("active")
-  address           String?
-  allergies         String?
-  city              String?
-  createdById       String?             @db.Uuid
-  dateOfBirth       DateTime?
-  deletedById       String?             @db.Uuid
-  feeStatus         String              @default("pending")
-  interests         String?
-  maritalStatus     String?             @default("Single")
-  medicalConditions String?
-  phone             String?
-  pinCode           String?
-  profilePhotoUrl   String?
-  specialNeeds      String?
-  state             String?
-  street            String?
-  studentId         String?             @unique
-  transportMode     String?
-  updatedById       String?             @db.Uuid
-  fatherFirstName   String?
-  fatherMiddleName  String?
-  fatherLastName    String?
-  motherFirstName   String?
-  motherMiddleName  String?
-  motherLastName    String?
-  guardians         Guardian[]
-  parents           ParentStudentLink[]
-  class             Class               @relation(fields: [classId], references: [id])
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profile           StudentProfile?
-  submissions       Submission[]
-  scholarshipAssignments ScholarshipAssignment[]
-  chargeAssignments      ChargeAssignment[]
-  feeHistories           StudentFeeHistory[]
+  id                     String                  @id @default(uuid())
+  userId                 String                  @unique
+  classId                String
+  rollNumber             String
+  admissionDate          DateTime
+  email                  String
+  dob                    DateTime
+  gender                 String
+  bloodGroup             String?
+  ethnicity              String?
+  imageUrl               String?
+  fatherPhone            String?
+  motherPhone            String?
+  fatherEmail            String?
+  motherEmail            String?
+  fatherOccupation       String?
+  motherOccupation       String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime?
+  deletedAt              DateTime?
+  academicStatus         String                  @default("active")
+  address                String?
+  allergies              String?
+  city                   String?
+  createdById            String?                 @db.Uuid
+  dateOfBirth            DateTime?
+  deletedById            String?                 @db.Uuid
+  feeStatus              String                  @default("pending")
+  interests              String?
+  maritalStatus          String?                 @default("Single")
+  medicalConditions      String?
+  phone                  String?
+  pinCode                String?
+  profilePhotoUrl        String?
+  specialNeeds           String?
+  state                  String?
+  street                 String?
+  studentId              String?                 @unique
+  transportMode          String?
+  updatedById            String?                 @db.Uuid
+  fatherFirstName        String?
+  fatherMiddleName       String?
+  fatherLastName         String?
+  motherFirstName        String?
+  motherMiddleName       String?
+  motherLastName         String?
   attendanceRecords      AttendanceRecord[]
-  leaveRequests     LeaveRequest[]
+  chargeAssignments      ChargeAssignment[]
+  guardians              Guardian[]
+  leaveRequests          LeaveRequest[]
+  parents                ParentStudentLink[]
+  scholarshipAssignments ScholarshipAssignment[]
+  class                  Class                   @relation(fields: [classId], references: [id])
+  user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feeHistories           StudentFeeHistory[]
+  profile                StudentProfile?
+  submissions            Submission[]
 
+  @@unique([classId, rollNumber])
   @@index([userId])
   @@index([classId])
   @@index([rollNumber])
@@ -263,7 +249,6 @@ model Student {
   @@index([academicStatus])
   @@index([ethnicity])
   @@index([feeStatus])
-  @@unique([classId, rollNumber])
 }
 
 model StudentProfile {
@@ -314,10 +299,10 @@ model Parent {
   createdById                  String?             @db.Uuid
   updatedById                  String?             @db.Uuid
   deletedById                  String?             @db.Uuid
+  leaveRequestsApproved        LeaveRequest[]
   user                         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   profile                      ParentProfile?
   children                     ParentStudentLink[] @relation("ParentChildren")
-  leaveRequestsApproved      LeaveRequest[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -355,56 +340,56 @@ model ParentStudentLink {
 }
 
 model Teacher {
-  id                 String                @id @default(uuid())
-  userId             String                @unique
-  employeeId         String?               @unique
-  joiningDate        DateTime
-  experienceYears    Int?
-  qualification      String?
-  designation        String
-  dob                DateTime
-  gender             String
-  bloodGroup         String?
-  maritalStatus      String?
-  imageUrl           String?
-  department         String?
-  specialization     String?
-  employmentStatus   String?               @default("active")
-  employmentDate     DateTime?
-  dateOfBirth        DateTime?
-  address            String?
-  basicSalary        Decimal               @db.Decimal(10, 2)
-  allowances         Decimal               @db.Decimal(10, 2)
-  totalSalary        Decimal               @db.Decimal(10, 2)
-  isClassTeacher     Boolean               @default(false)
-  languagesKnown     Json?                 @default("[]")
-  certifications     String?
-  previousExperience String?
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime?
-  deletedAt          DateTime?
-  createdById        String?               @db.Uuid
-  updatedById        String?               @db.Uuid
-  deletedById        String?               @db.Uuid
-  bankAccountNumber  String?
-  bankBranch         String?
-  bankName           String?
-  citizenshipNumber  String?
-  panNumber          String?
-  assignments        Assignment[]
-  classesAsTeacher   Class[]               @relation("ClassTeacher")
-  classSubjects      ClassSubject[]        @relation("TeacherClassSubjects")
-  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  classAssignments   TeacherClass[]        @relation("TeacherClassAssignments")
-  profile            TeacherProfile?
-  salaryHistory      TeacherSalaryHistory[]
-  subjectAssignments TeacherSubject[]      @relation("TeacherSubjectAssignments")
-  scheduleSlots      ScheduleSlot[]
-  leaveRequestsApproved  LeaveRequest[]
-  teacherLeaveRequests  TeacherLeaveRequest[]
+  id                             String                          @id @default(uuid())
+  userId                         String                          @unique
+  employeeId                     String?                         @unique
+  joiningDate                    DateTime
+  experienceYears                Int?
+  qualification                  String?
+  designation                    String
+  dob                            DateTime
+  gender                         String
+  bloodGroup                     String?
+  maritalStatus                  String?
+  imageUrl                       String?
+  department                     String?
+  specialization                 String?
+  employmentStatus               String?                         @default("active")
+  employmentDate                 DateTime?
+  dateOfBirth                    DateTime?
+  address                        String?
+  basicSalary                    Decimal                         @db.Decimal(10, 2)
+  allowances                     Decimal                         @db.Decimal(10, 2)
+  totalSalary                    Decimal                         @db.Decimal(10, 2)
+  isClassTeacher                 Boolean                         @default(false)
+  languagesKnown                 Json?                           @default("[]")
+  certifications                 String?
+  previousExperience             String?
+  createdAt                      DateTime                        @default(now())
+  updatedAt                      DateTime?
+  deletedAt                      DateTime?
+  createdById                    String?                         @db.Uuid
+  updatedById                    String?                         @db.Uuid
+  deletedById                    String?                         @db.Uuid
+  bankAccountNumber              String?
+  bankBranch                     String?
+  bankName                       String?
+  citizenshipNumber              String?
+  panNumber                      String?
+  assignments                    Assignment[]
+  classesAsTeacher               Class[]                         @relation("ClassTeacher")
+  classSubjects                  ClassSubject[]                  @relation("TeacherClassSubjects")
+  leaveRequestsApproved          LeaveRequest[]
+  scheduleSlots                  ScheduleSlot[]
+  user                           User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendanceRecords              TeacherAttendanceRecord[]       @relation("TeacherAttendanceRecords")
+  classAssignments               TeacherClass[]                  @relation("TeacherClassAssignments")
+  teacherLeaveRequests           TeacherLeaveRequest[]
   teacherLeaveRequestAttachments TeacherLeaveRequestAttachment[]
-  leaveUsage TeacherLeaveUsage[]
-  attendanceRecords     TeacherAttendanceRecord[] @relation("TeacherAttendanceRecords")
+  leaveUsage                     TeacherLeaveUsage[]
+  profile                        TeacherProfile?
+  salaryHistory                  TeacherSalaryHistory[]
+  subjectAssignments             TeacherSubject[]                @relation("TeacherSubjectAssignments")
 
   @@index([createdById])
   @@index([updatedById])
@@ -462,14 +447,14 @@ model TeacherClass {
 }
 
 model Staff {
-  id                String               @id @default(uuid())
-  userId            String?              @unique
+  id                String                  @id @default(uuid())
+  userId            String?                 @unique
   email             String
   fullName          String
   firstName         String
   middleName        String?
   lastName          String
-  employeeId        String?              @unique
+  employeeId        String?                 @unique
   dob               DateTime
   gender            String
   bloodGroup        String?
@@ -480,27 +465,27 @@ model Staff {
   department        String?
   employmentDate    DateTime?
   joiningDate       DateTime?
-  basicSalary       Decimal              @db.Decimal(10, 2)
-  allowances        Decimal              @db.Decimal(10, 2)
-  totalSalary       Decimal              @db.Decimal(10, 2)
+  basicSalary       Decimal                 @db.Decimal(10, 2)
+  allowances        Decimal                 @db.Decimal(10, 2)
+  totalSalary       Decimal                 @db.Decimal(10, 2)
   permissions       String[]
-  createdAt         DateTime             @default(now())
+  createdAt         DateTime                @default(now())
   updatedAt         DateTime?
   deletedAt         DateTime?
-  createdById       String?              @db.Uuid
-  updatedById       String?              @db.Uuid
-  deletedById       String?              @db.Uuid
+  createdById       String?                 @db.Uuid
+  updatedById       String?                 @db.Uuid
+  deletedById       String?                 @db.Uuid
   bankAccountNumber String?
   bankBranch        String?
   bankName          String?
   citizenshipNumber String?
   panNumber         String?
-  employmentStatus  String?              @default("active")
+  employmentStatus  String?                 @default("active")
   experienceYears   Int?
-  profile           StaffProfile?
-  user              User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  salaryHistory     StaffSalaryHistory[]
+  user              User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   attendanceRecords StaffAttendanceRecord[] @relation("StaffAttendanceRecords")
+  profile           StaffProfile?
+  salaryHistory     StaffSalaryHistory[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -527,51 +512,55 @@ model IDCard {
   expiryDate  DateTime
   batchName   String?
   issuedForId String
+  isActive    Boolean        @default(true)
+  qrCodeData  String?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   issuedFor   User           @relation(fields: [issuedForId], references: [id])
   template    IDCardTemplate @relation("IDCardTemplates", fields: [templateId], references: [id])
 
+  @@unique([issuedForId, type, isActive], name: "unique_active_card_per_user_type")
   @@index([type])
   @@index([templateId])
   @@index([issuedForId])
+  @@index([qrCodeData])
 }
 
 model IDCardTemplate {
-  id               String               @id @default(uuid())
-  name             String
-  type             IDCardTemplateType
-  description      String?
-  dimensions       String               // e.g., "85.6x53.98"
-  customWidth      Float?
-  customHeight     Float?
-  orientation      TemplateOrientation  @default(HORIZONTAL)
-  backgroundColor  String               @default("#ffffff")
-  backgroundImage  String?
-  borderColor      String               @default("#000000")
-  borderWidth      Int                  @default(1)
-  borderRadius     Int                  @default(0)
-  logoRequired     Boolean              @default(true)
-  photoRequired    Boolean              @default(true)
-  qrCodeRequired   Boolean              @default(true)
-  barcodeRequired  Boolean              @default(false)
-  watermark        String?
-  printMargin      Int                  @default(5)
-  bleedArea        Int                  @default(3)
-  safeArea         Int                  @default(5)
-  status           TemplateStatus       @default(DRAFT)
-  usageCount       Int                  @default(0)
-  isDefault        Boolean              @default(false)
-  features         Json?                @default("[]")
-  metadata         Json?                @default("{}")
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  deletedAt        DateTime?
-  createdById      String?              @db.Uuid
-  updatedById      String?              @db.Uuid
-  deletedById      String?              @db.Uuid
-  fields           IDCardTemplateField[]
-  idCards          IDCard[]             @relation("IDCardTemplates")
+  id              String                @id @default(uuid())
+  name            String
+  type            IDCardTemplateType
+  description     String?
+  dimensions      String
+  customWidth     Float?
+  customHeight    Float?
+  orientation     TemplateOrientation   @default(HORIZONTAL)
+  backgroundColor String                @default("#ffffff")
+  backgroundImage String?
+  borderColor     String                @default("#000000")
+  borderWidth     Int                   @default(1)
+  borderRadius    Int                   @default(0)
+  logoRequired    Boolean               @default(true)
+  photoRequired   Boolean               @default(true)
+  qrCodeRequired  Boolean               @default(true)
+  barcodeRequired Boolean               @default(false)
+  watermark       String?
+  printMargin     Int                   @default(5)
+  bleedArea       Int                   @default(3)
+  safeArea        Int                   @default(5)
+  status          TemplateStatus        @default(DRAFT)
+  usageCount      Int                   @default(0)
+  isDefault       Boolean               @default(false)
+  features        Json?                 @default("[]")
+  metadata        Json?                 @default("{}")
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  deletedAt       DateTime?
+  createdById     String?               @db.Uuid
+  updatedById     String?               @db.Uuid
+  deletedById     String?               @db.Uuid
+  idCards         IDCard[]              @relation("IDCardTemplates")
+  fields          IDCardTemplateField[]
 
   @@index([type])
   @@index([status])
@@ -582,76 +571,42 @@ model IDCardTemplate {
 }
 
 model IDCardTemplateField {
-  id              String               @id @default(uuid())
+  id              String            @id @default(uuid())
   templateId      String
   fieldType       TemplateFieldType
   label           String
-  databaseField   String?              // Maps to actual database field
+  databaseField   String?
   x               Float
   y               Float
   width           Float
   height          Float
   fontSize        Int?
   fontWeight      String?
-  textAlign       TextAlignment?       @default(LEFT)
-  fontFamily      String?              @default("Inter")
-  color           String?              @default("#000000")
+  textAlign       TextAlignment?    @default(LEFT)
+  fontFamily      String?           @default("Inter")
+  color           String?           @default("#000000")
   backgroundColor String?
-  borderWidth     Int?                 @default(0)
-  borderColor     String?              @default("#cccccc")
-  borderRadius    Int?                 @default(0)
-  required        Boolean              @default(false)
+  borderWidth     Int?              @default(0)
+  borderColor     String?           @default("#cccccc")
+  borderRadius    Int?              @default(0)
+  required        Boolean           @default(false)
   placeholder     String?
-  rotation        Float?               @default(0)
-  opacity         Int?                 @default(100)
-  zIndex          Int?                 @default(1)
-  validationRules Json?                @default("{}")
-  styleOptions    Json?                @default("{}")
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  template        IDCardTemplate       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  rotation        Float?            @default(0)
+  opacity         Int?              @default(100)
+  zIndex          Int?              @default(1)
+  dataSource      String?
+  staticText      String?
+  imageUrl        String?
+  qrData          String?
+  validationRules Json?             @default("{}")
+  styleOptions    Json?             @default("{}")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  template        IDCardTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@index([templateId])
   @@index([fieldType])
   @@index([databaseField])
-}
-
-enum IDCardTemplateType {
-  STUDENT
-  TEACHER
-  STAFF
-  STAFF_NO_LOGIN
-}
-
-enum TemplateOrientation {
-  HORIZONTAL
-  VERTICAL
-}
-
-enum TemplateStatus {
-  DRAFT
-  ACTIVE
-  INACTIVE
-  ARCHIVED
-}
-
-enum TemplateFieldType {
-  TEXT
-  IMAGE
-  QR_CODE
-  BARCODE
-  LOGO
-  PHOTO
-  DATE
-  TIME
-  SIGNATURE
-}
-
-enum TextAlignment {
-  LEFT
-  CENTER
-  RIGHT
-  JUSTIFY
 }
 
 model UserRole {
@@ -719,27 +674,27 @@ model UserSession {
 }
 
 model CalendarEntry {
-  id                    String                 @id @default(uuid())
-  type                  CalendarEntryType
-  eventScope            EventScope?            // Whether the event is partial or school-wide
-  startDate             DateTime
-  endDate               DateTime
-  venue                 String?
-  holidayType           HolidayType?
-  startTime             String?
-  endTime               String?
-  examType              ExamType?
-  examDetails           String?
-  emergencyClosureType  EmergencyClosureType?
-  emergencyReason       String?
-  affectedAreas         String?               // JSON string for areas affected by emergency
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime?
-  deletedAt             DateTime?
-  createdById           String?               @db.Uuid
-  updatedById           String?               @db.Uuid
-  deletedById           String?               @db.Uuid
-  name                  String
+  id                   String                @id @default(uuid())
+  type                 CalendarEntryType
+  eventScope           EventScope?
+  startDate            DateTime
+  endDate              DateTime
+  venue                String?
+  holidayType          HolidayType?
+  startTime            String?
+  endTime              String?
+  examType             ExamType?
+  examDetails          String?
+  emergencyClosureType EmergencyClosureType?
+  emergencyReason      String?
+  affectedAreas        String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime?
+  deletedAt            DateTime?
+  createdById          String?               @db.Uuid
+  updatedById          String?               @db.Uuid
+  deletedById          String?               @db.Uuid
+  name                 String
 
   @@index([type])
   @@index([eventScope])
@@ -902,21 +857,22 @@ enum TimeslotType {
   FREE_PERIOD
 }
 
+
 model ClassTimeslot {
-  id          String        @id @default(uuid())
-  classId     String
-  day         String
-  startTime   String
-  endTime     String
-  type        TimeslotType  @default(REGULAR)
-  label       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime?
-  deletedAt   DateTime?
-  createdById String?       @db.Uuid
-  updatedById String?       @db.Uuid
-  deletedById String?       @db.Uuid
-  class       Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  id            String         @id @default(uuid())
+  classId       String
+  day           String
+  startTime     String
+  endTime       String
+  type          TimeslotType   @default(REGULAR)
+  label         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdById   String?        @db.Uuid
+  updatedById   String?        @db.Uuid
+  deletedById   String?        @db.Uuid
+  class         Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
   scheduleSlots ScheduleSlot[]
 
   @@index([classId])
@@ -925,57 +881,56 @@ model ClassTimeslot {
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
-  // Removed unique constraint to allow multiple timeslots per day for the same class
 }
 
 model ClassSchedule {
-  id            String        @id @default(uuid())
+  id            String         @id @default(uuid())
   classId       String
   name          String
   academicYear  String
   startDate     DateTime
   endDate       DateTime
   effectiveFrom DateTime
-  status        String        @default("draft")
-  createdAt     DateTime      @default(now())
+  status        String         @default("draft")
+  createdAt     DateTime       @default(now())
   updatedAt     DateTime?
   deletedAt     DateTime?
-  createdById   String?       @db.Uuid
-  updatedById   String?       @db.Uuid
-  deletedById   String?       @db.Uuid
-  class         Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdById   String?        @db.Uuid
+  updatedById   String?        @db.Uuid
+  deletedById   String?        @db.Uuid
+  class         Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
   scheduleSlots ScheduleSlot[]
 
+  @@unique([classId, status], name: "unique_active_schedule_per_class")
   @@index([classId])
   @@index([academicYear])
   @@index([status])
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
-  @@unique([classId, status], name: "unique_active_schedule_per_class", map: "ClassSchedule_classId_status_key")
 }
 
 model ScheduleSlot {
-  id          String       @id @default(uuid())
+  id          String        @id @default(uuid())
   scheduleId  String
   timeslotId  String
   day         String
   subjectId   String?
   teacherId   String?
   roomId      String?
-  type        TimeslotType @default(REGULAR)
-  hasConflict Boolean      @default(false)
-  createdAt   DateTime     @default(now())
+  type        TimeslotType  @default(REGULAR)
+  hasConflict Boolean       @default(false)
+  createdAt   DateTime      @default(now())
   updatedAt   DateTime?
   deletedAt   DateTime?
-  createdById String?      @db.Uuid
-  updatedById String?      @db.Uuid
-  deletedById String?      @db.Uuid
+  createdById String?       @db.Uuid
+  updatedById String?       @db.Uuid
+  deletedById String?       @db.Uuid
+  room        Classroom?    @relation(fields: [roomId], references: [id])
   schedule    ClassSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  subject     Subject?      @relation(fields: [subjectId], references: [id])
+  teacher     Teacher?      @relation(fields: [teacherId], references: [id])
   timeslot    ClassTimeslot @relation(fields: [timeslotId], references: [id], onDelete: Cascade)
-  subject     Subject?     @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-  teacher     Teacher?     @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  room        Classroom?   @relation(fields: [roomId], references: [id], onDelete: SetNull)
 
   @@index([scheduleId])
   @@index([timeslotId])
@@ -989,24 +944,23 @@ model ScheduleSlot {
 }
 
 model TeacherSalaryHistory {
-  id             String          @id @default(uuid())
+  id             String           @id @default(uuid())
   teacherId      String
-  effectiveMonth DateTime        @db.Date
-  basicSalary    Decimal         @db.Decimal(10, 2)
-  allowances     Decimal         @db.Decimal(10, 2)
-  totalSalary    Decimal         @db.Decimal(10, 2)
+  effectiveMonth DateTime         @db.Date
+  basicSalary    Decimal          @db.Decimal(10, 2)
+  allowances     Decimal          @db.Decimal(10, 2)
+  totalSalary    Decimal          @db.Decimal(10, 2)
   changeType     SalaryChangeType @default(INITIAL)
   changeReason   String?
   approvedById   String?
-  createdAt      DateTime        @default(now())
+  createdAt      DateTime         @default(now())
   updatedAt      DateTime?
   deletedAt      DateTime?
-  createdById    String?         @db.Uuid
-  updatedById    String?         @db.Uuid
-  deletedById    String?         @db.Uuid
-  
-  teacher        Teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  approvedBy     User?           @relation("SalaryApprover", fields: [approvedById], references: [id])
+  createdById    String?          @db.Uuid
+  updatedById    String?          @db.Uuid
+  deletedById    String?          @db.Uuid
+  approvedBy     User?            @relation("SalaryApprover", fields: [approvedById], references: [id])
+  teacher        Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@index([teacherId])
   @@index([effectiveMonth])
@@ -1017,24 +971,23 @@ model TeacherSalaryHistory {
 }
 
 model StaffSalaryHistory {
-  id             String          @id @default(uuid())
+  id             String           @id @default(uuid())
   staffId        String
-  effectiveMonth DateTime        @db.Date
-  basicSalary    Decimal         @db.Decimal(10, 2)
-  allowances     Decimal         @db.Decimal(10, 2)
-  totalSalary    Decimal         @db.Decimal(10, 2)
+  effectiveMonth DateTime         @db.Date
+  basicSalary    Decimal          @db.Decimal(10, 2)
+  allowances     Decimal          @db.Decimal(10, 2)
+  totalSalary    Decimal          @db.Decimal(10, 2)
   changeType     SalaryChangeType @default(INITIAL)
   changeReason   String?
   approvedById   String?
-  createdAt      DateTime        @default(now())
+  createdAt      DateTime         @default(now())
   updatedAt      DateTime?
   deletedAt      DateTime?
-  createdById    String?         @db.Uuid
-  updatedById    String?         @db.Uuid
-  deletedById    String?         @db.Uuid
-  
-  staff          Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  approvedBy     User?           @relation("StaffSalaryApprover", fields: [approvedById], references: [id])
+  createdById    String?          @db.Uuid
+  updatedById    String?          @db.Uuid
+  deletedById    String?          @db.Uuid
+  approvedBy     User?            @relation("StaffSalaryApprover", fields: [approvedById], references: [id])
+  staff          Staff            @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([staffId])
   @@index([effectiveMonth])
@@ -1044,7 +997,778 @@ model StaffSalaryHistory {
   @@index([approvedById])
 }
 
-// Notice Management Enums
+model Notice {
+  id                    String              @id @default(uuid())
+  title                 String
+  content               String
+  priority              NoticePriority
+  recipientType         NoticeRecipientType
+  selectedClassId       String?
+  category              NoticeCategory?
+  publishDate           DateTime
+  expiryDate            DateTime
+  status                NoticeStatus        @default(DRAFT)
+  sendEmailNotification Boolean             @default(false)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime?
+  deletedAt             DateTime?
+  createdById           String?
+  updatedById           String?
+  deletedById           String?
+  createdBy             User?               @relation("NoticeCreator", fields: [createdById], references: [id])
+  deletedBy             User?               @relation("NoticeDeleter", fields: [deletedById], references: [id])
+  selectedClass         Class?              @relation("NoticeClass", fields: [selectedClassId], references: [id])
+  updatedBy             User?               @relation("NoticeUpdater", fields: [updatedById], references: [id])
+  attachments           NoticeAttachment[]
+  recipients            NoticeRecipient[]
+
+  @@index([recipientType])
+  @@index([priority])
+  @@index([category])
+  @@index([status])
+  @@index([publishDate])
+  @@index([expiryDate])
+  @@index([selectedClassId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model NoticeRecipient {
+  id        String    @id @default(uuid())
+  noticeId  String
+  userId    String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  notice    Notice    @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([noticeId, userId])
+  @@index([noticeId])
+  @@index([userId])
+  @@index([readAt])
+}
+
+model NoticeAttachment {
+  id           String   @id @default(uuid())
+  noticeId     String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  uploadedAt   DateTime @default(now())
+  notice       Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
+  @@index([noticeId])
+  @@index([mimeType])
+}
+
+model FeeStructure {
+  id                  String                   @id @default(uuid())
+  classId             String
+  academicYear        String
+  name                String
+  status              FeeStructureStatus       @default(DRAFT)
+  effectiveFrom       DateTime
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime?
+  deletedAt           DateTime?
+  createdById         String?                  @db.Uuid
+  updatedById         String?                  @db.Uuid
+  deletedById         String?                  @db.Uuid
+  class               Class                    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  assignments         FeeStructureAssignment[]
+  histories           FeeStructureHistory[]
+  items               FeeStructureItem[]
+  studentFeeHistories StudentFeeHistory[]
+
+  @@index([classId])
+  @@index([academicYear])
+  @@index([status])
+  @@index([effectiveFrom])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model FeeStructureAssignment {
+  id             String       @id @default(uuid())
+  feeStructureId String
+  classId        String
+  createdAt      DateTime     @default(now())
+  deletedAt      DateTime?
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+
+  @@unique([feeStructureId, classId])
+  @@index([classId])
+}
+
+model FeeStructureItem {
+  id             String           @id @default(uuid())
+  feeStructureId String
+  category       String
+  label          String
+  amount         Decimal          @db.Decimal(10, 2)
+  frequency      FeeItemFrequency @default(MONTHLY)
+  isOptional     Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime?
+  deletedAt      DateTime?
+  createdById    String?          @db.Uuid
+  updatedById    String?          @db.Uuid
+  deletedById    String?          @db.Uuid
+  feeStructure   FeeStructure     @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+
+  @@index([feeStructureId])
+  @@index([category])
+  @@index([frequency])
+}
+
+model FeeStructureHistory {
+  id             String       @id @default(uuid())
+  feeStructureId String
+  version        Int
+  effectiveFrom  DateTime     @db.Date
+  totalAnnual    Decimal      @db.Decimal(12, 2)
+  snapshot       Json
+  changeReason   String?
+  createdAt      DateTime     @default(now())
+  createdById    String?      @db.Uuid
+  deletedAt      DateTime?
+  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+
+  @@unique([feeStructureId, version])
+  @@index([feeStructureId])
+  @@index([effectiveFrom])
+}
+
+model ScholarshipDefinition {
+  id                String                  @id @default(uuid())
+  name              String
+  type              ScholarshipType         @default(OTHER)
+  description       String?
+  valueType         ValueType               @default(PERCENTAGE)
+  value             Decimal                 @db.Decimal(10, 2)
+  appliesToCategory String?
+  isActive          Boolean                 @default(true)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime?
+  deletedAt         DateTime?
+  createdById       String?                 @db.Uuid
+  updatedById       String?                 @db.Uuid
+  deletedById       String?                 @db.Uuid
+  assignments       ScholarshipAssignment[]
+
+  @@index([type])
+  @@index([isActive])
+}
+
+model ScholarshipAssignment {
+  id            String                @id @default(uuid())
+  scholarshipId String
+  studentId     String
+  effectiveFrom DateTime              @db.Date
+  expiresAt     DateTime?             @db.Date
+  createdAt     DateTime              @default(now())
+  createdById   String?               @db.Uuid
+  deletedAt     DateTime?
+  scholarship   ScholarshipDefinition @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  student       Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([scholarshipId])
+  @@index([studentId])
+  @@index([effectiveFrom])
+}
+
+model ChargeDefinition {
+  id          String             @id @default(uuid())
+  name        String
+  type        ChargeType         @default(FINE)
+  category    String?
+  description String?
+  valueType   ValueType          @default(FIXED)
+  value       Decimal            @db.Decimal(10, 2)
+  isRecurring Boolean            @default(false)
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime?
+  deletedAt   DateTime?
+  createdById String?            @db.Uuid
+  updatedById String?            @db.Uuid
+  deletedById String?            @db.Uuid
+  assignments ChargeAssignment[]
+
+  @@index([type])
+  @@index([isActive])
+}
+
+model ChargeAssignment {
+  id           String           @id @default(uuid())
+  chargeId     String
+  studentId    String
+  appliedMonth DateTime         @db.Date
+  amount       Decimal          @db.Decimal(10, 2)
+  reason       String?
+  createdAt    DateTime         @default(now())
+  createdById  String?          @db.Uuid
+  deletedAt    DateTime?
+  charge       ChargeDefinition @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([chargeId])
+  @@index([studentId])
+  @@index([appliedMonth])
+}
+
+model StudentFeeHistory {
+  id                 String        @id @default(uuid())
+  studentId          String
+  feeStructureId     String?
+  periodMonth        DateTime      @db.Date
+  version            Int           @default(1)
+  baseAmount         Decimal       @db.Decimal(12, 2)
+  scholarshipAmount  Decimal       @default(0) @db.Decimal(12, 2)
+  extraChargesAmount Decimal       @default(0) @db.Decimal(12, 2)
+  finalPayable       Decimal       @db.Decimal(12, 2)
+  breakdown          Json
+  createdAt          DateTime      @default(now())
+  createdById        String?       @db.Uuid
+  feeStructure       FeeStructure? @relation(fields: [feeStructureId], references: [id])
+  student            Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, periodMonth, version], name: "unique_student_month_fee_version")
+  @@index([studentId])
+  @@index([feeStructureId])
+  @@index([periodMonth])
+}
+
+model AttendanceSession {
+  id          String             @id @default(uuid())
+  classId     String
+  date        DateTime           @db.Date
+  sessionType String             @default("daily")
+  markedBy    String
+  markedAt    DateTime           @default(now())
+  isCompleted Boolean            @default(false)
+  notes       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime?
+  records     AttendanceRecord[]
+  class       Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
+  marker      User               @relation(fields: [markedBy], references: [id])
+
+  @@unique([classId, date, sessionType])
+  @@index([classId])
+  @@index([date])
+  @@index([markedBy])
+}
+
+model AttendanceRecord {
+  id        String            @id @default(uuid())
+  sessionId String
+  studentId String
+  status    AttendanceStatus
+  markedAt  DateTime          @default(now())
+  remarks   String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime?
+  session   AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student   Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
+  @@index([sessionId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model TeacherAttendanceSession {
+  id          String                    @id @default(uuid())
+  date        DateTime                  @db.Date
+  sessionType String                    @default("daily")
+  markedBy    String
+  markedAt    DateTime                  @default(now())
+  isCompleted Boolean                   @default(false)
+  notes       String?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime?
+  records     TeacherAttendanceRecord[]
+  marker      User                      @relation("TeacherAttendanceMarkedBy", fields: [markedBy], references: [id])
+
+  @@unique([date, sessionType])
+  @@index([date])
+  @@index([markedBy])
+}
+
+model TeacherAttendanceRecord {
+  id        String                   @id @default(uuid())
+  sessionId String
+  teacherId String
+  status    AttendanceStatus
+  markedAt  DateTime                 @default(now())
+  remarks   String?
+  createdAt DateTime                 @default(now())
+  updatedAt DateTime?
+  session   TeacherAttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  teacher   Teacher                  @relation("TeacherAttendanceRecords", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, teacherId])
+  @@index([sessionId])
+  @@index([teacherId])
+  @@index([status])
+}
+
+model StaffAttendanceSession {
+  id          String                  @id @default(uuid())
+  date        DateTime                @db.Date
+  sessionType String                  @default("daily")
+  markedBy    String
+  markedAt    DateTime                @default(now())
+  isCompleted Boolean                 @default(false)
+  notes       String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime?
+  records     StaffAttendanceRecord[]
+  marker      User                    @relation("StaffAttendanceMarkedBy", fields: [markedBy], references: [id])
+
+  @@unique([date, sessionType])
+  @@index([date])
+  @@index([markedBy])
+}
+
+model StaffAttendanceRecord {
+  id        String                 @id @default(uuid())
+  sessionId String
+  staffId   String
+  status    AttendanceStatus
+  markedAt  DateTime               @default(now())
+  remarks   String?
+  createdAt DateTime               @default(now())
+  updatedAt DateTime?
+  session   StaffAttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  staff     Staff                  @relation("StaffAttendanceRecords", fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, staffId])
+  @@index([sessionId])
+  @@index([staffId])
+  @@index([status])
+}
+
+model WorkingDaysTracker {
+  id                String   @id @default(uuid())
+  month             Int
+  year              Int
+  totalDays         Int
+  saturdays         Int
+  holidays          Int
+  events            Int
+  exams             Int
+  availableDays     Int
+  emergencyClosures Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  @@unique([month, year])
+  @@index([month])
+  @@index([year])
+}
+
+model Complaint {
+  id              String                 @id @default(uuid())
+  title           String
+  description     String
+  type            ComplaintType
+  priority        ComplaintPriority      @default(MEDIUM)
+  status          ComplaintStatus        @default(OPEN)
+  recipientType   ComplaintRecipientType
+  recipientId     String?
+  complainantId   String
+  complainantType String
+  assignedToId    String?
+  assignedAt      DateTime?
+  resolvedAt      DateTime?
+  resolution      String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime?
+  deletedAt       DateTime?
+  createdById     String?
+  updatedById     String?
+  deletedById     String?
+  assignedTo      User?                  @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id])
+  complainant     User                   @relation("ComplaintComplainant", fields: [complainantId], references: [id])
+  createdBy       User?                  @relation("ComplaintCreator", fields: [createdById], references: [id])
+  deletedBy       User?                  @relation("ComplaintDeleter", fields: [deletedById], references: [id])
+  recipient       User?                  @relation("ComplaintRecipient", fields: [recipientId], references: [id])
+  updatedBy       User?                  @relation("ComplaintUpdater", fields: [updatedById], references: [id])
+  attachments     ComplaintAttachment[]
+  auditLogs       ComplaintAuditLog[]
+  responses       ComplaintResponse[]
+
+  @@index([complainantId])
+  @@index([recipientId])
+  @@index([assignedToId])
+  @@index([type])
+  @@index([status])
+  @@index([priority])
+  @@index([recipientType])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ComplaintResponse {
+  id          String    @id @default(uuid())
+  complaintId String
+  responderId String
+  content     String
+  isInternal  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  responder   User      @relation(fields: [responderId], references: [id])
+
+  @@index([complaintId])
+  @@index([responderId])
+  @@index([createdAt])
+}
+
+model ComplaintAttachment {
+  id           String    @id @default(uuid())
+  complaintId  String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  uploadedAt   DateTime  @default(now())
+  complaint    Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId])
+  @@index([mimeType])
+}
+
+model ComplaintAuditLog {
+  id          String    @id @default(uuid())
+  complaintId String
+  action      String
+  details     Json?
+  performedBy String?
+  performedAt DateTime  @default(now())
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  performer   User?     @relation(fields: [performedBy], references: [id])
+
+  @@index([complaintId])
+  @@index([action])
+  @@index([performedBy])
+  @@index([performedAt])
+}
+
+model LeaveType {
+  id                   String                @id @default(uuid())
+  name                 String                @unique
+  description          String?
+  maxDays              Int                   @default(1)
+  isPaid               Boolean               @default(false)
+  status               LeaveTypeStatus       @default(ACTIVE)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime?
+  deletedAt            DateTime?
+  createdById          String?
+  updatedById          String?
+  deletedById          String?
+  createdBy            User?                 @relation("LeaveTypeCreator", fields: [createdById], references: [id])
+  deletedBy            User?                 @relation("LeaveTypeDeleter", fields: [deletedById], references: [id])
+  updatedBy            User?                 @relation("LeaveTypeUpdater", fields: [updatedById], references: [id])
+  teacherLeaveRequests TeacherLeaveRequest[]
+  teacherLeaveUsage    TeacherLeaveUsage[]
+
+  @@index([name])
+  @@index([status])
+  @@index([isPaid])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model LeaveRequest {
+  id                     String                   @id @default(uuid())
+  title                  String
+  description            String?
+  type                   LeaveRequestType
+  status                 LeaveRequestStatus       @default(PENDING_PARENT_APPROVAL)
+  startDate              DateTime
+  endDate                DateTime
+  days                   Int
+  studentId              String
+  parentId               String?
+  teacherId              String?
+  parentApprovedAt       DateTime?
+  teacherApprovedAt      DateTime?
+  parentRejectedAt       DateTime?
+  teacherRejectedAt      DateTime?
+  parentRejectionReason  String?
+  teacherRejectionReason String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime?
+  deletedAt              DateTime?
+  createdById            String?
+  updatedById            String?
+  deletedById            String?
+  createdBy              User?                    @relation("LeaveRequestCreator", fields: [createdById], references: [id])
+  deletedBy              User?                    @relation("LeaveRequestDeleter", fields: [deletedById], references: [id])
+  parent                 Parent?                  @relation(fields: [parentId], references: [id])
+  student                Student                  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher                Teacher?                 @relation(fields: [teacherId], references: [id])
+  updatedBy              User?                    @relation("LeaveRequestUpdater", fields: [updatedById], references: [id])
+  attachments            LeaveRequestAttachment[]
+  auditLogs              LeaveRequestAuditLog[]
+
+  @@index([studentId])
+  @@index([parentId])
+  @@index([teacherId])
+  @@index([type])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model LeaveRequestAttachment {
+  id             String       @id @default(uuid())
+  leaveRequestId String
+  filename       String
+  originalName   String
+  mimeType       String
+  size           Int
+  url            String
+  uploadedAt     DateTime     @default(now())
+  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+
+  @@index([leaveRequestId])
+  @@index([mimeType])
+  @@index([size])
+}
+
+model LeaveRequestAuditLog {
+  id             String       @id @default(uuid())
+  leaveRequestId String
+  action         String
+  details        Json?
+  performedBy    String?
+  performedAt    DateTime     @default(now())
+  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  performer      User?        @relation(fields: [performedBy], references: [id])
+
+  @@index([leaveRequestId])
+  @@index([action])
+  @@index([performedBy])
+  @@index([performedAt])
+}
+
+model TeacherLeaveRequest {
+  id              String                          @id @default(uuid())
+  title           String
+  description     String?
+  leaveTypeId     String
+  status          TeacherLeaveRequestStatus       @default(PENDING_ADMINISTRATION)
+  startDate       DateTime
+  endDate         DateTime
+  days            Int
+  teacherId       String
+  adminId         String?
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime?
+  deletedAt       DateTime?
+  createdById     String?
+  updatedById     String?
+  deletedById     String?
+  admin           User?                           @relation("TeacherLeaveRequestAdmin", fields: [adminId], references: [id])
+  createdBy       User?                           @relation("TeacherLeaveRequestCreator", fields: [createdById], references: [id])
+  deletedBy       User?                           @relation("TeacherLeaveRequestDeleter", fields: [deletedById], references: [id])
+  leaveType       LeaveType                       @relation(fields: [leaveTypeId], references: [id])
+  teacher         Teacher                         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  updatedBy       User?                           @relation("TeacherLeaveRequestUpdater", fields: [updatedById], references: [id])
+  attachments     TeacherLeaveRequestAttachment[]
+  auditLogs       TeacherLeaveRequestAuditLog[]
+
+  @@index([teacherId])
+  @@index([leaveTypeId])
+  @@index([adminId])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model TeacherLeaveRequestAttachment {
+  id                    String              @id @default(uuid())
+  teacherLeaveRequestId String
+  filename              String
+  originalName          String
+  mimeType              String
+  size                  Int
+  url                   String
+  uploadedAt            DateTime            @default(now())
+  teacherId             String
+  teacher               Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherLeaveRequest   TeacherLeaveRequest @relation(fields: [teacherLeaveRequestId], references: [id], onDelete: Cascade)
+
+  @@index([teacherLeaveRequestId])
+  @@index([teacherId])
+  @@index([mimeType])
+  @@index([size])
+}
+
+model TeacherLeaveRequestAuditLog {
+  id                    String              @id @default(uuid())
+  teacherLeaveRequestId String
+  action                String
+  details               Json?
+  performedBy           String?
+  performedAt           DateTime            @default(now())
+  performer             User?               @relation(fields: [performedBy], references: [id])
+  teacherLeaveRequest   TeacherLeaveRequest @relation(fields: [teacherLeaveRequestId], references: [id], onDelete: Cascade)
+
+  @@index([teacherLeaveRequestId])
+  @@index([action])
+  @@index([performedBy])
+  @@index([performedAt])
+}
+
+model TeacherLeaveUsage {
+  id            String    @id @default(uuid())
+  teacherId     String
+  leaveTypeId   String
+  totalDaysUsed Int       @default(0)
+  lastUpdated   DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdById   String?
+  updatedById   String?
+  deletedById   String?
+  createdBy     User?     @relation("TeacherLeaveUsageCreator", fields: [createdById], references: [id])
+  deletedBy     User?     @relation("TeacherLeaveUsageDeleter", fields: [deletedById], references: [id])
+  leaveType     LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  teacher       Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  updatedBy     User?     @relation("TeacherLeaveUsageUpdater", fields: [updatedById], references: [id])
+
+  @@unique([teacherId, leaveTypeId, deletedAt], name: "unique_teacher_leave_type_usage")
+  @@index([teacherId])
+  @@index([leaveTypeId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+enum IDCardTemplateType {
+  STUDENT
+  TEACHER
+  STAFF
+  STAFF_NO_LOGIN
+}
+
+enum TemplateOrientation {
+  HORIZONTAL
+  VERTICAL
+}
+
+enum TemplateStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum TemplateFieldType {
+  TEXT
+  IMAGE
+  QR_CODE
+  BARCODE
+  LOGO
+  PHOTO
+  DATE
+  TIME
+  SIGNATURE
+}
+
+enum TextAlignment {
+  LEFT
+  CENTER
+  RIGHT
+  JUSTIFY
+}
+
+enum CalendarEntryType {
+  HOLIDAY
+  EVENT
+  EXAM
+  EMERGENCY_CLOSURE
+}
+
+enum HolidayType {
+  NATIONAL
+  SCHOOL
+}
+
+enum ExamType {
+  FIRST_TERM
+  SECOND_TERM
+  THIRD_TERM
+  FINAL
+  UNIT_TEST
+  OTHER
+}
+
+enum EmergencyClosureType {
+  NATURAL_DISASTER
+  STRIKE
+  PANDEMIC
+  POWER_OUTAGE
+  SECURITY_CONCERN
+  INFRASTRUCTURE_DAMAGE
+  WEATHER_EMERGENCY
+  OTHER
+}
+
+enum EventScope {
+  PARTIAL
+  SCHOOL_WIDE
+}
+
+enum ClassShift {
+  MORNING
+  DAY
+}
+
+enum SalaryChangeType {
+  INITIAL
+  PROMOTION
+  DEMOTION
+  ADJUSTMENT
+}
+
+enum TimeslotType {
+  REGULAR
+  BREAK
+  LUNCH
+  ACTIVITY
+  STUDY_HALL
+  FREE_PERIOD
+}
+
 enum NoticePriority {
   LOW
   MEDIUM
@@ -1081,84 +1805,6 @@ enum NoticeStatus {
   EXPIRED
 }
 
-// Notice Management Models
-model Notice {
-  id                    String              @id @default(uuid())
-  title                 String
-  content               String
-  priority              NoticePriority
-  recipientType         NoticeRecipientType
-  selectedClassId       String?
-  category              NoticeCategory?
-  publishDate           DateTime
-  expiryDate            DateTime
-  status                NoticeStatus        @default(DRAFT)
-  sendEmailNotification Boolean             @default(false)
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime?
-  deletedAt             DateTime?
-  createdById           String?
-  updatedById           String?
-  deletedById           String?
-
-  // Relationships
-  selectedClass         Class?              @relation("NoticeClass", fields: [selectedClassId], references: [id])
-  createdBy             User?               @relation("NoticeCreator", fields: [createdById], references: [id])
-  updatedBy             User?               @relation("NoticeUpdater", fields: [updatedById], references: [id])
-  deletedBy             User?               @relation("NoticeDeleter", fields: [deletedById], references: [id])
-  recipients            NoticeRecipient[]
-  attachments           NoticeAttachment[]
-
-  @@index([recipientType])
-  @@index([priority])
-  @@index([category])
-  @@index([status])
-  @@index([publishDate])
-  @@index([expiryDate])
-  @@index([selectedClassId])
-  @@index([createdById])
-  @@index([updatedById])
-  @@index([deletedById])
-}
-
-model NoticeRecipient {
-  id        String   @id @default(uuid())
-  noticeId  String
-  userId    String
-  readAt    DateTime?
-  createdAt DateTime @default(now())
-
-  // Relationships
-  notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([noticeId, userId])
-  @@index([noticeId])
-  @@index([userId])
-  @@index([readAt])
-}
-
-model NoticeAttachment {
-  id           String   @id @default(uuid())
-  noticeId     String
-  filename     String
-  originalName String
-  mimeType     String
-  size         Int
-  url          String
-  uploadedAt   DateTime @default(now())
-
-  // Relationships
-  notice       Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
-
-  @@index([noticeId])
-  @@index([mimeType])
-}
-
-// =============================
-// Fee Management (Historical, Itemized)
-// =============================
-
 enum FeeItemFrequency {
   MONTHLY
   TERM
@@ -1191,228 +1837,6 @@ enum ChargeType {
   OTHER
 }
 
-model FeeStructure {
-  id           String              @id @default(uuid())
-  classId      String
-  academicYear String
-  name         String
-  status       FeeStructureStatus  @default(DRAFT)
-  effectiveFrom DateTime
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime?
-  deletedAt    DateTime?
-  createdById  String?             @db.Uuid
-  updatedById  String?             @db.Uuid
-  deletedById  String?             @db.Uuid
-  items        FeeStructureItem[]
-  histories    FeeStructureHistory[]
-  class        Class               @relation(fields: [classId], references: [id], onDelete: Cascade)
-  studentFeeHistories StudentFeeHistory[]
-  assignments  FeeStructureAssignment[]
-
-  @@index([classId])
-  @@index([academicYear])
-  @@index([status])
-  @@index([effectiveFrom])
-  @@index([createdById])
-  @@index([updatedById])
-  @@index([deletedById])
-}
-
-model FeeStructureAssignment {
-  id             String       @id @default(uuid())
-  feeStructureId String
-  classId        String
-  createdAt      DateTime     @default(now())
-  deletedAt      DateTime?
-  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
-  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
-
-  @@unique([feeStructureId, classId])
-  @@index([classId])
-}
-
-model FeeStructureItem {
-  id             String           @id @default(uuid())
-  feeStructureId String
-  category       String
-  label          String
-  amount         Decimal          @db.Decimal(10,2)
-  frequency      FeeItemFrequency @default(MONTHLY)
-  isOptional     Boolean          @default(false)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime?
-  deletedAt      DateTime?
-  createdById    String?          @db.Uuid
-  updatedById    String?          @db.Uuid
-  deletedById    String?          @db.Uuid
-  feeStructure   FeeStructure     @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
-
-  @@index([feeStructureId])
-  @@index([category])
-  @@index([frequency])
-}
-
-model FeeStructureHistory {
-  id              String          @id @default(uuid())
-  feeStructureId  String
-  version         Int
-  effectiveFrom   DateTime        @db.Date
-  totalAnnual     Decimal         @db.Decimal(12,2)
-  snapshot        Json            // JSON snapshot of items & derived totals
-  changeReason    String?
-  createdAt       DateTime        @default(now())
-  createdById     String?         @db.Uuid
-  deletedAt       DateTime?
-  feeStructure    FeeStructure    @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
-
-  @@index([feeStructureId])
-  @@index([effectiveFrom])
-  @@unique([feeStructureId, version])
-}
-
-model ScholarshipDefinition {
-  id           String          @id @default(uuid())
-  name         String
-  type         ScholarshipType @default(OTHER)
-  description  String?
-  valueType    ValueType       @default(PERCENTAGE)
-  value        Decimal         @db.Decimal(10,2) // percentage or fixed amount
-  appliesToCategory String?    // limit to specific fee item category
-  isActive     Boolean         @default(true)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime?
-  deletedAt    DateTime?
-  createdById  String?         @db.Uuid
-  updatedById  String?         @db.Uuid
-  deletedById  String?         @db.Uuid
-  assignments  ScholarshipAssignment[]
-
-  @@index([type])
-  @@index([isActive])
-}
-
-model ScholarshipAssignment {
-  id              String                @id @default(uuid())
-  scholarshipId   String
-  studentId       String
-  effectiveFrom   DateTime              @db.Date
-  expiresAt       DateTime?             @db.Date
-  createdAt       DateTime              @default(now())
-  createdById     String?               @db.Uuid
-  deletedAt       DateTime?
-  scholarship     ScholarshipDefinition @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
-  student         Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@index([scholarshipId])
-  @@index([studentId])
-  @@index([effectiveFrom])
-}
-
-model ChargeDefinition {
-  id           String     @id @default(uuid())
-  name         String
-  type         ChargeType @default(FINE)
-  category     String?
-  description  String?
-  valueType    ValueType  @default(FIXED)
-  value        Decimal    @db.Decimal(10,2)
-  isRecurring  Boolean    @default(false)
-  isActive     Boolean    @default(true)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime?
-  deletedAt    DateTime?
-  createdById  String?    @db.Uuid
-  updatedById  String?    @db.Uuid
-  deletedById  String?    @db.Uuid
-  assignments  ChargeAssignment[]
-
-  @@index([type])
-  @@index([isActive])
-}
-
-model ChargeAssignment {
-  id             String           @id @default(uuid())
-  chargeId       String
-  studentId      String
-  appliedMonth   DateTime         @db.Date
-  amount         Decimal          @db.Decimal(10,2) // resolved amount after valueType logic
-  reason         String?
-  createdAt      DateTime         @default(now())
-  createdById    String?          @db.Uuid
-  deletedAt      DateTime?
-  charge         ChargeDefinition @relation(fields: [chargeId], references: [id], onDelete: Cascade)
-  student        Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@index([chargeId])
-  @@index([studentId])
-  @@index([appliedMonth])
-}
-
-model StudentFeeHistory {
-  id                 String    @id @default(uuid())
-  studentId          String
-  feeStructureId     String?
-  periodMonth        DateTime  @db.Date
-  version            Int       @default(1)
-  baseAmount         Decimal   @db.Decimal(12,2)
-  scholarshipAmount  Decimal   @db.Decimal(12,2) @default(0)
-  extraChargesAmount Decimal   @db.Decimal(12,2) @default(0)
-  finalPayable       Decimal   @db.Decimal(12,2)
-  breakdown          Json      // detailed list of items & adjustments used
-  createdAt          DateTime  @default(now())
-  createdById        String?   @db.Uuid
-  feeStructure       FeeStructure? @relation(fields: [feeStructureId], references: [id], onDelete: SetNull)
-  student            Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@index([studentId])
-  @@index([feeStructureId])
-  @@index([periodMonth])
-  @@unique([studentId, periodMonth, version], name: "unique_student_month_fee_version")
-}
-
-// Attendance Models
-model AttendanceSession {
-  id          String   @id @default(uuid())
-  classId     String
-  date        DateTime @db.Date
-  sessionType String   @default("daily") // daily, morning, afternoon
-  markedBy    String
-  markedAt    DateTime @default(now())
-  isCompleted Boolean  @default(false)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime?
-  
-  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  marker      User     @relation(fields: [markedBy], references: [id])
-  records     AttendanceRecord[]
-  
-  @@unique([classId, date, sessionType])
-  @@index([classId])
-  @@index([date])
-  @@index([markedBy])
-}
-
-model AttendanceRecord {
-  id               String            @id @default(uuid())
-  sessionId        String
-  studentId        String
-  status           AttendanceStatus
-  markedAt         DateTime          @default(now())
-  remarks          String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime?
-  
-  session          AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  student          Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
-  @@unique([sessionId, studentId])
-  @@index([sessionId])
-  @@index([studentId])
-  @@index([status])
-}
-
 enum AttendanceStatus {
   PRESENT
   ABSENT
@@ -1420,107 +1844,6 @@ enum AttendanceStatus {
   EXCUSED
 }
 
-// Teacher Attendance Models
-model TeacherAttendanceSession {
-  id          String   @id @default(uuid())
-  date        DateTime @db.Date
-  sessionType String   @default("daily") // daily, morning, afternoon
-  markedBy    String
-  markedAt    DateTime @default(now())
-  isCompleted Boolean  @default(false)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime?
-  
-  marker      User     @relation("TeacherAttendanceMarkedBy", fields: [markedBy], references: [id])
-  records     TeacherAttendanceRecord[]
-  
-  @@unique([date, sessionType])
-  @@index([date])
-  @@index([markedBy])
-}
-
-model TeacherAttendanceRecord {
-  id               String                    @id @default(uuid())
-  sessionId        String
-  teacherId        String
-  status           AttendanceStatus
-  markedAt         DateTime                  @default(now())
-  remarks          String?
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime?
-  
-  session          TeacherAttendanceSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  teacher          Teacher                   @relation("TeacherAttendanceRecords", fields: [teacherId], references: [id], onDelete: Cascade)
-  
-  @@unique([sessionId, teacherId])
-  @@index([sessionId])
-  @@index([teacherId])
-  @@index([status])
-}
-
-// Staff Attendance Models
-model StaffAttendanceSession {
-  id          String   @id @default(uuid())
-  date        DateTime @db.Date
-  sessionType String   @default("daily") // daily, morning, afternoon
-  markedBy    String
-  markedAt    DateTime @default(now())
-  isCompleted Boolean  @default(false)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime?
-  
-  marker      User     @relation("StaffAttendanceMarkedBy", fields: [markedBy], references: [id])
-  records     StaffAttendanceRecord[]
-  
-  @@unique([date, sessionType])
-  @@index([date])
-  @@index([markedBy])
-}
-
-model StaffAttendanceRecord {
-  id               String                    @id @default(uuid())
-  sessionId        String
-  staffId          String
-  status           AttendanceStatus
-  markedAt         DateTime                  @default(now())
-  remarks          String?
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime?
-  
-  session          StaffAttendanceSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  staff            Staff                     @relation("StaffAttendanceRecords", fields: [staffId], references: [id], onDelete: Cascade)
-  
-  @@unique([sessionId, staffId])
-  @@index([sessionId])
-  @@index([staffId])
-  @@index([status])
-}
-
-// Working Days Tracking Model
-model WorkingDaysTracker {
-  id              String   @id @default(uuid())
-  month           Int      // 1-12 
-  year            Int      // e.g., 2025
-  totalDays       Int      // Total days in month
-  saturdays       Int      // Number of Saturdays
-  holidays        Int      // Holidays from calendar
-  events          Int      // Events from calendar
-  exams           Int      // Exam days from calendar  
-  availableDays   Int      // Calculated working days
-  emergencyClosures Int    // Emergency closure days from calendar
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now()) @updatedAt
-  
-  @@unique([month, year])
-  @@index([month])
-  @@index([year])
-}
-
-// =====================
-// Complaint Management Enums
-// =====================
 enum ComplaintType {
   ACADEMIC
   BEHAVIORAL
@@ -1554,112 +1877,6 @@ enum ComplaintRecipientType {
   PARENT
 }
 
-// =====================
-// Complaint Management Models
-// =====================
-model Complaint {
-  id                    String                @id @default(uuid())
-  title                 String
-  description           String
-  type                  ComplaintType
-  priority              ComplaintPriority     @default(MEDIUM)
-  status                ComplaintStatus       @default(OPEN)
-  recipientType         ComplaintRecipientType
-  recipientId           String?               // ID of teacher/admin/parent
-  complainantId         String                // ID of student/teacher/parent
-  complainantType       String                // STUDENT, TEACHER, PARENT
-  assignedToId          String?               // ID of assigned handler
-  assignedAt            DateTime?
-  resolvedAt            DateTime?
-  resolution            String?
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime?
-  deletedAt             DateTime?
-  createdById           String?
-  updatedById           String?
-  deletedById           String?
-
-  // Relationships
-  complainant           User                  @relation("ComplaintComplainant", fields: [complainantId], references: [id])
-  recipient             User?                 @relation("ComplaintRecipient", fields: [recipientId], references: [id])
-  assignedTo            User?                 @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id])
-  createdBy             User?                 @relation("ComplaintCreator", fields: [createdById], references: [id])
-  updatedBy             User?                 @relation("ComplaintUpdater", fields: [updatedById], references: [id])
-  deletedBy             User?                 @relation("ComplaintDeleter", fields: [deletedById], references: [id])
-  attachments           ComplaintAttachment[]
-  responses             ComplaintResponse[]
-  auditLogs             ComplaintAuditLog[]
-
-  @@index([complainantId])
-  @@index([recipientId])
-  @@index([assignedToId])
-  @@index([type])
-  @@index([status])
-  @@index([priority])
-  @@index([recipientType])
-  @@index([createdAt])
-  @@index([createdById])
-  @@index([updatedById])
-  @@index([deletedById])
-}
-
-model ComplaintResponse {
-  id          String   @id @default(uuid())
-  complaintId String
-  responderId String
-  content     String
-  isInternal  Boolean  @default(false) // Internal notes vs public response
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime?
-
-  // Relationships
-  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-  responder   User      @relation(fields: [responderId], references: [id])
-
-  @@index([complaintId])
-  @@index([responderId])
-  @@index([createdAt])
-}
-
-model ComplaintAttachment {
-  id           String   @id @default(uuid())
-  complaintId  String
-  filename     String
-  originalName String
-  mimeType     String
-  size         Int
-  url          String
-  uploadedAt   DateTime @default(now())
-
-  // Relationships
-  complaint    Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-
-  @@index([complaintId])
-  @@index([mimeType])
-}
-
-model ComplaintAuditLog {
-  id          String   @id @default(uuid())
-  complaintId String
-  action      String   // CREATED, UPDATED, ASSIGNED, RESPONDED, RESOLVED, etc.
-  details     Json?
-  performedBy String?
-  performedAt DateTime @default(now())
-
-  // Relationships
-  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-  performer   User?     @relation(fields: [performedBy], references: [id])
-
-  @@index([complaintId])
-  @@index([action])
-  @@index([performedBy])
-  @@index([performedAt])
-}
-
-// =====================
-// Leave Request Management Models
-// =====================
-
 enum LeaveRequestStatus {
   PENDING_PARENT_APPROVAL
   PENDING_TEACHER_APPROVAL
@@ -1677,132 +1894,10 @@ enum LeaveRequestType {
   FAMILY
 }
 
-// =====================
-// Leave Type Management Models
-// =====================
-
-model LeaveType {
-  id                String              @id @default(uuid())
-  name              String              @unique
-  description       String?
-  maxDays           Int                 @default(1)
-  isPaid            Boolean             @default(false)
-  status            LeaveTypeStatus     @default(ACTIVE)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime?
-  deletedAt         DateTime?
-  createdById       String?
-  updatedById       String?
-  deletedById       String?
-
-  // Relationships
-  createdBy         User?               @relation("LeaveTypeCreator", fields: [createdById], references: [id])
-  updatedBy         User?               @relation("LeaveTypeUpdater", fields: [updatedById], references: [id])
-  deletedBy         User?               @relation("LeaveTypeDeleter", fields: [deletedById], references: [id])
-  teacherLeaveRequests TeacherLeaveRequest[]
-  teacherLeaveUsage    TeacherLeaveUsage[]
-
-  @@index([name])
-  @@index([status])
-  @@index([isPaid])
-  @@index([createdAt])
-  @@index([createdById])
-  @@index([updatedById])
-  @@index([deletedById])
-}
-
 enum LeaveTypeStatus {
   ACTIVE
   INACTIVE
 }
-
-model LeaveRequest {
-  id                String              @id @default(uuid())
-  title             String
-  description       String?
-  type              LeaveRequestType
-  status            LeaveRequestStatus  @default(PENDING_PARENT_APPROVAL)
-  startDate         DateTime
-  endDate           DateTime
-  days              Int                 // Calculated field for number of days
-  studentId         String
-  parentId          String?             // Parent who approved
-  teacherId         String?             // Class teacher who approved
-  parentApprovedAt  DateTime?
-  teacherApprovedAt DateTime?
-  parentRejectedAt  DateTime?
-  teacherRejectedAt DateTime?
-  parentRejectionReason String?
-  teacherRejectionReason String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime?
-  deletedAt         DateTime?
-  createdById       String?
-  updatedById       String?
-  deletedById       String?
-
-  // Relationships
-  student           Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  parent            Parent?             @relation(fields: [parentId], references: [id])
-  teacher           Teacher?            @relation(fields: [teacherId], references: [id])
-  createdBy         User?               @relation("LeaveRequestCreator", fields: [createdById], references: [id])
-  updatedBy         User?               @relation("LeaveRequestUpdater", fields: [updatedById], references: [id])
-  deletedBy         User?               @relation("LeaveRequestDeleter", fields: [deletedById], references: [id])
-  attachments       LeaveRequestAttachment[]
-  auditLogs         LeaveRequestAuditLog[]
-
-  @@index([studentId])
-  @@index([parentId])
-  @@index([teacherId])
-  @@index([type])
-  @@index([status])
-  @@index([startDate])
-  @@index([endDate])
-  @@index([createdAt])
-  @@index([createdById])
-  @@index([updatedById])
-  @@index([deletedById])
-}
-
-model LeaveRequestAttachment {
-  id           String   @id @default(uuid())
-  leaveRequestId String
-  filename     String
-  originalName String
-  mimeType     String
-  size         Int      // Size in bytes (max 5MB = 5,242,880 bytes)
-  url          String
-  uploadedAt   DateTime @default(now())
-
-  // Relationships
-  leaveRequest LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
-
-  @@index([leaveRequestId])
-  @@index([mimeType])
-  @@index([size])
-}
-
-model LeaveRequestAuditLog {
-  id              String   @id @default(uuid())
-  leaveRequestId  String
-  action          String   // CREATED, PARENT_APPROVED, TEACHER_APPROVED, REJECTED, CANCELLED, etc.
-  details         Json?
-  performedBy     String?
-  performedAt     DateTime @default(now())
-
-  // Relationships
-  leaveRequest    LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
-  performer       User?        @relation(fields: [performedBy], references: [id])
-
-  @@index([leaveRequestId])
-  @@index([action])
-  @@index([performedBy])
-  @@index([performedAt])
-}
-
-// =====================
-// Teacher Leave Request Management Models
-// =====================
 
 enum TeacherLeaveRequestStatus {
   PENDING_ADMINISTRATION
@@ -1810,120 +1905,3 @@ enum TeacherLeaveRequestStatus {
   REJECTED
   CANCELLED
 }
-
-
-
-model TeacherLeaveRequest {
-  id                String                    @id @default(uuid())
-  title             String
-  description       String?
-  leaveTypeId       String                    // Changed from 'type' field
-  status            TeacherLeaveRequestStatus @default(PENDING_ADMINISTRATION)
-  startDate         DateTime
-  endDate           DateTime
-  days              Int                       // Calculated field for number of days
-  teacherId         String
-  adminId           String?                   // Admin who approved/rejected
-  approvedAt        DateTime?
-  rejectedAt        DateTime?
-  rejectionReason   String?
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime?
-  deletedAt         DateTime?
-  createdById       String?
-  updatedById       String?
-  deletedById       String?
-
-  // Relationships
-  teacher           Teacher                   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  leaveType         LeaveType                 @relation(fields: [leaveTypeId], references: [id])
-  admin             User?                     @relation("TeacherLeaveRequestAdmin", fields: [adminId], references: [id])
-  createdBy         User?                     @relation("TeacherLeaveRequestCreator", fields: [createdById], references: [id])
-  updatedBy         User?                     @relation("TeacherLeaveRequestUpdater", fields: [updatedById], references: [id])
-  deletedBy         User?                     @relation("TeacherLeaveRequestDeleter", fields: [deletedById], references: [id])
-  attachments       TeacherLeaveRequestAttachment[]
-  auditLogs         TeacherLeaveRequestAuditLog[]
-
-  @@index([teacherId])
-  @@index([leaveTypeId])
-  @@index([adminId])
-  @@index([status])
-  @@index([startDate])
-  @@index([endDate])
-  @@index([createdAt])
-  @@index([createdById])
-  @@index([updatedById])
-  @@index([deletedById])
-}
-
-model TeacherLeaveRequestAttachment {
-  id                    String   @id @default(uuid())
-  teacherLeaveRequestId String
-  filename              String
-  originalName          String
-  mimeType              String
-  size                  Int      // Size in bytes (max 5MB = 5,242,880 bytes)
-  url                   String
-  uploadedAt            DateTime @default(now())
-
-  // Relationships
-  teacherLeaveRequest   TeacherLeaveRequest @relation(fields: [teacherLeaveRequestId], references: [id], onDelete: Cascade)
-  teacher               Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  teacherId             String
-
-  @@index([teacherLeaveRequestId])
-  @@index([teacherId])
-  @@index([mimeType])
-  @@index([size])
-}
-
-model TeacherLeaveRequestAuditLog {
-  id                    String   @id @default(uuid())
-  teacherLeaveRequestId String
-  action                String   // CREATED, APPROVED, REJECTED, CANCELLED, etc.
-  details               Json?
-  performedBy           String?
-  performedAt           DateTime @default(now())
-
-  // Relationships
-  teacherLeaveRequest   TeacherLeaveRequest @relation(fields: [teacherLeaveRequestId], references: [id], onDelete: Cascade)
-  performer             User?               @relation(fields: [performedBy], references: [id])
-
-  @@index([teacherLeaveRequestId])
-  @@index([action])
-  @@index([performedBy])
-  @@index([performedAt])
-}
-
-// =====================
-// Teacher Leave Usage Tracking
-// =====================
-
-model TeacherLeaveUsage {
-  id                String      @id @default(uuid())
-  teacherId         String
-  leaveTypeId       String
-  totalDaysUsed     Int         @default(0)
-  lastUpdated       DateTime    @default(now())
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime?
-  deletedAt         DateTime?
-  createdById       String?
-  updatedById       String?
-  deletedById       String?
-
-  // Relationships
-  teacher           Teacher     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  leaveType         LeaveType   @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
-  createdBy         User?       @relation("TeacherLeaveUsageCreator", fields: [createdById], references: [id])
-  updatedBy         User?       @relation("TeacherLeaveUsageUpdater", fields: [updatedById], references: [id])
-  deletedBy         User?       @relation("TeacherLeaveUsageDeleter", fields: [deletedById], references: [id])
-
-  @@unique([teacherId, leaveTypeId, deletedAt], name: "unique_teacher_leave_type_usage")
-  @@index([teacherId])
-  @@index([leaveTypeId])
-  @@index([createdById])
-  @@index([updatedById])
-  @@index([deletedById])
-}
-

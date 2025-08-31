@@ -21,6 +21,7 @@ export class FileController {
       'complaints',
       'leave-requests',
       'teacher-leave-requests',
+      'templates', // Add templates folder for logo uploads
       'assignments',
       'submissions',
     ];
@@ -39,7 +40,9 @@ export class FileController {
         folder === 'assignments' ||
         folder === 'submissions'
         ? 'attachments'
-        : 'profiles',
+        : folder === 'templates'
+          ? 'logos'
+          : 'profiles',
       filename,
     );
 
