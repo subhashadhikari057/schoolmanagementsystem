@@ -101,6 +101,7 @@ export interface ParentResponse {
   email: string;
   phone: string;
   occupation?: string; // Some responses may have occupation at the top level
+  profilePhotoUrl?: string; // Profile photo URL from backend
   profile?: {
     dateOfBirth?: string;
     gender?: string;
@@ -124,10 +125,13 @@ export interface ParentResponse {
   };
   children?: Array<{
     id: string;
+    studentId: string; // Student ID from backend
     fullName: string;
+    className?: string; // Class name (e.g., "10-A") from backend
     classId?: string;
     rollNumber?: string;
     relationship: string;
+    isPrimary?: boolean; // Whether this parent is the primary parent
     profilePhotoUrl?: string;
     avatar?: string;
     deletedAt?: string | null;

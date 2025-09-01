@@ -12,6 +12,8 @@ import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEvents
 import { PageLoader } from '@/components/atoms/loading';
 import { parentService } from '@/api/services/parent.service';
 import { useAuth } from '@/hooks/useAuth';
+import { useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 
 // Mock children data
 const children = [
@@ -37,16 +39,55 @@ const DEFAULT_CHILD_KEY = 'parent_default_child';
 
 export default function MyChildrenPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [realChildren, setRealChildren] = useState(children); // Start with mock data as fallback
 
-  // Load default child from localStorage
+  // Load default child from localStorage or query parameter
   const [activeChildId, setActiveChildId] = useState(() => {
+    // First check if there's a child query parameter
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const childParam = urlParams.get('child');
+      if (childParam) {
+        return childParam;
+      }
+    }
+
+    // Fallback to localStorage or first child
     if (typeof window !== 'undefined') {
       return localStorage.getItem(DEFAULT_CHILD_KEY) || children[0].id;
     }
     return children[0].id;
   });
+
+  // Handle query parameter changes
+  useEffect(() => {
+    const childParam = searchParams.get('child');
+    console.log('Query parameter child:', childParam);
+    console.log('Current activeChildId:', activeChildId);
+
+    if (childParam && childParam !== activeChildId) {
+      console.log('Setting active child to:', childParam);
+      setActiveChildId(childParam);
+      // Update localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(DEFAULT_CHILD_KEY, childParam);
+      }
+
+      // Show toast notification when child is automatically selected
+      const selectedChild = realChildren.find(child => child.id === childParam);
+      if (selectedChild) {
+        toast.success(`Switched to ${selectedChild.name}'s profile`);
+      } else {
+        console.log(
+          'Child not found in realChildren:',
+          childParam,
+          realChildren,
+        );
+      }
+    }
+  }, [searchParams, activeChildId, realChildren]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -107,6 +148,15 @@ export default function MyChildrenPage() {
           // Set active child if none is selected and we have children
           if (!activeChildId && transformedChildren.length > 0) {
             setActiveChildId(transformedChildren[0].id);
+          } else if (activeChildId && transformedChildren.length > 0) {
+            // Check if the current activeChildId exists in the real children data
+            const childExists = transformedChildren.find(
+              child => child.id === activeChildId,
+            );
+            if (!childExists) {
+              // If the selected child doesn't exist in real data, select the first one
+              setActiveChildId(transformedChildren[0].id);
+            }
           }
         } else {
           console.log(
@@ -153,6 +203,17 @@ export default function MyChildrenPage() {
         activeChildId={activeChildId}
         setActiveChildId={setActiveChildId}
       />
+
+      {/* Show info about automatically selected child */}
+      {searchParams.get('child') && (
+        <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
+          <p className='text-sm text-blue-700'>
+            💡 <strong>Tip:</strong> You can switch between your children using
+            the dropdown above. The currently selected child's information is
+            displayed below.
+          </p>
+        </div>
+      )}
 
       {/* Selected child's info using atomic components */}
       {(() => {
