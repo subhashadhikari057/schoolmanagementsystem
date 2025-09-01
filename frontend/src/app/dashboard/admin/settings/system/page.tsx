@@ -105,31 +105,30 @@ export default function SystemSettingsPage() {
   };
 
   return (
-    <div className='min-h-screen bg-background'>
+    <div className='min-h-screen'>
       <SettingsNavigation
         breadcrumbs={breadcrumbs}
         title='System Settings'
         description="Configure your school's core system settings and preferences"
         showBackButton={true}
-        backLabel='Back to Settings'
       />
 
       {/* Action Buttons */}
-      <div className='px-3 sm:px-4 lg:px-6 mb-4'>
+      <div className='px-4 sm:px-6 lg:px-8 mb-6'>
         <div className='flex justify-end'>
           <div className='flex space-x-3'>
             {!isEditing ? (
               <>
                 <ReusableButton
                   onClick={() => {}}
-                  className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2'
+                  className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
                 >
                   <Settings className='h-4 w-4' />
                   Export Settings
                 </ReusableButton>
                 <ReusableButton
                   onClick={handleEdit}
-                  className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2'
+                  className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
                 >
                   <Edit2 className='h-4 w-4' />
                   Edit Settings
@@ -139,14 +138,14 @@ export default function SystemSettingsPage() {
               <>
                 <ReusableButton
                   onClick={handleCancel}
-                  className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2'
+                  className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
                 >
                   <X className='h-4 w-4' />
                   Cancel
                 </ReusableButton>
                 <ReusableButton
                   onClick={handleSave}
-                  className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2'
+                  className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
                 >
                   <Save className='h-4 w-4' />
                   Save Changes
@@ -158,13 +157,13 @@ export default function SystemSettingsPage() {
       </div>
 
       {/* Stats */}
-      <div className='px-3 sm:px-4 lg:px-6 mt-3 sm:mt-4 lg:mt-6'>
+      <div className='px-4 sm:px-6 lg:px-8 mb-6'>
         <Statsgrid stats={settingsStats} />
       </div>
 
       {/* Main Content with GenericTabs */}
-      <div className='px-3 sm:px-4 lg:px-6 mt-4 sm:mt-5 lg:mt-6 pb-4 sm:pb-6 lg:pb-8'>
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200'>
+      <div className='px-4 sm:px-6 lg:px-8 pb-8'>
+        <div className='bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden'>
           <GenericTabs tabs={tabs} defaultIndex={0} />
         </div>
       </div>

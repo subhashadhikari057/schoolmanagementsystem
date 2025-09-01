@@ -64,10 +64,7 @@ const SettingItem = ({
   configOptions?: string[];
   onClick?: () => void;
 }) => (
-  <Card
-    className='bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group h-full flex flex-col'
-    onClick={onClick}
-  >
+  <Card className='bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 group h-full flex flex-col'>
     <div className='flex items-start justify-between mb-4'>
       <div className='flex items-start gap-3 sm:gap-4 flex-1 min-w-0'>
         <Icon className='bg-blue-50 text-blue-600 p-2 sm:p-3 rounded-lg flex-shrink-0 group-hover:bg-blue-100 transition-colors'>
@@ -107,7 +104,7 @@ const SettingItem = ({
 
     <div className='pt-2 border-t border-gray-100 mt-auto'>
       <ReusableButton
-        className='w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-sm group-hover:bg-gray-100'
+        className='w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-sm group-hover:bg-gray-100 cursor-pointer'
         onClick={onClick}
       >
         <Settings size={14} />
@@ -183,19 +180,8 @@ export default function SystemSettings() {
   };
 
   return (
-    <div className='w-full min-h-screen bg-gray-50 p-4 sm:p-6'>
+    <div className='w-full min-h-screen p-4 sm:p-6'>
       <div className='w-full max-w-none space-y-6'>
-        {/* Header Section */}
-        <div className='mb-8'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2'>
-            Settings
-          </h1>
-          <p className='text-gray-600 text-sm sm:text-base'>
-            Configure your school management system to meet your institution's
-            needs
-          </p>
-        </div>
-
         {/* System Status Section */}
         <Card className='bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm'>
           <div className='flex items-center gap-3 mb-6'>

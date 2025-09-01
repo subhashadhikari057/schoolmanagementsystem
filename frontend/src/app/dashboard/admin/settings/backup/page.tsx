@@ -12,6 +12,7 @@ import {
   Upload,
   Calendar,
   Settings,
+  ArrowLeft,
 } from 'lucide-react';
 import GenericTabs from '@/components/organisms/tabs/GenericTabs';
 import BackupOverviewTab from '@/components/organisms/settings/BackupOverviewTab';
@@ -102,7 +103,7 @@ export default function BackupRecoveryPage() {
   };
 
   return (
-    <div className='min-h-screen bg-background'>
+    <div className='min-h-screen'>
       {/* Use SettingsNavigation only if not embedded */}
       {!isEmbedded && (
         <SettingsNavigation
@@ -110,7 +111,6 @@ export default function BackupRecoveryPage() {
           title='Backup & Recovery'
           description='Manage system backups, restoration, and data protection'
           showBackButton={true}
-          backLabel='Back to Settings'
         />
       )}
 
@@ -145,23 +145,23 @@ export default function BackupRecoveryPage() {
         </div>
       )}
 
-      {/* Edit Controls for Embedded View */}
-      {isEmbedded && (
-        <div className='px-3 sm:px-4 lg:px-6 mt-4'>
+      {/* Action Buttons - show in normal page view */}
+      {!isEmbedded && (
+        <div className='px-4 sm:px-6 lg:px-8 mt-6 mb-6'>
           <div className='flex justify-end'>
             <div className='flex space-x-3'>
               {!isEditing ? (
                 <>
                   <ReusableButton
                     onClick={() => {}}
-                    className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2'
+                    className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
                   >
                     <HardDrive className='h-4 w-4' />
                     Reset to Defaults
                   </ReusableButton>
                   <ReusableButton
                     onClick={handleEdit}
-                    className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2'
+                    className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
                   >
                     <Edit2 className='h-4 w-4' />
                     Edit Settings
@@ -171,14 +171,65 @@ export default function BackupRecoveryPage() {
                 <>
                   <ReusableButton
                     onClick={handleCancel}
-                    className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2'
+                    className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
                   >
                     <X className='h-4 w-4' />
                     Cancel
                   </ReusableButton>
                   <ReusableButton
                     onClick={handleSave}
-                    className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2'
+                    className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
+                  >
+                    <Save className='h-4 w-4' />
+                    Save Changes
+                  </ReusableButton>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Back Button for Embedded View */}
+      {isEmbedded && (
+        <div className='px-4 sm:px-6 lg:px-8 pt-6 mb-6'>
+          <div className='flex justify-between items-center'>
+            <button
+              onClick={() => window.history.back()}
+              className='flex items-center justify-center w-10 h-10 rounded-full bg-white hover:bg-gray-50 transition-all duration-200 group border border-gray-200 shadow-md hover:shadow-lg'
+            >
+              <ArrowLeft className='h-4 w-4 text-gray-600 group-hover:text-gray-800 transition-colors duration-200' />
+            </button>
+            <div className='flex space-x-3'>
+              {!isEditing ? (
+                <>
+                  <ReusableButton
+                    onClick={() => {}}
+                    className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
+                  >
+                    <HardDrive className='h-4 w-4' />
+                    Reset to Defaults
+                  </ReusableButton>
+                  <ReusableButton
+                    onClick={handleEdit}
+                    className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
+                  >
+                    <Edit2 className='h-4 w-4' />
+                    Edit Settings
+                  </ReusableButton>
+                </>
+              ) : (
+                <>
+                  <ReusableButton
+                    onClick={handleCancel}
+                    className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
+                  >
+                    <X className='h-4 w-4' />
+                    Cancel
+                  </ReusableButton>
+                  <ReusableButton
+                    onClick={handleSave}
+                    className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
                   >
                     <Save className='h-4 w-4' />
                     Save Changes
@@ -191,8 +242,8 @@ export default function BackupRecoveryPage() {
       )}
 
       {/* Main Content with GenericTabs */}
-      <div className='px-3 sm:px-4 lg:px-6 mt-4 sm:mt-5 lg:mt-6 pb-4 sm:pb-6 lg:pb-8'>
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200'>
+      <div className='px-4 sm:px-6 lg:px-8 pb-8'>
+        <div className='bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden'>
           <GenericTabs tabs={tabs} defaultIndex={0} />
         </div>
       </div>

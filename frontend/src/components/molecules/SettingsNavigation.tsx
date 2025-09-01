@@ -3,7 +3,6 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronRight, ArrowLeft, Home } from 'lucide-react';
-import ReusableButton from '@/components/atoms/form-controls/Button';
 
 interface BreadcrumbItem {
   label: string;
@@ -15,7 +14,6 @@ interface SettingsNavigationProps {
   title: string;
   description: string;
   onBack?: () => void;
-  backLabel?: string;
   showBackButton?: boolean;
 }
 
@@ -24,7 +22,6 @@ export default function SettingsNavigation({
   title,
   description,
   onBack,
-  backLabel = 'Back to Settings',
   showBackButton = true,
 }: SettingsNavigationProps) {
   const router = useRouter();
@@ -43,63 +40,71 @@ export default function SettingsNavigation({
 
   return (
     <>
-      {/* Breadcrumb */}
-      <div className='bg-white border-b border-gray-200'>
-        <div className='px-3 sm:px-4 lg:px-6'>
-          <div className='flex items-center space-x-2 py-3'>
-            <Home className='h-4 w-4 text-gray-400' />
-            <ChevronRight className='h-4 w-4 text-gray-400' />
-            <button
-              onClick={() => handleBreadcrumbClick('/dashboard/admin')}
-              className='text-sm text-gray-600 hover:text-gray-900 transition-colors'
-            >
-              Admin
-            </button>
-            {breadcrumbs.map((item, index) => (
-              <React.Fragment key={index}>
-                <ChevronRight className='h-4 w-4 text-gray-400' />
-                {item.href && index !== breadcrumbs.length - 1 ? (
-                  <button
-                    onClick={() => handleBreadcrumbClick(item.href!)}
-                    className='text-sm text-gray-600 hover:text-gray-900 transition-colors'
-                  >
-                    {item.label}
-                  </button>
-                ) : (
-                  <span
-                    className={`text-sm ${index === breadcrumbs.length - 1 ? 'font-medium text-gray-900' : 'text-gray-600'}`}
-                  >
-                    {item.label}
-                  </span>
-                )}
-              </React.Fragment>
-            ))}
+      {/* Breadcrumb - Only show if there are breadcrumbs */}
+      {breadcrumbs.length > 0 && (
+        <div className='bg-white border-b border-gray-100 shadow-sm rounded-t-2xl'>
+          <div className='px-4 sm:px-6 lg:px-8'>
+            <div className='flex items-center space-x-1 py-4'>
+              <Home className='h-4 w-4 text-gray-400' />
+              <ChevronRight className='h-3 w-3 text-gray-300 mx-1' />
+              <button
+                onClick={() => handleBreadcrumbClick('/dashboard/admin')}
+                className='text-sm text-gray-500 hover:text-gray-700 transition-colors duration-150 cursor-pointer'
+              >
+                Admin
+              </button>
+              {breadcrumbs.map((item, index) => (
+                <React.Fragment key={index}>
+                  <ChevronRight className='h-3 w-3 text-gray-300 mx-1' />
+                  {item.href && index !== breadcrumbs.length - 1 ? (
+                    <button
+                      onClick={() => handleBreadcrumbClick(item.href!)}
+                      className='text-sm text-gray-500 hover:text-gray-700 transition-colors duration-150 cursor-pointer'
+                    >
+                      {item.label}
+                    </button>
+                  ) : (
+                    <span
+                      className={`text-sm ${index === breadcrumbs.length - 1 ? 'font-medium text-gray-900' : 'text-gray-500'}`}
+                    >
+                      {item.label}
+                    </span>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Beautiful Header - Adjust rounded corners based on breadcrumbs presence */}
+      <div
+        className={`bg-white shadow-lg border-b border-gray-100 ${breadcrumbs.length > 0 ? 'rounded-b-2xl' : 'rounded-2xl'}`}
+      >
+        <div className='px-4 sm:px-6 lg:px-8 py-8'>
+          <div className='flex items-center space-x-4'>
+            {showBackButton && (
+              <button
+                onClick={handleBackClick}
+                className='flex items-center justify-center w-12 h-12 rounded-full bg-white hover:bg-gray-50 transition-all duration-200 group border border-gray-200 shadow-md hover:shadow-lg'
+              >
+                <ArrowLeft className='h-5 w-5 text-gray-600 group-hover:text-gray-800 transition-colors duration-200' />
+              </button>
+            )}
+            <div className='flex-1'>
+              <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2 tracking-tight'>
+                {title}
+              </h1>
+              <p className='text-base text-gray-600 leading-relaxed max-w-2xl'>
+                {description}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Header with Back Button */}
-      <div className='px-3 sm:px-4 lg:px-6 pt-2 sm:pt-3 lg:pt-4'>
-        <div className='flex items-center gap-4 mb-4'>
-          {showBackButton && (
-            <ReusableButton
-              onClick={handleBackClick}
-              className='flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200'
-            >
-              <ArrowLeft className='h-4 w-4' />
-              {backLabel}
-            </ReusableButton>
-          )}
-          <div>
-            <h1 className='text-lg sm:text-xl lg:text-2xl font-bold text-gray-900'>
-              {title}
-            </h1>
-            <p className='text-xs sm:text-sm lg:text-base text-gray-600 mt-1'>
-              {description}
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Gap below header */}
+      <div className='h-8'></div>
     </>
   );
 }
