@@ -50,6 +50,7 @@ interface Child {
   name: string;
   classId: string;
   className: string;
+  grade: string;
   section: string;
 }
 
@@ -65,6 +66,7 @@ const mockChildren = [
     name: 'John Doe',
     classId: 'class1',
     className: '10',
+    grade: '10',
     section: 'A',
   },
   {
@@ -72,6 +74,7 @@ const mockChildren = [
     name: 'Jane Doe',
     classId: 'class2',
     className: '7',
+    grade: '7',
     section: 'B',
   },
 ];
@@ -143,12 +146,28 @@ export default function ParentAssignmentsTab({
           const transformedChildren = allChildren.map((child: any) => {
             console.log('Processing child:', child);
 
+            // Parse class name properly - expect format like "1-A" or "10-A"
+            let grade = '';
+            let section = '';
+
+            if (child.className) {
+              const parts = child.className.split('-');
+              if (parts.length >= 2) {
+                grade = parts[0];
+                section = parts[1];
+              } else {
+                grade = child.className;
+                section = '';
+              }
+            }
+
             return {
               id: child.id,
               name: child.fullName || 'Unknown',
               classId: child.classId || '',
               className: child.className || '',
-              section: child.className?.split('-')[1] || '',
+              grade: grade,
+              section: section,
             };
           });
 
@@ -381,7 +400,7 @@ export default function ParentAssignmentsTab({
         <div className='text-sm text-gray-600'>Viewing assignments for:</div>
         <Dropdown
           options={children.map((c: Child) => ({
-            label: `${c.name} (Class ${c.className}-${c.section})`,
+            label: `${c.name} (Class ${c.grade}${c.section ? `-${c.section}` : ''})`,
             value: c.id,
           }))}
           selectedValue={selectedChild}

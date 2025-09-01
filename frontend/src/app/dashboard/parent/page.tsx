@@ -330,10 +330,10 @@ export default function ParentDashboard() {
               </div>
             </div>
           </div>
-          {/* My Children List */}
+
           <div className='bg-white rounded-xl shadow p-6 mb-6'>
             <SectionTitle
-              text={`My Children (${stats.childrenCount})`}
+              text={`Children Overview (${stats.childrenCount})`}
               className='text-lg font-bold mb-2'
             />
             <div className='flex flex-col gap-2'>
@@ -357,8 +357,18 @@ export default function ParentDashboard() {
                         {child.fullName}
                       </div>
                       <div className='text-gray-600 text-sm'>
-                        Class {child.className || child.classId || 'N/A'} • Roll{' '}
-                        {child.rollNumber || 'N/A'}
+                        Class{' '}
+                        {(() => {
+                          if (child.className) {
+                            const parts = child.className.split('-');
+                            if (parts.length >= 2) {
+                              return `${parts[0]}-${parts[1]}`;
+                            }
+                            return parts[0];
+                          }
+                          return child.classId || 'N/A';
+                        })()}{' '}
+                        • Roll {child.rollNumber || 'N/A'}
                       </div>
                       <div className='text-gray-500 text-xs'>
                         {child.relationship}{' '}
@@ -366,10 +376,10 @@ export default function ParentDashboard() {
                       </div>
                     </div>
                     <a
-                      href={`/dashboard/parent/children?child=${child.studentId || child.id}`}
+                      href={`/dashboard/parent/assignments?child=${child.studentId || child.id}`}
                       className='text-blue-600 hover:underline text-xs font-medium px-3 py-1 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors'
                     >
-                      View Details
+                      View Assignments
                     </a>
                   </div>
                 ))
