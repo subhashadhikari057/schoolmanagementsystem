@@ -63,7 +63,7 @@ export default function ParentDashboard() {
       <div className='px-3 sm:px-4 lg:px-6 pt-2 sm:pt-3 lg:pt-4'>
         <h1 className='text-2xl font-bold text-gray-900'>Parent Dashboard</h1>
         <p className='text-gray-600 text-base mt-1'>
-          Comprehensive overview of your children's academic journey
+          Comprehensive overview of your children&apos;s academic journey
         </p>
       </div>
       <div className='px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>

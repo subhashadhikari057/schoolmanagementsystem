@@ -10,12 +10,15 @@ import Button from '@/components/atoms/form-controls/Button';
 import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
 import { teacherService } from '@/api/services/teacher.service';
 import { useAuth } from '@/hooks/useAuth';
+import Icon from '@/components/atoms/display/Icon';
 import {
   BookOpen,
   FlaskConical,
   Calculator,
   Users,
   ChevronRight,
+  Clock,
+  MapPin,
 } from 'lucide-react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
@@ -382,27 +385,63 @@ export default function TeacherDashboard() {
           {/* Events and My Subjects */}
           <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
             <div className='lg:col-span-8'>
-              <Panel
-                variant='list-cards'
-                title='Upcoming Events'
-                maxEvents={3}
-                className='!bg-transparent !border-0 !p-0 !rounded-none !shadow-none'
-                events={mappedEvents}
-              />
+              <div className='space-y-2'>
+                <div className='flex items-center justify-between'>
+                  <SectionTitle
+                    text='Upcoming Events'
+                    level={3}
+                    className='text-sm font-semibold text-gray-700'
+                  />
+                  <Label className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'>
+                    View All
+                  </Label>
+                </div>
+                {mappedEvents.length > 0 ? (
+                  <Panel
+                    variant='list-cards'
+                    title=''
+                    maxEvents={3}
+                    className='!bg-transparent !border-0 [&>div:first-child]:hidden p-6'
+                    events={mappedEvents}
+                  />
+                ) : (
+                  <div className='text-center py-6'>
+                    <p className='text-sm text-gray-500'>No events to show</p>
+                  </div>
+                )}
+              </div>
             </div>
             <div className='lg:col-span-4'>
-              {subjectsLoading ? (
-                <div className='animate-pulse'>
-                  <div className='h-32 bg-gray-200 rounded-lg'></div>
+              <div className='space-y-2'>
+                <div className='flex items-center justify-between'>
+                  <SectionTitle
+                    text='My Subjects'
+                    level={3}
+                    className='text-sm font-semibold text-gray-700'
+                  />
+                  <Label className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'>
+                    View All
+                  </Label>
                 </div>
-              ) : (
-                <Panel
-                  variant='subjects'
-                  title='My Subjects'
-                  className='!bg-transparent !border-0 !p-0 !rounded-none !shadow-none'
-                  subjects={assignedSubjects}
-                />
-              )}
+                {subjectsLoading ? (
+                  <div className='animate-pulse'>
+                    <div className='h-32 bg-gray-200 rounded-lg'></div>
+                  </div>
+                ) : assignedSubjects.length > 0 ? (
+                  <Panel
+                    variant='subjects'
+                    title=''
+                    className='!bg-transparent !border-0 [&>div:first-child]:hidden p-6'
+                    subjects={assignedSubjects}
+                  />
+                ) : (
+                  <div className='text-center py-6'>
+                    <p className='text-sm text-gray-500'>
+                      No subjects assigned
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

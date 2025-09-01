@@ -161,7 +161,7 @@ export default function ParentAssignmentsPage() {
                 <strong>Status Message:</strong> {a.message}
               </div>
               <div className='mt-2 text-sm text-gray-700'>
-                <strong>Teacher's Review:</strong> {a.teacherReview}
+                <strong>Teacher&apos;s Review:</strong> {a.teacherReview}
               </div>
             </div>
           ))

@@ -925,7 +925,7 @@ export default function AttendancePage() {
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             <Button className='border border-gray-300 bg-white text-gray-700 h-auto p-4 flex flex-col items-center space-y-2 hover:bg-gray-50'>
               <Calendar className='w-6 h-6 text-blue-600' />
-              <span className='text-sm'>Today's Summary</span>
+              <span className='text-sm'>Today&apos;s Summary</span>
             </Button>
             <Button className='border border-gray-300 bg-white text-gray-700 h-auto p-4 flex flex-col items-center space-y-2 hover:bg-gray-50'>
               <Download className='w-6 h-6 text-green-600' />

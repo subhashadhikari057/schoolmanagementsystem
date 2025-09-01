@@ -172,14 +172,10 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
                 Date: {new Date(ev.date).toLocaleDateString()} • {ev.time} •{' '}
                 {ev.location}
               </div>
-              <div className='flex items-center justify-between'>
+              <div className='flex items-center justify-start'>
                 <span className='text-xs text-gray-500'>
                   Status: {ev.status}
                 </span>
-                <Button
-                  className='px-3 py-1.5 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 rounded-md text-xs font-medium'
-                  label={itemActionLabel}
-                />
               </div>
             </div>
           ))}

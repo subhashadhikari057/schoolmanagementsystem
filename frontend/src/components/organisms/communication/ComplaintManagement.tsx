@@ -1437,10 +1437,10 @@ const ComplaintManagement: React.FC = () => {
                         Important Warning
                       </h3>
                       <p className='text-sm text-red-700 leading-relaxed'>
-                        This complaint is related to a student's concern that
-                        needs to be addressed and resolved. Deleting it will
-                        remove all evidence of the issue and may impact the
-                        student's academic experience.
+                        This complaint is related to a student&apos;s concern
+                        that needs to be addressed and resolved. Deleting it
+                        will remove all evidence of the issue and may impact the
+                        student&apos;s academic experience.
                       </p>
                     </div>
                   </div>

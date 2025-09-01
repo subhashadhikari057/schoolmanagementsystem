@@ -1,3 +1,5 @@
+import { last } from 'lodash';
+
 export const sidebarItems = {
   Superadmin: [
     {
@@ -276,4 +278,4 @@ export const sidebarItems = {
       ],
     },
   ],
-} as const; // Add index signature to sidebarItems
+} as const;

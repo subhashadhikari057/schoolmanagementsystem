@@ -1711,64 +1711,6 @@ enum TextAlignment {
   JUSTIFY
 }
 
-enum CalendarEntryType {
-  HOLIDAY
-  EVENT
-  EXAM
-  EMERGENCY_CLOSURE
-}
-
-enum HolidayType {
-  NATIONAL
-  SCHOOL
-}
-
-enum ExamType {
-  FIRST_TERM
-  SECOND_TERM
-  THIRD_TERM
-  FINAL
-  UNIT_TEST
-  OTHER
-}
-
-enum EmergencyClosureType {
-  NATURAL_DISASTER
-  STRIKE
-  PANDEMIC
-  POWER_OUTAGE
-  SECURITY_CONCERN
-  INFRASTRUCTURE_DAMAGE
-  WEATHER_EMERGENCY
-  OTHER
-}
-
-enum EventScope {
-  PARTIAL
-  SCHOOL_WIDE
-}
-
-enum ClassShift {
-  MORNING
-  DAY
-}
-
-enum SalaryChangeType {
-  INITIAL
-  PROMOTION
-  DEMOTION
-  ADJUSTMENT
-}
-
-enum TimeslotType {
-  REGULAR
-  BREAK
-  LUNCH
-  ACTIVITY
-  STUDY_HALL
-  FREE_PERIOD
-}
-
 enum NoticePriority {
   LOW
   MEDIUM

@@ -185,7 +185,7 @@ export default function ClassDetailPage() {
   ];
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen w-full bg-gray-50'>
       {/* Blue Header Section */}
       <div className='bg-blue-600 text-white'>
         <div className='px-3 sm:px-4 lg:px-6 pt-4 pb-6'>
