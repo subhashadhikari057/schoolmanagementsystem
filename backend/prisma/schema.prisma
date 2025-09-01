@@ -88,6 +88,7 @@ model Subject {
   assignedClasses    ClassSubject[]
   scheduleSlots      ScheduleSlot[]
   teacherAssignments TeacherSubject[] @relation("SubjectTeacherAssignments")
+  examSlots          ExamSlot[]
 
   @@unique([code, deletedAt], name: "unique_subject_code_when_active")
   @@index([createdById])
@@ -124,6 +125,7 @@ model Class {
   notices                 Notice[]                 @relation("NoticeClass")
   students                Student[]
   teacherAssignments      TeacherClass[]           @relation("ClassTeacherAssignments")
+  examSchedules           ExamSchedule[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -151,6 +153,7 @@ model Classroom {
   deletedById   String?        @db.Uuid
   classes       Class[]
   scheduleSlots ScheduleSlot[]
+  examSlots     ExamSlot[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -695,6 +698,8 @@ model CalendarEntry {
   updatedById          String?               @db.Uuid
   deletedById          String?               @db.Uuid
   name                 String
+  examSchedules        ExamSchedule[]
+  examDateslots        ExamDateslot[]
 
   @@index([type])
   @@index([eventScope])
@@ -857,6 +862,13 @@ enum TimeslotType {
   FREE_PERIOD
 }
 
+enum ExamDateslotType {
+  EXAM
+  BREAK
+  LUNCH
+  PREPARATION
+}
+
 
 model ClassTimeslot {
   id            String         @id @default(uuid())
@@ -937,6 +949,87 @@ model ScheduleSlot {
   @@index([day])
   @@index([subjectId])
   @@index([teacherId])
+  @@index([roomId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ExamSchedule {
+  id              String          @id @default(uuid())
+  classId         String
+  calendarEntryId String
+  name            String
+  academicYear    String
+  status          String          @default("draft")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime?
+  deletedAt       DateTime?
+  createdById     String?         @db.Uuid
+  updatedById     String?         @db.Uuid
+  deletedById     String?         @db.Uuid
+  class           Class           @relation(fields: [classId], references: [id], onDelete: Cascade)
+  calendarEntry   CalendarEntry   @relation(fields: [calendarEntryId], references: [id], onDelete: Cascade)
+  examSlots       ExamSlot[]
+
+  @@unique([classId, calendarEntryId], name: "unique_exam_schedule_per_class_exam")
+  @@index([classId])
+  @@index([calendarEntryId])
+  @@index([academicYear])
+  @@index([status])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ExamDateslot {
+  id              String          @id @default(uuid())
+  calendarEntryId String
+  examDate        DateTime        @db.Date
+  startTime       String?
+  endTime         String?
+  label           String?
+  type            ExamDateslotType @default(EXAM)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime?
+  deletedAt       DateTime?
+  createdById     String?         @db.Uuid
+  updatedById     String?         @db.Uuid
+  deletedById     String?         @db.Uuid
+  calendarEntry   CalendarEntry   @relation(fields: [calendarEntryId], references: [id], onDelete: Cascade)
+  examSlots       ExamSlot[]
+
+  @@unique([calendarEntryId, examDate, startTime, endTime], name: "unique_exam_dateslot")
+  @@index([calendarEntryId])
+  @@index([examDate])
+  @@index([type])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ExamSlot {
+  id            String        @id @default(uuid())
+  examScheduleId String
+  dateslotId    String
+  subjectId     String?
+  roomId        String?
+  duration      Int?          // Duration in minutes
+  instructions  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdById   String?       @db.Uuid
+  updatedById   String?       @db.Uuid
+  deletedById   String?       @db.Uuid
+  dateslot      ExamDateslot  @relation(fields: [dateslotId], references: [id], onDelete: Cascade)
+  examSchedule  ExamSchedule  @relation(fields: [examScheduleId], references: [id], onDelete: Cascade)
+  room          Classroom?    @relation(fields: [roomId], references: [id])
+  subject       Subject?      @relation(fields: [subjectId], references: [id])
+
+  @@index([examScheduleId])
+  @@index([dateslotId])
+  @@index([subjectId])
   @@index([roomId])
   @@index([createdById])
   @@index([updatedById])

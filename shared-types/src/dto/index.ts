@@ -63,6 +63,9 @@ export * from "./communication/complaint.dto";
 // Exam Module DTOs
 export * from "./exam/exam.dto";
 export * from "./exam/result.dto";
+export * from "./exam/exam-dateslot.dto";
+export * from "./exam/exam-schedule.dto";
+export * from "./exam/exam-timetable.dto";
 
 // Files Module DTOs
 export * from "./files/file-upload.dto";

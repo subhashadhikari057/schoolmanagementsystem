@@ -34,6 +34,7 @@ import { IDCardTemplateModule } from './modules/id-card-templates/id-card-templa
 import { IDCardModule } from './modules/id-cards/id-card.module';
 import { LeaveRequestModule } from './modules/leave-request/leave-request.module';
 import { LeaveTypeModule } from './modules/leave-type/leave-type.module';
+import { ExamTimetableModule } from './modules/exam-timetable/exam-timetable.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { LeaveTypeModule } from './modules/leave-type/leave-type.module';
     IDCardModule,
     LeaveRequestModule,
     LeaveTypeModule,
+    ExamTimetableModule,
   ],
 })
 export class AppModule implements NestModule {
