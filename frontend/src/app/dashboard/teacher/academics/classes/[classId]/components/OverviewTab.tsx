@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, ArrowUpRight } from 'lucide-react';
 import Button from '@/components/atoms/form-controls/Button';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
+import { useRouter } from 'next/navigation';
 import { assignmentService } from '@/api/services/assignment.service';
 import { teacherService } from '@/api/services/teacher.service';
 import { classService, ClassResponse } from '@/api/services/class.service';
@@ -78,6 +79,7 @@ interface OverviewTabProps {
 
 export default function OverviewTab({ classDetails }: OverviewTabProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [assignments, setAssignments] = useState<AssignmentResponse[]>([]);
   const [assignmentsLoading, setAssignmentsLoading] = useState(true);
   const [teacherId, setTeacherId] = useState<string | null>(null);
@@ -223,10 +225,17 @@ export default function OverviewTab({ classDetails }: OverviewTabProps) {
                     {assignment._count?.submissions || 0}/{stats.totalStudents}{' '}
                     Submissions
                   </div>
-                  <Button
-                    label='Learn More'
-                    className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm'
-                  />
+                  <button
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/teacher/academics/assignments/${assignment.id}/submissions`,
+                      )
+                    }
+                    className='p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors'
+                    title='View Assignment Submissions'
+                  >
+                    <ArrowUpRight className='w-4 h-4' />
+                  </button>
                 </div>
               </div>
             ))}

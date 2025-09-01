@@ -184,7 +184,25 @@ export default function AllAssignmentsTab({
             class: `Grade ${assignment.class.grade} - Section ${assignment.class.section}`,
             subject: assignment.subject.name,
             dueDate: assignment.dueDate
-              ? new Date(assignment.dueDate).toLocaleDateString()
+              ? (() => {
+                  const dueDate = new Date(assignment.dueDate);
+                  const now = new Date();
+                  const daysDiff = Math.ceil(
+                    (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+                  );
+
+                  const dateString = dueDate.toLocaleDateString();
+
+                  if (daysDiff < 0) {
+                    return `${dateString} (Overdue by ${Math.abs(daysDiff)} day${Math.abs(daysDiff) !== 1 ? 's' : ''})`;
+                  } else if (daysDiff === 0) {
+                    return `${dateString} (Due Today)`;
+                  } else if (daysDiff === 1) {
+                    return `${dateString} (Due Tomorrow)`;
+                  } else {
+                    return `${dateString} (Due in ${daysDiff} days)`;
+                  }
+                })()
               : 'No due date',
             originalDueDate: assignment.dueDate || null, // Store original date for editing
             totalStudents,

@@ -1,3 +1,5 @@
+import { last } from 'lodash';
+
 export const sidebarItems = {
   Superadmin: [
     {
@@ -228,11 +230,7 @@ export const sidebarItems = {
       title: 'PARENT DASHBOARD',
       items: [
         { label: 'Dashboard', icon: 'Home', path: '/dashboard/parent' },
-        {
-          label: 'My Children',
-          icon: 'Users',
-          path: '/dashboard/parent/children',
-        },
+
         {
           label: 'Attendance',
           icon: 'CalendarCheck',
@@ -276,4 +274,4 @@ export const sidebarItems = {
       ],
     },
   ],
-} as const; // Add index signature to sidebarItems
+} as const;

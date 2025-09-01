@@ -6,6 +6,7 @@ import Label from '@/components/atoms/display/Label';
 import ReusableButton from '@/components/atoms/form-controls/Button';
 import Icon from '@/components/atoms/display/Icon';
 import { useParams } from 'next/navigation';
+import { profileApi, UserProfile } from '@/api/services/profile';
 import { isDevMockEnabled } from '@/utils';
 
 const getDevUser = () => ({
@@ -24,6 +25,27 @@ export const UserProfileHeader = () => {
   const nameslug = params?.nameslug;
   const isDev = isDevMockEnabled() && nameslug === 'devuser';
   const profileUser = isDev ? getDevUser() : user;
+
+  // Local profile data fetched from profile API to access employeeId etc.
+  const [fullProfile, setFullProfile] = useState<UserProfile | null>(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const p = await profileApi.getProfile();
+        if (mounted) setFullProfile(p);
+      } catch (err) {
+        // ignore — keep UI working with minimal info from auth
+        // console.debug('Profile fetch failed for header', err);
+      }
+    };
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Local state for preview image URL (string or null)
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -60,6 +82,61 @@ export const UserProfileHeader = () => {
   const handleLogout = () => {
     logout();
   };
+
+  // Prefer explicit employeeId when available in fullProfile (teacherData or staffData)
+  // Fallback to existing trimmed id behavior using profileUser.id
+  const employeeIdFromProfile =
+    fullProfile?.teacherData?.employeeId ||
+    fullProfile?.staffData?.employeeId ||
+    null;
+  const displayId = employeeIdFromProfile
+    ? employeeIdFromProfile
+    : profileUser?.id
+      ? profileUser.id.replace(/\D/g, '').slice(0, 3)
+      : null;
+
+  // Prefer backend profile values for display where available
+  const displayName =
+    fullProfile?.fullName ||
+    (profileUser as any)?.full_name ||
+    (profileUser as any)?.fullName ||
+    'User Name';
+  const displayRole = fullProfile?.role || (profileUser as any)?.role || 'Role';
+  const displayDepartment =
+    fullProfile?.teacherData?.department ||
+    fullProfile?.staffData?.department ||
+    (profileUser as any)?.department ||
+    'Administration';
+  // Normalize/format joined date to show only date (no time)
+  const rawJoined =
+    fullProfile?.teacherData?.joiningDate ||
+    fullProfile?.createdAt ||
+    (profileUser as any)?.joined ||
+    null;
+
+  const formatDateOnly = (v?: string | null) => {
+    if (!v) return 'no joining date found';
+    const s = String(v);
+    // ISO datetime: keep date before 'T'
+    if (s.includes('T')) return s.split('T')[0];
+    // Datetime with space: keep date before first space
+    if (s.includes(' ')) return s.split(' ')[0];
+    // If already YYYY-MM-DD or longer ISO-like, take first 10 chars
+    if (s.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(s.slice(0, 10)))
+      return s.slice(0, 10);
+    // Fallback: try to parse and format as ISO date
+    try {
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    } catch (e) {
+      // ignore
+    }
+    return s;
+  };
+
+  const displayJoined = rawJoined
+    ? formatDateOnly(rawJoined)
+    : 'no joining date found';
 
   return (
     <div className='flex items-center justify-between bg-white rounded-xl shadow p-6 mb-6'>
@@ -106,26 +183,20 @@ export const UserProfileHeader = () => {
           />
         </div>
         <div>
-          <SectionTitle
-            text={profileUser?.full_name || 'User Name'}
-            className='mb-0'
-            level={3}
-          />
+          <SectionTitle text={displayName} className='mb-0' level={3} />
           <Label className='text-base font-medium mb-1'>
-            {profileUser?.role
-              ? profileUser.role
+            {displayRole
+              ? displayRole
                   .replace(/_/g, ' ')
-                  .replace(/\b\w/g, l => l.toUpperCase())
+                  .replace(/\b\w/g, (l: string) => l.toUpperCase())
               : 'Role'}
           </Label>
           <div className='flex flex-wrap items-center gap-2 text-gray-500 text-sm mt-1'>
-            <Label>
-              ID: {profileUser?.id.replace(/\D/g, '').slice(0, 3) || 'EMP001'}
-            </Label>
+            <Label>ID: {displayId || 'EMP001'}</Label>
             <span className='mx-1'>•</span>
-            <Label>Administration</Label>
+            <Label>{displayDepartment}</Label>
             <span className='mx-1'>•</span>
-            <Label>Joined: 2015-08-15</Label>
+            <Label>Joined: {displayJoined}</Label>
           </div>
           <div className='flex flex-wrap gap-2 mt-2'>
             {permissions.map(perm => (

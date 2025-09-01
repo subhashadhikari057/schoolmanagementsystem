@@ -2078,15 +2078,7 @@ const ComplaintsAndLeavePage = () => {
               Manage your complaints and leave requests efficiently
             </p>
           </div>
-          <div className='flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto'>
-            <button
-              onClick={() => setComplaintModalOpen(true)}
-              className='w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl'
-            >
-              <AlertCircle className='h-5 w-5' />
-              New Complaint
-            </button>
-          </div>
+          <div className='flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto'></div>
         </div>
       </div>
 
@@ -2173,7 +2165,7 @@ const ComplaintsAndLeavePage = () => {
         <h2 className='text-lg sm:text-xl font-semibold text-slate-800 mb-3 sm:mb-4'>
           Quick Actions
         </h2>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+        <div className='grid grid-cols-1 gap-4'>
           <button
             type='button'
             onClick={() => setLeaveRequestModalOpen(true)}
@@ -2192,42 +2184,6 @@ const ComplaintsAndLeavePage = () => {
                 </p>
                 <div className='mt-3 flex items-center text-blue-600 text-sm font-medium'>
                   <span>Get Started</span>
-                  <svg
-                    className='w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform'
-                    fill='none'
-                    stroke='currentColor'
-                    viewBox='0 0 24 24'
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M9 5l7 7-7 7'
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </button>
-
-          <button
-            type='button'
-            onClick={() => setComplaintModalOpen(true)}
-            className='group relative bg-white rounded-2xl p-5 sm:p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] text-left'
-          >
-            <div className='flex items-start gap-4'>
-              <div className='w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200'>
-                <AlertCircle className='h-6 w-6 text-white' />
-              </div>
-              <div className='flex-1'>
-                <h3 className='font-semibold text-slate-800 text-base sm:text-lg mb-1'>
-                  Submit Complaint
-                </h3>
-                <p className='text-slate-600 text-sm'>
-                  Report issues or concerns with attachments
-                </p>
-                <div className='mt-3 flex items-center text-orange-600 text-sm font-medium'>
-                  <span>Report Issue</span>
                   <svg
                     className='w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform'
                     fill='none'

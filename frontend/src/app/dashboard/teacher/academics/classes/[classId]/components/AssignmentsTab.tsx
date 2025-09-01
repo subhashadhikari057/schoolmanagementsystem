@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, ArrowUpRight } from 'lucide-react';
 import Button from '@/components/atoms/form-controls/Button';
 import CreateAssignmentModal from '@/components/organisms/modals/CreateAssignmentModal';
+import { useRouter } from 'next/navigation';
 
 import { assignmentService } from '@/api/services/assignment.service';
 import { teacherService } from '@/api/services/teacher.service';
@@ -26,6 +27,7 @@ interface AssignmentsTabProps {
 
 export default function AssignmentsTab({ classDetails }: AssignmentsTabProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [assignments, setAssignments] = useState<AssignmentResponse[]>([]);
   const [assignmentsLoading, setAssignmentsLoading] = useState(true);
   const [teacherId, setTeacherId] = useState<string | null>(null);
@@ -164,10 +166,17 @@ export default function AssignmentsTab({ classDetails }: AssignmentsTabProps) {
                   {assignment._count?.submissions || 0}/{totalStudents}{' '}
                   Submissions
                 </div>
-                <Button
-                  label='Learn More'
-                  className='bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded text-sm'
-                />
+                <button
+                  onClick={() =>
+                    router.push(
+                      `/dashboard/teacher/academics/assignments/${assignment.id}/submissions`,
+                    )
+                  }
+                  className='p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors'
+                  title='View Assignment Submissions'
+                >
+                  <ArrowUpRight className='w-4 h-4' />
+                </button>
               </div>
             </div>
           ))}

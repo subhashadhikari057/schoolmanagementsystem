@@ -36,7 +36,7 @@ export default function ParentExamsPage() {
       <SectionTitle text='Children Exams' className='mb-2 text-2xl font-bold' />
       {/* Ensure all exam titles are bold in the tab component */}
       <p className='text-gray-500 mb-6'>
-        View, download, and track your children's exam results and grading
+        View, download, and track your children&apos;s exam results and grading
         reports.
       </p>
       {/* Filter Controls: Two-row layout for better alignment */}

@@ -146,18 +146,23 @@ export class HttpClient {
       headers.Authorization = `Bearer ${this.accessToken}`;
     }
 
-    // Add CSRF token for mutation requests (except auth endpoints)
+    // Add CSRF token for mutation requests (except public auth endpoints)
     const isMutation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
-    // CRITICAL: Determine if this is an auth endpoint (for both CSRF and security classification)
-    const isAuthEndpoint =
-      url.includes('/auth/') ||
-      url.includes('/api/v1/auth/') ||
+    // CRITICAL: Determine if this is a PUBLIC auth endpoint (no CSRF needed)
+    // Protected auth endpoints like change-password still need CSRF protection
+    const isPublicAuthEndpoint =
       url.endsWith('/login') ||
       url.endsWith('/register') ||
       url.endsWith('/refresh') ||
-      url.includes('/csrf/token');
+      url.includes('/csrf/token') ||
+      url.includes('/password/request-reset') ||
+      url.includes('/password/reset');
 
-    if (isMutation && !isAuthEndpoint && !config.skipCsrf) {
+    // For error handling, we need to know if this is ANY auth endpoint (public or protected)
+    const isAnyAuthEndpoint =
+      url.includes('/auth/') || url.includes('/api/v1/auth/');
+
+    if (isMutation && !isPublicAuthEndpoint && !config.skipCsrf) {
       try {
         const csrfHeaders = await csrfService.addTokenToHeaders();
         Object.assign(headers, csrfHeaders);
@@ -250,7 +255,7 @@ export class HttpClient {
           if (
             process.env.NODE_ENV === 'development' &&
             response.status !== 409 && // Skip conflicts (handled gracefully)
-            !(isAuthEndpoint && response.status === 401) // Skip auth failures (expected)
+            !(isAnyAuthEndpoint && response.status === 401) // Skip auth failures (expected)
           ) {
             console.error('HTTP Error Response:', {
               status: response.status,
@@ -373,7 +378,7 @@ export class HttpClient {
           // Handle 401 Unauthorized - session expired
           // CRITICAL: Only treat as session expiry if NOT on auth endpoints
 
-          if (response.status === 401 && !isAuthEndpoint) {
+          if (response.status === 401 && !isAnyAuthEndpoint) {
             // This is a session expiry, not a login failure
             // Dispatch API error event for token expiry handlers
             dispatchApiErrorEvent(apiError);
@@ -401,7 +406,7 @@ export class HttpClient {
 
           // Dispatch API error event for other errors (including auth failures)
           // But mark auth endpoint failures differently to prevent session expiry handling
-          if (isAuthEndpoint && response.status === 401) {
+          if (isAnyAuthEndpoint && response.status === 401) {
             // This is a login/auth failure, not a session expiry
             // Don't trigger session expiry handlers
             dispatchApiErrorEvent({
@@ -439,7 +444,7 @@ export class HttpClient {
           const apiError = error as ApiError;
           const isExpectedError =
             apiError?.statusCode === 409 || // Conflicts
-            (isAuthEndpoint && apiError?.statusCode === 401); // Auth failures
+            (isAnyAuthEndpoint && apiError?.statusCode === 401); // Auth failures
 
           if (!isExpectedError) {
             console.error('API Request Error:', {
