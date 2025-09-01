@@ -155,7 +155,9 @@ export default function ParentTimetablePage() {
           />
         </div>
         <div className='bg-white rounded-xl shadow-sm p-6'>
-          <h3 className='font-semibold text-gray-800 mb-4'>Today's Periods</h3>
+          <h3 className='font-semibold text-gray-800 mb-4'>
+            Today&apos;s Periods
+          </h3>
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-5'>
             {timetable.length === 0 ? (
               <div className='text-gray-500'>No timetable found.</div>

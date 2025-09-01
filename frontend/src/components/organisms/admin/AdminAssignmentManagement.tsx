@@ -506,27 +506,8 @@ export default function AdminAssignmentManagement() {
         )}
       </div>
 
-      {/* Tabs */}
-      <Tabs
-        tabs={[
-          {
-            name: 'All Assignments',
-            content: <AllAssignmentsContent />,
-          },
-          {
-            name: 'Submissions',
-            content: <div>Submissions content</div>,
-          },
-          {
-            name: 'Grading',
-            content: <div>Grading content</div>,
-          },
-          {
-            name: 'Deadlines',
-            content: <div>Deadlines content</div>,
-          },
-        ]}
-      />
+      {/* Assignment Table (no tabs) */}
+      <AllAssignmentsContent />
 
       {/* Modals */}
       <CreateAssignmentModal

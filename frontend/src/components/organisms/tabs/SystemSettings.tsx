@@ -1,295 +1,373 @@
-import React, { useState } from 'react';
-import SectionTitle from '@/components/atoms/display/SectionTitle';
-import Label from '@/components/atoms/display/Label';
+'use client';
+
+import React from 'react';
 import { Card } from '@/components/ui/card';
-import ReusableButton from '@/components/atoms/form-controls/Button';
+import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/atoms/display/Icon';
-import ToggleSwitch from '@/components/atoms/form-controls/ToggleSwitch';
+import ReusableButton from '@/components/atoms/form-controls/Button';
+import {
+  Monitor,
+  Database,
+  Shield,
+  AlertTriangle,
+  CheckCircle,
+  Settings,
+  Bell,
+  HardDrive,
+  Zap,
+  Download,
+  HelpCircle,
+  BookOpen,
+  Phone,
+  BarChart3,
+} from 'lucide-react';
 
-// --- Data ---
-const systemPreferences = [
-  {
-    label: 'Email Notifications',
-    description: 'Receive email alerts for important events',
-    checked: true,
-  },
-  {
-    label: 'Auto Backup',
-    description: 'Automatically backup data daily',
-    checked: true,
-  },
-  {
-    label: 'Two-Factor Authentication',
-    description: 'Enhanced security for admin accounts',
-    checked: false,
-  },
-  {
-    label: 'Maintenance Mode',
-    description: 'Temporarily disable system access',
-    checked: false,
-  },
-];
+// Status badge component
+const StatusBadge = ({
+  status,
+  text,
+}: {
+  status: 'excellent' | 'good' | 'warning' | 'error';
+  text: string;
+}) => {
+  const variants = {
+    excellent: 'bg-green-50 text-green-700 border border-green-200',
+    good: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    warning: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+    error: 'bg-red-50 text-red-700 border border-red-200',
+  };
 
-const topCardItems = [
-  {
-    label: 'General Settings',
-    desc: 'Configure general settings',
-    iconColor: 'bg-blue-500',
-    bgColor: 'bg-blue-50',
-    textColor: 'text-blue-900',
-    icon: (
-      <path
-        d='M12 4v16m8-8H4'
-        stroke='currentColor'
-        strokeWidth='2'
-        strokeLinecap='round'
-      />
-    ),
-  },
-  {
-    label: 'User Management',
-    desc: 'Configure user management',
-    iconColor: 'bg-green-500',
-    bgColor: 'bg-green-50',
-    textColor: 'text-green-900',
-    icon: (
-      <path
-        d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'
-        stroke='currentColor'
-        strokeWidth='2'
-      />
-    ),
-  },
-  {
-    label: 'Security',
-    desc: 'Configure security',
-    iconColor: 'bg-red-500',
-    bgColor: 'bg-red-50',
-    textColor: 'text-red-900',
-    icon: (
-      <>
-        <circle cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='2' />
-        <path
-          d='M12 8v4'
-          stroke='currentColor'
-          strokeWidth='2'
-          strokeLinecap='round'
-        />
-        <circle cx='12' cy='16' r='1' fill='currentColor' />
-      </>
-    ),
-  },
-  {
-    label: 'Notifications',
-    desc: 'Configure notifications',
-    iconColor: 'bg-yellow-500',
-    bgColor: 'bg-yellow-50',
-    textColor: 'text-yellow-900',
-    icon: (
-      <path
-        d='M12 4v16m8-8H4'
-        stroke='currentColor'
-        strokeWidth='2'
-        strokeLinecap='round'
-      />
-    ),
-  },
-  {
-    label: 'Data & Backup',
-    desc: 'Configure data & backup',
-    iconColor: 'bg-purple-500',
-    bgColor: 'bg-purple-50',
-    textColor: 'text-purple-900',
-    icon: (
-      <rect
-        x='4'
-        y='4'
-        width='16'
-        height='16'
-        rx='4'
-        stroke='currentColor'
-        strokeWidth='2'
-      />
-    ),
-  },
-  {
-    label: 'Appearance',
-    desc: 'Configure appearance',
-    iconColor: 'bg-pink-500',
-    bgColor: 'bg-pink-50',
-    textColor: 'text-pink-900',
-    icon: (
-      <>
-        <circle cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='2' />
-        <path
-          d='M8 12h8'
-          stroke='currentColor'
-          strokeWidth='2'
-          strokeLinecap='round'
-        />
-      </>
-    ),
-  },
-];
-
-const systemInfo = [
-  { label: 'System Version', value: 'EduAdmin v2.4.1' },
-  { label: 'Last Update', value: 'July 15, 2025' },
-  { label: 'Database Size', value: '2.3 GB' },
-  { label: 'Server Status', value: 'Online' },
-  { label: 'Uptime', value: '99.8%' },
-  { label: 'Active Users', value: '847 online' },
-];
-
-const generalSettings = [
-  { label: 'School Name', value: 'Greenwood International School' },
-  { label: 'Academic Year', value: '2024-2025' },
-  { label: 'Timezone', value: 'Eastern Standard Time' },
-  { label: 'Default Language', value: 'English' },
-];
-
-// --- Reusable Components ---
-type SettingCardProps = {
-  bgColor: string;
-  iconColor: string;
-  textColor: string;
-  icon: React.ReactNode;
-  label: string;
-  desc: string;
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${variants[status]}`}
+    >
+      {text}
+    </span>
+  );
 };
-const SettingCard: React.FC<SettingCardProps> = ({
-  bgColor,
-  iconColor,
-  textColor,
+
+// Setting item component
+const SettingItem = ({
   icon,
-  label,
-  desc,
+  title,
+  description,
+  status,
+  statusText,
+  configOptions = [],
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  status: 'excellent' | 'good' | 'warning' | 'error';
+  statusText: string;
+  configOptions?: string[];
+  onClick?: () => void;
 }) => (
-  <Card className={`flex items-center gap-4 p-5 ${bgColor} border-0`}>
-    <Icon className={`${iconColor} text-white p-2 rounded-lg`}>
-      <svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
-        {icon}
-      </svg>
-    </Icon>
-    <div>
-      <div className={`font-semibold ${textColor}`}>{label}</div>
-      <Label>{desc}</Label>
+  <Card className='bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 group h-full flex flex-col'>
+    <div className='flex items-start justify-between mb-4'>
+      <div className='flex items-start gap-3 sm:gap-4 flex-1 min-w-0'>
+        <Icon className='bg-blue-50 text-blue-600 p-2 sm:p-3 rounded-lg flex-shrink-0 group-hover:bg-blue-100 transition-colors'>
+          {icon}
+        </Icon>
+        <div className='min-w-0 flex-1'>
+          <h3 className='font-semibold text-gray-900 text-base sm:text-lg mb-1 truncate'>
+            {title}
+          </h3>
+          <p className='text-gray-600 text-sm leading-relaxed'>{description}</p>
+        </div>
+      </div>
+      <div className='flex flex-col items-end gap-2 flex-shrink-0 ml-2'>
+        <StatusBadge status={status} text={statusText} />
+      </div>
+    </div>
+
+    <div className='flex-1'>
+      {configOptions.length > 0 && (
+        <>
+          <div className='text-sm text-gray-600 mb-3'>
+            Configuration Options:
+          </div>
+          <div className='flex flex-wrap gap-2 mb-4'>
+            {configOptions.map((option, index) => (
+              <span
+                key={index}
+                className='px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs whitespace-nowrap'
+              >
+                {option}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+
+    <div className='pt-2 border-t border-gray-100 mt-auto'>
+      <ReusableButton
+        className='w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-sm group-hover:bg-gray-100 cursor-pointer'
+        onClick={onClick}
+      >
+        <Settings size={14} />
+        Configure Settings
+      </ReusableButton>
     </div>
   </Card>
 );
 
-type InfoBlockProps = {
-  label: string;
-  value: string;
-};
-const InfoBlock: React.FC<InfoBlockProps> = ({ label, value }) => (
-  <div>
-    <Label className='-mb-2 ml-2 bg-white px-1 text-xs'>{label}</Label>
-    <SectionTitle
-      text={value}
-      className='text-base font-medium px-3 py-2 border rounded-md border-gray-200 bg-white'
-      level={3}
-    />
-  </div>
+// Quick action item component
+const QuickActionItem = ({
+  icon,
+  title,
+  description,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  onClick?: () => void;
+}) => (
+  <Card
+    className='bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group'
+    onClick={onClick}
+  >
+    <div className='flex items-center gap-3 sm:gap-4'>
+      <Icon className='bg-blue-50 text-blue-600 p-2 sm:p-3 rounded-lg flex-shrink-0 group-hover:bg-blue-100 transition-colors'>
+        {icon}
+      </Icon>
+      <div className='min-w-0 flex-1'>
+        <h4 className='font-medium text-gray-900 text-sm sm:text-base mb-1 truncate'>
+          {title}
+        </h4>
+        <p className='text-gray-600 text-xs sm:text-sm leading-relaxed'>
+          {description}
+        </p>
+      </div>
+    </div>
+  </Card>
 );
 
-// --- Main Component ---
 export default function SystemSettings() {
-  const [prefs, setPrefs] = useState(systemPreferences);
+  const handleConfigureSettings = (settingType: string) => {
+    console.log(`Configure ${settingType} settings`);
+    // Handle navigation to specific settings
+    if (settingType === 'system') {
+      window.location.href = '/dashboard/admin/settings/system';
+    }
+    if (settingType === 'notifications') {
+      window.location.href = '/dashboard/admin/settings/notifications';
+    }
+    if (settingType === 'backup') {
+      window.location.href = '/dashboard/admin/settings/backup';
+    }
+  };
+
+  const handleQuickAction = (actionType: string) => {
+    console.log(`Execute ${actionType} action`);
+    // Handle quick actions
+    if (actionType === 'backup') {
+      window.location.href = '/dashboard/admin/settings/backup?embedded=true';
+    }
+  };
+
+  const handleContactSupport = () => {
+    console.log('Contact support');
+    // Handle support contact
+  };
+
+  const handleViewDocumentation = () => {
+    console.log('View documentation');
+    // Handle documentation viewing
+  };
 
   return (
-    <div className='w-full max-w-full mx-auto space-y-8'>
-      {/* Top Grid */}
-      <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6'>
-        {topCardItems.map(item => (
-          <SettingCard key={item.label} {...item} />
-        ))}
-      </div>
+    <div className='w-full min-h-screen p-4 sm:p-6'>
+      <div className='w-full max-w-none space-y-6'>
+        {/* System Status Section */}
+        <Card className='bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm'>
+          <div className='flex items-center gap-3 mb-6'>
+            <Icon className='bg-blue-50 text-blue-600 p-2 rounded-lg flex-shrink-0'>
+              <Monitor size={20} />
+            </Icon>
+            <div className='min-w-0'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 truncate'>
+                System Status
+              </h2>
+              <p className='text-gray-600 text-sm'>
+                Current system health and performance metrics
+              </p>
+            </div>
+          </div>
 
-      {/* General Settings */}
-      <Card className='p-8 rounded-xl bg-white border border-gray-100 space-y-6'>
-        <SectionTitle
-          text='General Settings'
-          className='text-lg font-semibold mb-2'
-          level={2}
-        />
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          {generalSettings.map(({ label, value }) => (
-            <InfoBlock key={label} label={label} value={value} />
-          ))}
-        </div>
-      </Card>
-
-      {/* System Preferences */}
-      <Card className='p-8 rounded-xl bg-white border border-gray-100 space-y-2'>
-        <SectionTitle
-          text='System Preferences'
-          className='text-lg font-semibold mb-2'
-          level={2}
-        />
-        <div className='divide-y'>
-          {prefs.map((opt, idx) => (
-            <div
-              key={opt.label}
-              className='flex items-center justify-between py-4'
-            >
-              <div>
-                <div className='font-medium text-gray-900'>{opt.label}</div>
-                <Label>{opt.description}</Label>
+          <div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6'>
+            <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+              <CheckCircle className='text-green-500 flex-shrink-0' size={20} />
+              <div className='min-w-0'>
+                <p className='font-medium text-gray-900 text-sm'>
+                  System Health
+                </p>
+                <StatusBadge status='excellent' text='Excellent' />
               </div>
-              <ToggleSwitch
-                checked={opt.checked}
-                onChange={() =>
-                  setPrefs(prev =>
-                    prev.map((p, i) =>
-                      i === idx ? { ...p, checked: !p.checked } : p,
-                    ),
-                  )
-                }
-              />
             </div>
-          ))}
-        </div>
-      </Card>
 
-      {/* System Info */}
-      <Card className='p-8 rounded-xl bg-white border border-gray-100 space-y-6'>
-        <SectionTitle
-          text='System Information'
-          className='text-lg font-semibold mb-2'
-          level={2}
-        />
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div className='space-y-4' key={i}>
-              {systemInfo.slice(i * 3, i * 3 + 3).map(info => (
-                <InfoBlock key={info.label} {...info} />
-              ))}
+            <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+              <Database className='text-emerald-500 flex-shrink-0' size={20} />
+              <div className='min-w-0'>
+                <p className='font-medium text-gray-900 text-sm'>Database</p>
+                <StatusBadge status='good' text='Good' />
+              </div>
             </div>
-          ))}
-        </div>
 
-        {/* Action Buttons */}
-        <div className='flex flex-wrap gap-3 mt-6'>
-          {[
-            { label: 'Save Changes', className: 'bg-blue-600 text-white' },
-            {
-              label: 'Reset to Defaults',
-              className: 'bg-white border border-gray-300 text-gray-700',
-            },
-            {
-              label: 'Export Configuration',
-              className: 'bg-white border border-gray-300 text-gray-700',
-            },
-          ].map(btn => (
-            <ReusableButton
-              key={btn.label}
-              label={btn.label}
-              className={`${btn.className} px-4 py-2 rounded-md`}
+            <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+              <HardDrive className='text-yellow-500 flex-shrink-0' size={20} />
+              <div className='min-w-0'>
+                <p className='font-medium text-gray-900 text-sm'>
+                  Backup Status
+                </p>
+                <StatusBadge status='warning' text='Warning' />
+              </div>
+            </div>
+
+            <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+              <AlertTriangle className='text-red-500 flex-shrink-0' size={20} />
+              <div className='min-w-0'>
+                <p className='font-medium text-gray-900 text-sm'>Security</p>
+                <StatusBadge status='error' text='Needs Attention' />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Configuration Categories Section */}
+        <div>
+          <h2 className='text-xl sm:text-2xl font-semibold text-gray-900 mb-2'>
+            Configuration Categories
+          </h2>
+          <p className='text-gray-600 mb-6 text-sm sm:text-base'>
+            Choose a category to configure your system settings
+          </p>
+
+          <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6'>
+            <SettingItem
+              icon={<Settings size={24} />}
+              title='System Settings'
+              description='Configure school information, academic settings, and system preferences'
+              status='excellent'
+              statusText='Configured'
+              configOptions={[
+                'School Information',
+                'Academic Year',
+                'System Preferences',
+                'Localization',
+              ]}
+              onClick={() => handleConfigureSettings('system')}
             />
-          ))}
+
+            <SettingItem
+              icon={<Bell size={24} />}
+              title='Notifications Settings'
+              description='Set up email, SMS, and push notification preferences'
+              status='excellent'
+              statusText='Configured'
+              configOptions={[
+                'Email Settings',
+                'SMS Configuration',
+                'Push Notifications',
+                'Alert Thresholds',
+              ]}
+              onClick={() => handleConfigureSettings('notifications')}
+            />
+
+            <SettingItem
+              icon={<HardDrive size={24} />}
+              title='Backup & Recovery'
+              description='Configure data backup, recovery, and archival policies'
+              status='excellent'
+              statusText='Configured'
+              configOptions={[
+                'Backup Schedule',
+                'Recovery Plans',
+                'Data Archival',
+                'Export Tools',
+              ]}
+              onClick={() => handleConfigureSettings('backup')}
+            />
+          </div>
         </div>
-      </Card>
+
+        {/* Quick Actions Section */}
+        <Card className='bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm'>
+          <div className='flex items-center gap-3 mb-6'>
+            <Icon className='bg-green-50 text-green-600 p-2 rounded-lg flex-shrink-0'>
+              <Zap size={20} />
+            </Icon>
+            <div className='min-w-0'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 truncate'>
+                Quick Actions
+              </h2>
+              <p className='text-gray-600 text-sm'>
+                Frequently used administrative tools and shortcuts
+              </p>
+            </div>
+          </div>
+
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'>
+            <QuickActionItem
+              icon={<Download size={20} />}
+              title='Export Settings'
+              description='Download configuration backup'
+              onClick={() => handleQuickAction('export')}
+            />
+
+            <QuickActionItem
+              icon={<HardDrive size={20} />}
+              title='System Backup'
+              description='Create full system backup'
+              onClick={() => handleQuickAction('backup')}
+            />
+
+            <QuickActionItem
+              icon={<BarChart3 size={20} />}
+              title='System Logs'
+              description='View system activity logs'
+              onClick={() => handleQuickAction('logs')}
+            />
+          </div>
+        </Card>
+
+        {/* Need Help Section */}
+        <Card className='bg-blue-50 rounded-xl p-4 sm:p-6 border border-blue-200'>
+          <div className='flex flex-col sm:flex-row items-start gap-4'>
+            <Icon className='bg-blue-100 text-blue-600 p-2 rounded-lg flex-shrink-0'>
+              <HelpCircle size={20} />
+            </Icon>
+            <div className='flex-1 min-w-0'>
+              <h3 className='text-base sm:text-lg font-semibold text-blue-900 mb-2'>
+                Need Help?
+              </h3>
+              <p className='text-blue-700 mb-4 text-sm sm:text-base'>
+                Check our documentation or contact support for assistance with
+                system configuration.
+              </p>
+              <div className='flex flex-col sm:flex-row gap-3'>
+                <ReusableButton
+                  className='flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors text-sm'
+                  onClick={handleViewDocumentation}
+                >
+                  <BookOpen size={16} />
+                  View Documentation
+                </ReusableButton>
+                <ReusableButton
+                  className='flex items-center justify-center gap-2 px-4 py-2 bg-white text-blue-600 border border-blue-300 hover:bg-blue-50 rounded-lg transition-colors text-sm'
+                  onClick={handleContactSupport}
+                >
+                  <Phone size={16} />
+                  Contact Support
+                </ReusableButton>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

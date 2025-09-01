@@ -503,7 +503,7 @@ export default function TeacherAttendancePage() {
           </Label>
         </div>
         <div className='text-right'>
-          <Label className='text-sm text-gray-500'>Today's Date</Label>
+          <Label className='text-sm text-gray-500'>Today&apos;s Date</Label>
           <div className='text-lg font-semibold text-gray-900'>
             {getCurrentDate()}
           </div>
@@ -560,7 +560,7 @@ export default function TeacherAttendancePage() {
             <CheckCircle className='h-6 w-6 text-green-600' />
             <div className='text-center'>
               <Label className='text-green-800 font-semibold'>
-                ✅ Today's attendance has been successfully recorded
+                ✅ Today&apos;s attendance has been successfully recorded
               </Label>
               <Label className='text-green-600 text-sm block mt-1'>
                 You can only mark attendance once per day. Come back tomorrow!
@@ -570,7 +570,7 @@ export default function TeacherAttendancePage() {
         </Card>
       )}
 
-      {/* Today's Attendance Summary */}
+      {/* Today&apos;s Attendance Summary */}
       {attendanceStats && (
         <Card className='p-6'>
           <SectionTitle
