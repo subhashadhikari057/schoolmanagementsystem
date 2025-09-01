@@ -17,6 +17,7 @@ const PARENT_ENDPOINTS = {
   CREATE: 'api/v1/parents',
   LIST: 'api/v1/parents',
   GET_BY_ID: (id: string) => `api/v1/parents/${id}`,
+  GET_ME: 'api/v1/parents/me',
   UPDATE: (id: string) => `api/v1/parents/${id}`,
   DELETE: (id: string) => `api/v1/parents/${id}`,
   GET_CHILDREN: (id: string) => `api/v1/parents/${id}/children`,
@@ -251,6 +252,19 @@ export class ParentService {
   }
 
   /**
+   * Get current parent's profile (for parents only)
+   */
+  async getMyProfile(): Promise<ApiResponse<ParentResponse>> {
+    return this.httpClient.get<ParentResponse>(
+      PARENT_ENDPOINTS.GET_ME,
+      undefined,
+      {
+        requiresAuth: true,
+      },
+    );
+  }
+
+  /**
    * Update parent
    */
   async updateParent(
@@ -382,6 +396,37 @@ export class ParentService {
   ): Promise<ApiResponse<ParentSearchResult[]>> {
     return this.httpClient.get<ParentSearchResult[]>(
       `api/v1/parents/search-for-linking?search=${encodeURIComponent(searchTerm)}&limit=${limit}`,
+      undefined,
+      {
+        requiresAuth: true,
+      },
+    );
+  }
+
+  /**
+   * Get all assignments for parent's children with submission status
+   * This is the essential method parents need to track their children's assignments
+   */
+  async getMyChildrenAssignments(childId?: string): Promise<ApiResponse<any>> {
+    const url = childId
+      ? `api/v1/parents/me/assignments?childId=${encodeURIComponent(childId)}`
+      : 'api/v1/parents/me/assignments';
+
+    return this.httpClient.get<any>(url, undefined, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Get child's submission for a specific assignment
+   * Parents can view their child's submission details, feedback, and attachments
+   */
+  async getChildSubmission(
+    childId: string,
+    assignmentId: string,
+  ): Promise<ApiResponse<any>> {
+    return this.httpClient.get<any>(
+      `api/v1/parents/me/children/${encodeURIComponent(childId)}/assignments/${encodeURIComponent(assignmentId)}/submission`,
       undefined,
       {
         requiresAuth: true,

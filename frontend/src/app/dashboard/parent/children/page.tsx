@@ -10,6 +10,8 @@ import ChildSummaryCards from '@/components/atoms/display/ChildSummaryCards';
 import NoticesList from '@/components/atoms/display/NoticesList';
 import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
 import { PageLoader } from '@/components/atoms/loading';
+import { parentService } from '@/api/services/parent.service';
+import { useAuth } from '@/hooks/useAuth';
 
 // Mock children data
 const children = [
@@ -34,7 +36,9 @@ const children = [
 const DEFAULT_CHILD_KEY = 'parent_default_child';
 
 export default function MyChildrenPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [realChildren, setRealChildren] = useState(children); // Start with mock data as fallback
 
   // Load default child from localStorage
   const [activeChildId, setActiveChildId] = useState(() => {
@@ -49,6 +53,76 @@ export default function MyChildrenPage() {
       localStorage.setItem(DEFAULT_CHILD_KEY, activeChildId);
     }
   }, [activeChildId]);
+
+  // Fetch real children data from API
+  useEffect(() => {
+    const fetchChildrenData = async () => {
+      if (!user?.id) {
+        console.log('No user ID available');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        console.log('Fetching parent data for user:', user.id);
+
+        // Get current parent's profile using the new /me endpoint
+        console.log('Getting parent profile for user:', user.id);
+        const parentRes = await parentService.getMyProfile();
+        console.log('Parent profile response:', parentRes);
+
+        if (!parentRes.success || !parentRes.data) {
+          console.log('No parent profile found, using mock data');
+          setLoading(false);
+          return;
+        }
+
+        const parentData = parentRes.data;
+        console.log('Parent data:', parentData);
+
+        // Children data is already included in the parent response
+        if (parentData.children && parentData.children.length > 0) {
+          console.log(
+            'Raw children data from parent response:',
+            parentData.children,
+          );
+
+          // Transform children data to match expected format
+          const transformedChildren = parentData.children.map((child: any) => {
+            console.log('Processing child:', child);
+            return {
+              id: child.studentId || child.id,
+              name: child.fullName || 'Unknown',
+              class: child.className?.split('-')[0] || child.class?.grade || '',
+              section:
+                child.className?.split('-')[1] || child.class?.section || '',
+              rollNumber: child.rollNumber || 'N/A',
+              profilePic: child.profilePhotoUrl || '',
+            };
+          });
+
+          console.log('Transformed children:', transformedChildren);
+          setRealChildren(transformedChildren);
+
+          // Set active child if none is selected and we have children
+          if (!activeChildId && transformedChildren.length > 0) {
+            setActiveChildId(transformedChildren[0].id);
+          }
+        } else {
+          console.log(
+            'No children data found in parent response, using mock data',
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching children data:', error);
+        console.log('Using mock data as fallback');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChildrenData();
+  }, [user?.id, activeChildId]);
 
   useEffect(() => {
     // Simulate loading time
@@ -75,14 +149,14 @@ export default function MyChildrenPage() {
       <SectionTitle text='My Children' className='text-xl font-bold mb-4' />
       {/* Child Switcher using dropdown */}
       <ChildSwitcher
-        children={children}
+        children={realChildren}
         activeChildId={activeChildId}
         setActiveChildId={setActiveChildId}
       />
 
       {/* Selected child's info using atomic components */}
       {(() => {
-        const child = children.find(c => c.id === activeChildId);
+        const child = realChildren.find(c => c.id === activeChildId);
         if (!child) return null;
         // Dynamic data per child
         const childData: {
@@ -222,7 +296,65 @@ export default function MyChildrenPage() {
             ],
           },
         };
-        const data = childData[child.id];
+        const data = childData[child.id] || {
+          stats: {
+            attendance: 85,
+            dueFees: 2000,
+            upcomingAssignments: 2,
+            nextExam: '1',
+          },
+          assignments: [
+            { id: 'a1', title: 'Math Assignment', status: 'pending' },
+            { id: 'a2', title: 'Science Project', status: 'pending' },
+          ],
+          grades: [
+            { subject: 'Science', value: '85%' },
+            { subject: 'English', value: '90%' },
+            { subject: 'Math', value: '82%' },
+          ],
+          events: [
+            {
+              id: 'e1',
+              title: 'Parent-Teacher Meeting',
+              date: '2025-08-23',
+              time: '09:00 AM',
+              location: 'Main Auditorium',
+              status: 'Scheduled',
+            },
+            {
+              id: 'e2',
+              title: 'Science Fair',
+              date: '2025-09-15',
+              time: '10:00 AM',
+              location: 'Science Lab',
+              status: 'Scheduled',
+            },
+          ],
+          notices: [
+            {
+              id: 'n1',
+              title: 'School Holiday - Independence Day',
+              forClass: 'All',
+              date: 'Aug 15',
+            },
+            {
+              id: 'n2',
+              title: 'Parent-Teacher Meeting Scheduled',
+              forClass: 'All',
+              date: 'Aug 23',
+            },
+            {
+              id: 'n3',
+              title: 'New Cafeteria Menu',
+              forClass: 'All',
+              date: 'Aug 10',
+            },
+          ],
+        };
+
+        console.log('Selected child:', child);
+        console.log('Child data:', data);
+
         return (
           <>
             <ChildInfoCard child={child} />

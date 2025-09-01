@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import StudentAttendanceCalendar, {
   AttendanceEvent,
 } from './StudentAttendanceCalendar';
@@ -12,15 +12,73 @@ import { PageLoader } from '@/components/atoms/loading';
 
 export default function AttendancePage() {
   const [loading, setLoading] = useState(true);
+  const [monthLoading, setMonthLoading] = useState(false);
   const [studentProfile, setStudentProfile] = useState<any>(null);
   const [attendanceData, setAttendanceData] = useState<any>(null);
   const [attendanceEvents, setAttendanceEvents] = useState<AttendanceEvent[]>(
     [],
   );
   const [error, setError] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const { user } = useAuth();
 
-  // Fetch student profile and attendance data
+  // Function to fetch attendance data for a specific month
+  const fetchAttendanceData = useCallback(
+    async (month: number, year: number, isMonthChange = false) => {
+      if (!studentProfile?.id) {
+        return;
+      }
+
+      try {
+        if (isMonthChange) {
+          setMonthLoading(true);
+        } else {
+          setLoading(true);
+        }
+        setError(null);
+
+        const attendanceResponse = await attendanceService.getStudentAttendance(
+          studentProfile.id,
+          {
+            month,
+            year,
+          },
+        );
+
+        if (!attendanceResponse) {
+          throw new Error('No attendance response from server');
+        }
+
+        setAttendanceData(attendanceResponse);
+
+        // Convert attendance records to events format
+        const events: AttendanceEvent[] = (
+          attendanceResponse.records || []
+        ).map((record: any) => ({
+          id: record.date,
+          date: record.date,
+          status: record.status?.toLowerCase() as
+            | 'present'
+            | 'absent'
+            | 'not-recorded',
+        }));
+
+        setAttendanceEvents(events);
+      } catch (error) {
+        console.error('Failed to fetch attendance data:', error);
+        setError('Failed to load attendance data. Please try again.');
+      } finally {
+        if (isMonthChange) {
+          setMonthLoading(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    [studentProfile?.id],
+  );
+
+  // Fetch student profile
   useEffect(() => {
     const fetchStudentData = async () => {
       if (!user?.id) {
@@ -41,48 +99,43 @@ export default function AttendancePage() {
         }
 
         const student = studentResponse.data;
-        console.log('Student profile data:', student); // Debug log
         setStudentProfile(student);
-
-        // Get current month and year
-        const now = new Date();
-        const currentMonth = now.getMonth() + 1;
-        const currentYear = now.getFullYear();
-
-        // Fetch attendance data for current month
-        const attendanceResponse = await attendanceService.getStudentAttendance(
-          student.id,
-          {
-            month: currentMonth,
-            year: currentYear,
-          },
-        );
-
-        setAttendanceData(attendanceResponse);
-
-        // Convert attendance records to events format
-        const events: AttendanceEvent[] = attendanceResponse.records.map(
-          (record: any) => ({
-            id: record.date,
-            date: record.date,
-            status: record.status.toLowerCase() as
-              | 'present'
-              | 'absent'
-              | 'not-recorded',
-          }),
-        );
-
-        setAttendanceEvents(events);
       } catch (error) {
-        console.error('Failed to fetch attendance data:', error);
-        setError('Failed to load attendance data. Please try again.');
-      } finally {
+        console.error('Failed to fetch student data:', error);
+        setError('Failed to load student data. Please try again.');
         setLoading(false);
       }
     };
 
     fetchStudentData();
   }, [user?.id]);
+
+  // Fetch attendance data when student profile is available
+  useEffect(() => {
+    if (studentProfile?.id) {
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
+      fetchAttendanceData(currentMonth, currentYear);
+    }
+  }, [studentProfile?.id, fetchAttendanceData]);
+
+  // Handle month change from calendar
+  const handleMonthChange = (newDate: Date) => {
+    setCurrentDate(newDate);
+    const month = newDate.getMonth() + 1;
+    const year = newDate.getFullYear();
+    fetchAttendanceData(month, year, true);
+  };
+
+  // Handle calendar type switch (BS to AD or vice versa)
+  const handleCalendarTypeChange = (newDate: Date) => {
+    // This is called when user switches calendar type
+    setCurrentDate(newDate);
+    const month = newDate.getMonth() + 1;
+    const year = newDate.getFullYear();
+    fetchAttendanceData(month, year, true);
+  };
 
   if (loading) {
     return <PageLoader />;
@@ -197,7 +250,57 @@ export default function AttendancePage() {
         </div>
       )}
 
-      <StudentAttendanceCalendar events={attendanceEvents} />
+      {monthLoading && (
+        <div className='mb-4 text-center py-2'>
+          <div className='inline-flex items-center gap-2 text-blue-600'>
+            <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
+            <span className='text-sm'>Loading attendance data...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Show calendar or no data message */}
+      {attendanceEvents.length > 0 ? (
+        <StudentAttendanceCalendar
+          events={attendanceEvents}
+          currentDate={currentDate}
+          onMonthChange={handleMonthChange}
+          onCalendarTypeChange={handleCalendarTypeChange}
+        />
+      ) : (
+        <div className='text-center py-12 bg-gray-50 rounded-lg'>
+          <div className='text-gray-400 mb-4'>
+            <svg
+              className='w-16 h-16 mx-auto'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
+              />
+            </svg>
+          </div>
+          <h3 className='text-lg font-medium text-gray-900 mb-2'>
+            No Attendance Data
+          </h3>
+          <p className='text-gray-600 mb-4'>
+            No attendance records found for{' '}
+            {currentDate.toLocaleString('default', {
+              month: 'long',
+              year: 'numeric',
+            })}
+            .
+          </p>
+          <p className='text-sm text-gray-500'>
+            This could mean attendance hasn't been marked yet, or there are no
+            school days in this month.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

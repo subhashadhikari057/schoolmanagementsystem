@@ -19,24 +19,12 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 import {
   ApiTags,
-  ApiOperation,
-  ApiResponse,
   ApiBearerAuth,
-  ApiConsumes,
-  ApiParam,
-  ApiQuery,
-  ApiBody,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiBadRequestResponse,
   ApiUnauthorizedResponse,
-  ApiForbiddenResponse,
-  ApiNotFoundResponse,
 } from '@nestjs/swagger';
 import { StudentService } from '../application/student.service';
 import {
   CreateStudentDto,
-  CreateStudentDtoType,
   UpdateStudentByAdminDto,
   UpdateStudentByAdminDtoType,
   UpdateStudentSelfDto,
@@ -71,14 +59,14 @@ export class StudentController {
     FileInterceptor('photo', createMulterConfig(UPLOAD_PATHS.STUDENT_PROFILES)),
   )
   async create(
-    @Body() body: any, // We'll parse and validate this manually due to multipart form data
+    @Body() body: Record<string, unknown>, // We'll parse and validate this manually due to multipart form data
     @UploadedFile() profilePicture: Express.Multer.File,
     @CurrentUser() user: { id: string },
     @Req() req: Request,
   ) {
     try {
       // Helper function to safely parse JSON or return object if already parsed
-      const safeJsonParse = (value: any) => {
+      const safeJsonParse = (value: unknown) => {
         if (!value) return undefined;
         if (typeof value === 'object') return value; // Already parsed
         if (typeof value === 'string') {
@@ -259,7 +247,7 @@ export class StudentController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async addGuardians(
     @Param('id') id: string,
-    @Body() guardianData: { guardians: any[] },
+    @Body() guardianData: { guardians: Record<string, unknown>[] },
     @CurrentUser() user: { id: string },
     @Req() req: Request,
   ) {
@@ -277,7 +265,7 @@ export class StudentController {
   async updateGuardian(
     @Param('id') studentId: string,
     @Param('guardianId') guardianId: string,
-    @Body() guardianData: any,
+    @Body() guardianData: Record<string, unknown>,
     @CurrentUser() user: { id: string },
     @Req() req: Request,
   ) {
