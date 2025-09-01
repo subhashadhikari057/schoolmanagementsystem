@@ -528,6 +528,7 @@ export default function AdminAssignmentManagement() {
             setSelectedAssignment(null);
           }}
           assignment={selectedAssignment.originalData}
+          userRole='admin'
         />
       )}
 

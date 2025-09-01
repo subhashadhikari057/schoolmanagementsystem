@@ -9,8 +9,9 @@ interface Event {
   id: string;
   title: string;
   date: string;
-  time: string;
-  location: string;
+  endDate?: string; // For multi-day events
+  time?: string;
+  location?: string;
   status: string;
   type?: string; // event, exam, holiday
 }
@@ -40,6 +41,33 @@ const formatDateBadge = (dateStr: string) => {
     .toLocaleDateString('en-US', { month: 'short' })
     .toUpperCase();
   return { day, month };
+};
+
+const formatEventDetails = (event: Event) => {
+  const parts: string[] = [];
+
+  // Format date(s)
+  if (event.endDate && event.endDate !== event.date) {
+    // Multi-day event
+    const startDate = new Date(event.date).toLocaleDateString();
+    const endDate = new Date(event.endDate).toLocaleDateString();
+    parts.push(`Date: ${startDate} - ${endDate}`);
+  } else {
+    // Single day event
+    parts.push(`Date: ${new Date(event.date).toLocaleDateString()}`);
+  }
+
+  // Add time if available
+  if (event.time && event.time.trim()) {
+    parts.push(event.time);
+  }
+
+  // Add location if available
+  if (event.location && event.location.trim()) {
+    parts.push(event.location);
+  }
+
+  return parts.join(' • ');
 };
 
 const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
@@ -169,13 +197,7 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
                 {getTypeBadge(ev.type)}
               </div>
               <div className='text-xs text-gray-500 mb-3'>
-                Date: {new Date(ev.date).toLocaleDateString()} • {ev.time} •{' '}
-                {ev.location}
-              </div>
-              <div className='flex items-center justify-start'>
-                <span className='text-xs text-gray-500'>
-                  Status: {ev.status}
-                </span>
+                {formatEventDetails(ev)}
               </div>
             </div>
           ))}

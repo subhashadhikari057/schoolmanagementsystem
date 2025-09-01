@@ -3,7 +3,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ad2bs, bs2ad } from 'hamro-nepali-patro';
 import ChartCard from '@/components/atoms/display/ChartCard';
@@ -21,6 +21,9 @@ interface StudentAttendanceCalendarProps {
   events: AttendanceEvent[];
   selectedDate?: string;
   onDateSelect?: (dateString: string) => void;
+  currentDate?: Date;
+  onMonthChange?: (newDate: Date) => void;
+  onCalendarTypeChange?: (newDate: Date) => void;
 }
 
 const nepaliMonths = [
@@ -68,10 +71,32 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
   events,
   selectedDate,
   onDateSelect,
+  currentDate,
+  onMonthChange,
+  onCalendarTypeChange,
 }) => {
   const [calendarType, setCalendarType] = useState<'BS' | 'AD'>('BS');
   const [currentBSDate, setCurrentBSDate] = useState(getCurrentBSDate());
-  const [currentADDate, setCurrentADDate] = useState(new Date());
+  const [currentADDate, setCurrentADDate] = useState(currentDate || new Date());
+
+  // Sync calendar with currentDate prop
+  useEffect(() => {
+    if (currentDate) {
+      setCurrentADDate(currentDate);
+
+      // Also sync BS date when currentDate changes
+      try {
+        const bsDate = ad2bs(
+          currentDate.getFullYear(),
+          currentDate.getMonth() + 1,
+          currentDate.getDate(),
+        );
+        setCurrentBSDate(bsDate as any);
+      } catch (error) {
+        console.error('Error converting AD to BS date:', error);
+      }
+    }
+  }, [currentDate]);
 
   // Generate calendar days for BS
   const getBsMonthMeta = (bsYear: number, bsMonth: number) => {
@@ -129,10 +154,27 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
       const prevYear =
         currentBSDate.month === 1 ? currentBSDate.year - 1 : currentBSDate.year;
       setCurrentBSDate({ year: prevYear, month: prevMonth, date: 1 } as any);
+
+      // Convert BS date to AD date and notify parent component
+      if (onMonthChange) {
+        try {
+          const adDate = getAdDateFromBs(prevYear, prevMonth, 1);
+          onMonthChange(adDate);
+        } catch (error) {
+          console.error('Error converting BS to AD date:', error);
+        }
+      }
     } else {
-      setCurrentADDate(
-        new Date(currentADDate.getFullYear(), currentADDate.getMonth() - 1, 1),
+      const newDate = new Date(
+        currentADDate.getFullYear(),
+        currentADDate.getMonth() - 1,
+        1,
       );
+      setCurrentADDate(newDate);
+      // Notify parent component about month change
+      if (onMonthChange) {
+        onMonthChange(newDate);
+      }
     }
   };
   const goToNextMonth = () => {
@@ -144,10 +186,27 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
           ? currentBSDate.year + 1
           : currentBSDate.year;
       setCurrentBSDate({ year: nextYear, month: nextMonth, date: 1 } as any);
+
+      // Convert BS date to AD date and notify parent component
+      if (onMonthChange) {
+        try {
+          const adDate = getAdDateFromBs(nextYear, nextMonth, 1);
+          onMonthChange(adDate);
+        } catch (error) {
+          console.error('Error converting BS to AD date:', error);
+        }
+      }
     } else {
-      setCurrentADDate(
-        new Date(currentADDate.getFullYear(), currentADDate.getMonth() + 1, 1),
+      const newDate = new Date(
+        currentADDate.getFullYear(),
+        currentADDate.getMonth() + 1,
+        1,
       );
+      setCurrentADDate(newDate);
+      // Notify parent component about month change
+      if (onMonthChange) {
+        onMonthChange(newDate);
+      }
     }
   };
 
@@ -175,7 +234,36 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
 
   // Toggle calendar type
   const handleToggleCalendarType = () => {
-    setCalendarType(calendarType === 'BS' ? 'AD' : 'BS');
+    const newCalendarType = calendarType === 'BS' ? 'AD' : 'BS';
+    setCalendarType(newCalendarType);
+
+    if (newCalendarType === 'BS') {
+      // When switching to BS, convert current AD date to BS date
+      try {
+        const bsDate = ad2bs(
+          currentADDate.getFullYear(),
+          currentADDate.getMonth() + 1,
+          currentADDate.getDate(),
+        );
+        setCurrentBSDate(bsDate as any);
+      } catch (error) {
+        console.error('Error converting AD to BS date:', error);
+      }
+    } else {
+      // When switching to AD, show CURRENT month (today's month)
+      const today = new Date();
+      setCurrentADDate(today);
+
+      // Notify parent component about the month change to current month
+      if (onMonthChange) {
+        onMonthChange(today);
+      }
+
+      // Also notify about calendar type change
+      if (onCalendarTypeChange) {
+        onCalendarTypeChange(today);
+      }
+    }
   };
 
   // Render
@@ -240,11 +328,11 @@ const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({
               className={`text-center py-2 px-2 rounded-lg shadow-sm ${index === 6 ? 'bg-gradient-to-b from-red-500 to-red-600' : calendarType === 'BS' ? 'bg-gradient-to-b from-blue-100 to-blue-200' : 'bg-gradient-to-b from-gray-100 to-gray-200'}`}
             >
               <span
-                className={`text-sm font-semibold ${index === 6 ? 'text-white' : 'text-gray-700'}`}
+                className={`text-sm font-semibold ${index === 6 ? 'text-slate-200 font-bold drop-shadow-lg' : 'text-gray-700'}`}
               >
                 {day}
                 {index === 6 && (
-                  <span className='block text-xs text-red-100 mt-1'>
+                  <span className='block text-xs text-slate-200 mt-1 font-medium'>
                     {calendarType === 'BS' ? 'बिदा' : 'Holiday'}
                   </span>
                 )}
