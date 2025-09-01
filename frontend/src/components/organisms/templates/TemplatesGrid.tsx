@@ -7,26 +7,16 @@
  */
 
 import React from 'react';
-import { Eye, Edit, Copy, CreditCard, MoreVertical } from 'lucide-react';
+import { Eye, Edit, Copy, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-interface Template {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  dimensions: string;
-  usageCount: number;
-  lastModified: string;
-  description?: string;
-  features?: string[];
-}
+import { IDCardTemplate, IDCardTemplateType } from '@/types/template.types';
+import TemplatePreview from './TemplatePreview';
 
 interface TemplatesGridProps {
-  templates: Template[];
-  onPreview: (template: Template) => void;
-  onEdit: (template: Template) => void;
-  onCopy: (template: Template) => void;
+  templates: IDCardTemplate[];
+  onPreview: (template: IDCardTemplate) => void;
+  onEdit: (template: IDCardTemplate) => void;
+  onCopy: (template: IDCardTemplate) => void;
 }
 
 export default function TemplatesGrid({
@@ -40,11 +30,11 @@ export default function TemplatesGrid({
       {templates.map(template => (
         <div
           key={template.id}
-          className='bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow'
+          className='bg-white border border-blue-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 transition-all duration-200'
         >
           {/* Template Preview */}
-          <div className='w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center border-2 border-dashed border-gray-300'>
-            <CreditCard className='w-8 h-8 text-gray-400' />
+          <div className='w-full h-32 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg mb-3 flex items-center justify-center border-2 border-blue-200'>
+            <TemplatePreview template={template} />
           </div>
 
           {/* Template Info */}
@@ -63,32 +53,28 @@ export default function TemplatesGrid({
             <div className='flex items-center space-x-2'>
               <span
                 className={`px-2 py-1 text-xs rounded-full ${
-                  template.type === 'student'
+                  template.type === IDCardTemplateType.STUDENT
                     ? 'bg-blue-100 text-blue-800'
-                    : template.type === 'teacher'
+                    : template.type === IDCardTemplateType.TEACHER
                       ? 'bg-green-100 text-green-800'
-                      : template.type === 'staff'
+                      : template.type === IDCardTemplateType.STAFF
                         ? 'bg-purple-100 text-purple-800'
                         : 'bg-orange-100 text-orange-800'
                 }`}
               >
-                {template.type}
+                {template.type.toLowerCase()}
               </span>
-              <span
-                className={`px-2 py-1 text-xs rounded-full ${
-                  template.status === 'Active'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {template.status}
+              <span className='px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800'>
+                Template
               </span>
             </div>
 
             <div className='text-sm text-gray-600'>
               <p>Size: {template.dimensions}</p>
               <p>Used: {template.usageCount} times</p>
-              <p>Modified: {template.lastModified}</p>
+              <p>
+                Modified: {new Date(template.updatedAt).toLocaleDateString()}
+              </p>
             </div>
 
             {template.description && (
@@ -103,7 +89,7 @@ export default function TemplatesGrid({
                 variant='outline'
                 size='sm'
                 onClick={() => onPreview(template)}
-                className='flex-1'
+                className='flex-1 h-8 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300'
               >
                 <Eye className='w-3 h-3 mr-1' />
                 Preview
@@ -112,7 +98,7 @@ export default function TemplatesGrid({
                 variant='outline'
                 size='sm'
                 onClick={() => onEdit(template)}
-                className='flex-1'
+                className='flex-1 h-8 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300'
               >
                 <Edit className='w-3 h-3 mr-1' />
                 Edit
@@ -121,7 +107,7 @@ export default function TemplatesGrid({
                 variant='outline'
                 size='sm'
                 onClick={() => onCopy(template)}
-                className='flex-1'
+                className='flex-1 h-8 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300'
               >
                 <Copy className='w-3 h-3 mr-1' />
                 Copy
@@ -133,7 +119,9 @@ export default function TemplatesGrid({
 
       {templates.length === 0 && (
         <div className='col-span-full text-center py-8'>
-          <CreditCard className='w-12 h-12 mx-auto text-gray-300 mb-3' />
+          <div className='w-12 h-12 mx-auto bg-blue-100 rounded-lg flex items-center justify-center mb-3'>
+            <span className='text-blue-400 text-xs'>Empty</span>
+          </div>
           <h3 className='text-lg font-medium text-gray-900 mb-2'>
             No templates yet
           </h3>

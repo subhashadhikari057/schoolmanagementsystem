@@ -10,12 +10,13 @@ import {
   UpdateTemplateDto,
   TemplateFilterDto,
 } from './dto/template.dto';
+import { IDCardTemplateType } from '@prisma/client';
 
 @Injectable()
 export class IDCardTemplateService {
   constructor(private prisma: PrismaService) {}
 
-  async createTemplate(dto: CreateTemplateDto, userId: string) {
+  async createTemplate(dto: CreateTemplateDto, userId: string | null) {
     // Validate template name uniqueness
     const existingTemplate = await this.prisma.iDCardTemplate.findFirst({
       where: {
@@ -25,6 +26,14 @@ export class IDCardTemplateService {
 
     if (existingTemplate) {
       throw new ConflictException('Template with this name already exists');
+    }
+
+    // Validate template business logic
+    this.validateTemplateData(dto);
+
+    // Validate minimum required fields exist
+    if (!dto.fields || dto.fields.length === 0) {
+      throw new BadRequestException('Template must have at least one field');
     }
 
     // Create template and fields in transaction
@@ -83,6 +92,10 @@ export class IDCardTemplateService {
             rotation: field.rotation || 0,
             opacity: field.opacity || 100,
             zIndex: field.zIndex || 1,
+            dataSource: field.dataSource,
+            staticText: field.staticText,
+            imageUrl: field.imageUrl,
+            qrData: field.qrData,
             validationRules: {},
             styleOptions: {},
           })),
@@ -95,7 +108,11 @@ export class IDCardTemplateService {
     return this.getTemplateById(template.id);
   }
 
-  async updateTemplate(id: string, dto: UpdateTemplateDto, userId: string) {
+  async updateTemplate(
+    id: string,
+    dto: UpdateTemplateDto,
+    userId: string | null,
+  ) {
     const existingTemplate = await this.prisma.iDCardTemplate.findFirst({
       where: { id },
     });
@@ -254,7 +271,7 @@ export class IDCardTemplateService {
     ]);
 
     return {
-      templates,
+      templates: templates.map(template => this.transformTemplate(template)),
       total,
       page,
       limit,
@@ -274,7 +291,17 @@ export class IDCardTemplateService {
       throw new NotFoundException('Template not found');
     }
 
-    return template;
+    return this.transformTemplate(template);
+  }
+
+  private transformTemplate(template: any) {
+    return {
+      ...template,
+      // Map status to isPublished for frontend compatibility
+      isPublished: template.status === 'ACTIVE',
+      // Remove status from the response since frontend uses isPublished
+      status: undefined,
+    };
   }
 
   async deleteTemplate(id: string, userId: string) {
@@ -570,5 +597,217 @@ export class IDCardTemplateService {
       recentUpdates: 0,
       averageFieldsPerTemplate: 0,
     };
+  }
+
+  /**
+   * Validate template data for business logic
+   */
+  private validateTemplateData(dto: CreateTemplateDto) {
+    // Only validate field configuration, not required fields (templates can be drafts)
+    if (dto.fields && dto.fields.length > 0) {
+      // Validate QR code fields have proper database mapping
+      const qrFields = dto.fields.filter(f => f.fieldType === 'QR_CODE');
+      for (const qrField of qrFields) {
+        if (qrField.dataSource === 'database' && !qrField.databaseField) {
+          throw new BadRequestException(
+            'QR code fields with database source must specify a database field',
+          );
+        }
+      }
+
+      // Validate image fields have proper source
+      const imageFields = dto.fields.filter(
+        f =>
+          f.fieldType === 'IMAGE' ||
+          f.fieldType === 'PHOTO' ||
+          f.fieldType === 'LOGO',
+      );
+      for (const imageField of imageFields) {
+        if (imageField.dataSource === 'database' && !imageField.databaseField) {
+          throw new BadRequestException(
+            'Image fields with database source must specify a database field',
+          );
+        }
+        if (imageField.dataSource === 'static' && !imageField.imageUrl) {
+          throw new BadRequestException(
+            'Image fields with static source must specify an image URL',
+          );
+        }
+      }
+
+      // Validate text fields have content
+      const textFields = dto.fields.filter(f => f.fieldType === 'TEXT');
+      for (const textField of textFields) {
+        if (textField.dataSource === 'static' && !textField.staticText) {
+          throw new BadRequestException(
+            'Text fields with static source must specify static text',
+          );
+        }
+      }
+
+      // Validate field positions don't overlap critically
+      this.validateFieldPositions(dto.fields);
+    }
+
+    // Validate dimensions
+    if (dto.dimensions) {
+      const [width, height] = dto.dimensions.split('x').map(d => parseFloat(d));
+      if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+        throw new BadRequestException(
+          'Invalid dimensions format. Use "width×height" format with positive numbers',
+        );
+      }
+    }
+  }
+
+  /**
+   * Validate required fields based on template type
+   */
+  private validateRequiredFields(
+    fields: any[],
+    templateType: IDCardTemplateType,
+  ) {
+    // Check for required database field mappings instead of exact labels
+    const requiredDatabaseFieldsByType = {
+      [IDCardTemplateType.STUDENT]: [
+        {
+          field: 'studentId',
+          alternatives: ['Student ID', 'Roll Number', 'Admission Number'],
+        },
+        { field: 'fullName', alternatives: ['Full Name', 'First Name'] },
+        { field: 'class', alternatives: ['Class', 'Grade'] },
+      ],
+      [IDCardTemplateType.TEACHER]: [
+        { field: 'employeeId', alternatives: ['Employee ID', 'Teacher ID'] },
+        { field: 'fullName', alternatives: ['Full Name', 'First Name'] },
+        { field: 'designation', alternatives: ['Designation', 'Position'] },
+      ],
+      [IDCardTemplateType.STAFF]: [
+        { field: 'employeeId', alternatives: ['Employee ID', 'Staff ID'] },
+        { field: 'fullName', alternatives: ['Full Name', 'First Name'] },
+        { field: 'position', alternatives: ['Position', 'Designation'] },
+      ],
+      [IDCardTemplateType.STAFF_NO_LOGIN]: [
+        { field: 'employeeId', alternatives: ['Employee ID', 'Staff ID'] },
+        { field: 'fullName', alternatives: ['Full Name', 'First Name'] },
+        { field: 'position', alternatives: ['Position', 'Designation'] },
+      ],
+    };
+
+    const requiredMappings = requiredDatabaseFieldsByType[templateType] || [];
+    const fieldLabels = fields.map(f => f.label);
+    const databaseFields = fields.map(f => f.databaseField).filter(Boolean);
+
+    const missing: string[] = [];
+
+    for (const requirement of requiredMappings) {
+      // Check if any of the alternative labels exist OR if the database field is mapped
+      const hasLabel = requirement.alternatives.some(alt =>
+        fieldLabels.includes(alt),
+      );
+      const hasMapping = databaseFields.includes(requirement.field);
+
+      if (!hasLabel && !hasMapping) {
+        missing.push(requirement.alternatives[0]); // Use the primary alternative as the missing field name
+      }
+    }
+
+    return {
+      valid: missing.length === 0,
+      missing,
+    };
+  }
+
+  /**
+   * Validate field positions to prevent critical overlaps
+   */
+  private validateFieldPositions(fields: any[]) {
+    // Check for fields that are completely outside template bounds
+    const maxX = 400; // Approximate max width
+    const maxY = 250; // Approximate max height
+
+    for (const field of fields) {
+      if (field.x < 0 || field.y < 0) {
+        throw new BadRequestException(
+          `Field "${field.label}" has negative position`,
+        );
+      }
+      if (field.x + field.width > maxX || field.y + field.height > maxY) {
+        throw new BadRequestException(
+          `Field "${field.label}" extends beyond template boundaries`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Activate template for use (sets status to ACTIVE)
+   */
+  async activateTemplate(templateId: string, userId: string) {
+    const template = await this.prisma.iDCardTemplate.findUnique({
+      where: { id: templateId },
+      include: { fields: true },
+    });
+
+    if (!template) {
+      throw new NotFoundException('Template not found');
+    }
+
+    // Validate template is ready for activation
+    if (!template.fields || template.fields.length === 0) {
+      throw new BadRequestException(
+        'Template must have at least one field before activation',
+      );
+    }
+
+    // Check for required fields based on type
+    const hasRequiredFields = this.validateRequiredFields(
+      template.fields,
+      template.type,
+    );
+    if (!hasRequiredFields.valid) {
+      throw new BadRequestException(
+        `Template missing required fields: ${hasRequiredFields.missing.join(', ')}`,
+      );
+    }
+
+    return this.prisma.iDCardTemplate.update({
+      where: { id: templateId },
+      data: {
+        status: 'ACTIVE',
+        updatedById: userId,
+      },
+    });
+  }
+
+  /**
+   * Check if template is ready for ID generation
+   */
+  async validateTemplateForGeneration(templateId: string): Promise<boolean> {
+    const template = await this.prisma.iDCardTemplate.findUnique({
+      where: { id: templateId },
+      include: { fields: true },
+    });
+
+    if (!template) {
+      return false;
+    }
+
+    // Must be active
+    if (template.status !== 'ACTIVE') {
+      return false;
+    }
+
+    // Must have fields
+    if (!template.fields || template.fields.length === 0) {
+      return false;
+    }
+
+    // Must have required fields
+    const hasRequiredFields = this.validateRequiredFields(
+      template.fields,
+      template.type,
+    );
+    return hasRequiredFields.valid;
   }
 }

@@ -135,7 +135,7 @@ const LeaveRequestDetailModal: React.FC<LeaveRequestDetailModalProps> = ({
 
     // Parent can approve if status is PENDING_PARENT_APPROVAL
     if (
-      user.role === 'parent' &&
+      user.role === 'PARENT' &&
       leaveRequest.status === 'PENDING_PARENT_APPROVAL'
     ) {
       return true;
@@ -143,7 +143,7 @@ const LeaveRequestDetailModal: React.FC<LeaveRequestDetailModalProps> = ({
 
     // Teacher can approve if status is PENDING_TEACHER_APPROVAL
     if (
-      user.role === 'teacher' &&
+      user.role === 'TEACHER' &&
       leaveRequest.status === 'PENDING_TEACHER_APPROVAL'
     ) {
       return true;
@@ -168,7 +168,7 @@ const LeaveRequestDetailModal: React.FC<LeaveRequestDetailModalProps> = ({
 
     // Parent can reject if status is PENDING_PARENT_APPROVAL
     if (
-      user.role === 'parent' &&
+      user.role === 'PARENT' &&
       leaveRequest.status === 'PENDING_PARENT_APPROVAL'
     ) {
       return true;
@@ -176,7 +176,7 @@ const LeaveRequestDetailModal: React.FC<LeaveRequestDetailModalProps> = ({
 
     // Teacher can reject if status is PENDING_TEACHER_APPROVAL
     if (
-      user.role === 'teacher' &&
+      user.role === 'TEACHER' &&
       leaveRequest.status === 'PENDING_TEACHER_APPROVAL'
     ) {
       return true;
@@ -190,7 +190,7 @@ const LeaveRequestDetailModal: React.FC<LeaveRequestDetailModalProps> = ({
 
     // Students can only cancel if status is PENDING_PARENT_APPROVAL
     if (
-      user.role === 'student' &&
+      user.role === 'STUDENT' &&
       leaveRequest.status === 'PENDING_PARENT_APPROVAL'
     ) {
       return true;
@@ -601,30 +601,34 @@ const LeaveRequestDetailModal: React.FC<LeaveRequestDetailModalProps> = ({
                   <Button
                     onClick={handleApprove}
                     disabled={loading}
-                    className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
+                    className='bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200'
                   >
                     <CheckCircle className='h-4 w-4' />
-                    Approve
+                    <span>
+                      {user?.role === 'PARENT'
+                        ? 'Approve as Parent'
+                        : 'Approve as Teacher'}
+                    </span>
                   </Button>
                 )}
 
                 {canReject() && !showRejectionForm && (
                   <Button
                     onClick={() => setShowRejectionForm(true)}
-                    className='bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
+                    className='bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200'
                   >
                     <XCircle className='h-4 w-4' />
-                    Reject
+                    <span>Reject Request</span>
                   </Button>
                 )}
 
                 {canCancel() && (
                   <Button
                     onClick={() => setShowCancelConfirmation(true)}
-                    className='bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center gap-2'
+                    className='bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200'
                   >
                     <X className='h-4 w-4' />
-                    Cancel Request
+                    <span>Cancel Request</span>
                   </Button>
                 )}
               </div>
@@ -642,11 +646,11 @@ const LeaveRequestDetailModal: React.FC<LeaveRequestDetailModalProps> = ({
                     className='w-full p-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent'
                     rows={3}
                   />
-                  <div className='flex gap-2 mt-3'>
+                  <div className='flex gap-3 mt-4'>
                     <Button
                       onClick={handleReject}
                       disabled={loading || !rejectionReason.trim()}
-                      className='bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg'
+                      className='bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white px-6 py-2.5 rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200'
                     >
                       Confirm Rejection
                     </Button>
@@ -655,7 +659,7 @@ const LeaveRequestDetailModal: React.FC<LeaveRequestDetailModalProps> = ({
                         setShowRejectionForm(false);
                         setRejectionReason('');
                       }}
-                      className='bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg'
+                      className='bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-6 py-2.5 rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200'
                     >
                       Cancel
                     </Button>
@@ -673,17 +677,17 @@ const LeaveRequestDetailModal: React.FC<LeaveRequestDetailModalProps> = ({
                     Are you sure you want to cancel this leave request? This
                     action cannot be undone.
                   </p>
-                  <div className='flex gap-2'>
+                  <div className='flex gap-3 mt-4'>
                     <Button
                       onClick={handleCancel}
                       disabled={cancelling}
-                      className='bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg'
+                      className='bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white px-6 py-2.5 rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200'
                     >
                       {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
                     </Button>
                     <Button
                       onClick={() => setShowCancelConfirmation(false)}
-                      className='bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg'
+                      className='bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-6 py-2.5 rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200'
                     >
                       Keep Request
                     </Button>
@@ -697,7 +701,7 @@ const LeaveRequestDetailModal: React.FC<LeaveRequestDetailModalProps> = ({
           <div className='flex justify-end pt-4 border-t border-gray-200'>
             <Button
               onClick={onClose}
-              className='bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400'
+              className='bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 px-6 py-2.5 rounded-lg font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200'
             >
               Close
             </Button>

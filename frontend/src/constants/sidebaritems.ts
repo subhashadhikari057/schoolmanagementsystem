@@ -42,6 +42,11 @@ export const sidebarItems = {
           path: '/dashboard/admin/academics/attendance',
         },
         {
+          label: 'Reports',
+          icon: 'FileText',
+          path: '/dashboard/admin/reports/report',
+        },
+        {
           label: 'Assignments',
           icon: 'CheckSquare',
           path: '/dashboard/admin/academics/assignments',
@@ -92,11 +97,6 @@ export const sidebarItems = {
       title: 'FINANCE & ACCOUNTING',
       items: [
         {
-          label: 'Finance Overview',
-          icon: 'BarChart2',
-          path: '/dashboard/admin/finance/overview',
-        },
-        {
           label: 'Fee Management',
           icon: 'FileText',
           path: '/dashboard/admin/finance/fee-management',
@@ -105,26 +105,6 @@ export const sidebarItems = {
           label: 'Salaries and Expenses',
           icon: 'TrendingUp',
           path: '/dashboard/admin/finance/expenses',
-        },
-      ],
-    },
-    {
-      title: 'REPORTS & ANALYTICS',
-      items: [
-        {
-          label: 'Reports',
-          icon: 'FileText',
-          path: '/dashboard/admin/reports/report',
-        },
-        {
-          label: 'Analytics',
-          icon: 'BarChart',
-          path: '/dashboard/admin/reports/analytics',
-        },
-        {
-          label: 'Notifications',
-          icon: 'Bell',
-          path: '/dashboard/admin/reports/notifications',
         },
       ],
     },

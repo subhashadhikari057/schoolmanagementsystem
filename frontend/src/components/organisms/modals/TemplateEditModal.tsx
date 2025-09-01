@@ -14,37 +14,23 @@ import {
   Eye,
   Download,
   Share2,
-  Settings,
   Archive,
   Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { IDCardTemplate, IDCardTemplateType } from '@/types/template.types';
 import CreateTemplateModal from './CreateTemplateModal';
-
-interface Template {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  dimensions: string;
-  usageCount: number;
-  lastModified: string;
-  description?: string;
-  features?: string[];
-}
 
 interface TemplateEditModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  template: Template | null;
-  onSave?: (updatedTemplate: Template) => void;
+  template: IDCardTemplate | null;
 }
 
 export default function TemplateEditModal({
   open,
   onOpenChange,
   template,
-  onSave,
 }: TemplateEditModalProps) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
@@ -99,25 +85,19 @@ export default function TemplateEditModal({
                     <div className='flex items-center space-x-2'>
                       <span
                         className={`px-2 py-1 text-xs rounded-full capitalize ${
-                          template.type === 'student'
+                          template.type === IDCardTemplateType.STUDENT
                             ? 'bg-blue-100 text-blue-800'
-                            : template.type === 'teacher'
+                            : template.type === IDCardTemplateType.TEACHER
                               ? 'bg-green-100 text-green-800'
-                              : template.type === 'staff'
+                              : template.type === IDCardTemplateType.STAFF
                                 ? 'bg-purple-100 text-purple-800'
                                 : 'bg-orange-100 text-orange-800'
                         }`}
                       >
                         {template.type}
                       </span>
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          template.status === 'Active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {template.status}
+                      <span className='px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800'>
+                        Available
                       </span>
                     </div>
                   </div>
@@ -137,11 +117,13 @@ export default function TemplateEditModal({
                   </div>
                   <div>
                     <span className='text-gray-500'>Modified:</span>
-                    <p className='font-medium'>{template.lastModified}</p>
+                    <p className='font-medium'>
+                      {new Date(template.updatedAt).toLocaleDateString()}
+                    </p>
                   </div>
                   <div>
                     <span className='text-gray-500'>Status:</span>
-                    <p className='font-medium'>{template.status}</p>
+                    <p className='font-medium'>Available</p>
                   </div>
                 </div>
 
@@ -293,9 +275,9 @@ export default function TemplateEditModal({
       </div>
 
       <CreateTemplateModal
-        open={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-        editingTemplate={undefined}
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => setIsCreateModalOpen(false)}
       />
     </>
   );
