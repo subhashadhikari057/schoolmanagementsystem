@@ -299,7 +299,6 @@ export class ParentService {
         message: 'Parents retrieved successfully',
       };
     } catch (error) {
-      console.error('Error searching parents for linking:', error);
       throw new BadRequestException('Failed to search parents');
     }
   }
@@ -490,6 +489,136 @@ export class ParentService {
       createdAt: parent.createdAt.toISOString(),
       updatedAt: parent.updatedAt?.toISOString(),
     };
+  }
+
+  /**
+   * Get parent by user ID
+   */
+  async findByUserId(userId: string) {
+    const parent = await this.prisma.parent.findFirst({
+      where: { userId, deletedAt: null },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            phone: true,
+            fullName: true,
+            isActive: true,
+          },
+        },
+        children: {
+          include: {
+            student: {
+              include: {
+                user: {
+                  select: {
+                    fullName: true,
+                  },
+                },
+                class: {
+                  select: {
+                    grade: true,
+                    section: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        profile: true,
+      },
+    });
+
+    if (!parent) {
+      throw new NotFoundException('Parent not found');
+    }
+
+    return {
+      id: parent.id,
+      userId: parent.userId,
+      fullName: parent.user.fullName,
+      email: parent.user.email,
+      phone: parent.user.phone,
+      isActive: parent.user.isActive,
+      dateOfBirth: parent.dateOfBirth?.toISOString().split('T')[0],
+      gender: parent.gender,
+      occupation: parent.occupation,
+      workPlace: parent.workPlace,
+      workPhone: parent.workPhone,
+      emergencyContactName: parent.emergencyContactName,
+      emergencyContactPhone: parent.emergencyContactPhone,
+      emergencyContactRelationship: parent.emergencyContactRelationship,
+      street: parent.street,
+      city: parent.city,
+      state: parent.state,
+      pinCode: parent.pinCode,
+      country: parent.country,
+      notes: parent.notes,
+      specialInstructions: parent.specialInstructions,
+      children: parent.children.map(link => ({
+        id: link.id,
+        studentId: link.studentId,
+        fullName: link.student.user.fullName,
+        className: `${link.student.class.grade}-${link.student.class.section}`,
+        rollNumber: link.student.rollNumber,
+        relationship: link.relationship,
+        isPrimary: link.isPrimary,
+      })),
+      profilePhotoUrl: parent.profile?.profilePhotoUrl,
+      createdAt: parent.createdAt.toISOString(),
+      updatedAt: parent.updatedAt?.toISOString(),
+    };
+  }
+
+  /**
+   * Get parent's children
+   */
+  async getParentChildren(parentId: string) {
+    const parent = await this.prisma.parent.findUnique({
+      where: { id: parentId, deletedAt: null },
+      include: {
+        children: {
+          include: {
+            student: {
+              include: {
+                user: {
+                  select: {
+                    fullName: true,
+                    email: true,
+                  },
+                },
+                class: {
+                  select: {
+                    grade: true,
+                    section: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!parent) {
+      throw new NotFoundException('Parent not found');
+    }
+
+    return parent.children.map(link => ({
+      id: link.student.id,
+      fullName: link.student.user.fullName,
+      email: link.student.email,
+      class: {
+        grade: link.student.class.grade,
+        section: link.student.class.section,
+      },
+      className: `${link.student.class.grade}-${link.student.class.section}`,
+      rollNumber: link.student.rollNumber,
+      relationship: link.relationship,
+      isPrimary: link.isPrimary,
+      profilePhotoUrl: link.student.profilePhotoUrl,
+    }));
   }
 
   /**
@@ -917,5 +1046,310 @@ export class ParentService {
 
       throw error;
     }
+  }
+
+  /**
+   * Get all assignments for parent's children with submission status
+   * This is the essential method parents need to track their children's assignments
+   */
+  async getChildrenAssignmentsWithStatus(userId: string, childId?: string) {
+    // First get the parent and their children
+    const parent = await this.prisma.parent.findFirst({
+      where: { userId, deletedAt: null },
+      include: {
+        user: {
+          select: {
+            fullName: true,
+          },
+        },
+        children: {
+          include: {
+            student: {
+              include: {
+                user: {
+                  select: {
+                    fullName: true,
+                  },
+                },
+                class: {
+                  select: {
+                    id: true,
+                    grade: true,
+                    section: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!parent) {
+      throw new NotFoundException('Parent not found');
+    }
+
+    if (!parent.children || parent.children.length === 0) {
+      return {
+        children: [],
+        assignments: [],
+        message: 'No children found for this parent',
+      };
+    }
+
+    // If childId is provided, filter to only that child
+    const targetChildren = childId
+      ? parent.children.filter(child => child.studentId === childId)
+      : parent.children;
+
+    if (childId && targetChildren.length === 0) {
+      throw new NotFoundException('Child not found or access denied');
+    }
+
+    // Get all unique class IDs from target children
+    const classIds = [
+      ...new Set(targetChildren.map(child => child.student.class.id)),
+    ];
+
+    // Get all assignments for these classes
+    const assignments = await this.prisma.assignment.findMany({
+      where: {
+        classId: { in: classIds },
+        deletedAt: null,
+      },
+      include: {
+        subject: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        class: {
+          select: {
+            id: true,
+            grade: true,
+            section: true,
+          },
+        },
+        teacher: {
+          select: {
+            user: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+        },
+        submissions: {
+          where: {
+            studentId: { in: targetChildren.map(child => child.studentId) },
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            studentId: true,
+            submittedAt: true,
+            isCompleted: true,
+            feedback: true,
+            studentNotes: true,
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            originalName: true,
+            url: true,
+            mimeType: true,
+            size: true,
+          },
+        },
+      },
+      orderBy: {
+        dueDate: 'asc',
+      },
+    });
+
+    // Map assignments with submission status for target children only
+    const assignmentsWithStatus = assignments.map(assignment => {
+      const childStatuses = targetChildren.map(child => {
+        const submission = assignment.submissions.find(
+          s => s.studentId === child.studentId,
+        );
+
+        return {
+          childId: child.studentId,
+          childName: child.student.user.fullName,
+          className: `${child.student.class.grade}-${child.student.class.section}`,
+          rollNumber: child.student.rollNumber,
+          relationship: child.relationship,
+          isPrimary: child.isPrimary,
+          submissionStatus: submission ? 'submitted' : 'not_submitted',
+          submission: submission
+            ? {
+                id: submission.id,
+                submittedAt: submission.submittedAt,
+                isCompleted: submission.isCompleted,
+                feedback: submission.feedback,
+                studentNotes: submission.studentNotes,
+              }
+            : null,
+        };
+      });
+
+      return {
+        id: assignment.id,
+        title: assignment.title,
+        description: assignment.description,
+        dueDate: assignment.dueDate,
+        subject: assignment.subject,
+        class: assignment.class,
+        teacher: assignment.teacher,
+        attachments: assignment.attachments,
+        childStatuses, // Only target children's status
+      };
+    });
+
+    return {
+      parent: {
+        id: parent.id,
+        fullName: parent.user?.fullName,
+      },
+      children: targetChildren.map(child => ({
+        id: child.studentId,
+        fullName: child.student.user.fullName,
+        className: `${child.student.class.grade}-${child.student.class.section}`,
+        classId: child.student.class.id,
+        rollNumber: child.student.rollNumber,
+        relationship: child.relationship,
+        isPrimary: child.isPrimary,
+      })),
+      assignments: assignmentsWithStatus,
+      totalAssignments: assignmentsWithStatus.length,
+      message: childId
+        ? `Found ${assignmentsWithStatus.length} assignments for ${targetChildren[0].student.user.fullName}`
+        : `Found ${assignmentsWithStatus.length} assignments across ${targetChildren.length} children`,
+    };
+  }
+
+  /**
+   * Get child's submission for a specific assignment
+   * Parents can only view their own children's submissions
+   */
+  async getChildSubmission(
+    userId: string,
+    childId: string,
+    assignmentId: string,
+  ) {
+    // First verify the parent has access to this child
+    const parent = await this.prisma.parent.findFirst({
+      where: { userId, deletedAt: null },
+      include: {
+        children: {
+          where: { studentId: childId },
+          include: {
+            student: {
+              include: {
+                user: {
+                  select: {
+                    fullName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!parent || parent.children.length === 0) {
+      throw new NotFoundException('Child not found or access denied');
+    }
+
+    const child = parent.children[0];
+
+    // Get the assignment to verify it exists
+    const assignment = await this.prisma.assignment.findUnique({
+      where: { id: assignmentId, deletedAt: null },
+      include: {
+        subject: {
+          select: {
+            name: true,
+          },
+        },
+        class: {
+          select: {
+            grade: true,
+            section: true,
+          },
+        },
+        teacher: {
+          select: {
+            user: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException('Assignment not found');
+    }
+
+    // Get the child's submission for this assignment
+    const submission = await this.prisma.submission.findUnique({
+      where: {
+        assignmentId_studentId: {
+          assignmentId,
+          studentId: childId,
+        },
+        deletedAt: null,
+      },
+      include: {
+        attachments: {
+          select: {
+            id: true,
+            filename: true,
+            originalName: true,
+            url: true,
+            mimeType: true,
+            size: true,
+            uploadedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!submission) {
+      throw new NotFoundException('Submission not found for this assignment');
+    }
+
+    return {
+      child: {
+        id: child.studentId,
+        fullName: child.student.user.fullName,
+      },
+      assignment: {
+        id: assignment.id,
+        title: assignment.title,
+        description: assignment.description,
+        dueDate: assignment.dueDate,
+        subject: assignment.subject.name,
+        class: `${assignment.class.grade}-${assignment.class.section}`,
+        teacher: assignment.teacher.user.fullName,
+      },
+      submission: {
+        id: submission.id,
+        submittedAt: submission.submittedAt,
+        isCompleted: submission.isCompleted,
+        feedback: submission.feedback,
+        studentNotes: submission.studentNotes,
+        attachments: submission.attachments,
+      },
+      message: `Submission details for ${child.student.user.fullName}`,
+    };
   }
 }

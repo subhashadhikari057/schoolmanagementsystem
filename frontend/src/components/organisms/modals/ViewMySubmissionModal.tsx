@@ -17,6 +17,7 @@ import {
 import Button from '@/components/atoms/form-controls/Button';
 import { submissionService } from '@/api/services/submission.service';
 import { studentService } from '@/api/services/student.service';
+import { parentService } from '@/api/services/parent.service';
 import { SubmissionResponse } from '@/api/types/assignment';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -24,12 +25,14 @@ interface ViewMySubmissionModalProps {
   isOpen: boolean;
   onClose: () => void;
   assignmentId: string;
+  childId?: string; // For parent usage - to view specific child's submission
 }
 
 export const ViewMySubmissionModal = ({
   isOpen,
   onClose,
   assignmentId,
+  childId,
 }: ViewMySubmissionModalProps) => {
   const { user } = useAuth();
   const [submissions, setSubmissions] = useState<SubmissionResponse[]>([]);
@@ -37,10 +40,10 @@ export const ViewMySubmissionModal = ({
   const [error, setError] = useState<string | null>(null);
   const [studentId, setStudentId] = useState<string | null>(null);
 
-  // Fetch student ID from user ID
+  // Fetch student ID from user ID (only for students, not parents)
   useEffect(() => {
     const getStudentId = async () => {
-      if (!user?.id) return;
+      if (!user?.id || childId) return; // Skip if childId is provided (parent usage)
       try {
         const studentRes = await studentService.getStudentByUserId(user.id);
         setStudentId(studentRes.data?.id || null);
@@ -49,45 +52,90 @@ export const ViewMySubmissionModal = ({
       }
     };
     getStudentId();
-  }, [user]);
+  }, [user, childId]);
 
   useEffect(() => {
-    if (isOpen && assignmentId && studentId) {
+    if (isOpen && assignmentId && (studentId || childId)) {
       fetchSubmissionHistory();
     }
-  }, [isOpen, assignmentId, studentId]);
+  }, [isOpen, assignmentId, studentId, childId]);
 
   const fetchSubmissionHistory = async () => {
-    if (!studentId) {
-      setError('Student not found');
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
 
-      const response = await submissionService.getStudentSubmissionHistory(
-        assignmentId,
-        studentId,
-      );
+      let response;
 
-      if (response.success && response.data) {
-        setSubmissions(response.data);
+      // If childId is provided, this is a parent viewing their child's submission
+      if (childId) {
+        response = await parentService.getChildSubmission(
+          childId,
+          assignmentId,
+        );
+
+        // Convert single submission response to array format for consistency
+        if (response.success && response.data) {
+          setSubmissions([
+            {
+              id: response.data.submission.id,
+              assignmentId: assignmentId,
+              studentId: childId,
+              submittedAt: response.data.submission.submittedAt,
+              isCompleted: response.data.submission.isCompleted,
+              feedback: response.data.submission.feedback,
+              studentNotes: response.data.submission.studentNotes,
+              attachments: response.data.submission.attachments,
+              createdAt: response.data.submission.submittedAt, // Use submittedAt as createdAt
+              fileLinks: [], // Not used in this context
+              student: {
+                id: childId,
+                rollNumber: '',
+                user: {
+                  fullName: response.data.child.fullName,
+                },
+              }, // Student info from parent response
+            },
+          ]);
+        } else {
+          setError('Failed to load submission');
+        }
       } else {
-        setError('Failed to load submission history');
+        // This is a student viewing their own submission
+        if (!studentId) {
+          setError('Student not found');
+          setLoading(false);
+          return;
+        }
+
+        response = await submissionService.getStudentSubmissionHistory(
+          assignmentId,
+          studentId,
+        );
+
+        if (response.success && response.data) {
+          setSubmissions(response.data);
+        } else {
+          setError('Failed to load submission history');
+        }
       }
     } catch (err) {
-      console.error('Error fetching submission history:', err);
-      setError('Failed to load submission history');
+      console.error('Error fetching submission:', err);
+      setError('Failed to load submission');
     } finally {
       setLoading(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
   };
 
   const getStatusIcon = (submission: SubmissionResponse) => {
@@ -135,10 +183,12 @@ export const ViewMySubmissionModal = ({
           </button>
 
           <h2 className='text-lg font-bold text-gray-800'>
-            My Submission History
+            {childId ? "Child's Submission" : 'My Submission History'}
           </h2>
           <p className='text-sm text-gray-600 mt-1'>
-            View all your submissions for this assignment
+            {childId
+              ? "View your child's submission for this assignment"
+              : 'View all your submissions for this assignment'}
           </p>
         </div>
 
@@ -179,7 +229,7 @@ export const ViewMySubmissionModal = ({
                       <div className='flex items-center gap-2'>
                         {getStatusIcon(submission)}
                         <span className='text-sm font-medium text-gray-700'>
-                          Submission #{submissions.length - index}
+                          Submitted
                         </span>
                       </div>
                       <span
@@ -265,7 +315,7 @@ export const ViewMySubmissionModal = ({
                               <User className='w-3 h-3 text-green-600' />
                             </div>
                             <span className='text-sm font-medium text-green-800'>
-                              Your Note
+                              {childId ? "Your Child's Note" : 'Your Note'}
                             </span>
                           </div>
                           <p className='text-sm text-green-700 leading-relaxed whitespace-pre-wrap pl-7'>

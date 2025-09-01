@@ -17,6 +17,7 @@ const PARENT_ENDPOINTS = {
   CREATE: 'api/v1/parents',
   LIST: 'api/v1/parents',
   GET_BY_ID: (id: string) => `api/v1/parents/${id}`,
+  GET_ME: 'api/v1/parents/me',
   UPDATE: (id: string) => `api/v1/parents/${id}`,
   DELETE: (id: string) => `api/v1/parents/${id}`,
   GET_CHILDREN: (id: string) => `api/v1/parents/${id}/children`,
@@ -100,6 +101,7 @@ export interface ParentResponse {
   email: string;
   phone: string;
   occupation?: string; // Some responses may have occupation at the top level
+  profilePhotoUrl?: string; // Profile photo URL from backend
   profile?: {
     dateOfBirth?: string;
     gender?: string;
@@ -123,10 +125,13 @@ export interface ParentResponse {
   };
   children?: Array<{
     id: string;
+    studentId: string; // Student ID from backend
     fullName: string;
+    className?: string; // Class name (e.g., "10-A") from backend
     classId?: string;
     rollNumber?: string;
     relationship: string;
+    isPrimary?: boolean; // Whether this parent is the primary parent
     profilePhotoUrl?: string;
     avatar?: string;
     deletedAt?: string | null;
@@ -243,6 +248,19 @@ export class ParentService {
   async getParentById(id: string): Promise<ApiResponse<ParentResponse>> {
     return this.httpClient.get<ParentResponse>(
       PARENT_ENDPOINTS.GET_BY_ID(id),
+      undefined,
+      {
+        requiresAuth: true,
+      },
+    );
+  }
+
+  /**
+   * Get current parent's profile (for parents only)
+   */
+  async getMyProfile(): Promise<ApiResponse<ParentResponse>> {
+    return this.httpClient.get<ParentResponse>(
+      PARENT_ENDPOINTS.GET_ME,
       undefined,
       {
         requiresAuth: true,
@@ -382,6 +400,37 @@ export class ParentService {
   ): Promise<ApiResponse<ParentSearchResult[]>> {
     return this.httpClient.get<ParentSearchResult[]>(
       `api/v1/parents/search-for-linking?search=${encodeURIComponent(searchTerm)}&limit=${limit}`,
+      undefined,
+      {
+        requiresAuth: true,
+      },
+    );
+  }
+
+  /**
+   * Get all assignments for parent's children with submission status
+   * This is the essential method parents need to track their children's assignments
+   */
+  async getMyChildrenAssignments(childId?: string): Promise<ApiResponse<any>> {
+    const url = childId
+      ? `api/v1/parents/me/assignments?childId=${encodeURIComponent(childId)}`
+      : 'api/v1/parents/me/assignments';
+
+    return this.httpClient.get<any>(url, undefined, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Get child's submission for a specific assignment
+   * Parents can view their child's submission details, feedback, and attachments
+   */
+  async getChildSubmission(
+    childId: string,
+    assignmentId: string,
+  ): Promise<ApiResponse<any>> {
+    return this.httpClient.get<any>(
+      `api/v1/parents/me/children/${encodeURIComponent(childId)}/assignments/${encodeURIComponent(assignmentId)}/submission`,
       undefined,
       {
         requiresAuth: true,

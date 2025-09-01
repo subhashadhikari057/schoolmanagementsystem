@@ -27,8 +27,6 @@ import {
   UpdateParentSelfDtoType,
   LinkChildDto,
   LinkChildDtoType,
-  UnlinkChildDto,
-  UnlinkChildDtoType,
   SetPrimaryParentDto,
   SetPrimaryParentDtoType,
   GetAllParentsDto,
@@ -43,6 +41,7 @@ import { Roles } from '../../../shared/decorators/roles.decorator';
 import { UserRole } from '@sms/shared-types';
 import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 
 @Controller('api/v1/parents')
 @UseGuards(JwtAuthGuard)
@@ -56,14 +55,14 @@ export class ParentController {
     FileInterceptor('photo', createMulterConfig(UPLOAD_PATHS.PARENT_PROFILES)),
   )
   async create(
-    @Body() body: any, // We'll parse and validate this manually due to multipart form data
+    @Body() body: Record<string, unknown>, // We'll parse and validate this manually due to multipart form data
     @UploadedFile() profilePicture: Express.Multer.File,
     @CurrentUser() user: { id: string },
     @Req() req: Request,
   ) {
     try {
       // Helper function to safely parse JSON or return object if already parsed
-      const safeJsonParse = (value: any) => {
+      const safeJsonParse = (value: unknown) => {
         if (!value) return undefined;
         if (typeof value === 'object') return value; // Already parsed
         if (typeof value === 'string') return JSON.parse(value); // Parse string
@@ -140,6 +139,135 @@ export class ParentController {
     return this.parentService.getAvailableStudents();
   }
 
+  @Get('me')
+  @Roles(UserRole.PARENT)
+  async getMyProfile(@CurrentUser() user: { id: string }) {
+    return this.parentService.findByUserId(user.id);
+  }
+
+  /**
+   * Get all assignments for parent's children with submission status
+   * This is the essential endpoint parents need to track their children's assignments
+   */
+  @Get('me/assignments')
+  @Roles(UserRole.PARENT)
+  @ApiOperation({
+    summary: "Get all assignments for parent's children with submission status",
+    description:
+      "Essential endpoint for parents to track their children's assignments and submission status. Returns all assignments across all children's classes with detailed submission information. Use childId query parameter to filter for a specific child.",
+  })
+  @ApiQuery({
+    name: 'childId',
+    description: 'Optional: Filter assignments for a specific child',
+    required: false,
+    type: 'string',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved assignments with submission status',
+    schema: {
+      type: 'object',
+      properties: {
+        parent: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            fullName: { type: 'string' },
+          },
+        },
+        children: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              fullName: { type: 'string' },
+              className: { type: 'string' },
+              classId: { type: 'string' },
+              rollNumber: { type: 'string' },
+              relationship: { type: 'string' },
+              isPrimary: { type: 'boolean' },
+            },
+          },
+        },
+        assignments: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              title: { type: 'string' },
+              description: { type: 'string' },
+              dueDate: { type: 'string', format: 'date-time' },
+              subject: { type: 'object' },
+              class: { type: 'object' },
+              teacher: { type: 'object' },
+              attachments: { type: 'array' },
+              childStatuses: { type: 'array' },
+            },
+          },
+        },
+        totalAssignments: { type: 'number' },
+        message: { type: 'string' },
+      },
+    },
+  })
+  async getMyChildrenAssignments(
+    @CurrentUser() user: { id: string },
+    @Query('childId') childId?: string,
+  ) {
+    return this.parentService.getChildrenAssignmentsWithStatus(
+      user.id,
+      childId,
+    );
+  }
+
+  /**
+   * Get child's submission for a specific assignment
+   * Parents can only view their own children's submissions
+   */
+  @Get('me/children/:childId/assignments/:assignmentId/submission')
+  @Roles(UserRole.PARENT)
+  @ApiOperation({
+    summary: "Get child's submission for a specific assignment",
+    description:
+      "Parents can view their child's submission details, feedback, and attachments for a specific assignment.",
+  })
+  @ApiParam({
+    name: 'childId',
+    description: 'ID of the child',
+    type: 'string',
+  })
+  @ApiParam({
+    name: 'assignmentId',
+    description: 'ID of the assignment',
+    type: 'string',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved child submission',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      "Forbidden - Parent can only access their own children's submissions",
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Submission not found',
+  })
+  async getChildSubmission(
+    @Param('childId') childId: string,
+    @Param('assignmentId') assignmentId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.parentService.getChildSubmission(
+      user.id,
+      childId,
+      assignmentId,
+    );
+  }
+
   @Get(':id')
   @Roles(
     UserRole.SUPER_ADMIN,
@@ -202,6 +330,28 @@ export class ParentController {
       req.ip || 'unknown',
       req.headers['user-agent'] || 'unknown',
     );
+  }
+
+  @Get(':id/children')
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.TEACHER,
+    UserRole.PARENT,
+  )
+  async getParentChildren(
+    @Param('id') parentId: string,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    // If user is a parent, they can only access their own children
+    if (user.role === UserRole.PARENT) {
+      const parent = await this.parentService.findById(parentId);
+      if (parent.userId !== user.id) {
+        throw new BadRequestException('You can only access your own children');
+      }
+    }
+
+    return this.parentService.getParentChildren(parentId);
   }
 
   @Post(':id/children')
