@@ -25,6 +25,7 @@ import {
   ExamType,
   EmergencyClosureType,
 } from '../dto/calendar.dto';
+import { ExamDateslotType } from '@sms/shared-types';
 import { CalendarEntry, Prisma } from '@prisma/client';
 
 @Injectable()
@@ -69,6 +70,18 @@ export class CalendarService {
         data,
       });
 
+      // If this is an exam entry with time slots, automatically create default dateslots
+      if (entry.type === 'EXAM' && dto.startTime && dto.endTime) {
+        await this.createDefaultExamDateslots(
+          entry.id,
+          startDate,
+          endDate,
+          dto.startTime,
+          dto.endTime,
+          userId,
+        );
+      }
+
       // Recalculate working days for affected months
       await this.workingDaysService.recalculateForEvent(startDate, endDate);
 
@@ -76,6 +89,56 @@ export class CalendarService {
     } catch (error) {
       console.error('Error creating calendar entry:', error);
       throw new BadRequestException('Failed to create calendar entry');
+    }
+  }
+
+  /**
+   * Create default exam dateslots for an exam calendar entry
+   */
+  private async createDefaultExamDateslots(
+    calendarEntryId: string,
+    startDate: Date,
+    endDate: Date,
+    examStartTime: string,
+    examEndTime: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      // Generate dateslots for each day in the exam period
+      const datesToCreate: Date[] = [];
+      const currentDate = new Date(startDate);
+
+      while (currentDate <= endDate) {
+        datesToCreate.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      // Create placeholder exam dateslots for each date (without time - to be configured later)
+      const dateslotsToCreate = datesToCreate.map(date => ({
+        calendarEntryId,
+        examDate: date,
+        startTime: null, // Will be set in Date Slot Manager
+        endTime: null, // Will be set in Date Slot Manager
+        type: ExamDateslotType.EXAM,
+        label: null, // Will be set in Date Slot Manager
+        createdById: userId,
+      }));
+
+      // Use transaction to create all dateslots
+      await this.prisma.$transaction(
+        dateslotsToCreate.map(dateslot =>
+          this.prisma.examDateslot.create({
+            data: dateslot,
+          }),
+        ),
+      );
+
+      console.log(
+        `Created ${dateslotsToCreate.length} placeholder exam dateslots for calendar entry ${calendarEntryId}`,
+      );
+    } catch (error) {
+      console.error('Error creating default exam dateslots:', error);
+      // Don't throw error here as calendar entry creation should still succeed
     }
   }
 
