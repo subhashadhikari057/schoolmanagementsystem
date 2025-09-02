@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Loader2,
   Clock,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { classService } from '@/api/services/class.service';

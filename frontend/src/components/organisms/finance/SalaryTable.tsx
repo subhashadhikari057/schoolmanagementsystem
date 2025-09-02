@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import GenericList, { BaseItem } from '@/components/templates/GenericList';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
+import { TeacherService } from '@/api/services/teacher.service';
+import { StaffService } from '@/api/services/staff.service';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface SalaryData extends BaseItem {
-  id: number;
+  id: string | number;
   employeeId: string;
   name: string;
   role: string;
@@ -18,60 +22,181 @@ interface SalaryData extends BaseItem {
   date: string;
   status: string;
   payPeriod: string;
+  employeeType: 'teacher' | 'staff';
   [key: string]: unknown;
 }
-
-const allSalaryData: SalaryData[] = [
-  {
-    id: 1,
-    employeeId: 'EMP001',
-    name: 'John Doe',
-    role: 'Teacher',
-    department: 'Academic',
-    basicSalary: 6000,
-    allowances: 1500,
-    deductions: 0,
-    amount: 7500,
-    date: '2025-08-01',
-    status: 'Paid',
-    payPeriod: '2025-08',
-  },
-  {
-    id: 2,
-    employeeId: 'EMP002',
-    name: 'Jane Smith',
-    role: 'Accountant',
-    department: 'Finance',
-    basicSalary: 5500,
-    allowances: 1000,
-    deductions: 0,
-    amount: 6500,
-    date: '2025-08-01',
-    status: 'Paid',
-    payPeriod: '2025-08',
-  },
-  {
-    id: 3,
-    employeeId: 'EMP003',
-    name: 'Sam Wilson',
-    role: 'Staff',
-    department: 'Administration',
-    basicSalary: 4500,
-    allowances: 500,
-    deductions: 0,
-    amount: 5000,
-    date: '2025-08-01',
-    status: 'Pending',
-    payPeriod: '2025-08',
-  },
-];
 
 const SalaryTable = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [salaryData, setSalaryData] = useState<SalaryData[]>([]);
+  const [loading, setLoading] = useState(true);
   const itemsPerPage = 10;
+
+  // Initialize service instances
+  const teacherService = new TeacherService();
+  const staffService = new StaffService();
+
+  // Fetch teachers and staff data
+  useEffect(() => {
+    const fetchEmployeeData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch teachers and staff in parallel
+        const [teachersResponse, staffResponse] = await Promise.all([
+          teacherService.getAllTeachers(),
+          staffService.getAllStaff(),
+        ]);
+
+        const combinedSalaryData: SalaryData[] = [];
+
+        // Debug: Log the API responses to understand the data structure
+        console.log('Teachers API Response:', teachersResponse);
+        console.log('Staff API Response:', staffResponse);
+
+        // Process teachers data
+        if (teachersResponse.success && teachersResponse.data) {
+          console.log('Raw Teachers Data:', teachersResponse.data);
+          const teacherSalaries = teachersResponse.data.map(
+            (teacher: any, index: number) => {
+              // Extract name properly from different possible formats
+              let teacherName = 'Unknown Teacher';
+              if (teacher.name) {
+                teacherName = teacher.name;
+              } else if (teacher.firstName || teacher.lastName) {
+                teacherName =
+                  `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim();
+              } else if (teacher.fullName) {
+                teacherName = teacher.fullName;
+              }
+
+              return {
+                id: `teacher_${teacher.id || index}`,
+                employeeId:
+                  teacher.teacherId ||
+                  teacher.id ||
+                  `TCH${String(index + 1).padStart(3, '0')}`,
+                name: teacherName,
+                role: 'Teacher',
+                department: teacher.department || teacher.subject || 'Academic',
+                basicSalary:
+                  teacher.basicSalary ||
+                  teacher.salary ||
+                  teacher.currentSalary ||
+                  50000,
+                allowances:
+                  teacher.allowances ||
+                  Math.floor(
+                    (teacher.basicSalary ||
+                      teacher.salary ||
+                      teacher.currentSalary ||
+                      50000) * 0.2,
+                  ),
+                deductions: teacher.deductions || 0,
+                amount:
+                  (teacher.basicSalary ||
+                    teacher.salary ||
+                    teacher.currentSalary ||
+                    50000) +
+                  (teacher.allowances ||
+                    Math.floor(
+                      (teacher.basicSalary ||
+                        teacher.salary ||
+                        teacher.currentSalary ||
+                        50000) * 0.2,
+                    )) -
+                  (teacher.deductions || 0),
+                date: new Date().toISOString().split('T')[0],
+                status: Math.random() > 0.3 ? 'Paid' : 'Pending',
+                payPeriod: new Date().toISOString().slice(0, 7),
+                employeeType: 'teacher' as const,
+              };
+            },
+          );
+          combinedSalaryData.push(...teacherSalaries);
+        }
+
+        // Process staff data
+        if (staffResponse.success && staffResponse.data) {
+          console.log('Raw Staff Data:', staffResponse.data);
+          const staffSalaries = staffResponse.data.map(
+            (staff: any, index: number) => {
+              // Extract name properly from different possible formats
+              let staffName = 'Unknown Staff';
+              if (staff.name) {
+                staffName = staff.name;
+              } else if (staff.firstName || staff.lastName) {
+                staffName =
+                  `${staff.firstName || ''} ${staff.lastName || ''}`.trim();
+              } else if (staff.fullName) {
+                staffName = staff.fullName;
+              }
+
+              return {
+                id: `staff_${staff.id || index}`,
+                employeeId:
+                  staff.staffId ||
+                  staff.id ||
+                  `STF${String(index + 1).padStart(3, '0')}`,
+                name: staffName,
+                role: staff.position || staff.role || staff.jobTitle || 'Staff',
+                department: staff.department || 'Administration',
+                basicSalary:
+                  staff.basicSalary ||
+                  staff.salary ||
+                  staff.currentSalary ||
+                  40000,
+                allowances:
+                  staff.allowances ||
+                  Math.floor(
+                    (staff.basicSalary ||
+                      staff.salary ||
+                      staff.currentSalary ||
+                      40000) * 0.15,
+                  ),
+                deductions: staff.deductions || 0,
+                amount:
+                  (staff.basicSalary ||
+                    staff.salary ||
+                    staff.currentSalary ||
+                    40000) +
+                  (staff.allowances ||
+                    Math.floor(
+                      (staff.basicSalary ||
+                        staff.salary ||
+                        staff.currentSalary ||
+                        40000) * 0.15,
+                    )) -
+                  (staff.deductions || 0),
+                date: new Date().toISOString().split('T')[0],
+                status: Math.random() > 0.3 ? 'Paid' : 'Pending',
+                payPeriod: new Date().toISOString().slice(0, 7),
+                employeeType: 'staff' as const,
+              };
+            },
+          );
+          combinedSalaryData.push(...staffSalaries);
+        }
+
+        setSalaryData(combinedSalaryData);
+
+        if (combinedSalaryData.length === 0) {
+          toast.info('No employee data found');
+        }
+      } catch (error) {
+        console.error('Error fetching employee data:', error);
+        toast.error('Failed to load employee salary data');
+        setSalaryData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployeeData();
+  }, []);
 
   const salaryListConfig = {
     title: 'Salaries',
@@ -101,6 +226,9 @@ const SalaryTable = () => {
         { value: 'librarian', label: 'Librarian' },
         { value: 'security', label: 'Security' },
         { value: 'maintenance', label: 'Maintenance' },
+        { value: 'admin', label: 'Admin' },
+        { value: 'clerk', label: 'Clerk' },
+        { value: 'coordinator', label: 'Coordinator' },
       ],
     },
     columns: [
@@ -120,7 +248,7 @@ const SalaryTable = () => {
         header: 'Total Salary',
         render: (item: SalaryData) => (
           <span className='font-semibold text-green-600'>
-            ${item.amount.toLocaleString()}
+            NPR {item.amount.toLocaleString('en-NP')}
           </span>
         ),
       },
@@ -146,13 +274,13 @@ const SalaryTable = () => {
 
   // Filter and search logic
   const filteredData = useMemo(() => {
-    let filtered = allSalaryData;
+    let filtered = salaryData;
 
     // Apply search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
-        salary =>
+        (salary: SalaryData) =>
           salary.name.toLowerCase().includes(searchLower) ||
           salary.employeeId.toLowerCase().includes(searchLower) ||
           salary.role.toLowerCase().includes(searchLower) ||
@@ -166,19 +294,21 @@ const SalaryTable = () => {
     // Apply status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(
-        salary => salary.status.toLowerCase() === statusFilter.toLowerCase(),
+        (salary: SalaryData) =>
+          salary.status.toLowerCase() === statusFilter.toLowerCase(),
       );
     }
 
     // Apply role filter
     if (roleFilter !== 'all') {
       filtered = filtered.filter(
-        salary => salary.role.toLowerCase() === roleFilter.toLowerCase(),
+        (salary: SalaryData) =>
+          salary.role.toLowerCase() === roleFilter.toLowerCase(),
       );
     }
 
     return filtered;
-  }, [searchTerm, statusFilter, roleFilter]);
+  }, [salaryData, searchTerm, statusFilter, roleFilter]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -200,16 +330,23 @@ const SalaryTable = () => {
 
   return (
     <div className='space-y-6 bg-white'>
-      <GenericList
-        config={salaryListConfig}
-        data={paginatedData}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={filteredData.length}
-        itemsPerPage={itemsPerPage}
-        onPageChange={handlePageChange}
-        customActions={<ActionButtons pageType='salaries' />}
-      />
+      {loading ? (
+        <div className='flex items-center justify-center p-8'>
+          <Loader2 className='h-8 w-8 animate-spin text-blue-600' />
+          <span className='ml-2 text-gray-600'>Loading salary data...</span>
+        </div>
+      ) : (
+        <GenericList
+          config={salaryListConfig}
+          data={paginatedData}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredData.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          customActions={<ActionButtons pageType='salaries' />}
+        />
+      )}
     </div>
   );
 };

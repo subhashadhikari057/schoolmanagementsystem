@@ -95,7 +95,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
     sidebar-scroll group
     fixed md:relative top-0 left-0 z-50 md:z-auto
     h-screen border-r border-gray-200 px-4 py-2 bg-white
-  transition-transform transition-width transition-shadow transition-opacity duration-150 cubic-bezier(0.4,0,0.2,1)
+  transition-transform transition-width  duration-150 cubic-bezier(0.4,0,0.2,1)
     ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
     ${expandedByHover ? 'w-64' : isCollapsed ? 'w-20' : 'w-64'}
     shadow-lg md:shadow-none
@@ -238,7 +238,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                             className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
                               text-foreground hover:bg-muted-hover hover:font-bold
                               ${isCollapsed && !expandedByHover ? 'justify-center' : ''}
-                              ${isActive ? 'bg-gray-200 font-bold text-primary' : ''}`}
+                              ${isActive ? 'bg-blue-300 font-bold text-black' : ''}`}
                             title={isCollapsed ? item.label : ''}
                           >
                             <Icon
