@@ -27,6 +27,7 @@ const TEACHER_ENDPOINTS = {
   GET_ME: 'api/v1/teachers/me',
   GET_MY_SUBJECTS: 'api/v1/teachers/me/subjects',
   GET_MY_CLASSES: 'api/v1/teachers/me/classes',
+  GET_CLASS_TEACHER_STATUS: 'api/v1/teachers/me/class-teacher-status',
   GET_MY_SUBJECTS_FOR_CLASS: (classId: string) =>
     `api/v1/teachers/me/classes/${classId}/subjects`,
   GET_BY_ID: (id: string) => `api/v1/teachers/${id}`,
@@ -416,6 +417,37 @@ export class TeacherService {
     return this.httpClient.get<
       Array<{ subject: { id: string; name: string; code: string } }>
     >(TEACHER_ENDPOINTS.GET_MY_SUBJECTS_FOR_CLASS(classId), undefined, {
+      requiresAuth: true,
+    });
+  }
+
+  /**
+   * Check if current teacher is a class teacher and get attendance status
+   */
+  async getClassTeacherStatus(): Promise<
+    ApiResponse<{
+      isClassTeacher: boolean;
+      classDetails: {
+        id: string;
+        grade: number;
+        section: string;
+        currentEnrollment: number;
+      } | null;
+      attendanceTakenToday: boolean;
+      message: string;
+    }>
+  > {
+    return this.httpClient.get<{
+      isClassTeacher: boolean;
+      classDetails: {
+        id: string;
+        grade: number;
+        section: string;
+        currentEnrollment: number;
+      } | null;
+      attendanceTakenToday: boolean;
+      message: string;
+    }>(TEACHER_ENDPOINTS.GET_CLASS_TEACHER_STATUS, undefined, {
       requiresAuth: true,
     });
   }

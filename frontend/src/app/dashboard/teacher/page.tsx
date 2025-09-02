@@ -70,6 +70,21 @@ export default function TeacherDashboard() {
   const [classesLoading, setClassesLoading] = useState(true);
   const [mainLoading, setMainLoading] = useState(true);
 
+  // Class teacher status and attendance tracking
+  const [classTeacherStatus, setClassTeacherStatus] = useState<{
+    isClassTeacher: boolean;
+    classDetails: {
+      id: string;
+      grade: number;
+      section: string;
+      currentEnrollment: number;
+    } | null;
+    attendanceTakenToday: boolean;
+    message: string;
+  } | null>(null);
+  const [classTeacherStatusLoading, setClassTeacherStatusLoading] =
+    useState(true);
+
   // Main page loading effect
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -113,10 +128,34 @@ export default function TeacherDashboard() {
     }
   }, [user]);
 
+  const loadClassTeacherStatus = useCallback(async () => {
+    if (!user?.id) {
+      setClassTeacherStatusLoading(false);
+      return;
+    }
+
+    try {
+      setClassTeacherStatusLoading(true);
+      const response = await teacherService.getClassTeacherStatus();
+      setClassTeacherStatus(response.data);
+    } catch (error) {
+      console.error('Failed to load class teacher status:', error);
+      setClassTeacherStatus({
+        isClassTeacher: false,
+        classDetails: null,
+        attendanceTakenToday: false,
+        message: 'Error loading status',
+      });
+    } finally {
+      setClassTeacherStatusLoading(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     loadSubjects();
     loadClasses();
-  }, [loadSubjects, loadClasses]);
+    loadClassTeacherStatus();
+  }, [loadSubjects, loadClasses, loadClassTeacherStatus]);
 
   const handleClassClick = (classId: string) => {
     router.push(`/dashboard/teacher/academics/classes/${classId}`);
@@ -264,28 +303,60 @@ export default function TeacherDashboard() {
             />
           )}
 
-          {/* Attendance CTA */}
-          <div className='rounded-xl border border-blue-200 bg-blue-50/60'>
-            <div className='px-4 py-2 space-y-1 flex flex-col items-start justify-start'>
-              <Label className='!text-[11px] text-gray-600'>
-                Hey its the first class!
-              </Label>
-              <Label className='!text-[12px] sm:!text-sm !text-foreground'>
-                Lets track Your students Attendance
-              </Label>
-            </div>
-            <div className='px-3 pb-3'>
-              <div className='bg-blue-600/90 text-white rounded-md py-2 text-center shadow-sm hover:bg-blue-400'>
-                <div className='flex items-center justify-center px-3'>
-                  <Button
-                    className=' text-white  rounded-md text-xs cursor-pointer font-semibold'
-                    label='Track Now'
-                    onClick={() => setShowAttendance(true)}
-                  />
-                </div>
+          {/* Attendance CTA - Only show if teacher is a class teacher */}
+          {classTeacherStatusLoading ? (
+            <div className='rounded-xl border border-gray-200 bg-gray-50 animate-pulse'>
+              <div className='px-4 py-6'>
+                <div className='h-4 bg-gray-300 rounded w-1/2 mb-2'></div>
+                <div className='h-3 bg-gray-300 rounded w-3/4'></div>
               </div>
             </div>
-          </div>
+          ) : classTeacherStatus?.isClassTeacher ? (
+            <div
+              className={`rounded-xl border ${
+                classTeacherStatus.attendanceTakenToday
+                  ? 'border-green-200 bg-green-50/60'
+                  : 'border-blue-200 bg-blue-50/60'
+              }`}
+            >
+              <div className='px-4 py-2 space-y-1 flex flex-col items-start justify-start'>
+                <Label className='!text-[11px] text-gray-600'>
+                  {classTeacherStatus.attendanceTakenToday
+                    ? '✅ Attendance completed for today!'
+                    : '📋 Time to mark attendance'}
+                </Label>
+                <Label className='!text-[12px] sm:!text-sm !text-foreground'>
+                  Grade {classTeacherStatus.classDetails?.grade}-
+                  {classTeacherStatus.classDetails?.section} (
+                  {classTeacherStatus.classDetails?.currentEnrollment} students)
+                </Label>
+              </div>
+              {!classTeacherStatus.attendanceTakenToday && (
+                <div className='px-3 pb-3'>
+                  <div className='bg-blue-600/90 text-white rounded-md py-2 text-center shadow-sm hover:bg-blue-400'>
+                    <div className='flex items-center justify-center px-3'>
+                      <Button
+                        className='text-white rounded-md text-xs cursor-pointer font-semibold'
+                        label='Mark Attendance'
+                        onClick={() => setShowAttendance(true)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {classTeacherStatus.attendanceTakenToday && (
+                <div className='px-3 pb-3'>
+                  <div className='bg-green-600/90 text-white rounded-md py-2 text-center shadow-sm'>
+                    <div className='flex items-center justify-center px-3'>
+                      <Label className='text-white text-xs font-semibold'>
+                        All set for today! 🎉
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
 
           {/* Your Classes */}
           <div className='space-y-2'>
@@ -450,6 +521,21 @@ export default function TeacherDashboard() {
       <MarkAttendanceModal
         isOpen={showAttendance}
         onClose={() => setShowAttendance(false)}
+        selectedClass={
+          classTeacherStatus?.classDetails
+            ? {
+                id: classTeacherStatus.classDetails.id,
+                grade: `${classTeacherStatus.classDetails.grade}`,
+                section: classTeacherStatus.classDetails.section,
+                students: classTeacherStatus.classDetails.currentEnrollment,
+              }
+            : undefined
+        }
+        onSuccess={() => {
+          // Refresh class teacher status after successful attendance marking
+          loadClassTeacherStatus();
+        }}
+        restrictToToday={true}
       />
     </div>
   );

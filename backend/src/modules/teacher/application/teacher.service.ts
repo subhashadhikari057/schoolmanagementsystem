@@ -1255,4 +1255,105 @@ export class TeacherService {
 
     return allStudents;
   }
+
+  /**
+   * Check if the logged-in teacher is a class teacher and get attendance status
+   */
+  async getClassTeacherStatus(userId: string) {
+    try {
+      // Find the teacher by user ID
+      const teacher = await this.prisma.teacher.findFirst({
+        where: { userId, deletedAt: null },
+        include: {
+          classesAsTeacher: {
+            where: { deletedAt: null },
+            include: {
+              students: {
+                where: { deletedAt: null },
+                select: { id: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (!teacher) {
+        return {
+          isClassTeacher: false,
+          classDetails: null,
+          attendanceTakenToday: false,
+          message: 'Teacher not found',
+        };
+      }
+
+      // Check if teacher is assigned as class teacher to any class
+      const classTeacherClass = teacher.classesAsTeacher[0]; // A teacher should only be class teacher for one class
+
+      if (!classTeacherClass) {
+        return {
+          isClassTeacher: false,
+          classDetails: null,
+          attendanceTakenToday: false,
+          message: 'Not assigned as class teacher',
+        };
+      }
+
+      // Check if attendance is already taken today
+      const today = new Date();
+      const todayDateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const todayDate = new Date(todayDateString); // Convert back to Date for proper comparison
+
+      console.log('Checking attendance for today:', {
+        todayDateString,
+        todayDate,
+        classId: classTeacherClass.id,
+      });
+
+      const todayAttendance = await this.prisma.attendanceSession.findUnique({
+        where: {
+          classId_date_sessionType: {
+            classId: classTeacherClass.id,
+            date: todayDate,
+            sessionType: 'daily',
+          },
+        },
+        include: {
+          records: true,
+        },
+      });
+
+      console.log(
+        'Found today attendance session:',
+        todayAttendance
+          ? {
+              id: todayAttendance.id,
+              date: todayAttendance.date,
+              recordsCount: todayAttendance.records.length,
+            }
+          : 'NO SESSION FOUND',
+      );
+
+      return {
+        isClassTeacher: true,
+        classDetails: {
+          id: classTeacherClass.id,
+          grade: classTeacherClass.grade,
+          section: classTeacherClass.section,
+          currentEnrollment: classTeacherClass.students.length,
+        },
+        attendanceTakenToday: !!todayAttendance,
+        message: todayAttendance
+          ? 'Attendance already taken for today'
+          : 'Attendance pending for today',
+      };
+    } catch (error) {
+      console.error('Error checking class teacher status:', error);
+      return {
+        isClassTeacher: false,
+        classDetails: null,
+        attendanceTakenToday: false,
+        message: 'Error checking status',
+      };
+    }
+  }
 }

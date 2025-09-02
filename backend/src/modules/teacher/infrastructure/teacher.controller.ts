@@ -224,6 +224,12 @@ export class TeacherController {
     return this.teacherService.getAssignedClasses(teacher.id);
   }
 
+  @Get('me/class-teacher-status')
+  @Roles(UserRole.TEACHER)
+  async getClassTeacherStatus(@CurrentUser() user: any) {
+    return this.teacherService.getClassTeacherStatus(user.id);
+  }
+
   @Get(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findById(@Param('id') id: string) {
