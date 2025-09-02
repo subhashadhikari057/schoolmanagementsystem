@@ -11,6 +11,7 @@ import {
   Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { expenseCategories } from '@/constants/expenseCategories';
 
 interface AddExpenseModalProps {
   isOpen: boolean;
@@ -26,7 +27,6 @@ interface ExpenseFormData {
   vendor?: string;
   reference?: string;
   notes?: string;
-  status: 'Pending' | 'Paid';
 }
 
 const initialFormData: ExpenseFormData = {
@@ -37,7 +37,6 @@ const initialFormData: ExpenseFormData = {
   vendor: '',
   reference: '',
   notes: '',
-  status: 'Pending',
 };
 
 // Reusable labeled input component
@@ -201,22 +200,9 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const categoryOptions = [
-    { value: 'utilities', label: 'Utilities' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'supplies', label: 'Supplies' },
-    { value: 'transport', label: 'Transport' },
-    { value: 'equipment', label: 'Equipment' },
-    { value: 'software', label: 'Software' },
-    { value: 'infrastructure', label: 'Infrastructure' },
-    { value: 'marketing', label: 'Marketing' },
-    { value: 'other', label: 'Other' },
-  ];
+  const categoryOptions = expenseCategories;
 
-  const statusOptions = [
-    { value: 'Pending', label: 'Pending' },
-    { value: 'Paid', label: 'Paid' },
-  ];
+  // status removed
 
   // Handle input changes
   const handleInputChange = (
@@ -371,16 +357,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   error={errors.date}
                 />
 
-                <LabeledSelect
-                  label='Status'
-                  name='status'
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  options={statusOptions}
-                  placeholder='Select status'
-                  required
-                  error={errors.status}
-                />
+                {/* Status removed */}
               </div>
 
               <LabeledInput

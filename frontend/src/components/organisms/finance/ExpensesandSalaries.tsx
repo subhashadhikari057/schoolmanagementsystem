@@ -5,35 +5,36 @@ import StatCard from '@/components/molecules/cards/StatCard';
 import { FileText, Users, DollarSign, TrendingUp } from 'lucide-react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Tabs from '@/components/organisms/tabs/GenericTabs';
+import AssetTab from './AssetTab';
 import ExpensesTab from './ExpensesTab';
 import SalaryTab from './SalaryTab';
 
 const stats = [
   {
     label: 'Total Expenses',
-    value: '$1.2M',
+    value: 'NPR 12M',
     icon: DollarSign,
     bgColor: 'bg-red-100',
     iconColor: 'text-red-600',
-    change: '+$50K',
+    change: '+NPR 500K',
     isPositive: false,
   },
   {
     label: 'Monthly Average',
-    value: '$100K',
+    value: 'NPR 1M',
     icon: TrendingUp,
     bgColor: 'bg-yellow-100',
     iconColor: 'text-yellow-600',
-    change: '+$5K',
+    change: '+NPR 50K',
     isPositive: true,
   },
   {
     label: 'Total Salaries',
-    value: '$900K',
+    value: 'NPR 9M',
     icon: DollarSign,
     bgColor: 'bg-green-100',
     iconColor: 'text-green-600',
-    change: '+$20K',
+    change: '+NPR 200K',
     isPositive: true,
   },
   {
@@ -55,6 +56,10 @@ const tabs = [
   {
     name: 'Salaries',
     content: <SalaryTab />,
+  },
+  {
+    name: 'Asset Management',
+    content: <AssetTab />,
   },
 ];
 

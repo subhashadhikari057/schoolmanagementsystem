@@ -3,14 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import {
   X,
-  DollarSign,
   User,
-  Calendar,
-  Building,
+  Search,
+  TrendingUp,
+  TrendingDown,
   Loader2,
   Save,
+  ArrowUp,
+  ArrowDown,
+  Calculator,
+  Calendar,
+  Coins,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TeacherService } from '@/api/services/teacher.service';
+import { StaffService } from '@/api/services/staff.service';
+import { ad2bs, bs2ad } from 'hamro-nepali-patro';
 
 interface AddSalaryModalProps {
   isOpen: boolean;
@@ -18,339 +26,378 @@ interface AddSalaryModalProps {
   onSuccess: () => void;
 }
 
-interface SalaryFormData {
+interface Employee {
+  id: string;
   employeeId: string;
-  employeeName: string;
+  name: string;
   role: string;
   department: string;
-  basicSalary: number | '';
-  allowances: number | '';
-  deductions: number | '';
-  totalSalary: number;
-  payDate: string;
-  payPeriod: string;
-  status: 'Pending' | 'Paid' | 'Processing';
-  notes?: string;
+  basicSalary: number;
+  allowances: number;
+  currentSalary: number;
+  type: 'teacher' | 'staff';
 }
 
-const initialFormData: SalaryFormData = {
-  employeeId: '',
-  employeeName: '',
-  role: '',
-  department: '',
-  basicSalary: '',
-  allowances: '',
-  deductions: '',
-  totalSalary: 0,
-  payDate: new Date().toISOString().split('T')[0],
-  payPeriod: new Date().toLocaleDateString('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-  }), // YYYY-MM format
-  status: 'Pending',
-  notes: '',
-};
-
-// Reusable labeled input component
-const LabeledInput: React.FC<{
-  label: string;
-  name: string;
-  type?: string;
-  value: string | number;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder?: string;
-  required?: boolean;
-  disabled?: boolean;
-  error?: string;
-  min?: string | number;
-}> = ({
-  label,
-  name,
-  type = 'text',
-  value,
-  onChange,
-  placeholder,
-  required,
-  disabled,
-  error,
-  min,
-}) => (
-  <div>
-    <label className='text-sm font-medium leading-none mb-2 block'>
-      {label}
-      {required && <span className='text-red-500 ml-1'>*</span>}
-    </label>
-    <input
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      disabled={disabled}
-      min={min}
-      className={`flex h-10 w-full rounded-md border ${
-        error ? 'border-red-500' : 'border-gray-300'
-      } bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${disabled ? 'bg-gray-50' : ''}`}
-      aria-invalid={error ? 'true' : 'false'}
-    />
-    {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
-  </div>
-);
-
-// Reusable labeled select component
-const LabeledSelect: React.FC<{
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  options: { value: string; label: string }[];
-  placeholder?: string;
-  required?: boolean;
-  disabled?: boolean;
-  error?: string;
-}> = ({
-  label,
-  name,
-  value,
-  onChange,
-  options,
-  placeholder = 'Select option',
-  required,
-  disabled,
-  error,
-}) => (
-  <div>
-    <label className='text-sm font-medium leading-none mb-2 block'>
-      {label}
-      {required && <span className='text-red-500 ml-1'>*</span>}
-    </label>
-    <select
-      name={name}
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      className={`flex h-10 w-full rounded-md border ${
-        error ? 'border-red-500' : 'border-gray-300'
-      } bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${disabled ? 'bg-gray-50' : ''}`}
-      aria-invalid={error ? 'true' : 'false'}
-    >
-      <option value=''>{placeholder}</option>
-      {options.map(option => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-    {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
-  </div>
-);
-
-// Reusable labeled textarea component
-const LabeledTextarea: React.FC<{
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  placeholder?: string;
-  required?: boolean;
-  disabled?: boolean;
-  error?: string;
-  rows?: number;
-}> = ({
-  label,
-  name,
-  value,
-  onChange,
-  placeholder,
-  required,
-  disabled,
-  error,
-  rows = 3,
-}) => (
-  <div>
-    <label className='text-sm font-medium leading-none mb-2 block'>
-      {label}
-      {required && <span className='text-red-500 ml-1'>*</span>}
-    </label>
-    <textarea
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      disabled={disabled}
-      rows={rows}
-      className={`flex w-full rounded-md border ${
-        error ? 'border-red-500' : 'border-gray-300'
-      } bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 resize-none ${disabled ? 'bg-gray-50' : ''}`}
-      aria-invalid={error ? 'true' : 'false'}
-    />
-    {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
-  </div>
-);
-
-// Form section wrapper
-const FormSection: React.FC<{
-  title: string;
-  icon: React.ElementType;
-  children: React.ReactNode;
-}> = ({ title, icon: Icon, children }) => (
-  <div className='bg-gray-50 p-4 rounded-lg'>
-    <div className='flex items-center gap-2 mb-3'>
-      <Icon className='h-5 w-5 text-gray-600' />
-      <h3 className='text-md font-semibold text-gray-900'>{title}</h3>
-    </div>
-    <div className='space-y-4'>{children}</div>
-  </div>
-);
+interface SalaryAdjustment {
+  method: 'flat' | 'percent';
+  percentage?: number;
+  amount: number;
+  direction: 'promotion' | 'demotion';
+  newSalary: number;
+  difference: number;
+  percentChange: number;
+  effectiveDate: string;
+  effectiveDateBS: string;
+}
 
 const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
 }) => {
-  const [formData, setFormData] = useState<SalaryFormData>(initialFormData);
+  const [currentStep, setCurrentStep] = useState<'search' | 'adjust'>('search');
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null,
+  );
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
 
-  const roleOptions = [
-    { value: 'teacher', label: 'Teacher' },
-    { value: 'accountant', label: 'Accountant' },
-    { value: 'staff', label: 'Staff' },
-    { value: 'administrator', label: 'Administrator' },
-    { value: 'principal', label: 'Principal' },
-    { value: 'vice-principal', label: 'Vice Principal' },
-    { value: 'librarian', label: 'Librarian' },
-    { value: 'security', label: 'Security' },
-    { value: 'maintenance', label: 'Maintenance' },
-  ];
+  // API service instances
+  const teacherService = new TeacherService();
+  const staffService = new StaffService();
 
-  const departmentOptions = [
-    { value: 'academic', label: 'Academic' },
-    { value: 'administration', label: 'Administration' },
-    { value: 'finance', label: 'Finance' },
-    { value: 'hr', label: 'Human Resources' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'security', label: 'Security' },
-    { value: 'library', label: 'Library' },
-    { value: 'canteen', label: 'Canteen' },
-    { value: 'transport', label: 'Transport' },
-    { value: 'it', label: 'IT Support' },
-  ];
+  // Salary adjustment state
+  const [adjustment, setAdjustment] = useState<SalaryAdjustment>({
+    method: 'flat',
+    percentage: undefined,
+    amount: 0,
+    direction: 'promotion',
+    newSalary: 0,
+    difference: 0,
+    percentChange: 0,
+    effectiveDate: new Date().toISOString().split('T')[0],
+    effectiveDateBS: '',
+  });
 
-  const statusOptions = [
-    { value: 'Pending', label: 'Pending' },
-    { value: 'Processing', label: 'Processing' },
-    { value: 'Paid', label: 'Paid' },
-  ];
-
-  // Auto-calculate total salary when components change
+  // Initialize Nepali date
   useEffect(() => {
-    const basic =
-      typeof formData.basicSalary === 'number'
-        ? formData.basicSalary
-        : parseFloat(formData.basicSalary) || 0;
-    const allowances =
-      typeof formData.allowances === 'number'
-        ? formData.allowances
-        : parseFloat(formData.allowances) || 0;
-    const deductions =
-      typeof formData.deductions === 'number'
-        ? formData.deductions
-        : parseFloat(formData.deductions) || 0;
-
-    const total = basic + allowances - deductions;
-    setFormData(prev => ({ ...prev, totalSalary: Math.max(0, total) }));
-  }, [formData.basicSalary, formData.allowances, formData.deductions]);
-
-  // Handle input changes
-  const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-
-    if (['basicSalary', 'allowances', 'deductions'].includes(name)) {
-      // For number fields, allow empty string or valid numbers
-      const numValue = value === '' ? '' : parseFloat(value) || '';
-      setFormData(prev => ({ ...prev, [name]: numValue }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+    try {
+      const today = new Date();
+      const bsDate = ad2bs(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate(),
+      );
+      setAdjustment(prev => ({
+        ...prev,
+        effectiveDateBS: `${bsDate.year}-${String(bsDate.month).padStart(2, '0')}-${String(bsDate.date).padStart(2, '0')}`,
+      }));
+    } catch (error) {
+      console.error('Error converting to BS date:', error);
     }
+  }, []);
 
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  // Validate form
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.employeeId.trim())
-      newErrors.employeeId = 'Employee ID is required';
-    if (!formData.employeeName.trim())
-      newErrors.employeeName = 'Employee name is required';
-    if (!formData.role) newErrors.role = 'Role is required';
-    if (!formData.department) newErrors.department = 'Department is required';
-
-    const basicSalary =
-      typeof formData.basicSalary === 'number'
-        ? formData.basicSalary
-        : parseFloat(formData.basicSalary) || 0;
-    // Remove validation that requires basicSalary > 0 - accept any number
-
-    if (!formData.payDate) newErrors.payDate = 'Pay date is required';
-    if (!formData.payPeriod) newErrors.payPeriod = 'Pay period is required';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      toast.error('Please fix the errors before submitting');
+  // Load employees from backend APIs
+  const loadEmployees = async () => {
+    if (!searchTerm.trim()) {
+      setFilteredEmployees([]);
       return;
     }
 
-    setSaving(true);
-
+    setIsLoadingEmployees(true);
     try {
-      // Simulate API call - replace with actual API integration
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Fetch teachers and staff concurrently
+      const [teachersResponse, staffResponse] = await Promise.allSettled([
+        teacherService.getAllTeachers(),
+        staffService.getAllStaff(),
+      ]);
 
-      toast.success('Salary record added successfully', {
-        description: `Salary for ${formData.employeeName} (${formData.role}) has been recorded.`,
-      });
+      let allEmployees: Employee[] = [];
 
-      // Reset form
-      setFormData(initialFormData);
-      setErrors({});
+      // Debug: Log the API responses to understand the data structure
+      console.log('Modal - Teachers API Response:', teachersResponse);
+      console.log('Modal - Staff API Response:', staffResponse);
 
-      onSuccess();
-      onClose();
+      // Process teachers
+      if (
+        teachersResponse.status === 'fulfilled' &&
+        teachersResponse.value.success
+      ) {
+        console.log('Modal - Raw Teachers Data:', teachersResponse.value.data);
+        const teachers = teachersResponse.value.data.map((teacher: any) => {
+          // Extract name properly from different possible formats
+          let teacherName = 'Unknown Teacher';
+          if (teacher.fullName) {
+            teacherName = teacher.fullName;
+          } else if (teacher.name) {
+            teacherName = teacher.name;
+          } else if (teacher.firstName || teacher.lastName) {
+            teacherName =
+              `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim();
+          }
+
+          return {
+            id: teacher.id,
+            employeeId:
+              teacher.employeeId || teacher.teacherId || `TCH${teacher.id}`,
+            name: teacherName,
+            role: teacher.designation || 'Teacher',
+            department: teacher.department || teacher.subject || 'Academic',
+            basicSalary:
+              teacher.basicSalary ||
+              teacher.salary ||
+              teacher.currentSalary ||
+              0,
+            allowances: teacher.allowances || 0,
+            currentSalary:
+              teacher.totalSalary ||
+              (teacher.basicSalary || teacher.salary || 0) +
+                (teacher.allowances || 0),
+            type: 'teacher' as const,
+          };
+        });
+        allEmployees = [...allEmployees, ...teachers];
+      }
+
+      // Process staff
+      if (staffResponse.status === 'fulfilled' && staffResponse.value.success) {
+        console.log('Modal - Raw Staff Data:', staffResponse.value.data.data);
+        const staff =
+          staffResponse.value.data.data?.map((staffMember: any) => {
+            // Extract name properly from different possible formats
+            let staffName = 'Unknown Staff';
+            if (staffMember.fullName) {
+              staffName = staffMember.fullName;
+            } else if (staffMember.name) {
+              staffName = staffMember.name;
+            } else if (staffMember.firstName || staffMember.lastName) {
+              staffName =
+                `${staffMember.firstName || ''} ${staffMember.lastName || ''}`.trim();
+            }
+
+            return {
+              id: staffMember.id,
+              employeeId:
+                staffMember.employeeId ||
+                staffMember.staffId ||
+                `STF${staffMember.id}`,
+              name: staffName,
+              role:
+                staffMember.designation ||
+                staffMember.position ||
+                staffMember.role ||
+                'Staff',
+              department: staffMember.department || 'Administration',
+              basicSalary:
+                staffMember.basicSalary ||
+                staffMember.salary ||
+                staffMember.currentSalary ||
+                0,
+              allowances: staffMember.allowances || 0,
+              currentSalary:
+                staffMember.totalSalary ||
+                (staffMember.basicSalary || staffMember.salary || 0) +
+                  (staffMember.allowances || 0),
+              type: 'staff' as const,
+            };
+          }) || [];
+        allEmployees = [...allEmployees, ...staff];
+      }
+
+      // Filter employees based on search term
+      const filtered = allEmployees.filter(
+        emp =>
+          emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          emp.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          emp.department.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+
+      setFilteredEmployees(filtered);
     } catch (error) {
-      console.error('Error adding salary record:', error);
-      toast.error('Failed to add salary record', {
-        description:
-          'There was a problem adding the salary record. Please try again.',
+      console.error('Error loading employees:', error);
+      toast.error('Failed to load employees', {
+        description: 'Please try again or check your connection.',
+      });
+      setFilteredEmployees([]);
+    } finally {
+      setIsLoadingEmployees(false);
+    }
+  };
+
+  // Debounced employee search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm.trim()) {
+        setIsSearching(true);
+        loadEmployees().finally(() => setIsSearching(false));
+      } else {
+        setFilteredEmployees([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Calculate salary adjustment
+  useEffect(() => {
+    if (!selectedEmployee) return;
+
+    let newSalary = selectedEmployee.currentSalary;
+    let adjustmentAmount = adjustment.amount;
+
+    if (adjustment.method === 'percent' && adjustment.percentage) {
+      adjustmentAmount =
+        (selectedEmployee.currentSalary * adjustment.percentage) / 100;
+    }
+
+    if (adjustment.direction === 'promotion') {
+      newSalary = selectedEmployee.currentSalary + adjustmentAmount;
+    } else {
+      newSalary = selectedEmployee.currentSalary - adjustmentAmount;
+    }
+
+    const difference = newSalary - selectedEmployee.currentSalary;
+    const percentChange = (difference / selectedEmployee.currentSalary) * 100;
+
+    setAdjustment(prev => ({
+      ...prev,
+      newSalary: Math.max(0, newSalary),
+      difference,
+      percentChange,
+    }));
+  }, [
+    selectedEmployee,
+    adjustment.method,
+    adjustment.percentage,
+    adjustment.amount,
+    adjustment.direction,
+  ]);
+
+  // Reset modal state when closed
+  useEffect(() => {
+    if (!isOpen) {
+      setCurrentStep('search');
+      setSelectedEmployee(null);
+      setSearchTerm('');
+      setFilteredEmployees([]);
+
+      // Reset adjustment with current date
+      const today = new Date();
+      try {
+        const bsDate = ad2bs(
+          today.getFullYear(),
+          today.getMonth() + 1,
+          today.getDate(),
+        );
+        setAdjustment({
+          method: 'flat',
+          percentage: undefined,
+          amount: 0,
+          direction: 'promotion',
+          newSalary: 0,
+          difference: 0,
+          percentChange: 0,
+          effectiveDate: today.toISOString().split('T')[0],
+          effectiveDateBS: `${bsDate.year}-${String(bsDate.month).padStart(2, '0')}-${String(bsDate.date).padStart(2, '0')}`,
+        });
+      } catch (error) {
+        console.error('Error converting to BS date:', error);
+        setAdjustment({
+          method: 'flat',
+          percentage: undefined,
+          amount: 0,
+          direction: 'promotion',
+          newSalary: 0,
+          difference: 0,
+          percentChange: 0,
+          effectiveDate: today.toISOString().split('T')[0],
+          effectiveDateBS: '',
+        });
+      }
+    }
+  }, [isOpen]);
+
+  const handleEmployeeSelect = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setCurrentStep('adjust');
+    setAdjustment(prev => ({
+      ...prev,
+      newSalary: employee.currentSalary,
+    }));
+  };
+
+  const handleBackToSearch = () => {
+    setCurrentStep('search');
+    setSelectedEmployee(null);
+  };
+
+  const handleAdjustmentChange = (
+    field: keyof SalaryAdjustment,
+    value: any,
+  ) => {
+    setAdjustment(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedEmployee) return;
+
+    setSaving(true);
+    try {
+      const salaryData = {
+        basicSalary: selectedEmployee.basicSalary,
+        allowances:
+          selectedEmployee.allowances +
+          (adjustment.direction === 'promotion'
+            ? adjustment.amount
+            : -adjustment.amount),
+        changeType: (adjustment.direction === 'promotion'
+          ? 'PROMOTION'
+          : 'DEMOTION') as 'PROMOTION' | 'DEMOTION',
+        changeReason: `Salary ${adjustment.direction} - ${adjustment.method === 'percent' ? `${adjustment.percentage}% adjustment` : `NPR ${adjustment.amount.toLocaleString()} adjustment`}`,
+        effectiveMonth: new Date().toISOString(),
+      };
+
+      let response;
+      if (selectedEmployee.type === 'teacher') {
+        response = await teacherService.updateTeacherSalary(
+          selectedEmployee.id,
+          salaryData,
+        );
+      } else {
+        response = await staffService.updateStaffSalary(
+          selectedEmployee.id,
+          salaryData,
+        );
+      }
+
+      if (response.success) {
+        toast.success('Salary adjustment recorded successfully', {
+          description: `${selectedEmployee.name}'s salary has been ${adjustment.direction === 'promotion' ? 'increased' : 'decreased'} by ${Math.abs(adjustment.percentChange).toFixed(1)}%.`,
+        });
+
+        onSuccess();
+        onClose();
+      } else {
+        throw new Error(response.message || 'Failed to update salary');
+      }
+    } catch (error: any) {
+      console.error('Error saving salary adjustment:', error);
+      toast.error('Failed to save salary adjustment', {
+        description: error.message || 'Please try again.',
       });
     } finally {
       setSaving(false);
     }
   };
 
-  // Reset form when modal closes
-  React.useEffect(() => {
-    if (!isOpen) {
-      setFormData(initialFormData);
-      setErrors({});
-    }
-  }, [isOpen]);
+  // Format NPR currency
+  const formatNPR = (amount: number) => {
+    return `NPR ${amount.toLocaleString('en-NP')}`;
+  };
 
   if (!isOpen) return null;
 
@@ -362,7 +409,7 @@ const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
       onClick={onClose}
     >
       <div
-        className='bg-white rounded-xl w-full max-w-full sm:max-w-2xl lg:max-w-3xl shadow-2xl animate-in fade-in duration-300 max-h-[90vh] overflow-y-auto'
+        className='bg-white rounded-xl w-full max-w-full sm:max-w-4xl shadow-2xl animate-in fade-in duration-300 max-h-[90vh] overflow-y-auto'
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -375,214 +422,616 @@ const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
           </button>
 
           <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>
-            Add Salary Record
+            {currentStep === 'search' ? 'Select Employee' : 'Salary Adjustment'}
           </h2>
           <p className='text-gray-600 mt-1 text-sm sm:text-base'>
-            Record salary payment for an employee
+            {currentStep === 'search'
+              ? 'Search and select an employee to adjust their salary'
+              : `Adjust salary for ${selectedEmployee?.name}`}
           </p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className='p-4 sm:p-6'>
-          <div className='space-y-6'>
-            {/* Employee Information */}
-            <FormSection title='Employee Information' icon={User}>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <LabeledInput
-                  label='Employee ID'
-                  name='employeeId'
-                  value={formData.employeeId}
-                  onChange={handleInputChange}
-                  placeholder='Enter employee ID'
-                  required
-                  error={errors.employeeId}
-                />
+        {/* Content */}
+        <div className='p-4 sm:p-6'>
+          {currentStep === 'search' ? (
+            <EmployeeSearchStep
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              filteredEmployees={filteredEmployees}
+              isSearching={isSearching || isLoadingEmployees}
+              onEmployeeSelect={handleEmployeeSelect}
+              formatCurrency={formatNPR}
+            />
+          ) : (
+            <SalaryAdjustmentStep
+              employee={selectedEmployee!}
+              adjustment={adjustment}
+              onAdjustmentChange={handleAdjustmentChange}
+              onBack={handleBackToSearch}
+              formatCurrency={formatNPR}
+            />
+          )}
+        </div>
 
-                <LabeledInput
-                  label='Employee Name'
-                  name='employeeName'
-                  value={formData.employeeName}
-                  onChange={handleInputChange}
-                  placeholder='Enter employee name'
-                  required
-                  error={errors.employeeName}
-                />
+        {/* Footer */}
+        {currentStep === 'adjust' && (
+          <div className='bg-gray-50 px-4 sm:px-6 py-4 rounded-b-xl flex justify-between items-center sticky bottom-0'>
+            <button
+              type='button'
+              onClick={handleBackToSearch}
+              className='px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors'
+            >
+              ← Back to Search
+            </button>
+            <div className='flex gap-2'>
+              <button
+                type='button'
+                onClick={onClose}
+                className='px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors'
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type='button'
+                onClick={handleSubmit}
+                disabled={saving || adjustment.difference === 0}
+                className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className='h-4 w-4 animate-spin mr-2' />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className='h-4 w-4 mr-2' />
+                    Save & Create
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
-                <LabeledSelect
-                  label='Role'
-                  name='role'
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  options={roleOptions}
-                  placeholder='Select employee role'
-                  required
-                  error={errors.role}
-                />
+// Employee Search Step Component
+interface EmployeeSearchStepProps {
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+  filteredEmployees: Employee[];
+  isSearching: boolean;
+  onEmployeeSelect: (employee: Employee) => void;
+  formatCurrency: (amount: number) => string;
+}
 
-                <LabeledSelect
-                  label='Department'
-                  name='department'
-                  value={formData.department}
-                  onChange={handleInputChange}
-                  options={departmentOptions}
-                  placeholder='Select department'
-                  required
-                  error={errors.department}
-                />
-              </div>
-            </FormSection>
+const EmployeeSearchStep: React.FC<EmployeeSearchStepProps> = ({
+  searchTerm,
+  onSearchChange,
+  filteredEmployees,
+  isSearching,
+  onEmployeeSelect,
+  formatCurrency,
+}) => {
+  return (
+    <div className='space-y-6'>
+      {/* Search Bar */}
+      <div className='relative'>
+        <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+        <input
+          type='text'
+          placeholder='Search employees by ID, name, or role...'
+          value={searchTerm}
+          onChange={e => onSearchChange(e.target.value)}
+          className='w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+        />
+        {isSearching && (
+          <Loader2 className='absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400' />
+        )}
+      </div>
 
-            {/* Salary Details */}
-            <FormSection title='Salary Breakdown' icon={DollarSign}>
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-                <LabeledInput
-                  label='Basic Salary'
-                  name='basicSalary'
-                  type='number'
-                  value={formData.basicSalary}
-                  onChange={handleInputChange}
-                  placeholder='Enter basic salary'
-                  error={errors.basicSalary}
-                />
-
-                <LabeledInput
-                  label='Allowances'
-                  name='allowances'
-                  type='number'
-                  value={formData.allowances}
-                  onChange={handleInputChange}
-                  placeholder='Enter allowances'
-                />
-
-                <LabeledInput
-                  label='Deductions'
-                  name='deductions'
-                  type='number'
-                  value={formData.deductions}
-                  onChange={handleInputChange}
-                  placeholder='Enter deductions'
-                />
-
-                <div className='relative'>
-                  <LabeledInput
-                    label='Total Salary'
-                    name='totalSalary'
-                    type='number'
-                    value={formData.totalSalary}
-                    onChange={handleInputChange}
-                    placeholder='Auto-calculated'
-                    disabled
-                  />
-                  <div className='mt-1'>
-                    <span className='text-xs text-blue-600 flex items-center'>
-                      🧮 Auto-calculated:{' '}
-                      <strong className='ml-1'>
-                        ${formData.totalSalary.toLocaleString()}
-                      </strong>
-                    </span>
-                    {(formData.basicSalary ||
-                      formData.allowances ||
-                      formData.deductions) && (
-                      <span className='text-xs text-gray-500'>
-                        ($
-                        {(typeof formData.basicSalary === 'number'
-                          ? formData.basicSalary
-                          : parseFloat(formData.basicSalary) || 0
-                        ).toLocaleString()}{' '}
-                        + $
-                        {(typeof formData.allowances === 'number'
-                          ? formData.allowances
-                          : parseFloat(formData.allowances) || 0
-                        ).toLocaleString()}{' '}
-                        - $
-                        {(typeof formData.deductions === 'number'
-                          ? formData.deductions
-                          : parseFloat(formData.deductions) || 0
-                        ).toLocaleString()}
-                        )
+      {/* Search Results */}
+      <div className='space-y-4'>
+        {!searchTerm ? (
+          <div className='text-center py-8 text-gray-500'>
+            <Search className='h-12 w-12 mx-auto mb-3 text-gray-300' />
+            <p>Start typing to search for employees...</p>
+            <p className='text-sm mt-1'>
+              Search through teachers and staff members
+            </p>
+          </div>
+        ) : filteredEmployees.length === 0 && !isSearching ? (
+          <div className='text-center py-8 text-gray-500'>
+            <User className='h-12 w-12 mx-auto mb-3 text-gray-300' />
+            <p>No employees found matching "{searchTerm}"</p>
+            <p className='text-sm mt-1'>Try adjusting your search terms</p>
+          </div>
+        ) : (
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+            {filteredEmployees.map(employee => (
+              <div
+                key={employee.id}
+                onClick={() => onEmployeeSelect(employee)}
+                className='p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all cursor-pointer bg-white'
+              >
+                <div className='flex items-start justify-between'>
+                  <div className='flex-1'>
+                    <div className='flex items-center gap-2 mb-2'>
+                      <User className='h-4 w-4 text-gray-400' />
+                      <span className='font-medium text-gray-900'>
+                        {employee.name}
                       </span>
-                    )}
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          employee.type === 'teacher'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-purple-100 text-purple-800'
+                        }`}
+                      >
+                        {employee.type}
+                      </span>
+                    </div>
+                    <div className='space-y-1 text-sm text-gray-600'>
+                      <div className='flex justify-between'>
+                        <span>ID:</span>
+                        <span className='font-medium'>
+                          {employee.employeeId}
+                        </span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span>Role:</span>
+                        <span className='font-medium'>{employee.role}</span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span>Department:</span>
+                        <span className='font-medium'>
+                          {employee.department}
+                        </span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span>Basic:</span>
+                        <span className='font-medium'>
+                          {formatCurrency(employee.basicSalary)}
+                        </span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span>Allowance:</span>
+                        <span className='font-medium'>
+                          {formatCurrency(employee.allowances)}
+                        </span>
+                      </div>
+                      <div className='flex justify-between border-t pt-1 mt-2'>
+                        <span className='font-semibold'>Current Salary:</span>
+                        <span className='font-semibold text-green-600'>
+                          {formatCurrency(employee.currentSalary)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </FormSection>
-
-            {/* Payment Information */}
-            <FormSection title='Payment Details' icon={Calendar}>
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                <LabeledInput
-                  label='Pay Date'
-                  name='payDate'
-                  type='date'
-                  value={formData.payDate}
-                  onChange={handleInputChange}
-                  required
-                  error={errors.payDate}
-                />
-
-                <LabeledInput
-                  label='Pay Period (YYYY-MM)'
-                  name='payPeriod'
-                  type='month'
-                  value={formData.payPeriod}
-                  onChange={handleInputChange}
-                  placeholder='Select pay period'
-                  required
-                  error={errors.payPeriod}
-                />
-
-                <LabeledSelect
-                  label='Status'
-                  name='status'
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  options={statusOptions}
-                  placeholder='Select status'
-                  required
-                  error={errors.status}
-                />
-              </div>
-
-              <LabeledTextarea
-                label='Notes'
-                name='notes'
-                value={formData.notes || ''}
-                onChange={handleInputChange}
-                placeholder='Additional notes or comments (optional)'
-                rows={3}
-              />
-            </FormSection>
+            ))}
           </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
-          {/* Footer */}
-          <div className='bg-gray-50 px-4 py-4 rounded-lg mt-6 flex justify-end gap-2 sticky bottom-0'>
+// Salary Adjustment Step Component
+interface SalaryAdjustmentStepProps {
+  employee: Employee;
+  adjustment: SalaryAdjustment;
+  onAdjustmentChange: (field: keyof SalaryAdjustment, value: any) => void;
+  onBack: () => void;
+  formatCurrency: (amount: number) => string;
+}
+
+const SalaryAdjustmentStep: React.FC<SalaryAdjustmentStepProps> = ({
+  employee,
+  adjustment,
+  onAdjustmentChange,
+  formatCurrency,
+}) => {
+  return (
+    <div className='space-y-6'>
+      {/* Employee Info Header */}
+      <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
+        <div className='flex items-center gap-3'>
+          <User className='h-8 w-8 text-blue-600' />
+          <div>
+            <h3 className='font-semibold text-blue-900'>{employee.name}</h3>
+            <p className='text-sm text-blue-700'>
+              {employee.employeeId} • {employee.role} • {employee.department}
+            </p>
+            <span
+              className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
+                employee.type === 'teacher'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-purple-100 text-purple-800'
+              }`}
+            >
+              {employee.type}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Employee Details Cards */}
+      <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
+        <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
+          <div className='text-center'>
+            <Coins className='h-8 w-8 text-blue-600 mx-auto mb-2' />
+            <div className='text-2xl font-bold text-blue-900'>
+              {formatCurrency(employee.basicSalary)}
+            </div>
+            <div className='text-sm text-blue-700'>Basic</div>
+          </div>
+        </div>
+
+        <div className='bg-green-50 p-4 rounded-lg border border-green-200'>
+          <div className='text-center'>
+            <TrendingUp className='h-8 w-8 text-green-600 mx-auto mb-2' />
+            <div className='text-2xl font-bold text-green-900'>
+              {formatCurrency(employee.allowances)}
+            </div>
+            <div className='text-sm text-green-700'>Allowance</div>
+          </div>
+        </div>
+
+        <div className='bg-purple-50 p-4 rounded-lg border border-purple-200'>
+          <div className='text-center'>
+            <Calculator className='h-8 w-8 text-purple-600 mx-auto mb-2' />
+            <div className='text-2xl font-bold text-purple-900'>
+              {formatCurrency(employee.currentSalary)}
+            </div>
+            <div className='text-sm text-purple-700'>Current Salary</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Adjustment Controls */}
+      <div className='bg-gray-50 p-6 rounded-lg'>
+        <h3 className='text-lg font-semibold mb-4'>Salary Adjustment</h3>
+
+        <div className='space-y-4'>
+          {/* Direction Buttons */}
+          <div className='flex gap-2'>
             <button
               type='button'
-              onClick={onClose}
-              className='px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors'
-              disabled={saving}
+              onClick={() => onAdjustmentChange('direction', 'promotion')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-colors ${
+                adjustment.direction === 'promotion'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
             >
-              Cancel
+              <ArrowUp className='h-4 w-4' />
+              Promote
             </button>
             <button
-              type='submit'
-              disabled={saving}
-              className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center'
+              type='button'
+              onClick={() => onAdjustmentChange('direction', 'demotion')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-colors ${
+                adjustment.direction === 'demotion'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
             >
-              {saving ? (
-                <>
-                  <Loader2 className='h-4 w-4 animate-spin mr-2' />
-                  Adding...
-                </>
-              ) : (
-                <>
-                  <Save className='h-4 w-4 mr-2' />
-                  Add Salary Record
-                </>
-              )}
+              <ArrowDown className='h-4 w-4' />
+              Demote
             </button>
           </div>
-        </form>
+
+          {/* Method Selection */}
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-gray-700'>Method</label>
+            <select
+              value={adjustment.method}
+              onChange={e =>
+                onAdjustmentChange(
+                  'method',
+                  e.target.value as 'flat' | 'percent',
+                )
+              }
+              className='w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+            >
+              <option value='flat'>Flat (±Allowance)</option>
+              <option value='percent'>Percent</option>
+            </select>
+          </div>
+
+          {/* Input Based on Method */}
+          {adjustment.method === 'percent' ? (
+            <div className='space-y-2'>
+              <label className='text-sm font-medium text-gray-700'>
+                Percentage (%)
+              </label>
+              <input
+                type='number'
+                min='0'
+                max='100'
+                step='0.1'
+                value={adjustment.percentage || ''}
+                onChange={e =>
+                  onAdjustmentChange(
+                    'percentage',
+                    parseFloat(e.target.value) || 0,
+                  )
+                }
+                className='w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                placeholder='Enter percentage (e.g., 10.5)'
+              />
+            </div>
+          ) : (
+            <div className='space-y-2'>
+              <label className='text-sm font-medium text-gray-700'>
+                Amount (NPR)
+              </label>
+              <input
+                type='number'
+                min='0'
+                step='100'
+                value={adjustment.amount || ''}
+                onChange={e =>
+                  onAdjustmentChange('amount', parseFloat(e.target.value) || 0)
+                }
+                className='w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                placeholder='Enter amount in NPR'
+              />
+            </div>
+          )}
+
+          {/* Effective Date */}
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-gray-700'>
+              Effective Date (Nepali Calendar)
+            </label>
+            <div className='space-y-2'>
+              {adjustment.effectiveDateBS && (
+                <div className='text-sm font-medium text-orange-700 bg-orange-50 p-2 rounded border border-orange-200'>
+                  <span className='font-bold'>Selected BS Date:</span>{' '}
+                  {adjustment.effectiveDateBS} BS
+                </div>
+              )}
+
+              {/* Nepali Date Input */}
+              <div className='grid grid-cols-3 gap-2'>
+                <div>
+                  <label className='text-xs text-gray-600'>Year (BS)</label>
+                  <input
+                    type='number'
+                    min='2070'
+                    max='2090'
+                    value={
+                      adjustment.effectiveDateBS
+                        ? parseInt(adjustment.effectiveDateBS.split('-')[0])
+                        : new Date().getFullYear() + 57
+                    }
+                    onChange={e => {
+                      const year = parseInt(e.target.value);
+                      const month = adjustment.effectiveDateBS
+                        ? parseInt(adjustment.effectiveDateBS.split('-')[1])
+                        : 6;
+                      const day = adjustment.effectiveDateBS
+                        ? parseInt(adjustment.effectiveDateBS.split('-')[2])
+                        : 17;
+
+                      try {
+                        const bsDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const adDate = bs2ad(year, month, day);
+                        const adDateString = `${adDate.year}-${String(adDate.month).padStart(2, '0')}-${String(adDate.date).padStart(2, '0')}`;
+
+                        onAdjustmentChange('effectiveDateBS', bsDateString);
+                        onAdjustmentChange('effectiveDate', adDateString);
+                      } catch (error) {
+                        console.error('Error converting BS to AD:', error);
+                      }
+                    }}
+                    className='w-full py-2 px-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm'
+                    placeholder='2081'
+                  />
+                </div>
+
+                <div>
+                  <label className='text-xs text-gray-600'>Month (BS)</label>
+                  <select
+                    value={
+                      adjustment.effectiveDateBS
+                        ? parseInt(adjustment.effectiveDateBS.split('-')[1])
+                        : 6
+                    }
+                    onChange={e => {
+                      const month = parseInt(e.target.value);
+                      const year = adjustment.effectiveDateBS
+                        ? parseInt(adjustment.effectiveDateBS.split('-')[0])
+                        : new Date().getFullYear() + 57;
+                      const day = Math.min(
+                        adjustment.effectiveDateBS
+                          ? parseInt(adjustment.effectiveDateBS.split('-')[2])
+                          : 17,
+                        30,
+                      );
+
+                      try {
+                        const bsDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const adDate = bs2ad(year, month, day);
+                        const adDateString = `${adDate.year}-${String(adDate.month).padStart(2, '0')}-${String(adDate.date).padStart(2, '0')}`;
+
+                        onAdjustmentChange('effectiveDateBS', bsDateString);
+                        onAdjustmentChange('effectiveDate', adDateString);
+                      } catch (error) {
+                        console.error('Error converting BS to AD:', error);
+                      }
+                    }}
+                    className='w-full py-2 px-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm'
+                  >
+                    <option value={1}>Baisakh</option>
+                    <option value={2}>Jestha</option>
+                    <option value={3}>Ashadh</option>
+                    <option value={4}>Shrawan</option>
+                    <option value={5}>Bhadra</option>
+                    <option value={6}>Ashwin</option>
+                    <option value={7}>Kartik</option>
+                    <option value={8}>Mangsir</option>
+                    <option value={9}>Poush</option>
+                    <option value={10}>Magh</option>
+                    <option value={11}>Falgun</option>
+                    <option value={12}>Chaitra</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className='text-xs text-gray-600'>Day (BS)</label>
+                  <input
+                    type='number'
+                    min='1'
+                    max='32'
+                    value={
+                      adjustment.effectiveDateBS
+                        ? parseInt(adjustment.effectiveDateBS.split('-')[2])
+                        : 17
+                    }
+                    onChange={e => {
+                      const day = parseInt(e.target.value);
+                      const year = adjustment.effectiveDateBS
+                        ? parseInt(adjustment.effectiveDateBS.split('-')[0])
+                        : new Date().getFullYear() + 57;
+                      const month = adjustment.effectiveDateBS
+                        ? parseInt(adjustment.effectiveDateBS.split('-')[1])
+                        : 6;
+
+                      try {
+                        const bsDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const adDate = bs2ad(year, month, day);
+                        const adDateString = `${adDate.year}-${String(adDate.month).padStart(2, '0')}-${String(adDate.date).padStart(2, '0')}`;
+
+                        onAdjustmentChange('effectiveDateBS', bsDateString);
+                        onAdjustmentChange('effectiveDate', adDateString);
+                      } catch (error) {
+                        console.error('Error converting BS to AD:', error);
+                      }
+                    }}
+                    className='w-full py-2 px-2 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm'
+                    placeholder='17'
+                  />
+                </div>
+              </div>
+
+              {adjustment.effectiveDate && (
+                <div className='text-xs text-gray-500 bg-gray-50 p-2 rounded border'>
+                  <span className='font-medium'>Equivalent AD Date:</span>{' '}
+                  {new Date(adjustment.effectiveDate).toLocaleDateString(
+                    'en-NP',
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Preview Section */}
+      <div className='bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-lg border border-indigo-200'>
+        <h3 className='text-lg font-semibold mb-4 text-indigo-900'>
+          Preview Changes
+        </h3>
+
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+          <div className='text-center p-3 bg-white rounded-lg shadow-sm'>
+            <div
+              className={`text-lg font-bold ${
+                adjustment.difference >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {adjustment.difference >= 0 ? '+' : ''}
+              {formatCurrency(Math.abs(adjustment.difference))}
+            </div>
+            <div className='text-xs text-gray-600'>Difference</div>
+          </div>
+
+          <div className='text-center p-3 bg-white rounded-lg shadow-sm'>
+            <div className='text-lg font-bold text-blue-600'>
+              {formatCurrency(adjustment.newSalary)}
+            </div>
+            <div className='text-xs text-gray-600'>Updated Salary</div>
+          </div>
+
+          <div className='text-center p-3 bg-white rounded-lg shadow-sm'>
+            <div
+              className={`text-lg font-bold ${
+                adjustment.percentChange >= 0
+                  ? 'text-green-600'
+                  : 'text-red-600'
+              }`}
+            >
+              {adjustment.percentChange >= 0 ? '+' : ''}
+              {adjustment.percentChange.toFixed(1)}%
+            </div>
+            <div className='text-xs text-gray-600'>
+              {adjustment.percentChange >= 0 ? 'Increase' : 'Decrease'} %
+            </div>
+          </div>
+
+          <div className='text-center p-3 bg-white rounded-lg shadow-sm'>
+            <div
+              className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                adjustment.direction === 'promotion'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-amber-100 text-amber-800'
+              }`}
+            >
+              {adjustment.direction === 'promotion' ? 'Promotion' : 'Demotion'}
+            </div>
+            <div className='text-xs text-gray-600 mt-1'>Direction</div>
+          </div>
+        </div>
+
+        {/* Additional Info */}
+        {(adjustment.amount > 0 ||
+          (adjustment.percentage && adjustment.percentage > 0)) && (
+          <div className='mt-4 p-3 bg-white rounded-lg'>
+            <div className='text-sm text-gray-700 space-y-2'>
+              <div>
+                <strong>Summary:</strong>{' '}
+                {adjustment.direction === 'promotion'
+                  ? 'Increasing'
+                  : 'Decreasing'}{' '}
+                {employee.name}'s salary
+                {adjustment.method === 'percent'
+                  ? ` by ${adjustment.percentage}% (${formatCurrency(Math.abs(adjustment.difference))})`
+                  : ` by ${formatCurrency(adjustment.amount)}`}
+                .
+              </div>
+              <div className='flex flex-wrap gap-4 text-xs'>
+                {adjustment.effectiveDateBS ? (
+                  <>
+                    <span className='text-orange-700 font-medium'>
+                      <strong>Effective Date:</strong>{' '}
+                      {adjustment.effectiveDateBS} BS
+                    </span>
+                    <span className='text-gray-500'>
+                      <strong>AD:</strong>{' '}
+                      {new Date(adjustment.effectiveDate).toLocaleDateString(
+                        'en-NP',
+                      )}
+                    </span>
+                  </>
+                ) : (
+                  <span>
+                    <strong>Effective Date:</strong>{' '}
+                    {new Date(adjustment.effectiveDate).toLocaleDateString(
+                      'en-NP',
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
