@@ -3,8 +3,11 @@ import Input from '@/components/atoms/form-controls/Input';
 import Textarea from '@/components/atoms/form-controls/Textarea';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import { assignmentService } from '@/api/services/assignment.service';
-import { classService } from '@/api/services/class.service';
-import { subjectService } from '@/api/services/subject.service';
+import { classService, ClassResponse } from '@/api/services/class.service';
+import {
+  subjectService,
+  SubjectResponse,
+} from '@/api/services/subject.service';
 import { teacherService } from '@/api/services/teacher.service';
 import {
   CreateAssignmentRequest,
@@ -67,19 +70,6 @@ interface TeacherSubjectResponse {
     name: string;
     code: string;
   };
-}
-
-interface ClassResponse {
-  id: string;
-  grade: number;
-  section: string;
-  currentEnrollment?: number;
-}
-
-interface SubjectResponse {
-  id: string;
-  name: string;
-  code: string;
 }
 
 interface TeacherResponse {
@@ -236,20 +226,20 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
 
     try {
       if (isTeacher && user?.id) {
-        // For teachers: Load their own assigned classes and subjects directly
+        // For teachers: Load all classes and their assigned subjects
         const [classesResponse, subjectsResponse, teacherResponse] =
           await Promise.all([
-            teacherService.getMyClasses(),
+            classService.getAllClasses(),
             teacherService.getMySubjects(),
             teacherService.getCurrentTeacher(),
           ]);
 
-        // Transform teacher's classes data
+        // Transform all classes data (not just teacher's assigned classes)
         const transformedClasses: ClassOption[] = classesResponse.data.map(
-          (item: TeacherClassResponse) => ({
-            id: item.class.id,
-            label: `Grade ${item.class.grade} - Section ${item.class.section}`,
-            students: item.class.currentEnrollment || 0,
+          (cls: ClassResponse) => ({
+            id: cls.id,
+            label: `Grade ${cls.grade} - Section ${cls.section}`,
+            students: cls.currentEnrollment || 0,
           }),
         );
 
