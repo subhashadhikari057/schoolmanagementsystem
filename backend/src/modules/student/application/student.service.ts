@@ -34,11 +34,17 @@ export class StudentService {
     ip?: string,
     userAgent?: string,
   ) {
-    console.log('🚀 === STUDENT CREATION STARTED ===');
-    console.log('🛡️ Backend received - guardians:', dto.guardians?.length || 0);
-    console.log('🔍 Full DTO keys:', Object.keys(dto));
+    this.logger.log('🚀 === STUDENT CREATION STARTED ===');
+    this.logger.log(
+      '🛡️ Backend received - guardians:',
+      dto.guardians?.length || 0,
+    );
+    this.logger.log('🔍 Full DTO keys:', Object.keys(dto));
     if (dto.guardians && dto.guardians.length > 0) {
-      console.log('🛡️ Guardian data:', JSON.stringify(dto.guardians, null, 2));
+      this.logger.log(
+        '🛡️ Guardian data:',
+        JSON.stringify(dto.guardians, null, 2),
+      );
     }
     const {
       user,
@@ -405,7 +411,7 @@ export class StudentService {
       // Create guardian records and user accounts if specified
       if (guardians && guardians.length > 0) {
         for (const guardianData of guardians) {
-          console.log(
+          this.logger.log(
             '🛡️ Processing guardian:',
             guardianData.firstName,
             guardianData.lastName,
@@ -886,6 +892,9 @@ export class StudentService {
     // Return student data with extracted fields
     return {
       ...student,
+      // Map dob to dateOfBirth for frontend compatibility
+      dateOfBirth: student.dob ? student.dob.toISOString() : undefined,
+
       // Include extracted name parts
       firstName,
       middleName,
@@ -1434,11 +1443,11 @@ export class StudentService {
         throw new NotFoundException('Student not found');
       }
 
-      const guardianCredentials: any[] = [];
+      const guardianCredentials: Record<string, unknown>[] = [];
 
       await this.prisma.$transaction(async tx => {
         for (const guardianData of guardians) {
-          console.log(
+          this.logger.log(
             '🛡️ Processing guardian for existing student:',
             guardianData.firstName,
             guardianData.lastName,
@@ -1743,7 +1752,7 @@ export class StudentService {
           );
 
           if (matchingGuardianParent) {
-            console.log(
+            this.logger.log(
               '🧹 Removing duplicate guardian record for:',
               basicGuardian.email,
             );

@@ -60,6 +60,7 @@
     "class-validator": "^0.14.2",
     "cookie-parser": "^1.4.7",
     "csurf": "^1.11.0",
+    "csv-parse": "^6.1.0",
     "exceljs": "^4.4.0",
     "express-rate-limit": "^8.0.1",
     "jszip": "^3.10.1",

@@ -1,0 +1,2 @@
+fullName,email,phone,rollNumber,classGrade,classSection,dateOfBirth,gender,primaryParentName,primaryParentPhone,primaryParentEmail,primaryParentRelation,secondaryParentName,secondaryParentPhone,secondaryParentEmail,secondaryParentRelation
+Emma Wilson,emma.wilson@student.edu,9988776655,004,1,A,2017-12-03,Female,David Wilson,8877665544,david.wilson@parent.edu,Father,Lisa Wilson,7766554433,lisa.wilson@parent.edu,Mother
