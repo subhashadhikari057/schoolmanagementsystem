@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Tabs from '@/components/organisms/tabs/GenericTabs';
 import ProfileSettings from '@/components/organisms/tabs/ProfileSettings';
@@ -9,6 +9,9 @@ import { UserProfileHeader } from '@/components/organisms/modals/UserProfileModa
 import NotificationPreferences from '@/components/organisms/tabs/NotificationPreferences';
 import AccountActivity from '@/components/organisms/tabs/AccountActivity';
 import { useAuth } from '@/hooks/useAuth';
+import SectionTitle from '@/components/atoms/display/SectionTitle';
+import Label from '@/components/atoms/display/Label';
+import ReusableButton from '@/components/atoms/form-controls/Button';
 import { PageLoader } from '@/components/atoms/loading';
 
 const MyAccountPage = () => {
@@ -16,6 +19,8 @@ const MyAccountPage = () => {
   const { user } = useAuth();
   const userId = params?.nameslug as string;
   const [loading, setLoading] = useState(true);
+  const profileRef = useRef<any>(null);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     // Simulate loading time for profile data
@@ -45,32 +50,52 @@ const MyAccountPage = () => {
     );
   }
 
+  const handleEditClick = () => {
+    if (editing) {
+      profileRef.current?.closeEdit?.();
+    } else {
+      profileRef.current?.toggleEdit?.();
+    }
+  };
+
   const tabs = [
     {
       name: 'Profile Settings',
-      content: <ProfileSettings />,
+      content: (
+        <ProfileSettings ref={profileRef} onEditingChange={setEditing} />
+      ),
     },
-    {
-      name: 'Security',
-      content: <SecuritySettings />,
-    },
-    {
-      name: 'Notifications',
-      content: <NotificationPreferences />,
-    },
-    {
-      name: 'Activity Log',
-      content: <AccountActivity />,
-    },
+    { name: 'Security', content: <SecuritySettings /> },
+    // { name: 'Notifications', content: <NotificationPreferences /> },
+    { name: 'Activity Log', content: <AccountActivity /> },
   ];
-
-  if (loading) {
-    return <PageLoader />;
-  }
 
   return (
     <div className='min-h-screen bg-background w-full'>
-      <UserProfileHeader />
+      <div className='flex items-center justify-between mb-6'>
+        <div>
+          <SectionTitle className='text-2xl font-semibold' text='My Account' />
+          <Label className='text-sm text-muted-foreground'>
+            Manage your profile, security settings, and account preferences
+          </Label>
+        </div>
+
+        <div className='flex items-center gap-3'>
+          <ReusableButton
+            label='Export Data'
+            onClick={() => {}}
+            className={
+              'p-1 px-2 rounded-lg shadow-sm cursor-pointer border border-gray-300'
+            }
+          />
+          <ReusableButton
+            label={editing ? 'Cancel' : 'Edit Profile'}
+            onClick={handleEditClick}
+            className={`p-1 px-2 rounded-lg shadow-sm cursor-pointer ${editing ? 'border border-gray-300' : 'bg-blue-500 text-white'}`}
+          />
+        </div>
+      </div>
+
       <Tabs tabs={tabs} />
     </div>
   );

@@ -95,415 +95,430 @@ const validatePassword = (password: string) => {
 };
 
 export default function SecuritySettings() {
-  const [formData, setFormData] = useState<ChangePasswordDto>({
-    currentPassword: '',
-    newPassword: '',
-  });
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  // Two-factor state for design toggle
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
 
-  // Password validation state
-  const [passwordValidation, setPasswordValidation] = useState(
-    validatePassword(''),
-  );
-
-  // Account Activity State
-  const [activities, setActivities] = useState<AccountActivity[]>([]);
-  const [loadingActivities, setLoadingActivities] = useState(true);
-  const [activityError, setActivityError] = useState<string | null>(null);
-
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const activitiesPerPage = 5;
-
-  const baseButtonClass = 'p-1 px-2 rounded-lg shadow-sm cursor-pointer';
-
-  useEffect(() => {
-    loadActivities();
-  }, []);
-
-  // Update password validation when newPassword changes
-  useEffect(() => {
-    setPasswordValidation(validatePassword(formData.newPassword));
-  }, [formData.newPassword]);
-
-  const loadActivities = async () => {
-    try {
-      setLoadingActivities(true);
-      const data = await profileApi.getAccountActivity();
-      // Filter only login-related activities
-      const loginActivities = data.filter(
-        activity =>
-          activity.action.includes('LOGIN') ||
-          activity.action.includes('AUTH') ||
-          activity.module === 'AUTH',
-      );
-      setActivities(loginActivities);
-      setCurrentPage(1); // Reset to first page when loading new data
-    } catch (err) {
-      setActivityError('Failed to load account activity');
-      console.error('Error loading activities:', err);
-    } finally {
-      setLoadingActivities(false);
-    }
-  };
-
-  // Pagination calculations
-  const totalPages = Math.ceil(activities.length / activitiesPerPage);
-  const startIndex = (currentPage - 1) * activitiesPerPage;
-  const endIndex = startIndex + activitiesPerPage;
-  const currentActivities = activities.slice(startIndex, endIndex);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleChangePassword = async () => {
-    if (formData.newPassword !== confirmPassword) {
-      setError('New passwords do not match');
-      return;
-    }
-
-    if (!passwordValidation.isValid) {
-      setError('Password does not meet all requirements');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(null);
-
-      await profileApi.changePassword(formData);
-      setSuccess('Password changed successfully');
-      setFormData({ currentPassword: '', newPassword: '' });
-      setConfirmPassword('');
-      setPasswordValidation(validatePassword(''));
-    } catch (err) {
-      setError(
-        'Failed to change password. Please check your current password.',
-      );
-      console.error('Error changing password:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setFormData({ currentPassword: '', newPassword: '' });
-    setConfirmPassword('');
-    setError(null);
-    setSuccess(null);
-    setPasswordValidation(validatePassword(''));
-  };
-
-  const renderValidationItem = (isValid: boolean, text: string) => (
-    <li
-      className={`flex items-center gap-2 ${isValid ? 'text-green-600' : 'text-gray-400'}`}
-    >
-      <span
-        className={`w-4 h-4 rounded-full flex items-center justify-center ${
-          isValid ? 'bg-green-100' : 'bg-gray-100'
-        }`}
-      >
-        {isValid ? (
-          <svg width='12' height='12' fill='none' viewBox='0 0 12 12'>
-            <path
-              d='M2 6L5 9L10 3'
-              stroke='currentColor'
-              strokeWidth='2'
-              strokeLinecap='round'
-              strokeLinejoin='round'
-            />
-          </svg>
-        ) : (
-          <svg width='12' height='12' fill='none' viewBox='0 0 12 12'>
-            <path
-              d='M3 3L9 9M9 3L3 9'
-              stroke='currentColor'
-              strokeWidth='2'
-              strokeLinecap='round'
-            />
-          </svg>
-        )}
-      </span>
-      {text}
-    </li>
-  );
+  // Demo values for design match
+  const passwordStrength = 'Strong';
+  const passwordStrengthValue = 90;
+  const passwordLastChanged = 'Last changed 30 days ago';
+  const sessionCount = 3;
+  const securityScore = 94;
+  const sessions = [
+    {
+      device: 'Current Session',
+      status: 'Active',
+      icon: 'wifi',
+      color: 'text-green-600',
+    },
+    {
+      device: 'Desktop',
+      status: 'Active',
+      icon: 'desktop',
+      color: 'text-blue-600',
+    },
+    {
+      device: 'Mobile',
+      status: '2h ago',
+      icon: 'mobile',
+      color: 'text-orange-500',
+    },
+  ];
+  const securityChecks = [
+    { label: '2FA Enabled', passed: true },
+    { label: 'Strong Password', passed: true },
+    { label: 'Recent Login', passed: true },
+  ];
+  const loginHistory = [
+    {
+      device: 'Desktop',
+      ip: '192.168.1.101',
+      date: '2025-01-28',
+      time: '09:30 AM',
+      status: 'Success',
+      color: 'text-blue-600',
+      badge: 'bg-blue-100 text-blue-600',
+    },
+    {
+      device: 'Desktop',
+      ip: '192.168.1.101',
+      date: '2025-01-27',
+      time: '08:45 AM',
+      status: 'Success',
+      color: 'text-blue-600',
+      badge: 'bg-blue-100 text-blue-600',
+    },
+    {
+      device: 'Mobile',
+      ip: '192.168.1.205',
+      date: '2025-01-26',
+      time: '09:15 AM',
+      status: 'Success',
+      color: 'text-blue-600',
+      badge: 'bg-blue-100 text-blue-600',
+    },
+    {
+      device: 'Desktop',
+      ip: '192.168.1.101',
+      date: '2025-01-25',
+      time: '10:30 AM',
+      status: 'Success',
+      color: 'text-blue-600',
+      badge: 'bg-blue-100 text-blue-600',
+    },
+    {
+      device: 'Tablet',
+      ip: '192.168.1.156',
+      date: '2025-01-24',
+      time: '11:45 AM',
+      status: 'Failed',
+      color: 'text-red-500',
+      badge: 'bg-red-100 text-red-600',
+    },
+  ];
 
   return (
     <div className='w-full max-w-full mx-auto space-y-8'>
-      {/* Change Password */}
-      <Card className='p-8 rounded-xl bg-white border border-gray-100 space-y-6'>
-        <div>
-          <SectionTitle
-            className='text-2xl font-semibold'
-            text='Change Password'
-          />
-          <Label className='text-sm text-muted-foreground mb-4 block'>
-            Update your password to keep your account secure.
-          </Label>
-        </div>
-
-        {error && (
-          <div className='p-4 bg-red-50 border border-red-200 rounded-md'>
-            <Label className='text-red-600'>{error}</Label>
-          </div>
-        )}
-
-        {success && (
-          <div className='p-4 bg-green-50 border border-green-200 rounded-md'>
-            <Label className='text-green-600'>{success}</Label>
-          </div>
-        )}
-
-        <div className='hidden sm:block h-[1px] bg-border' />
-        <div className='space-y-6 pt-4'>
-          <LabeledInputField
-            label='Current Password'
-            type='password'
-            value={formData.currentPassword}
-            onChange={e =>
-              setFormData(prev => ({
-                ...prev,
-                currentPassword: e.target.value,
-              }))
-            }
-          />
-          <LabeledInputField
-            label='New Password'
-            type='password'
-            value={formData.newPassword}
-            onChange={e =>
-              setFormData(prev => ({ ...prev, newPassword: e.target.value }))
-            }
-          />
-          <LabeledInputField
-            label='Confirm New Password'
-            type='password'
-            value={confirmPassword}
-            onChange={e => setConfirmPassword(e.target.value)}
-          />
-        </div>
-
-        {/* Live Password Validation */}
-        <div
-          className={`mt-4 p-4 rounded-md border ${
-            passwordValidation.isValid
-              ? 'bg-green-50 border-green-200'
-              : 'bg-blue-50 border-blue-200'
-          }`}
-        >
-          <Label
-            className={`text-sm font-medium mb-3 block ${
-              passwordValidation.isValid ? 'text-green-800' : 'text-blue-800'
-            }`}
-          >
-            {passwordValidation.isValid
-              ? '✅ Password meets all requirements'
-              : 'Password Requirements:'}
-          </Label>
-          <ul className='list-none space-y-2 text-sm'>
-            {renderValidationItem(
-              passwordValidation.hasMinLength,
-              'At least 8 characters long',
-            )}
-            {renderValidationItem(
-              passwordValidation.hasUpperCase,
-              'Contains uppercase letters',
-            )}
-            {renderValidationItem(
-              passwordValidation.hasLowerCase,
-              'Contains lowercase letters',
-            )}
-            {renderValidationItem(
-              passwordValidation.hasNumber,
-              'Includes at least one number',
-            )}
-            {renderValidationItem(
-              passwordValidation.hasSpecialChar,
-              'Includes one special character',
-            )}
-          </ul>
-        </div>
-
-        <div className='flex justify-end gap-4 mt-6'>
-          <ReusableButton
-            label='Cancel'
-            onClick={handleCancel}
-            className={`${baseButtonClass} border border-gray-300 hover:bg-gray-100`}
-          />
-          <ReusableButton
-            label={loading ? 'Updating...' : 'Update Password'}
-            onClick={handleChangePassword}
-            className={`${baseButtonClass} ${
-              passwordValidation.isValid &&
-              formData.newPassword === confirmPassword
-                ? 'bg-blue-500 text-white hover:bg-blue-400'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            } ${loading ? 'opacity-50' : ''}`}
-          />
-        </div>
-      </Card>
-
-      {/* Two-Factor Authentication */}
-      <Card className='p-8 rounded-xl bg-white border border-gray-100 space-y-4'>
-        <SectionTitle
-          className='text-xl font-semibold'
-          text='Two-Factor Authentication'
-        />
-        <Label className='text-sm text-muted-foreground'>
-          Add extra security to your account using 2FA.
-        </Label>
-        <div className='mt-2'>
-          <label className='inline-flex items-center gap-2 cursor-pointer'>
-            <input
-              type='checkbox'
-              checked={twoFactorEnabled}
-              onChange={e => setTwoFactorEnabled(e.target.checked)}
-              className='form-checkbox h-5 w-5 text-blue-600'
-            />
-            <span className='text-sm text-gray-700'>
-              Enable Two-Factor Authentication
-            </span>
-          </label>
-        </div>
-        {twoFactorEnabled && (
-          <div className='mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md'>
-            <Label className='text-yellow-800 text-sm'>
-              Two-factor authentication setup will be available soon.
-            </Label>
-          </div>
-        )}
-      </Card>
-
-      {/* Login Activity */}
-      <Card className='p-8 rounded-xl bg-white border border-gray-100 space-y-4'>
-        <div className='flex items-center justify-between'>
+      {/* Top dashboard cards */}
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+        {/* Password & Authentication Card */}
+        <Card className='p-6 rounded-xl bg-white border border-gray-200 flex flex-col justify-between min-h-[320px]'>
           <div>
-            <SectionTitle
-              className='text-xl font-semibold'
-              text='Login Activity'
-            />
-            <Label className='text-sm text-muted-foreground'>
-              Recent login attempts and authentication activities:
-            </Label>
-          </div>
-          <ReusableButton
-            label='Refresh'
-            onClick={loadActivities}
-            className={`${baseButtonClass} bg-white border border-gray-200 shadow-sm px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50`}
-          />
-        </div>
-
-        {activityError && (
-          <div className='p-4 bg-red-50 border border-red-200 rounded-md'>
-            <Label className='text-red-600'>{activityError}</Label>
-          </div>
-        )}
-
-        {loadingActivities ? (
-          <div className='space-y-3'>
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className='flex items-center p-4 rounded-xl bg-gray-50 border border-gray-100'
-              >
-                <div className='animate-pulse'>
-                  <div className='w-12 h-12 bg-gray-200 rounded mr-3'></div>
-                </div>
-                <div className='flex-1'>
-                  <div className='h-4 bg-gray-200 rounded w-1/3 mb-2'></div>
-                  <div className='h-3 bg-gray-200 rounded w-1/2'></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : activities.length === 0 ? (
-          <div className='text-center py-8'>
-            <Label className='text-gray-500'>No login activity found</Label>
-          </div>
-        ) : (
-          <>
-            <div className='space-y-3'>
-              {currentActivities.map(activity => (
-                <div
-                  key={activity.id}
-                  className='flex items-center p-4 rounded-xl bg-gray-50 border border-gray-100'
+            <div className='flex items-center gap-2 mb-1'>
+              <span className='font-semibold text-lg flex items-center gap-2'>
+                <svg
+                  width='20'
+                  height='20'
+                  fill='none'
+                  viewBox='0 0 20 20'
+                  className='mr-1 text-gray-500'
                 >
-                  {getActivityIcon(activity.action, activity.status)}
-                  <div>
-                    <div className='font-medium text-gray-800'>
-                      {formatActivityTitle(activity.action)}
-                    </div>
-                    <div className='text-xs text-gray-500 mt-1'>
-                      {formatActivityDescription(activity)}
-                    </div>
-                  </div>
+                  <path
+                    d='M10 13a2 2 0 100-4 2 2 0 000 4z'
+                    stroke='currentColor'
+                    strokeWidth='1.5'
+                  />
+                  <rect
+                    x='4'
+                    y='7'
+                    width='12'
+                    height='9'
+                    rx='2'
+                    stroke='currentColor'
+                    strokeWidth='1.5'
+                  />
+                  <path
+                    d='M7 7V5a3 3 0 016 0v2'
+                    stroke='currentColor'
+                    strokeWidth='1.5'
+                  />
+                </svg>
+                Password & Authentication
+              </span>
+            </div>
+            <Label className='text-sm text-muted-foreground mb-2 block'>
+              Manage your account security settings
+            </Label>
+            <div className='flex items-center gap-2 mt-2'>
+              <span className='font-medium text-sm'>
+                Two-Factor Authentication
+              </span>
+              <label className='relative inline-flex items-center cursor-pointer'>
+                <input
+                  type='checkbox'
+                  checked={twoFactorEnabled}
+                  onChange={e => setTwoFactorEnabled(e.target.checked)}
+                  className='sr-only peer'
+                />
+                <div className='w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-500 transition-all'></div>
+                <div className='absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:translate-x-5'></div>
+              </label>
+            </div>
+            <Label className='text-xs text-muted-foreground mt-1 block'>
+              Extra security layer for your account
+            </Label>
+            <div className='mt-4'>
+              <div className='flex items-center gap-2'>
+                <span className='font-medium text-sm'>Password Strength</span>
+                <span className='px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-semibold'>
+                  {passwordStrength}
+                </span>
+              </div>
+              <div className='w-full h-2 bg-gray-200 rounded mt-2'>
+                <div
+                  className='h-2 rounded bg-blue-500'
+                  style={{ width: `${passwordStrengthValue}%` }}
+                ></div>
+              </div>
+              <Label className='text-xs text-muted-foreground mt-1 block'>
+                {passwordLastChanged}
+              </Label>
+            </div>
+          </div>
+          <div className='mt-6 flex flex-col gap-3'>
+            <ReusableButton
+              label='Change Password'
+              onClick={() => {}}
+              className='w-full py-2 rounded-lg bg-blue-500 text-white font-semibold'
+            />
+            <ReusableButton
+              label='Download Backup Codes'
+              onClick={() => {}}
+              className='w-full py-2 rounded-lg border border-gray-300 font-semibold'
+            />
+            <ReusableButton
+              label='Manage Trusted Devices'
+              onClick={() => {}}
+              className='w-full py-2 rounded-lg border border-gray-300 font-semibold'
+            />
+          </div>
+        </Card>
+
+        {/* Sessions Card */}
+        <Card className='p-6 rounded-xl bg-white border border-gray-200 min-h-[320px] flex flex-col justify-between'>
+          <div>
+            <span className='font-semibold text-lg flex items-center gap-2'>
+              <svg
+                width='20'
+                height='20'
+                fill='none'
+                viewBox='0 0 20 20'
+                className='mr-1 text-gray-500'
+              >
+                <path
+                  d='M4 6h12v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6z'
+                  stroke='currentColor'
+                  strokeWidth='1.5'
+                />
+                <path d='M8 16h4' stroke='currentColor' strokeWidth='1.5' />
+              </svg>
+              Sessions
+            </span>
+            <Label className='text-sm text-muted-foreground mb-2 block'>
+              {sessionCount} Active Sessions
+            </Label>
+            <div className='mt-4 space-y-2'>
+              {sessions.map((s, i) => (
+                <div key={i} className='flex items-center gap-2'>
+                  <span
+                    className={`w-5 h-5 flex items-center justify-center ${s.color}`}
+                  >
+                    {s.icon === 'wifi' ? (
+                      <svg
+                        width='18'
+                        height='18'
+                        fill='none'
+                        viewBox='0 0 18 18'
+                      >
+                        <path
+                          d='M9 15.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-3.5-3.5a5 5 0 017 0'
+                          stroke='currentColor'
+                          strokeWidth='1.5'
+                        />
+                        <path
+                          d='M3 9a9 9 0 0112 0'
+                          stroke='currentColor'
+                          strokeWidth='1.5'
+                        />
+                      </svg>
+                    ) : s.icon === 'desktop' ? (
+                      <svg
+                        width='18'
+                        height='18'
+                        fill='none'
+                        viewBox='0 0 18 18'
+                      >
+                        <rect
+                          x='3'
+                          y='5'
+                          width='12'
+                          height='7'
+                          rx='2'
+                          stroke='currentColor'
+                          strokeWidth='1.5'
+                        />
+                        <path
+                          d='M6 15h6'
+                          stroke='currentColor'
+                          strokeWidth='1.5'
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        width='18'
+                        height='18'
+                        fill='none'
+                        viewBox='0 0 18 18'
+                      >
+                        <rect
+                          x='5'
+                          y='3'
+                          width='8'
+                          height='12'
+                          rx='2'
+                          stroke='currentColor'
+                          strokeWidth='1.5'
+                        />
+                      </svg>
+                    )}
+                  </span>
+                  <span className='text-sm font-medium'>{s.device}</span>
+                  <span className='text-xs text-muted-foreground ml-2'>
+                    {s.status}
+                  </span>
                 </div>
               ))}
             </div>
+          </div>
+        </Card>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className='mt-6 pt-4 border-t border-gray-200'>
-                <div className='text-sm text-gray-600 mb-2'>
-                  Showing {startIndex + 1}-
-                  {Math.min(endIndex, activities.length)} of {activities.length}{' '}
-                  activities
+        {/* Security Score Card */}
+        <Card className='p-6 rounded-xl bg-white border border-gray-200 min-h-[320px] flex flex-col justify-between'>
+          <div>
+            <span className='font-semibold text-lg flex items-center gap-2'>
+              <svg
+                width='20'
+                height='20'
+                fill='none'
+                viewBox='0 0 20 20'
+                className='mr-1 text-gray-500'
+              >
+                <circle
+                  cx='10'
+                  cy='10'
+                  r='8'
+                  stroke='currentColor'
+                  strokeWidth='1.5'
+                />
+                <path
+                  d='M10 6v4l2 2'
+                  stroke='currentColor'
+                  strokeWidth='1.5'
+                  strokeLinecap='round'
+                />
+              </svg>
+              Security
+            </span>
+            <div className='flex items-center gap-2 mt-2'>
+              <span className='text-3xl font-bold text-green-600'>
+                {securityScore}%
+              </span>
+              <span className='text-xs text-muted-foreground'>
+                Security Score
+              </span>
+            </div>
+            <div className='mt-4 space-y-2'>
+              {securityChecks.map((c, i) => (
+                <div key={i} className='flex items-center gap-2'>
+                  <svg width='16' height='16' fill='none' viewBox='0 0 16 16'>
+                    <path
+                      d='M3 8l3 3 7-7'
+                      stroke='currentColor'
+                      strokeWidth='2'
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                    />
+                  </svg>
+                  <span className='text-sm font-medium text-green-700'>
+                    {c.label}
+                  </span>
                 </div>
-                <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full'>
-                  <ReusableButton
-                    label='Previous'
-                    onClick={() =>
-                      currentPage > 1 && handlePageChange(currentPage - 1)
-                    }
-                    className={`${baseButtonClass} px-3 py-1 text-xs sm:text-sm ${
-                      currentPage === 1
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-white border border-gray-200 hover:bg-gray-50'
-                    }`}
-                  />
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
 
-                  <div className='flex gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent py-1'>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      page => (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`px-2 py-1 text-xs sm:px-3 sm:py-1 sm:text-sm rounded-md ${
-                            currentPage === page
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-white border border-gray-200 hover:bg-gray-50 text-gray-700'
-                          }`}
-                          style={{ minWidth: 32 }}
-                        >
-                          {page}
-                        </button>
-                      ),
-                    )}
-                  </div>
-
-                  <ReusableButton
-                    label='Next'
-                    onClick={() =>
-                      currentPage < totalPages &&
-                      handlePageChange(currentPage + 1)
-                    }
-                    className={`${baseButtonClass} px-3 py-1 text-xs sm:text-sm ${
-                      currentPage === totalPages
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-white border border-gray-200 hover:bg-gray-50'
-                    }`}
-                  />
-                </div>
+      {/* Recent Login History */}
+      <Card className='p-6 rounded-xl bg-white border border-gray-200'>
+        <div className='mb-2 flex items-center gap-2'>
+          <svg
+            width='20'
+            height='20'
+            fill='none'
+            viewBox='0 0 20 20'
+            className='text-gray-500'
+          >
+            <rect
+              x='3'
+              y='5'
+              width='14'
+              height='10'
+              rx='2'
+              stroke='currentColor'
+              strokeWidth='1.5'
+            />
+            <path d='M7 17h6' stroke='currentColor' strokeWidth='1.5' />
+          </svg>
+          <span className='font-semibold text-lg'>Recent Login History</span>
+        </div>
+        <Label className='text-sm text-muted-foreground block'>
+          Your recent login attempts and device information
+        </Label>
+        <div className='mt-4 space-y-2'>
+          {loginHistory.map((item, i) => (
+            <div
+              key={i}
+              className='flex items-center p-4 rounded-xl border border-gray-100'
+            >
+              <span
+                className={`w-10 h-10 flex items-center justify-center ${item.color}`}
+              >
+                {item.device === 'Desktop' ? (
+                  <svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
+                    <rect
+                      x='4'
+                      y='7'
+                      width='16'
+                      height='10'
+                      rx='2'
+                      stroke='currentColor'
+                      strokeWidth='1.5'
+                    />
+                    <path d='M8 21h8' stroke='currentColor' strokeWidth='1.5' />
+                  </svg>
+                ) : item.device === 'Mobile' ? (
+                  <svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
+                    <rect
+                      x='7'
+                      y='4'
+                      width='10'
+                      height='16'
+                      rx='2'
+                      stroke='currentColor'
+                      strokeWidth='1.5'
+                    />
+                  </svg>
+                ) : (
+                  <svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
+                    <rect
+                      x='6'
+                      y='5'
+                      width='12'
+                      height='14'
+                      rx='2'
+                      stroke='currentColor'
+                      strokeWidth='1.5'
+                    />
+                  </svg>
+                )}
+              </span>
+              <div className='flex-1 ml-3'>
+                <div className='font-medium text-gray-800'>{item.device}</div>
+                <div className='text-xs text-gray-500'>{item.ip}</div>
               </div>
-            )}
-          </>
-        )}
+              <div className='flex flex-col items-end'>
+                <span className='text-xs text-gray-500'>{item.date}</span>
+                <span className='text-xs text-gray-500'>{item.time}</span>
+                <span
+                  className={`mt-1 px-2 py-0.5 rounded text-xs font-semibold ${item.badge}`}
+                >
+                  {item.status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       </Card>
     </div>
   );
