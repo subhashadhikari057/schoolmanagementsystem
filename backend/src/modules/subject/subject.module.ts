@@ -8,5 +8,6 @@ import { LoggerModule } from '../../shared/logger/logger.module';
   imports: [LoggerModule],
   controllers: [SubjectController],
   providers: [SubjectService, PrismaService],
+  exports: [SubjectService],
 })
 export class SubjectModule {}

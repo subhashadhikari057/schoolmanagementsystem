@@ -9,5 +9,6 @@ import { AuditService } from '../../shared/logger/audit.service';
 @Module({
   controllers: [ClassController, ClassSubjectController],
   providers: [ClassService, ClassSubjectService, PrismaService, AuditService],
+  exports: [ClassService],
 })
 export class ClassModule {}
