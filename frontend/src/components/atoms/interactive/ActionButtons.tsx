@@ -38,6 +38,7 @@ import ManageEventsModal from '@/components/organisms/modals/ManageEventsModal';
 import CreateNoticeModal from '@/components/organisms/modals/CreateNoticeModal';
 import AddExpenseModal from '@/components/organisms/modals/AddExpenseModal';
 import AddSalaryModal from '@/components/organisms/modals/AddSalaryModal';
+import { teacherService } from '@/api/services/teacher.service';
 
 interface ActionButtonsProps {
   pageType:
@@ -434,6 +435,220 @@ const getActionButtonsConfig = (
       },
     ];
   }
+
+  if (pageType === 'teachers') {
+    return [
+      {
+        id: 'download-template',
+        label: 'Download Template',
+        variant: 'secondary',
+        className: 'bg-green-50 text-green-700 hover:bg-green-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: async () => {
+          try {
+            // Show loading state
+            const button = document.querySelector(
+              '[data-id="download-template"]',
+            );
+            if (button) {
+              button.textContent = 'Downloading...';
+              button.setAttribute('disabled', 'true');
+            }
+
+            // Download template from backend
+            const blob = await teacherService.getImportTemplate();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `teacher_import_template.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            toast.success('✅ Template downloaded successfully!', {
+              description:
+                'Use this template to format your teacher data for import.',
+              duration: 4000,
+            });
+          } catch (error) {
+            toast.error(
+              `❌ Template download failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              {
+                description: 'An unexpected error occurred. Please try again.',
+                duration: 5000,
+              },
+            );
+          } finally {
+            // Reset button state
+            const button = document.querySelector(
+              '[data-id="download-template"]',
+            );
+            if (button) {
+              button.textContent = 'Download Template';
+              button.removeAttribute('disabled');
+            }
+          }
+        },
+      },
+      {
+        id: 'import-teachers',
+        label: 'Import Teachers',
+        variant: 'import',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Upload size={16} />,
+        onClick: () => {
+          // Create a file input element for CSV upload
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = '.csv';
+          input.onchange = async e => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+              try {
+                // Show loading state
+                const button = document.querySelector(
+                  '[data-id="import-teachers"]',
+                );
+                if (button) {
+                  button.textContent = 'Importing...';
+                  button.setAttribute('disabled', 'true');
+                }
+
+                // Use the teacher service to import
+                const response = await teacherService.importTeachersFromCSV(
+                  file,
+                  {
+                    skipDuplicates: true,
+                    updateExisting: false,
+                  },
+                );
+
+                if (response.success) {
+                  toast.success(
+                    `🎉 Import successful! ${response.data.successfulImports} teachers imported successfully.`,
+                    {
+                      description: `Check the backend console for teacher passwords.`,
+                      duration: 6000,
+                    },
+                  );
+                  // Refresh the page to show new teachers
+                  window.location.reload();
+                } else {
+                  toast.error(`❌ Import failed: ${response.message}`, {
+                    description: `${response.data.failedImports} teachers failed to import.`,
+                    duration: 5000,
+                  });
+                }
+              } catch (error) {
+                toast.error(
+                  `❌ Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  {
+                    description:
+                      'An unexpected error occurred. Please try again.',
+                    duration: 5000,
+                  },
+                );
+              } finally {
+                // Reset button state
+                const button = document.querySelector(
+                  '[data-id="import-teachers"]',
+                );
+                if (button) {
+                  button.textContent = 'Import Teachers';
+                  button.removeAttribute('disabled');
+                }
+              }
+            }
+          };
+          input.click();
+        },
+      },
+      {
+        id: 'export-teachers',
+        label: 'Export Teachers',
+        variant: 'export',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: async () => {
+          try {
+            // Show loading state
+            const button = document.querySelector(
+              '[data-id="export-teachers"]',
+            );
+            if (button) {
+              button.textContent = 'Exporting...';
+              button.setAttribute('disabled', 'true');
+            }
+
+            // Get current filters from URL or page state
+            const urlParams = new URLSearchParams(window.location.search);
+            const department = urlParams.get('department') || '';
+            const search = urlParams.get('search') || '';
+            const designation = urlParams.get('designation') || '';
+
+            // Use the teacher service to export
+            const blob = await teacherService.exportTeachersToCSV({
+              department: department || undefined,
+              search: search || undefined,
+              designation: designation || undefined,
+            });
+
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `teachers_export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            toast.success('✅ Export successful! Teacher data downloaded.', {
+              description: 'Your CSV file has been downloaded successfully.',
+              duration: 4000,
+            });
+          } catch (error) {
+            toast.error(
+              `❌ Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              {
+                description: 'An unexpected error occurred. Please try again.',
+                duration: 5000,
+              },
+            );
+          } finally {
+            // Reset button state
+            const button = document.querySelector(
+              '[data-id="export-teachers"]',
+            );
+            if (button) {
+              button.textContent = 'Export Teachers';
+              button.removeAttribute('disabled');
+            }
+          }
+        },
+      },
+      {
+        id: 'refresh-teachers',
+        label: 'Refresh',
+        variant: 'secondary',
+        className: 'bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg',
+        icon: <RefreshCw size={16} />,
+        onClick: () => {
+          if (onRefresh) {
+            onRefresh();
+          } else if (typeof window !== 'undefined') {
+            window.location.reload();
+          }
+        },
+      },
+      {
+        id: 'add-teacher',
+        label: 'Add Teacher',
+        className: 'bg-[#2F80ED] text-white hover:bg-blue-600 rounded-lg',
+        variant: 'primary',
+        icon: <Plus size={16} />,
+        onClick: openAddModal,
+      },
+    ];
+  }
+
   if (pageType === 'leave-requests') {
     return [
       {

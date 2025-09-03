@@ -159,6 +159,149 @@ export class TeacherService {
     );
   }
 
+  // Get salary for specific month
+  async getSalaryForMonth(
+    teacherId: string,
+    month: string,
+  ): Promise<ApiResponse<TeacherSalaryHistoryResponse>> {
+    return this.httpClient.get<TeacherSalaryHistoryResponse>(
+      TEACHER_ENDPOINTS.GET_SALARY_FOR_MONTH(teacherId, month),
+      undefined,
+      { requiresAuth: true },
+    );
+  }
+
+  // ========================================================================
+  // Import/Export Operations
+  // ========================================================================
+
+  /**
+   * Import teachers from CSV file
+   */
+  async importTeachersFromCSV(
+    file: File,
+    options: {
+      skipDuplicates?: boolean;
+      updateExisting?: boolean;
+    } = {},
+  ): Promise<
+    ApiResponse<{
+      success: boolean;
+      message: string;
+      totalProcessed: number;
+      successfulImports: number;
+      failedImports: number;
+      errors: Array<{
+        row: number;
+        teacher: string;
+        error: string;
+      }>;
+      importedTeachers: Array<{
+        id: string;
+        fullName: string;
+        email: string;
+        employeeId: string;
+        designation: string;
+      }>;
+    }>
+  > {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    if (options.skipDuplicates !== undefined) {
+      formData.append('skipDuplicates', options.skipDuplicates.toString());
+    }
+
+    if (options.updateExisting !== undefined) {
+      formData.append('updateExisting', options.updateExisting.toString());
+    }
+
+    return this.httpClient.post('api/v1/teacher-import/import', formData, {
+      requiresAuth: true,
+      isMultipart: true,
+    });
+  }
+
+  /**
+   * Export teachers to CSV
+   */
+  async exportTeachersToCSV(params?: {
+    department?: string;
+    search?: string;
+    designation?: string;
+  }): Promise<Blob> {
+    const queryParams = new URLSearchParams();
+
+    if (params?.department) {
+      queryParams.set('department', params.department);
+    }
+
+    if (params?.search) {
+      queryParams.set('search', params.search);
+    }
+
+    if (params?.designation) {
+      queryParams.set('designation', params.designation);
+    }
+
+    const url = `api/v1/teacher-import/export${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    // For blob responses, we need to use fetch directly
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const fullUrl = `${baseURL}/${url}`;
+
+    // Get CSRF token
+    const { csrfService } = await import('../services/csrf.service');
+    const csrfHeaders = await csrfService.addTokenToHeaders();
+
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        ...csrfHeaders,
+        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Export failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.blob();
+  }
+
+  /**
+   * Get CSV template for teacher import
+   */
+  async getImportTemplate(): Promise<Blob> {
+    // For blob responses, we need to use fetch directly
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const fullUrl = `${baseURL}/api/v1/teacher-import/import/template`;
+
+    // Get CSRF token
+    const { csrfService } = await import('../services/csrf.service');
+    const csrfHeaders = await csrfService.addTokenToHeaders();
+
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        ...csrfHeaders,
+        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Template download failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.blob();
+  }
+
   /**
    * Create a new teacher with profile picture
    */

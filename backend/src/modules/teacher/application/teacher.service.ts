@@ -14,10 +14,6 @@ import {
   UpdateTeacherSelfDtoType,
 } from '../dto/teacher.dto';
 import { TeacherSalaryService } from './teacher-salary.service';
-import {
-  TeacherProfileWithAdditionalData,
-  TeacherAdditionalData,
-} from '../types/teacher-profile.types';
 
 @Injectable()
 export class TeacherService {
@@ -159,7 +155,9 @@ export class TeacherService {
             specialization: professional.specialization,
             designation: professional.designation || 'Teacher',
             department: professional.department,
-            employmentDate: new Date(professional.joiningDate),
+            employmentDate: professional.joiningDate
+              ? new Date(professional.joiningDate)
+              : new Date(),
             experienceYears: professional.experienceYears,
 
             // Personal Information
@@ -170,7 +168,9 @@ export class TeacherService {
               ? new Date(personal.dateOfBirth)
               : new Date(),
             gender: personal?.gender || 'Not Specified',
-            joiningDate: new Date(professional.joiningDate),
+            joiningDate: professional.joiningDate
+              ? new Date(professional.joiningDate)
+              : new Date(),
             bloodGroup: personal?.bloodGroup,
             address: personal?.address,
             maritalStatus: personal?.maritalStatus,
@@ -251,7 +251,9 @@ export class TeacherService {
         }
 
         // Create initial salary history record
-        const joiningDate = new Date(professional.joiningDate);
+        const joiningDate = professional.joiningDate
+          ? new Date(professional.joiningDate)
+          : new Date();
         const effectiveMonth = new Date(
           joiningDate.getFullYear(),
           joiningDate.getMonth(),
@@ -621,6 +623,30 @@ export class TeacherService {
     // Update teacher fields
     const teacherUpdateData: any = {};
 
+    if (dto.professional) {
+      // Handle both qualification field names
+      const qualification =
+        dto.professional.highestQualification || dto.professional.qualification;
+
+      if (qualification) teacherUpdateData.qualification = qualification;
+      if (dto.professional.designation)
+        teacherUpdateData.designation = dto.professional.designation;
+      if (dto.professional.department)
+        teacherUpdateData.department = dto.professional.department;
+      if (dto.professional.specialization)
+        teacherUpdateData.specialization = dto.professional.specialization;
+      if (dto.professional.experienceYears !== undefined)
+        teacherUpdateData.experienceYears = dto.professional.experienceYears;
+      if (dto.professional.employeeId)
+        teacherUpdateData.employeeId = dto.professional.employeeId;
+      if (dto.professional.joiningDate) {
+        teacherUpdateData.employmentDate = new Date(
+          dto.professional.joiningDate,
+        );
+        teacherUpdateData.joiningDate = new Date(dto.professional.joiningDate);
+      }
+    }
+
     if (dto.personal) {
       if (dto.personal.dateOfBirth)
         teacherUpdateData.dateOfBirth = new Date(dto.personal.dateOfBirth);
@@ -667,25 +693,6 @@ export class TeacherService {
           data: profileUpdate,
         });
       }
-    }
-
-    if (dto.professional) {
-      if (dto.professional.employeeId)
-        teacherUpdateData.employeeId = dto.professional.employeeId;
-      if (dto.professional.designation)
-        teacherUpdateData.designation = dto.professional.designation;
-      if (dto.professional.highestQualification)
-        teacherUpdateData.qualification = dto.professional.highestQualification;
-      if (dto.professional.specialization)
-        teacherUpdateData.specialization = dto.professional.specialization;
-      if (dto.professional.department)
-        teacherUpdateData.department = dto.professional.department;
-      if (dto.professional.joiningDate)
-        teacherUpdateData.employmentDate = new Date(
-          dto.professional.joiningDate,
-        );
-      if (dto.professional.experienceYears)
-        teacherUpdateData.experienceYears = dto.professional.experienceYears;
     }
 
     if (dto.salary) {
@@ -806,7 +813,122 @@ export class TeacherService {
       userAgent,
     });
 
-    return { message: 'Teacher updated successfully', id };
+    // Return the updated teacher data
+    const updatedTeacher = await this.prisma.teacher.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          },
+        },
+        profile: true,
+        subjectAssignments: {
+          include: {
+            subject: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
+        classAssignments: {
+          include: {
+            class: {
+              select: {
+                name: true,
+                section: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!updatedTeacher) {
+      throw new NotFoundException('Updated teacher not found');
+    }
+
+    // Extract additionalData from profile for detailed response
+    const additionalData =
+      (updatedTeacher.profile as any)?.additionalData || {};
+    const bankDetails = additionalData.bankDetails || {};
+
+    // Extract name parts from fullName for frontend compatibility
+    const user = updatedTeacher.user;
+    const nameParts = user.fullName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName =
+      nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+    const middleName =
+      nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '';
+
+    return {
+      message: 'Teacher updated successfully',
+      id,
+      data: {
+        id: updatedTeacher.id,
+        userId: user.id,
+        fullName: user.fullName,
+        firstName,
+        middleName,
+        lastName,
+        email: user.email,
+        phone: user.phone,
+        employeeId: updatedTeacher.employeeId,
+        designation: updatedTeacher.designation,
+        department: updatedTeacher.department,
+        qualification: updatedTeacher.qualification,
+        experienceYears: updatedTeacher.experienceYears,
+        employmentDate: updatedTeacher.employmentDate,
+        employmentStatus: updatedTeacher.employmentStatus,
+        specialization: updatedTeacher.specialization,
+        basicSalary: updatedTeacher.basicSalary,
+        allowances: updatedTeacher.allowances,
+        totalSalary: updatedTeacher.totalSalary,
+        // Personal details from additionalData
+        dateOfBirth: additionalData.dateOfBirth,
+        gender: additionalData.gender,
+        bloodGroup: additionalData.bloodGroup,
+        maritalStatus: additionalData.maritalStatus,
+        street: additionalData.street,
+        city: additionalData.city,
+        state: additionalData.state,
+        pinCode: additionalData.pinCode,
+        // Bank details
+        bankName: bankDetails.bankName,
+        bankAccountNumber: bankDetails.bankAccountNumber,
+        bankBranch: bankDetails.bankBranch,
+        panNumber: bankDetails.panNumber,
+        citizenshipNumber: bankDetails.citizenshipNumber,
+        // Related data
+        subjects:
+          updatedTeacher.subjectAssignments?.map(ts => ({
+            id: ts.subject.id,
+            name: ts.subject.name,
+            code: ts.subject.code,
+          })) || [],
+        classAssignments:
+          updatedTeacher.classAssignments?.map(tc => ({
+            className: tc.class.name,
+            section: tc.class.section,
+          })) || [],
+        status:
+          updatedTeacher.employmentStatus === 'active'
+            ? 'Active'
+            : updatedTeacher.employmentStatus === 'on_leave'
+              ? 'On Leave'
+              : 'Inactive',
+        joinedDate: updatedTeacher.employmentDate
+          ? updatedTeacher.employmentDate.toISOString().split('T')[0]
+          : undefined,
+      },
+    };
   }
 
   async updateSelf(
@@ -1303,12 +1425,6 @@ export class TeacherService {
       const todayDateString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
       const todayDate = new Date(todayDateString); // Convert back to Date for proper comparison
 
-      console.log('Checking attendance for today:', {
-        todayDateString,
-        todayDate,
-        classId: classTeacherClass.id,
-      });
-
       const todayAttendance = await this.prisma.attendanceSession.findUnique({
         where: {
           classId_date_sessionType: {
@@ -1321,17 +1437,6 @@ export class TeacherService {
           records: true,
         },
       });
-
-      console.log(
-        'Found today attendance session:',
-        todayAttendance
-          ? {
-              id: todayAttendance.id,
-              date: todayAttendance.date,
-              recordsCount: todayAttendance.records.length,
-            }
-          : 'NO SESSION FOUND',
-      );
 
       return {
         isClassTeacher: true,
@@ -1347,7 +1452,6 @@ export class TeacherService {
           : 'Attendance pending for today',
       };
     } catch (error) {
-      console.error('Error checking class teacher status:', error);
       return {
         isClassTeacher: false,
         classDetails: null,
