@@ -3,17 +3,17 @@ import { ApiResponse } from '../types';
 
 // Student endpoints
 export const STUDENT_ENDPOINTS = {
-  CREATE: '/api/v1/students',
-  GET_ALL: '/api/v1/students',
-  GET_BY_ID: (id: string) => `/api/v1/students/${id}`,
-  GET_BY_USER_ID: (userId: string) => `/api/v1/students/user/${userId}`,
-  UPDATE_BY_ADMIN: (id: string) => `/api/v1/students/${id}`,
-  UPDATE_SELF: '/api/v1/students/profile/self',
-  DELETE: (id: string) => `/api/v1/students/${id}`,
-  GET_PARENTS: (id: string) => `/api/v1/students/${id}/parents`,
-  GET_GUARDIANS: (id: string) => `/api/v1/students/${id}/guardians`,
-  GET_COUNT: '/api/v1/students/stats/count',
-  GET_STATS: '/api/v1/students/stats',
+  CREATE: 'api/v1/students',
+  GET_ALL: 'api/v1/students',
+  GET_BY_ID: (id: string) => `api/v1/students/${id}`,
+  GET_BY_USER_ID: (userId: string) => `api/v1/students/user/${userId}`,
+  UPDATE_BY_ADMIN: (id: string) => `api/v1/students/${id}`,
+  UPDATE_SELF: 'api/v1/students/profile/self',
+  DELETE: (id: string) => `api/v1/students/${id}`,
+  GET_PARENTS: (id: string) => `api/v1/students/${id}/parents`,
+  GET_GUARDIANS: (id: string) => `api/v1/students/${id}/guardians`,
+  GET_COUNT: 'api/v1/students/stats/count',
+  GET_STATS: 'api/v1/students/stats',
 } as const;
 
 // Types based on the backend DTOs
@@ -653,6 +653,137 @@ export class StudentService {
       {},
       { requiresAuth: true },
     );
+  }
+
+  // ========================================================================
+  // Import/Export Operations
+  // ========================================================================
+
+  /**
+   * Import students from CSV file
+   */
+  async importStudentsFromCSV(
+    file: File,
+    options: {
+      skipDuplicates?: boolean;
+      updateExisting?: boolean;
+    } = {},
+  ): Promise<
+    ApiResponse<{
+      success: boolean;
+      message: string;
+      totalProcessed: number;
+      successfulImports: number;
+      failedImports: number;
+      errors: Array<{
+        row: number;
+        student: string;
+        error: string;
+      }>;
+      importedStudents: Array<{
+        id: string;
+        fullName: string;
+        email: string;
+        rollNumber: string;
+        className: string;
+      }>;
+    }>
+  > {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    if (options.skipDuplicates !== undefined) {
+      formData.append('skipDuplicates', options.skipDuplicates.toString());
+    }
+
+    if (options.updateExisting !== undefined) {
+      formData.append('updateExisting', options.updateExisting.toString());
+    }
+
+    return this.httpClient.post('api/v1/student-import/import', formData, {
+      requiresAuth: true,
+      isMultipart: true,
+    });
+  }
+
+  /**
+   * Export students to CSV
+   */
+  async exportStudentsToCSV(params?: {
+    classId?: string;
+    search?: string;
+    academicStatus?: string;
+  }): Promise<Blob> {
+    const queryParams = new URLSearchParams();
+
+    if (params?.classId) {
+      queryParams.set('classId', params.classId);
+    }
+
+    if (params?.search) {
+      queryParams.set('search', params.search);
+    }
+
+    if (params?.academicStatus) {
+      queryParams.set('academicStatus', params.academicStatus);
+    }
+
+    const url = `api/v1/student-import/export${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    // For blob responses, we need to use fetch directly
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const fullUrl = `${baseURL}/${url}`;
+
+    // Get CSRF token
+    const { csrfService } = await import('../services/csrf.service');
+    const csrfHeaders = await csrfService.addTokenToHeaders();
+
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        ...csrfHeaders,
+        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Export failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.blob();
+  }
+
+  /**
+   * Get CSV template for student import
+   */
+  async getImportTemplate(): Promise<Blob> {
+    // For blob responses, we need to use fetch directly
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const fullUrl = `${baseURL}/api/v1/student-import/import/template`;
+
+    // Get CSRF token
+    const { csrfService } = await import('../services/csrf.service');
+    const csrfHeaders = await csrfService.addTokenToHeaders();
+
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        ...csrfHeaders,
+        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Template download failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.blob();
   }
 }
 

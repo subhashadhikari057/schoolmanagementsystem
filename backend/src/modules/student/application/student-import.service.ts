@@ -612,6 +612,29 @@ export class StudentImportService {
         ],
       });
 
+      // Sort students to ensure proper numeric ordering of roll numbers
+      const sortedStudents = students.sort((a, b) => {
+        // First sort by class grade (numerically)
+        if (a.class.grade !== b.class.grade) {
+          return a.class.grade - b.class.grade;
+        }
+
+        // Then by class section (alphabetically)
+        if (a.class.section !== b.class.section) {
+          return a.class.section.localeCompare(b.class.section);
+        }
+
+        // Finally by roll number (numerically)
+        const rollA = parseInt(a.rollNumber, 10) || 0;
+        const rollB = parseInt(b.rollNumber, 10) || 0;
+        if (rollA !== rollB) {
+          return rollA - rollB;
+        }
+
+        // If roll numbers are equal, sort by name
+        return a.user.fullName.localeCompare(b.user.fullName);
+      });
+
       // Generate CSV content
       const headers = [
         'fullName',
@@ -632,7 +655,27 @@ export class StudentImportService {
         'secondaryParentRelation',
       ];
 
-      const csvRows = students.map(student => {
+      const csvRows = sortedStudents.map(student => {
+        // Get father information from student schema (Primary Parent)
+        const fatherName =
+          student.fatherFirstName && student.fatherLastName
+            ? `${student.fatherFirstName} ${student.fatherMiddleName || ''} ${student.fatherLastName}`.trim()
+            : '';
+
+        const fatherPhone = student.fatherPhone || '';
+        const fatherEmail = student.fatherEmail || '';
+        const fatherRelation = 'Father';
+
+        // Get mother information from student schema (Secondary Parent)
+        const motherName =
+          student.motherFirstName && student.motherLastName
+            ? `${student.motherFirstName} ${student.motherMiddleName || ''} ${student.motherLastName}`.trim()
+            : '';
+
+        const motherPhone = student.motherPhone || '';
+        const motherEmail = student.motherEmail || '';
+        const motherRelation = 'Mother';
+
         return [
           student.user.fullName,
           student.user.email,
@@ -642,14 +685,14 @@ export class StudentImportService {
           student.class.section,
           student.dob ? student.dob.toISOString().split('T')[0] : '',
           student.gender,
-          '', // primaryParentName - not available in current query
-          '', // primaryParentPhone - not available in current query
-          '', // primaryParentEmail - not available in current query
-          '', // primaryParentRelation - not available in current query
-          '', // secondaryParentName
-          '', // secondaryParentPhone
-          '', // secondaryParentEmail
-          '', // secondaryParentRelation
+          fatherName, // primaryParentName (Father)
+          fatherPhone, // primaryParentPhone (Father)
+          fatherEmail, // primaryParentEmail (Father)
+          fatherRelation, // primaryParentRelation (Father)
+          motherName, // secondaryParentName (Mother)
+          motherPhone, // secondaryParentPhone (Mother)
+          motherEmail, // secondaryParentEmail (Mother)
+          motherRelation, // secondaryParentRelation (Mother)
         ].join(',');
       });
 
