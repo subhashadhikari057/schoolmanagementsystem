@@ -7,7 +7,6 @@ import {
   Body,
   Param,
   Req,
-  UseGuards,
   HttpStatus,
   HttpCode,
   Query,
@@ -22,14 +21,12 @@ import {
   CreateTeacherDto,
   CreateTeacherDtoType,
   UpdateTeacherByAdminDto,
-  UpdateTeacherByAdminDtoType,
   UpdateTeacherSelfDto,
   UpdateTeacherSelfDtoType,
 } from '../dto/teacher.dto';
 import {
   AssignTeacherClassesDto,
   AssignTeacherClassesDtoType,
-  RemoveTeacherClassDto,
 } from '../dto/teacher-classes.dto.ts';
 import {
   AssignSubjectsDto,
@@ -105,10 +102,6 @@ export class TeacherController {
       };
     } catch (error) {
       if (error.name === 'ZodError') {
-        console.error(
-          'Zod Validation Error:',
-          JSON.stringify(error.errors, null, 2),
-        );
         throw new BadRequestException({
           message: 'Validation failed',
           errors: error.errors,
@@ -119,7 +112,6 @@ export class TeacherController {
           })),
         });
       }
-      console.error('Teacher Creation Error:', error);
       throw error;
     }
   }
@@ -256,14 +248,25 @@ export class TeacherController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async update(
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(UpdateTeacherByAdminDto))
-    body: UpdateTeacherByAdminDtoType,
+    @Body() body: any,
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
+    // Validate request body
+    const validationResult = UpdateTeacherByAdminDto.safeParse(body);
+
+    if (!validationResult.success) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: validationResult.error.errors,
+      });
+    }
+
+    const validatedData = validationResult.data;
+
     return this.teacherService.updateByAdmin(
       id,
-      body,
+      validatedData,
       user.id,
       req.ip,
       req.headers['user-agent'],

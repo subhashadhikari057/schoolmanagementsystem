@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 interface TeacherEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (updatedTeacher: any) => void;
+  onSuccess: () => void; // Simplified - no parameters needed
   teacher: Teacher | null;
 }
 
@@ -659,10 +659,12 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
         Object.entries({
           designation: formData.designation,
           department: formData.department,
-          highestQualification: formData.qualification,
+          highestQualification: formData.qualification, // Backend expects 'highestQualification'
           experienceYears:
-            formData.experienceYears > 0 ? formData.experienceYears : undefined,
-          joiningDate: formData.joinedDate,
+            formData.experienceYears > 0
+              ? Number(formData.experienceYears)
+              : undefined, // Ensure it's a number
+          joiningDate: formData.joinedDate, // Ensure proper date format YYYY-MM-DD
         }).filter(([key, value]) => {
           if (key === 'experienceYears') return value !== undefined;
           return value && typeof value === 'string' && value.trim() !== '';
@@ -688,28 +690,48 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
       // Build the update payload matching UpdateTeacherByAdminDto structure
       const teacherData: any = {};
 
-      // Only include sections with data
-      if (Object.values(userData).some(val => val)) {
+      // Only include sections with actual data (not empty objects)
+      const hasUserData = Object.values(userData).some(
+        val => val !== undefined && val !== '',
+      );
+      const hasPersonalData = Object.values(personalData).some(
+        val => val !== undefined && val !== '',
+      );
+      const hasProfessionalData = Object.values(professionalData).some(
+        val => val !== undefined && val !== '',
+      );
+      const hasSubjectsData =
+        subjectsData.subjects && subjectsData.subjects.length > 0;
+      const hasBankData = Object.values(bankData).some(
+        val => val !== undefined && val !== '',
+      );
+
+      if (hasUserData) {
         teacherData.user = userData;
       }
 
-      if (Object.values(personalData).some(val => val)) {
+      if (hasPersonalData) {
         teacherData.personal = personalData;
       }
 
-      if (Object.values(professionalData).some(val => val)) {
+      if (hasProfessionalData) {
         teacherData.professional = professionalData;
       }
 
-      if (subjectsData.subjects && subjectsData.subjects.length > 0) {
+      if (hasSubjectsData) {
         teacherData.subjects = subjectsData;
       }
 
-      if (Object.values(bankData).some(val => val)) {
+      if (hasBankData) {
         teacherData.bankDetails = bankData;
       }
 
-      console.log('Sending teacher update data:', teacherData);
+      // Ensure we always have at least one section to update
+      if (Object.keys(teacherData).length === 0) {
+        throw new Error(
+          'No valid data to update. Please make sure to fill in at least one field.',
+        );
+      }
 
       const response = await teacherService.updateTeacherByAdmin(
         String(teacher.id),
@@ -720,21 +742,20 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
         toast.success('Teacher updated successfully', {
           description: `${formData.firstName} ${formData.lastName}'s information has been updated.`,
         });
-        onSuccess({
-          id: teacher.id,
-          ...formData,
-        });
+        // Just notify success - let parent component reload from server
+        onSuccess();
         onClose();
       } else {
         throw new Error(response.message || 'Failed to update teacher');
       }
     } catch (err) {
-      const error = err as Error;
+      const error = err as any;
       console.error('Error updating teacher:', error);
-      setError(error.message || 'Failed to update teacher');
+
+      setError(error?.message || 'Failed to update teacher');
       toast.error('Update failed', {
         description:
-          error.message ||
+          error?.message ||
           'There was a problem updating the teacher information.',
       });
     } finally {

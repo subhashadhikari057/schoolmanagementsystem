@@ -369,70 +369,11 @@ const TeachersPage = () => {
     console.log('Unhandled action:', action, 'for teacher:', teacher.id);
   };
 
-  // Handle successful edit
-  const handleEditSuccess = (updatedTeacher: any) => {
-    // Update the teacher in the local state
-    const updatedTeachers = teachers.map(t => {
-      if (t.id === updatedTeacher.id) {
-        // Create updated teacher object with new data
-        return {
-          ...t,
-          name: `${updatedTeacher.firstName} ${updatedTeacher.middleName ? updatedTeacher.middleName + ' ' : ''}${updatedTeacher.lastName}`,
-          email: updatedTeacher.email,
-          phone: updatedTeacher.phone,
-          designation: updatedTeacher.designation,
-          department: updatedTeacher.department,
-          qualification: updatedTeacher.qualification,
-          experienceYears: updatedTeacher.experienceYears,
-          joinedDate: updatedTeacher.joinedDate,
-          status: updatedTeacher.status,
-          // Add address fields for display
-          street: updatedTeacher.street,
-          city: updatedTeacher.city,
-          state: updatedTeacher.state,
-          pinCode: updatedTeacher.pinCode,
-          gender: updatedTeacher.gender,
-          bloodGroup: updatedTeacher.bloodGroup,
-          maritalStatus: updatedTeacher.maritalStatus,
-        };
-      }
-      return t;
-    });
-
-    setTeachers(updatedTeachers);
-
-    // Also update filtered teachers
-    const updatedFilteredTeachers = filteredTeachers.map(t => {
-      if (t.id === updatedTeacher.id) {
-        // Create updated teacher object with new data
-        return {
-          ...t,
-          name: `${updatedTeacher.firstName} ${updatedTeacher.middleName ? updatedTeacher.middleName + ' ' : ''}${updatedTeacher.lastName}`,
-          email: updatedTeacher.email,
-          phone: updatedTeacher.phone,
-          designation: updatedTeacher.designation,
-          department: updatedTeacher.department,
-          qualification: updatedTeacher.qualification,
-          experienceYears: updatedTeacher.experienceYears,
-          joinedDate: updatedTeacher.joinedDate,
-          status: updatedTeacher.status,
-          // Add address fields for display
-          street: updatedTeacher.street,
-          city: updatedTeacher.city,
-          state: updatedTeacher.state,
-          pinCode: updatedTeacher.pinCode,
-          gender: updatedTeacher.gender,
-          bloodGroup: updatedTeacher.bloodGroup,
-          maritalStatus: updatedTeacher.maritalStatus,
-        };
-      }
-      return t;
-    });
-
-    setFilteredTeachers(updatedFilteredTeachers);
-
-    // Don't reload from server to avoid flickering
-    // The local state update is sufficient
+  // Handle successful edit - just reload data like students do
+  const handleEditSuccess = () => {
+    setEditModalOpen(false);
+    // Reload teachers data to reflect changes (same pattern as students)
+    loadTeachers();
   };
 
   // Handle teacher deletion
