@@ -23,7 +23,6 @@ import StudentAttendanceViewModal from '@/components/organisms/modals/StudentAtt
 const StudentsPage = () => {
   // State for students data
   const [students, setStudents] = useState<Student[]>([]);
-  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -185,6 +184,15 @@ const StudentsPage = () => {
     setError(null);
 
     try {
+      // Log pagination request details for debugging
+      console.log('Fetching students with pagination:', {
+        currentPage,
+        itemsPerPage,
+        searchFilter,
+        classFilter,
+        ethnicityFilter,
+      });
+
       const response = await studentService.getAllStudents({
         page: currentPage,
         limit: itemsPerPage,
@@ -195,11 +203,18 @@ const StudentsPage = () => {
         sortOrder: 'desc',
       });
 
+      // Log raw API response for debugging
+      console.log('Student API Response:', response);
+
       if (response.success && response.data) {
         // Check if response.data has the expected structure
         const studentsData = response.data.data || response.data || [];
         const totalItems = response.data.total || 0;
-        const totalPages = response.data.totalPages || 1;
+
+        // Use backend-provided totalPages when available; otherwise compute it
+        const totalPages =
+          (response.data.totalPages as number) ||
+          Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
         // Ensure studentsData is an array before mapping
         if (Array.isArray(studentsData)) {
@@ -224,7 +239,6 @@ const StudentsPage = () => {
           );
 
           setStudents(transformedStudents);
-          setFilteredStudents(transformedStudents);
           setTotalItems(totalItems);
           setTotalPages(totalPages);
         } else {
@@ -234,7 +248,6 @@ const StudentsPage = () => {
           );
           // Fallback to empty array if data is not an array
           setStudents([]);
-          setFilteredStudents([]);
           setTotalItems(0);
           setTotalPages(1);
         }
@@ -242,7 +255,6 @@ const StudentsPage = () => {
         console.warn('API response not successful or missing data:', response);
         // Fallback to empty array if API fails
         setStudents([]);
-        setFilteredStudents([]);
         setTotalItems(0);
         setTotalPages(1);
       }
@@ -267,7 +279,6 @@ const StudentsPage = () => {
       ];
 
       setStudents(mockStudents);
-      setFilteredStudents(mockStudents);
       setTotalItems(mockStudents.length);
       setTotalPages(Math.ceil(mockStudents.length / itemsPerPage));
       setError('API connection failed - using mock data');
@@ -290,16 +301,11 @@ const StudentsPage = () => {
 
   // Note: Filters are now handled by backend API in loadStudents function
 
-  // Calculate current page items
-  const getCurrentPageItems = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredStudents.slice(startIndex, endIndex);
-  };
-
   // Handle page change
   const handlePageChange = (page: number) => {
+    console.log(`Changing to page ${page} from ${currentPage}`);
     setCurrentPage(page);
+    // No need to manually call loadStudents here as it's handled by the useEffect dependency on currentPage
   };
 
   // Handle student actions
@@ -344,12 +350,6 @@ const StudentsPage = () => {
         );
         setStudents(updatedStudents);
 
-        // Also update filtered students to reflect change immediately
-        const updatedFilteredStudents = filteredStudents.map(s =>
-          s.id === student.id ? updatedStudent : s,
-        );
-        setFilteredStudents(updatedFilteredStudents);
-
         // Call API to update status
         const response = await studentService.updateStudentByAdmin(
           String(student.id),
@@ -369,14 +369,12 @@ const StudentsPage = () => {
         } else {
           // Revert the optimistic update if API call failed
           setStudents(students);
-          setFilteredStudents(filteredStudents);
           toast.error(response.message || 'Failed to update student status');
         }
       } catch (err) {
         console.error('Error updating student status:', err);
         // Revert the optimistic update if API call failed
         setStudents(students);
-        setFilteredStudents(filteredStudents);
         toast.error('Failed to update student status');
       }
       return;
@@ -483,7 +481,7 @@ const StudentsPage = () => {
               </div>
             ) : (
               <GenericTable
-                data={getCurrentPageItems()}
+                data={students}
                 columns={getListConfig('students').columns}
                 currentPage={currentPage}
                 totalPages={totalPages}

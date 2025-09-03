@@ -10,18 +10,10 @@ import {
 } from '@/api/services/class.service';
 import { roomService, CreateRoomRequest } from '@/api/services/room.service';
 
-import type { Room } from '@/types/asset.types';
-
 interface ClassFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  // If provided, start the modal at this step (1 or 2)
-  initialStep?: number;
-  // If provided, start with 'new' or 'existing' room option
-  initialRoomOption?: 'new' | 'existing';
-  // Callback when a room is created (useful for AssetTab to receive the created room)
-  onRoomCreated?: (room: Room) => void;
 }
 
 interface FormData {
@@ -48,9 +40,6 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  initialStep,
-  initialRoomOption,
-  onRoomCreated,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
@@ -88,9 +77,6 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
     if (isOpen) {
       loadTeachers();
       loadRooms();
-      // Respect initial step/option when opening from other places
-      setCurrentStep(initialStep ?? 1);
-      setRoomOption(initialRoomOption ?? 'existing');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, formData.shift]);
@@ -314,26 +300,6 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
 
         // Switch back to existing room view
         setRoomOption('existing');
-        // Notify parent that a room was created
-        try {
-          onRoomCreated?.({
-            id: newRoom.id,
-            roomNo: newRoom.roomNo,
-            name: newRoom.name,
-            floor: newRoom.floor,
-            building: newRoom.building,
-            capacity: newRoom.capacity ?? 0,
-            type: 'Classroom',
-            assets: [],
-            totalAssets: 0,
-            totalDamaged: 0,
-            totalValue: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-        } catch (err) {
-          // ignore
-        }
       } else {
         throw new Error(response.message || 'Failed to create room');
       }

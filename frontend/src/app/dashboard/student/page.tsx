@@ -319,6 +319,15 @@ export default function Page() {
   }, [studentProfile?.id, studentProfile?.classId]);
 
   // Student info - prioritize cached/fetched profile, fallback to auth user
+  let formattedClass = 'Class 10 A';
+  if (studentProfile) {
+    if (studentProfile.class && studentProfile.class.grade) {
+      formattedClass =
+        `Grade ${studentProfile.class.grade} ${studentProfile.class.section || ''}`.trim();
+    } else if (studentProfile.className && studentProfile.className !== '') {
+      formattedClass = studentProfile.className;
+    }
+  }
   const student = studentProfile
     ? {
         name:
@@ -326,14 +335,12 @@ export default function Page() {
           `${studentProfile.firstName || ''} ${studentProfile.lastName || ''}`.trim() ||
           user?.full_name ||
           'Student',
-        class: studentProfile.className?.split(' ')[1] || '10',
-        section: studentProfile.className?.split(' ')[2] || 'A',
+        className: formattedClass,
         rollNumber: studentProfile.rollNumber || 'N/A',
       }
     : {
-        name: user?.full_name || 'Student', // Use already stored auth data
-        class: '10',
-        section: 'A',
+        name: user?.full_name || 'Student',
+        className: formattedClass,
         rollNumber: 'N/A',
       };
 
@@ -354,8 +361,7 @@ export default function Page() {
             Hello, {student.name} 👋
           </h1>
           <p className='text-gray-700 text-base'>
-            Class {student.class}
-            {student.section} • Roll No: {student.rollNumber}
+            {student.className} • Roll No: {student.rollNumber}
           </p>
         </div>
         <Label className='text-xs cursor-pointer sm:text-sm lg:text-base text-gray-600 mt-1'>

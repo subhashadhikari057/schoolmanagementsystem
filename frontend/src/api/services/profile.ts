@@ -1,6 +1,14 @@
 import { apiClient } from '../client/apiClient';
 
 export interface UserProfile {
+  parents?: Array<{
+    id: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    relationship: string;
+    isPrimary: boolean;
+  }>;
   id: string;
   email: string;
   fullName: string;
