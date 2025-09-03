@@ -16,6 +16,16 @@ jest.config.js
 # Ignore JWT key generation script
 generate-jwt-keys.js
 
+# Ignore utility scripts
+generate-password-hash.js
+check-classes.js
+check-data.js
+check-database.js
+check-recent-calendar.js
+update-working-days.js
+test-eventscope-logic.js
+test-eventscope.js
+
 # Ignore prisma generated files
 prisma/client/
 

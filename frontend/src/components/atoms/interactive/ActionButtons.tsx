@@ -9,7 +9,10 @@ import {
   Plus,
   Printer,
   Edit,
+  RefreshCw,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { csrfService } from '@/api/services/csrf.service';
 import AddTeacherFormModal from '@/components/organisms/modals/AddTeacherFormModal';
 import AddStudentFormModal from '@/components/organisms/modals/AddStudentFormModal';
 import AddStaffFormModal from '@/components/organisms/modals/AddStaffFormModal';
@@ -63,6 +66,7 @@ const getActionButtonsConfig = (
   pageType: string,
   openAddModal: () => void,
   openSendCommModal?: () => void,
+  onRefresh?: () => void,
 ): ActionButtonConfig[] => {
   if (pageType === 'expenses') {
     return [
@@ -144,6 +148,215 @@ const getActionButtonsConfig = (
         id: 'create-structure',
         label: 'Create Structure',
         className: 'bg-[#2F80ED] text-white hover:bg-blue-600 rounded-lg',
+        variant: 'primary',
+        icon: <Plus size={16} />,
+        onClick: openAddModal,
+      },
+    ];
+  }
+
+  if (pageType === 'students') {
+    return [
+      {
+        id: 'import-students',
+        label: 'Import Students',
+        variant: 'import',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Upload size={16} />,
+        onClick: () => {
+          // Create a file input element for CSV upload
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = '.csv';
+          input.onchange = async e => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+              try {
+                // Show loading state
+                const button = document.querySelector(
+                  '[data-id="import-students"]',
+                );
+                if (button) {
+                  button.textContent = 'Importing...';
+                  button.setAttribute('disabled', 'true');
+                }
+
+                // Create FormData for upload
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // Get CSRF token and add to headers
+                const csrfToken = await csrfService.getToken();
+                const headers: Record<string, string> = {
+                  'X-CSRF-Token': csrfToken,
+                };
+
+                // Upload to backend with CSRF token
+                const backendUrl =
+                  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+                const response = await fetch(
+                  `${backendUrl}/api/v1/students/import`,
+                  {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include',
+                    headers,
+                  },
+                );
+
+                if (response.ok) {
+                  const result = await response.json();
+                  if (result.success) {
+                    toast.success(
+                      `🎉 Import successful! ${result.successfulImports} students imported successfully.`,
+                      {
+                        description: `Check the backend console for student and parent passwords.`,
+                        duration: 6000,
+                      },
+                    );
+                    // Refresh the page to show new students
+                    window.location.reload();
+                  } else {
+                    toast.error(`❌ Import failed: ${result.message}`, {
+                      description: `${result.failedImports} students failed to import.`,
+                      duration: 5000,
+                    });
+                  }
+                } else {
+                  const error = await response.text();
+                  toast.error(`❌ Import failed: ${error}`, {
+                    description: 'Please check your CSV format and try again.',
+                    duration: 5000,
+                  });
+                }
+              } catch (error) {
+                toast.error(
+                  `❌ Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  {
+                    description:
+                      'An unexpected error occurred. Please try again.',
+                    duration: 5000,
+                  },
+                );
+              } finally {
+                // Reset button state
+                const button = document.querySelector(
+                  '[data-id="import-students"]',
+                );
+                if (button) {
+                  button.textContent = 'Import Students';
+                  button.removeAttribute('disabled');
+                }
+              }
+            }
+          };
+          input.click();
+        },
+      },
+      {
+        id: 'export-students',
+        label: 'Export Students',
+        variant: 'export',
+        className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: async () => {
+          try {
+            // Show loading state
+            const button = document.querySelector(
+              '[data-id="export-students"]',
+            );
+            if (button) {
+              button.textContent = 'Exporting...';
+              button.setAttribute('disabled', 'true');
+            }
+
+            // Get current filters from URL or page state
+            const urlParams = new URLSearchParams(window.location.search);
+            const classId = urlParams.get('classId') || '';
+            const search = urlParams.get('search') || '';
+            const academicStatus = urlParams.get('academicStatus') || '';
+
+            // Build export URL with filters
+            const backendUrl =
+              process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+            const exportUrl = new URL('/api/v1/students/export', backendUrl);
+            if (classId) exportUrl.searchParams.set('classId', classId);
+            if (search) exportUrl.searchParams.set('search', search);
+            if (academicStatus)
+              exportUrl.searchParams.set('academicStatus', academicStatus);
+
+            // Get CSRF token for the request
+            const csrfToken = await csrfService.getToken();
+            const headers: Record<string, string> = {
+              'X-CSRF-Token': csrfToken,
+            };
+
+            // Trigger download with CSRF token
+            const response = await fetch(exportUrl.toString(), {
+              method: 'GET',
+              credentials: 'include',
+              headers,
+            });
+
+            if (response.ok) {
+              const blob = await response.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `students_export_${new Date().toISOString().split('T')[0]}.csv`;
+              a.click();
+              window.URL.revokeObjectURL(url);
+
+              toast.success('✅ Export successful! Student data downloaded.', {
+                description: 'Your CSV file has been downloaded successfully.',
+                duration: 4000,
+              });
+            } else {
+              const error = await response.text();
+              toast.error(`❌ Export failed: ${error}`, {
+                description: 'Please try again or contact support.',
+                duration: 5000,
+              });
+            }
+          } catch (error) {
+            toast.error(
+              `❌ Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              {
+                description: 'An unexpected error occurred. Please try again.',
+                duration: 5000,
+              },
+            );
+          } finally {
+            // Reset button state
+            const button = document.querySelector(
+              '[data-id="export-students"]',
+            );
+            if (button) {
+              button.textContent = 'Export Students';
+              button.removeAttribute('disabled');
+            }
+          }
+        },
+      },
+      {
+        id: 'refresh-students',
+        label: 'Refresh',
+        variant: 'secondary',
+        className: 'bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg',
+        icon: <RefreshCw size={16} />,
+        onClick: () => {
+          if (onRefresh) {
+            onRefresh();
+          } else if (typeof window !== 'undefined') {
+            // Fallback refresh if onRefresh is not available
+            window.location.reload();
+          }
+        },
+      },
+      {
+        id: 'add-student',
+        label: 'Add Student',
+        className: 'bg-green-600 text-white hover:bg-green-700 rounded-lg',
         variant: 'primary',
         icon: <Plus size={16} />,
         onClick: openAddModal,
@@ -299,52 +512,56 @@ const getActionButtonsConfig = (
             onClick: () => {}, // will be patched in ActionButtons
           },
         ]
-      : [
-          {
-            id: 'import',
-            label: 'Import',
-            variant: 'import',
-            className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
-            icon: <Upload size={16} />,
-            onClick: () => {
-              if (pageType === 'subjects') {
-                alert(
-                  `📚 Import ${pageType} functionality will allow you to bulk upload subject data from CSV/Excel files. Feature coming soon!`,
-                );
-              } else if (pageType === 'id-cards') {
-                alert(
-                  `🆔 Import ID card data - Bulk upload card holder information and generate cards automatically. Feature coming soon!`,
-                );
-              } else {
-                alert(
-                  `📥 Import ${pageType} data from external files. This feature is under development.`,
-                );
-              }
+      : pageType === 'students'
+        ? [] // Students have their own specific configuration
+        : [
+            {
+              id: 'import',
+              label: 'Import',
+              variant: 'import',
+              className:
+                'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+              icon: <Upload size={16} />,
+              onClick: () => {
+                if (pageType === 'subjects') {
+                  alert(
+                    `📚 Import ${pageType} functionality will allow you to bulk upload subject data from CSV/Excel files. Feature coming soon!`,
+                  );
+                } else if (pageType === 'id-cards') {
+                  alert(
+                    `🆔 Import ID card data - Bulk upload card holder information and generate cards automatically. Feature coming soon!`,
+                  );
+                } else {
+                  alert(
+                    `📥 Import ${pageType} data from external files. This feature is under development.`,
+                  );
+                }
+              },
             },
-          },
-          {
-            id: 'export',
-            label: 'Export Data',
-            variant: 'export',
-            className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
-            icon: <Download size={16} />,
-            onClick: () => {
-              if (pageType === 'subjects') {
-                alert(
-                  `📊 Export all subject data including syllabus, schedules, and teacher assignments. Download will start shortly!`,
-                );
-              } else if (pageType === 'id-cards') {
-                alert(
-                  `🃏 Export ID card data - Download all card information, print logs, and templates. Export starting now!`,
-                );
-              } else {
-                alert(
-                  `📤 Export ${pageType} data to CSV/PDF format. Processing your request...`,
-                );
-              }
+            {
+              id: 'export',
+              label: 'Export Data',
+              variant: 'export',
+              className:
+                'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+              icon: <Download size={16} />,
+              onClick: () => {
+                if (pageType === 'subjects') {
+                  alert(
+                    `📊 Export all subject data including syllabus, schedules, and teacher assignments. Download will start shortly!`,
+                  );
+                } else if (pageType === 'id-cards') {
+                  alert(
+                    `🃏 Export ID card data - Download all card information, print logs, and templates. Export starting now!`,
+                  );
+                } else {
+                  alert(
+                    `📤 Export ${pageType} data to CSV/PDF format. Processing your request...`,
+                  );
+                }
+              },
             },
-          },
-        ];
+          ];
 
   const additionalButtons: ActionButtonConfig[] = [];
 
@@ -393,8 +610,8 @@ const getActionButtonsConfig = (
     });
   }
 
-  // Only add the "Add" button if not parents page
-  if (pageType !== 'parents') {
+  // Only add the "Add" button if not parents page and not students (students have their own config)
+  if (pageType !== 'parents' && pageType !== 'students') {
     let addButtonLabel = '';
     if (pageType === 'subjects') addButtonLabel = 'Subject';
     else if (pageType === 'id-cards') addButtonLabel = 'ID Card';
@@ -458,6 +675,7 @@ export const ActionButtons = ({
       pageType === 'students'
       ? () => setIsSendCommModalOpen(true)
       : undefined,
+    onRefresh,
   );
 
   // Patch the onClick for Mass Generate Emails button if present
@@ -489,7 +707,10 @@ export const ActionButtons = ({
             onClick={button.onClick}
             className='w-full sm:w-auto'
           >
-            <ToggleButton className={button.className + ' w-full sm:w-auto'}>
+            <ToggleButton
+              className={button.className + ' w-full sm:w-auto'}
+              data-id={button.id}
+            >
               <div className='flex items-center gap-2 justify-center'>
                 {button.icon}
                 <span className='hidden sm:inline'>{button.label}</span>

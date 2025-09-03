@@ -62,20 +62,41 @@ export const createMulterConfig = (
         );
       }
     } else {
-      // Accept document and image files
-      if (
-        (file.mimetype as string).match(
-          /\/(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|rtf|jpg|jpeg|png|gif|webp)$/,
-        )
-      ) {
+      // Accept document, image, and CSV files
+      const allowedMimeTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+        'text/rtf',
+        'text/csv',
+        'application/csv',
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+      ];
+
+      if (allowedMimeTypes.includes(file.mimetype as string)) {
         cb(null, true);
       } else {
-        cb(
-          new BadRequestException(
-            'Only document and image files (pdf, doc, docx, xls, xlsx, ppt, pptx, txt, rtf, jpg, jpeg, png, gif, webp) are allowed!',
-          ),
-          false,
-        );
+        // Fallback: check file extension for CSV files
+        const fileExtension = (file.originalname as string).toLowerCase();
+        if (fileExtension.endsWith('.csv')) {
+          cb(null, true);
+        } else {
+          cb(
+            new BadRequestException(
+              'Only document, image, and CSV files (pdf, doc, docx, xls, xlsx, ppt, pptx, txt, rtf, csv, jpg, jpeg, png, gif, webp) are allowed!',
+            ),
+            false,
+          );
+        }
       }
     }
   },
