@@ -53,20 +53,30 @@ const MyAccountPage = () => {
   const handleEditClick = () => {
     if (editing) {
       profileRef.current?.closeEdit?.();
+      setEditing(false);
     } else {
       profileRef.current?.toggleEdit?.();
+      setEditing(true);
     }
+  };
+
+  const handleSaveClick = () => {
+    profileRef.current?.handleSave?.();
   };
 
   const tabs = [
     {
       name: 'Profile Settings',
       content: (
-        <ProfileSettings ref={profileRef} onEditingChange={setEditing} />
+        <ProfileSettings
+          ref={profileRef}
+          onEditingChange={setEditing}
+          editing={editing}
+        />
       ),
     },
-    { name: 'Security', content: <SecuritySettings /> },
-    // { name: 'Notifications', content: <NotificationPreferences /> },
+    { name: 'Security', content: <SecuritySettings editing={editing} /> },
+    // { name: 'Notifications', content: <NotificationPreferences editing={editing} /> },
     { name: 'Activity Log', content: <AccountActivity /> },
   ];
 
@@ -88,11 +98,26 @@ const MyAccountPage = () => {
               'p-1 px-2 rounded-lg shadow-sm cursor-pointer border border-gray-300'
             }
           />
-          <ReusableButton
-            label={editing ? 'Cancel' : 'Edit Profile'}
-            onClick={handleEditClick}
-            className={`p-1 px-2 rounded-lg shadow-sm cursor-pointer ${editing ? 'border border-gray-300' : 'bg-blue-500 text-white'}`}
-          />
+          {editing ? (
+            <>
+              <ReusableButton
+                label='Save Changes'
+                onClick={handleSaveClick}
+                className='p-1 px-2 rounded-lg shadow-sm cursor-pointer bg-blue-500 text-white border border-blue-500'
+              />
+              <ReusableButton
+                label='Cancel'
+                onClick={handleEditClick}
+                className='p-1 px-2 rounded-lg shadow-sm cursor-pointer bg-red-500 text-white border border-red-500'
+              />
+            </>
+          ) : (
+            <ReusableButton
+              label='Edit Profile'
+              onClick={handleEditClick}
+              className='p-1 px-2 rounded-lg shadow-sm cursor-pointer bg-blue-500 text-white'
+            />
+          )}
         </div>
       </div>
 

@@ -12,6 +12,7 @@ import {
   AccountActivity,
 } from '@/api/services/profile';
 import Icon from '@/components/atoms/display/Icon';
+import ChangePasswordModal from '@/components/organisms/modals/ChangePasswordModal';
 
 const getActivityIcon = (action: string, status: string) => {
   const isSuccess = status === 'SUCCESS';
@@ -94,16 +95,24 @@ const validatePassword = (password: string) => {
   };
 };
 
-export default function SecuritySettings() {
+interface SecuritySettingsProps {
+  editing?: boolean;
+}
+
+export default function SecuritySettings(props: SecuritySettingsProps) {
   // Two-factor state for design toggle
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const editing = props.editing ?? false;
 
-  // Demo values for design match
-  const passwordStrength = 'Strong';
-  const passwordStrengthValue = 90;
-  const passwordLastChanged = 'Last changed 30 days ago';
-  const sessionCount = 3;
-  const securityScore = 94;
+  // Demo values for design match - make them editable when editing is true
+  const [passwordStrength, setPasswordStrength] = useState('Strong');
+  const [passwordStrengthValue, setPasswordStrengthValue] = useState(90);
+  const [passwordLastChanged, setPasswordLastChanged] = useState(
+    'Last changed 30 days ago',
+  );
+  const [sessionCount, setSessionCount] = useState(3);
+  const [securityScore, setSecurityScore] = useState(94);
   const sessions = [
     {
       device: 'Current Session',
@@ -129,56 +138,23 @@ export default function SecuritySettings() {
     { label: 'Strong Password', passed: true },
     { label: 'Recent Login', passed: true },
   ];
-  const loginHistory = [
-    {
-      device: 'Desktop',
-      ip: '192.168.1.101',
-      date: '2025-01-28',
-      time: '09:30 AM',
-      status: 'Success',
-      color: 'text-blue-600',
-      badge: 'bg-blue-100 text-blue-600',
-    },
-    {
-      device: 'Desktop',
-      ip: '192.168.1.101',
-      date: '2025-01-27',
-      time: '08:45 AM',
-      status: 'Success',
-      color: 'text-blue-600',
-      badge: 'bg-blue-100 text-blue-600',
-    },
-    {
-      device: 'Mobile',
-      ip: '192.168.1.205',
-      date: '2025-01-26',
-      time: '09:15 AM',
-      status: 'Success',
-      color: 'text-blue-600',
-      badge: 'bg-blue-100 text-blue-600',
-    },
-    {
-      device: 'Desktop',
-      ip: '192.168.1.101',
-      date: '2025-01-25',
-      time: '10:30 AM',
-      status: 'Success',
-      color: 'text-blue-600',
-      badge: 'bg-blue-100 text-blue-600',
-    },
-    {
-      device: 'Tablet',
-      ip: '192.168.1.156',
-      date: '2025-01-24',
-      time: '11:45 AM',
-      status: 'Failed',
-      color: 'text-red-500',
-      badge: 'bg-red-100 text-red-600',
-    },
-  ];
+  const [loginHistory, setLoginHistory] = useState<AccountActivity[]>([]);
+  useEffect(() => {
+    profileApi.getAccountActivity().then(data => {
+      setLoginHistory(data);
+    });
+  }, []);
 
   return (
     <div className='w-full max-w-full mx-auto space-y-8'>
+      {/* Change Password Modal */}
+      {showChangePasswordModal && (
+        <ChangePasswordModal
+          isOpen={showChangePasswordModal}
+          onClose={() => setShowChangePasswordModal(false)}
+        />
+      )}
+
       {/* Top dashboard cards */}
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
         {/* Password & Authentication Card */}
@@ -227,10 +203,15 @@ export default function SecuritySettings() {
                 <input
                   type='checkbox'
                   checked={twoFactorEnabled}
-                  onChange={e => setTwoFactorEnabled(e.target.checked)}
+                  onChange={e =>
+                    editing ? setTwoFactorEnabled(e.target.checked) : null
+                  }
                   className='sr-only peer'
+                  disabled={!editing}
                 />
-                <div className='w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-500 transition-all'></div>
+                <div
+                  className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-500 transition-all ${!editing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                ></div>
                 <div className='absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:translate-x-5'></div>
               </label>
             </div>
@@ -258,18 +239,27 @@ export default function SecuritySettings() {
           <div className='mt-6 flex flex-col gap-3'>
             <ReusableButton
               label='Change Password'
-              onClick={() => {}}
-              className='w-full py-2 rounded-lg bg-blue-500 text-white font-semibold'
+              onClick={() =>
+                editing ? setShowChangePasswordModal(true) : null
+              }
+              className={`w-full py-2 rounded-lg bg-blue-500 text-white font-semibold ${!editing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!editing}
             />
             <ReusableButton
               label='Download Backup Codes'
-              onClick={() => {}}
-              className='w-full py-2 rounded-lg border border-gray-300 font-semibold'
+              onClick={() =>
+                editing ? console.log('Download backup codes') : null
+              }
+              className={`w-full py-2 rounded-lg border border-gray-300 font-semibold ${!editing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!editing}
             />
             <ReusableButton
               label='Manage Trusted Devices'
-              onClick={() => {}}
-              className='w-full py-2 rounded-lg border border-gray-300 font-semibold'
+              onClick={() =>
+                editing ? console.log('Manage trusted devices') : null
+              }
+              className={`w-full py-2 rounded-lg border border-gray-300 font-semibold ${!editing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!editing}
             />
           </div>
         </Card>
@@ -295,7 +285,18 @@ export default function SecuritySettings() {
               Sessions
             </span>
             <Label className='text-sm text-muted-foreground mb-2 block'>
-              {sessionCount} Active Sessions
+              {editing ? (
+                <input
+                  className='text-sm text-muted-foreground bg-transparent border-b border-gray-300'
+                  value={`${sessionCount} Active Sessions`}
+                  onChange={e => {
+                    const match = e.target.value.match(/(\d+)/);
+                    if (match) setSessionCount(Number(match[1]));
+                  }}
+                />
+              ) : (
+                `${sessionCount} Active Sessions`
+              )}
             </Label>
             <div className='mt-4 space-y-2'>
               {sessions.map((s, i) => (
@@ -400,9 +401,18 @@ export default function SecuritySettings() {
               Security
             </span>
             <div className='flex items-center gap-2 mt-2'>
-              <span className='text-3xl font-bold text-green-600'>
-                {securityScore}%
-              </span>
+              {editing ? (
+                <input
+                  type='number'
+                  className='text-3xl font-bold text-green-600 bg-transparent border-b border-gray-300 w-16'
+                  value={securityScore}
+                  onChange={e => setSecurityScore(Number(e.target.value))}
+                />
+              ) : (
+                <span className='text-3xl font-bold text-green-600'>
+                  {securityScore}%
+                </span>
+              )}
               <span className='text-xs text-muted-foreground'>
                 Security Score
               </span>
@@ -456,68 +466,125 @@ export default function SecuritySettings() {
           Your recent login attempts and device information
         </Label>
         <div className='mt-4 space-y-2'>
-          {loginHistory.map((item, i) => (
-            <div
-              key={i}
-              className='flex items-center p-4 rounded-xl border border-gray-100'
-            >
-              <span
-                className={`w-10 h-10 flex items-center justify-center ${item.color}`}
+          {loginHistory.map((item, i) => {
+            // Smart device/browser/OS parsing from userAgent
+            let deviceType = 'Desktop';
+            let browser = 'Unknown Browser';
+            let os = 'Unknown OS';
+            if (item.userAgent) {
+              const ua = item.userAgent;
+              if (/mobile/i.test(ua)) deviceType = 'Mobile';
+              else if (/tablet/i.test(ua)) deviceType = 'Tablet';
+              else if (/windows|macintosh|linux/i.test(ua))
+                deviceType = 'Desktop';
+              // Browser detection
+              if (/chrome/i.test(ua)) browser = 'Chrome';
+              else if (/firefox/i.test(ua)) browser = 'Firefox';
+              else if (/safari/i.test(ua) && !/chrome/i.test(ua))
+                browser = 'Safari';
+              else if (/edge/i.test(ua)) browser = 'Edge';
+              else if (/opera|opr/i.test(ua)) browser = 'Opera';
+              // OS detection
+              if (/windows/i.test(ua)) os = 'Windows';
+              else if (/macintosh|mac os x/i.test(ua)) os = 'MacOS';
+              else if (/linux/i.test(ua)) os = 'Linux';
+              else if (/android/i.test(ua)) os = 'Android';
+              else if (/iphone|ipad|ios/i.test(ua)) os = 'iOS';
+            }
+            // Status and color
+            const status = item.status === 'SUCCESS' ? 'Success' : 'Failed';
+            const color =
+              status === 'Success' ? 'text-blue-600' : 'text-red-500';
+            const badge =
+              status === 'Success'
+                ? 'bg-blue-100 text-blue-600'
+                : 'bg-red-100 text-red-600';
+            // IP formatting
+            let ip = item.ipAddress;
+            if (!ip || ip === '::1' || ip === '127.0.0.1') ip = 'Localhost';
+            // Date/time formatting
+            const dateObj = new Date(item.createdAt);
+            const date = dateObj.toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            });
+            const time = dateObj.toLocaleTimeString(undefined, {
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+            return (
+              <div
+                key={item.id}
+                className='flex items-center p-4 rounded-xl border border-gray-100'
               >
-                {item.device === 'Desktop' ? (
-                  <svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
-                    <rect
-                      x='4'
-                      y='7'
-                      width='16'
-                      height='10'
-                      rx='2'
-                      stroke='currentColor'
-                      strokeWidth='1.5'
-                    />
-                    <path d='M8 21h8' stroke='currentColor' strokeWidth='1.5' />
-                  </svg>
-                ) : item.device === 'Mobile' ? (
-                  <svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
-                    <rect
-                      x='7'
-                      y='4'
-                      width='10'
-                      height='16'
-                      rx='2'
-                      stroke='currentColor'
-                      strokeWidth='1.5'
-                    />
-                  </svg>
-                ) : (
-                  <svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
-                    <rect
-                      x='6'
-                      y='5'
-                      width='12'
-                      height='14'
-                      rx='2'
-                      stroke='currentColor'
-                      strokeWidth='1.5'
-                    />
-                  </svg>
-                )}
-              </span>
-              <div className='flex-1 ml-3'>
-                <div className='font-medium text-gray-800'>{item.device}</div>
-                <div className='text-xs text-gray-500'>{item.ip}</div>
-              </div>
-              <div className='flex flex-col items-end'>
-                <span className='text-xs text-gray-500'>{item.date}</span>
-                <span className='text-xs text-gray-500'>{item.time}</span>
                 <span
-                  className={`mt-1 px-2 py-0.5 rounded text-xs font-semibold ${item.badge}`}
+                  className={`w-10 h-10 flex items-center justify-center ${color}`}
                 >
-                  {item.status}
+                  {deviceType === 'Desktop' ? (
+                    <svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
+                      <rect
+                        x='4'
+                        y='7'
+                        width='16'
+                        height='10'
+                        rx='2'
+                        stroke='currentColor'
+                        strokeWidth='1.5'
+                      />
+                      <path
+                        d='M8 21h8'
+                        stroke='currentColor'
+                        strokeWidth='1.5'
+                      />
+                    </svg>
+                  ) : deviceType === 'Mobile' ? (
+                    <svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
+                      <rect
+                        x='7'
+                        y='4'
+                        width='10'
+                        height='16'
+                        rx='2'
+                        stroke='currentColor'
+                        strokeWidth='1.5'
+                      />
+                    </svg>
+                  ) : (
+                    <svg width='24' height='24' fill='none' viewBox='0 0 24 24'>
+                      <rect
+                        x='6'
+                        y='5'
+                        width='12'
+                        height='14'
+                        rx='2'
+                        stroke='currentColor'
+                        strokeWidth='1.5'
+                      />
+                    </svg>
+                  )}
                 </span>
+                <div className='flex-1 ml-3'>
+                  <div className='font-medium text-gray-800'>
+                    {deviceType}{' '}
+                    <span className='text-xs text-gray-400'>
+                      ({browser}, {os})
+                    </span>
+                  </div>
+                  <div className='text-xs text-gray-500'>{ip}</div>
+                </div>
+                <div className='flex flex-col items-end'>
+                  <span className='text-xs text-gray-500'>{date}</span>
+                  <span className='text-xs text-gray-500'>{time}</span>
+                  <span
+                    className={`mt-1 px-2 py-0.5 rounded text-xs font-semibold ${badge}`}
+                  >
+                    {status}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
     </div>

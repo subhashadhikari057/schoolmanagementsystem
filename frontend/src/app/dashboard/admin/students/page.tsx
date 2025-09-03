@@ -211,17 +211,10 @@ const StudentsPage = () => {
         const studentsData = response.data.data || response.data || [];
         const totalItems = response.data.total || 0;
 
-        // FORCE totalPages to be at least 2 to ensure pagination appears
-        // This is a temporary fix to make pagination show up
-        let totalPages = 3; // Force pagination to show with 3 pages
-
-        // Log pagination information
-        console.log('Pagination info:', {
-          totalItems,
-          totalPages,
-          itemsPerPage,
-          currentPage,
-        });
+        // Use backend-provided totalPages when available; otherwise compute it
+        const totalPages =
+          (response.data.totalPages as number) ||
+          Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
         // Ensure studentsData is an array before mapping
         if (Array.isArray(studentsData)) {
