@@ -147,21 +147,21 @@ export function generateStudentImportTemplate(): string {
   ];
 
   const exampleRow = [
-    'John Doe',
-    'john@example.com',
-    '1234567890',
-    '001',
-    '10',
+    'Emma Wilson',
+    'emma.wilson@example.com',
+    '9819677711',
+    'STU002',
+    '1',
     'A',
-    '2008-05-15', // Date format: YYYY-MM-DD
-    'Male',
-    'John Doe Sr.',
-    '9876543210',
-    'parent@example.com',
+    '2008-04-15', // Date format: YYYY-MM-DD
+    'Female',
+    'David Wilson',
+    '9819677712',
+    'david.wilson@example.com',
     'Father',
-    'Jane Doe',
-    '1122334455',
-    'parent2@example.com',
+    'Lisa Wilson',
+    '9819677713',
+    'lisa.wilson@example.com',
     'Mother',
   ];
 

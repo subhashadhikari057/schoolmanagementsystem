@@ -36,9 +36,13 @@ export const CreateTeacherProfessionalSchema = z.object({
   employeeId: z.string().optional(),
   joiningDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .optional(),
   experienceYears: z.number().min(0).optional(),
-  highestQualification: z.string().min(1, 'Qualification is required'),
+  highestQualification: z
+    .string()
+    .min(1, 'Qualification is required')
+    .optional(),
   specialization: z.string().optional(),
   designation: z.string().optional(),
   department: z.string().optional(),
@@ -106,20 +110,56 @@ export const CreateTeacherDto = z.object({
 export type CreateTeacherDtoType = z.infer<typeof CreateTeacherDto>;
 
 // ---------------------------
+// Update-specific schemas (more lenient than creation)
+// ---------------------------
+export const UpdateTeacherUserSchema = z.object({
+  firstName: z.string().min(1).optional(),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1).optional(),
+  email: z.string().email().optional(),
+  phone: z.string().min(1).optional(),
+});
+
+export const UpdateTeacherPersonalSchema = z.object({
+  dateOfBirth: z.string().optional(),
+  gender: z.string().optional(), // Allow any string, not just enum values for updates
+  bloodGroup: z
+    .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
+    .optional(),
+  address: z.string().optional(),
+  street: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pinCode: z.string().optional(),
+  maritalStatus: z.string().optional(),
+});
+
+export const UpdateTeacherProfessionalSchema = z.object({
+  employeeId: z.string().optional(),
+  joiningDate: z.string().optional(), // No regex requirement for updates
+  experienceYears: z.number().min(0).optional(),
+  highestQualification: z.string().optional(), // Not required for updates
+  qualification: z.string().optional(), // Alternative field name
+  specialization: z.string().optional(),
+  designation: z.string().optional(),
+  department: z.string().optional(),
+});
+
+// ---------------------------
 // UpdateTeacherByAdmin DTO
 // ---------------------------
 /**
  * Allows Admin or Superadmin to update any teacher's info.
  */
 export const UpdateTeacherByAdminDto = z.object({
-  user: CreateTeacherUserSchema.partial().optional(),
-  personal: CreateTeacherPersonalSchema.partial().optional(),
-  professional: CreateTeacherProfessionalSchema.partial().optional(),
+  user: UpdateTeacherUserSchema.optional(),
+  personal: UpdateTeacherPersonalSchema.optional(),
+  professional: UpdateTeacherProfessionalSchema.optional(),
   subjects: CreateTeacherSubjectSchema.partial().optional(),
   salary: CreateTeacherSalarySchema.partial().optional(),
-  bankDetails: CreateTeacherBankSchema.partial().optional(),
+  bankDetails: CreateTeacherBankSchema.optional(), // Already all optional
   additional: CreateTeacherAdditionalSchema.partial().optional(),
-});
+}); // Removed .strict(false) as it's not supported in this Zod version
 
 export type UpdateTeacherByAdminDtoType = z.infer<
   typeof UpdateTeacherByAdminDto

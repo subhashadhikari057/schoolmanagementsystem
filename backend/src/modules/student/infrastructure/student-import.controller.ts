@@ -235,11 +235,11 @@ export class StudentImportController {
     schema: {
       type: 'string',
       example:
-        'fullName,email,phone,rollNumber,classGrade,classSection,dateOfBirth,gender,primaryParentName,primaryParentPhone,primaryParentEmail,primaryParentRelation,secondaryParentName,secondaryParentPhone,secondaryParentEmail,secondaryParentRelation\nJohn Doe,john@example.com,1234567890,001,10,A,2008-05-15,Male,John Doe Sr.,9876543210,parent@example.com,Father,Jane Doe,1122334455,parent2@example.com,Mother',
+        'fullName,email,phone,rollNumber,classGrade,classSection,dateOfBirth,gender,primaryParentName,primaryParentPhone,primaryParentEmail,primaryParentRelation,secondaryParentName,secondaryParentPhone,secondaryParentEmail,secondaryParentRelation\nEmma Wilson,emma.wilson@example.com,9819677711,STU002,1,A,2008-04-15,Female,David Wilson,9819677712,david.wilson@example.com,Father,Lisa Wilson,9819677713,lisa.wilson@example.com,Mother',
     },
   })
   async getImportTemplate(@Res() res: Response) {
-    const template = this.studentImportService.getImportTemplate();
+    const template = await this.studentImportService.getImportTemplate();
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader(
