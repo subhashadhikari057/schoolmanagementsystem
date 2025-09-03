@@ -158,6 +158,74 @@ const getActionButtonsConfig = (
   if (pageType === 'students') {
     return [
       {
+        id: 'download-template',
+        label: 'Download Template',
+        variant: 'secondary',
+        className: 'bg-green-50 text-green-700 hover:bg-green-100 rounded-lg',
+        icon: <Download size={16} />,
+        onClick: async () => {
+          try {
+            // Show loading state
+            const button = document.querySelector(
+              '[data-id="download-template"]',
+            );
+            if (button) {
+              button.textContent = 'Downloading...';
+              button.setAttribute('disabled', 'true');
+            }
+
+            // Download template from backend
+            const backendUrl =
+              process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+            const response = await fetch(
+              `${backendUrl}/api/v1/student-import/import/template`,
+              {
+                method: 'GET',
+                credentials: 'include',
+              },
+            );
+
+            if (response.ok) {
+              const blob = await response.blob();
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `student_import_template.csv`;
+              a.click();
+              window.URL.revokeObjectURL(url);
+
+              toast.success('✅ Template downloaded successfully!', {
+                description:
+                  'Use this template to format your student data for import.',
+                duration: 4000,
+              });
+            } else {
+              toast.error('❌ Failed to download template', {
+                description: 'Please try again or contact support.',
+                duration: 5000,
+              });
+            }
+          } catch (error) {
+            toast.error(
+              `❌ Template download failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              {
+                description: 'An unexpected error occurred. Please try again.',
+                duration: 5000,
+              },
+            );
+          } finally {
+            // Reset button state
+            const button = document.querySelector(
+              '[data-id="download-template"]',
+            );
+            if (button) {
+              button.textContent = 'Download Template';
+              button.removeAttribute('disabled');
+            }
+          }
+        },
+      },
+      {
         id: 'import-students',
         label: 'Import Students',
         variant: 'import',
@@ -195,7 +263,7 @@ const getActionButtonsConfig = (
                 const backendUrl =
                   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
                 const response = await fetch(
-                  `${backendUrl}/api/v1/students/import`,
+                  `${backendUrl}/api/v1/student-import/import`,
                   {
                     method: 'POST',
                     body: formData,
@@ -279,7 +347,10 @@ const getActionButtonsConfig = (
             // Build export URL with filters
             const backendUrl =
               process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-            const exportUrl = new URL('/api/v1/students/export', backendUrl);
+            const exportUrl = new URL(
+              '/api/v1/student-import/export',
+              backendUrl,
+            );
             if (classId) exportUrl.searchParams.set('classId', classId);
             if (search) exportUrl.searchParams.set('search', search);
             if (academicStatus)

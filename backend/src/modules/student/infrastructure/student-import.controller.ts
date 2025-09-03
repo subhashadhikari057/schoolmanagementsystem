@@ -33,7 +33,7 @@ import { StudentImportService } from '../application/student-import.service';
 import { Public } from '../../../shared/guards/jwt-auth.guard';
 
 @ApiTags('Student Import/Export')
-@Controller('api/v1/students')
+@Controller('api/v1/student-import')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class StudentImportController {
   private readonly logger = new Logger(StudentImportController.name);
