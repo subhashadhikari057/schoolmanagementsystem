@@ -10,7 +10,6 @@ import {
   ExamDateslotResponseDto,
   BulkCreateExamDateslotsDto,
   GenerateDateslotsFromRangeDto,
-  ExamDateslotType,
 } from '@sms/shared-types';
 import { Prisma } from '@prisma/client';
 
@@ -69,7 +68,7 @@ export class ExamDateslotService {
           examDate,
           startTime: createDateslotDto.startTime,
           endTime: createDateslotDto.endTime,
-          label: createDateslotDto.label,
+
           type: createDateslotDto.type,
           createdById: userId,
         },
@@ -285,7 +284,7 @@ export class ExamDateslotService {
             examDate: new Date(dateslot.examDate),
             startTime: dateslot.startTime,
             endTime: dateslot.endTime,
-            label: dateslot.label,
+
             type: dateslot.type,
             createdById: userId,
           },

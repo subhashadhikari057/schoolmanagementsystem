@@ -44,7 +44,7 @@ export default function SystemSettingsPage() {
       bgColor: 'bg-green-600',
       iconColor: 'text-white',
       value: '2024-25',
-      label: 'Academic Year',
+      label: 'Grading and attendance',
       change: 'Current',
       isPositive: true,
     },
@@ -119,13 +119,6 @@ export default function SystemSettingsPage() {
           <div className='flex space-x-3'>
             {!isEditing ? (
               <>
-                <ReusableButton
-                  onClick={() => {}}
-                  className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
-                >
-                  <Settings className='h-4 w-4' />
-                  Export Settings
-                </ReusableButton>
                 <ReusableButton
                   onClick={handleEdit}
                   className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'

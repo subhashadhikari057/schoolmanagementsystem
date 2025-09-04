@@ -14,7 +14,6 @@ export const examDateslotBaseSchema = z.object({
   examDate: z.string().or(z.date()),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
-  label: z.string().optional(),
   type: z.nativeEnum(ExamDateslotType).default(ExamDateslotType.EXAM),
 });
 

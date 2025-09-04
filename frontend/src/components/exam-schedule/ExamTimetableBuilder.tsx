@@ -1095,18 +1095,13 @@ export function ExamTimetableBuilder() {
   }
 
   // Check dateslot configuration status
-  // Only EXAM type slots need configuration (startTime, endTime, label)
+  // Only EXAM type slots need configuration (startTime, endTime)
   // Other types (BREAK, LUNCH, PREPARATION) are automatically considered configured
-  const configuredDateslots = examDateslots.filter(
-    d =>
-      d.type === ExamDateslotType.EXAM
-        ? d.startTime && d.endTime && d.label // EXAM slots need full configuration
-        : true, // Non-EXAM slots are always considered configured
+  const configuredDateslots = examDateslots.filter(d =>
+    d.type === ExamDateslotType.EXAM ? d.startTime && d.endTime : true,
   );
   const unconfiguredCount = examDateslots.filter(
-    d =>
-      d.type === ExamDateslotType.EXAM &&
-      (!d.startTime || !d.endTime || !d.label),
+    d => d.type === ExamDateslotType.EXAM && (!d.startTime || !d.endTime),
   ).length;
 
   if (examDateslots.length === 0) {
@@ -1137,7 +1132,7 @@ export function ExamTimetableBuilder() {
           <p className='text-gray-600 mt-1'>
             {unconfiguredCount} exam date{unconfiguredCount > 1 ? 's' : ''}{' '}
             found, but time slots need to be configured. Please go to the Date
-            Slot Manager tab to add time and labels to the exam dates.
+            Slot Manager tab to add start and end times to the exam dates.
           </p>
         </div>
       </div>
