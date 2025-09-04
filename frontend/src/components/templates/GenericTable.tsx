@@ -210,12 +210,13 @@ const GenericTable = <T extends BaseItem>({
           </div>
 
           {/* Pagination - Always show when onPageChange is available */}
-          {onPageChange && (
+          {/* Pagination: always show when there is data so users see result counts even on a single page */}
+          {data.length > 0 && (
             <Pagination
-              currentPage={currentPage || 1}
-              totalPages={totalPages || 3}
-              totalItems={totalItems || 30}
-              itemsPerPage={itemsPerPage || 10}
+              currentPage={currentPage ?? 1}
+              totalPages={(totalPages ?? 1) < 1 ? 1 : (totalPages ?? 1)}
+              totalItems={totalItems ?? data.length}
+              itemsPerPage={itemsPerPage ?? 10}
               onPageChange={onPageChange}
             />
           )}

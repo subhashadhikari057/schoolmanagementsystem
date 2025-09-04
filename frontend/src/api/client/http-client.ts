@@ -425,14 +425,52 @@ export class HttpClient {
         this.activeRequests.delete(controller);
 
         // Return successful response
-        const responseDataTyped = responseData as {
-          data?: unknown;
-          message?: string;
-        };
+        const responseDataTyped = responseData as
+          | Record<string, unknown>
+          | undefined;
+
+        // Decide whether to unwrap `data` or return the full payload.
+        // If the payload has only `data` (and optional message/timestamp/meta), unwrap.
+        // If it includes other useful fields like pagination (total, page, totalPages), keep as-is.
+        let dataToReturn: unknown = responseData;
+        let message: string | undefined = undefined;
+
+        if (responseDataTyped && typeof responseDataTyped === 'object') {
+          const keys = Object.keys(responseDataTyped);
+          const hasDataKey = Object.prototype.hasOwnProperty.call(
+            responseDataTyped,
+            'data',
+          );
+
+          const allowedMetaKeys = new Set([
+            'data',
+            'message',
+            'timestamp',
+            'traceId',
+            'statusCode',
+            'success',
+          ]);
+
+          const hasOnlyDataAndMeta = keys.every(k => allowedMetaKeys.has(k));
+
+          // Capture message if present
+          if (typeof responseDataTyped.message === 'string') {
+            message = responseDataTyped.message as string;
+          }
+
+          if (hasDataKey && hasOnlyDataAndMeta) {
+            // Safe to unwrap
+            dataToReturn = (responseDataTyped as { data: unknown }).data;
+          } else {
+            // Keep full payload (preserves pagination fields like total/totalPages)
+            dataToReturn = responseDataTyped;
+          }
+        }
+
         return {
           success: true,
-          data: (responseDataTyped?.data || responseData) as T,
-          message: responseDataTyped?.message,
+          data: dataToReturn as T,
+          message,
           timestamp: new Date().toISOString(),
           traceId,
         };
