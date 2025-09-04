@@ -67,6 +67,9 @@ export * from "./exam/exam-dateslot.dto";
 export * from "./exam/exam-schedule.dto";
 export * from "./exam/exam-timetable.dto";
 
+// Grading Module DTOs
+export * from "./grading/grading.dto";
+
 // Files Module DTOs
 export * from "./files/file-upload.dto";
 

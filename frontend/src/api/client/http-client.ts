@@ -239,11 +239,19 @@ export class HttpClient {
         //   });
         // }
 
-        // Parse response
+        // Parse response based on responseType or content-type
         let responseData: unknown;
         const contentType = response.headers.get('content-type');
+        const responseType = config.responseType;
 
-        if (contentType && contentType.includes('application/json')) {
+        if (responseType === 'blob') {
+          responseData = await response.blob();
+        } else if (responseType === 'text') {
+          responseData = await response.text();
+        } else if (
+          responseType === 'json' ||
+          (contentType && contentType.includes('application/json'))
+        ) {
           responseData = await response.json();
         } else {
           responseData = await response.text();

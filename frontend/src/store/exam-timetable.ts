@@ -320,8 +320,10 @@ export const useExamTimetableStore = create<ExamTimetableState>()(
         if (!selectedExamScheduleId) return;
 
         try {
+          // Do not enforce completeness: unassigned subjects should not be errors
           const response = await examTimetableService.validateExamTimetable(
             selectedExamScheduleId,
+            false,
           );
           if (response.success && response.data) {
             set({

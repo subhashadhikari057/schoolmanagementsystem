@@ -63,6 +63,9 @@ model User {
   teacherSalaryApprovals          TeacherSalaryHistory[]        @relation("SalaryApprover")
   roles                           UserRole[]
   sessions                        UserSession[]
+  examResultsGraded               ExamResult[]                  @relation("ExamResultGradedBy")
+  examResultsModified             ExamResult[]                  @relation("ExamResultModifiedBy")
+  gradeHistoryEntries             StudentGradeHistory[]         @relation("StudentGradeHistoryGradedBy")
 
   @@index([createdById])
   @@index([updatedById])
@@ -72,23 +75,25 @@ model User {
 }
 
 model Subject {
-  id                 String           @id @default(uuid())
+  id                 String                @id @default(uuid())
   name               String
   code               String
   description        String?
   maxMarks           Int
   passMarks          Int
-  createdAt          DateTime         @default(now())
+  createdAt          DateTime              @default(now())
   updatedAt          DateTime?
   deletedAt          DateTime?
-  createdById        String?          @db.Uuid
-  updatedById        String?          @db.Uuid
-  deletedById        String?          @db.Uuid
+  createdById        String?               @db.Uuid
+  updatedById        String?               @db.Uuid
+  deletedById        String?               @db.Uuid
   assignments        Assignment[]
   assignedClasses    ClassSubject[]
   scheduleSlots      ScheduleSlot[]
-  teacherAssignments TeacherSubject[] @relation("SubjectTeacherAssignments")
+  teacherAssignments TeacherSubject[]      @relation("SubjectTeacherAssignments")
   examSlots          ExamSlot[]
+  gradingPermissions GradingPermission[]
+  gradeHistory       StudentGradeHistory[]
 
   @@unique([code, deletedAt], name: "unique_subject_code_when_active")
   @@index([createdById])
@@ -126,6 +131,8 @@ model Class {
   students                Student[]
   teacherAssignments      TeacherClass[]           @relation("ClassTeacherAssignments")
   examSchedules           ExamSchedule[]
+  gradingPermissions      GradingPermission[]
+  gradeHistory            StudentGradeHistory[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -136,21 +143,21 @@ model Class {
 }
 
 model Classroom {
-  id            String         @id @default(uuid())
-  roomNo        String         @unique
+  id            String                @id @default(uuid())
+  roomNo        String                @unique
   name          String?
-  capacity      Int            @default(30)
-  floor         Int            @default(1)
+  capacity      Int                   @default(30)
+  floor         Int                   @default(1)
   building      String?
   note          String?
-  status        String         @default("active")
-  isAvailable   Boolean        @default(true)
-  createdAt     DateTime       @default(now())
+  status        String                @default("active")
+  isAvailable   Boolean               @default(true)
+  createdAt     DateTime              @default(now())
   updatedAt     DateTime?
   deletedAt     DateTime?
-  createdById   String?        @db.Uuid
-  updatedById   String?        @db.Uuid
-  deletedById   String?        @db.Uuid
+  createdById   String?               @db.Uuid
+  updatedById   String?               @db.Uuid
+  deletedById   String?               @db.Uuid
   classes       Class[]
   scheduleSlots ScheduleSlot[]
   examSlots     ExamSlot[]
@@ -241,6 +248,8 @@ model Student {
   feeHistories           StudentFeeHistory[]
   profile                StudentProfile?
   submissions            Submission[]
+  examResults            ExamResult[]
+  gradeHistory           StudentGradeHistory[]
 
   @@unique([classId, rollNumber])
   @@index([userId])
@@ -393,6 +402,7 @@ model Teacher {
   profile                        TeacherProfile?
   salaryHistory                  TeacherSalaryHistory[]
   subjectAssignments             TeacherSubject[]                @relation("TeacherSubjectAssignments")
+  gradingPermissions             GradingPermission[]
 
   @@index([createdById])
   @@index([updatedById])
@@ -711,23 +721,23 @@ model CalendarEntry {
 }
 
 model Assignment {
-  id                 String       @id @default(uuid())
+  id                 String                 @id @default(uuid())
   title              String
   description        String?
   classId            String
   subjectId          String
   teacherId          String
   dueDate            DateTime?
-  additionalMetadata Json?        @default("{}")
-  createdAt          DateTime     @default(now())
+  additionalMetadata Json?                  @default("{}")
+  createdAt          DateTime               @default(now())
   updatedAt          DateTime?
   deletedAt          DateTime?
-  createdById        String?      @db.Uuid
-  updatedById        String?      @db.Uuid
-  deletedById        String?      @db.Uuid
-  class              Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
-  subject            Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  teacher            Teacher      @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  createdById        String?                @db.Uuid
+  updatedById        String?                @db.Uuid
+  deletedById        String?                @db.Uuid
+  class              Class                  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject            Subject                @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher            Teacher                @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   submissions        Submission[]
   attachments        AssignmentAttachment[]
 
@@ -741,22 +751,22 @@ model Assignment {
 }
 
 model Submission {
-  id           String     @id @default(uuid())
+  id           String                 @id @default(uuid())
   assignmentId String
   studentId    String
-  submittedAt  DateTime?  @default(now())
-  isCompleted  Boolean    @default(false)
-  feedback     String?    // Teacher's grading remarks
-  studentNotes String?    // Student's submission comments
-  fileLinks    Json?      @default("[]")
-  createdAt    DateTime   @default(now())
+  submittedAt  DateTime?              @default(now())
+  isCompleted  Boolean                @default(false)
+  feedback     String? // Teacher's grading remarks
+  studentNotes String? // Student's submission comments
+  fileLinks    Json?                  @default("[]")
+  createdAt    DateTime               @default(now())
   updatedAt    DateTime?
   deletedAt    DateTime?
-  createdById  String?    @db.Uuid
-  updatedById  String?    @db.Uuid
-  deletedById  String?    @db.Uuid
-  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdById  String?                @db.Uuid
+  updatedById  String?                @db.Uuid
+  deletedById  String?                @db.Uuid
+  assignment   Assignment             @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      Student                @relation(fields: [studentId], references: [id], onDelete: Cascade)
   attachments  SubmissionAttachment[]
 
   @@unique([assignmentId, studentId])
@@ -774,12 +784,12 @@ model AssignmentAttachment {
   filename     String
   originalName String
   mimeType     String
-  size         Int      // Size in bytes (max 10MB = 10,485,760 bytes)
+  size         Int // Size in bytes (max 10MB = 10,485,760 bytes)
   url          String
   uploadedAt   DateTime @default(now())
 
   // Relationships
-  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
   @@index([assignmentId])
   @@index([mimeType])
@@ -792,12 +802,12 @@ model SubmissionAttachment {
   filename     String
   originalName String
   mimeType     String
-  size         Int      // Size in bytes (max 10MB = 10,485,760 bytes)
+  size         Int // Size in bytes (max 10MB = 10,485,760 bytes)
   url          String
   uploadedAt   DateTime @default(now())
 
   // Relationships
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@index([submissionId])
   @@index([mimeType])
@@ -868,7 +878,6 @@ enum ExamDateslotType {
   LUNCH
   PREPARATION
 }
-
 
 model ClassTimeslot {
   id            String         @id @default(uuid())
@@ -956,20 +965,20 @@ model ScheduleSlot {
 }
 
 model ExamSchedule {
-  id              String          @id @default(uuid())
+  id              String        @id @default(uuid())
   classId         String
   calendarEntryId String
   name            String
   academicYear    String
-  status          String          @default("draft")
-  createdAt       DateTime        @default(now())
+  status          String        @default("draft")
+  createdAt       DateTime      @default(now())
   updatedAt       DateTime?
   deletedAt       DateTime?
-  createdById     String?         @db.Uuid
-  updatedById     String?         @db.Uuid
-  deletedById     String?         @db.Uuid
-  class           Class           @relation(fields: [classId], references: [id], onDelete: Cascade)
-  calendarEntry   CalendarEntry   @relation(fields: [calendarEntryId], references: [id], onDelete: Cascade)
+  createdById     String?       @db.Uuid
+  updatedById     String?       @db.Uuid
+  deletedById     String?       @db.Uuid
+  class           Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  calendarEntry   CalendarEntry @relation(fields: [calendarEntryId], references: [id], onDelete: Cascade)
   examSlots       ExamSlot[]
 
   @@unique([classId, calendarEntryId], name: "unique_exam_schedule_per_class_exam")
@@ -983,20 +992,20 @@ model ExamSchedule {
 }
 
 model ExamDateslot {
-  id              String          @id @default(uuid())
+  id              String           @id @default(uuid())
   calendarEntryId String
-  examDate        DateTime        @db.Date
+  examDate        DateTime         @db.Date
   startTime       String?
   endTime         String?
   label           String?
   type            ExamDateslotType @default(EXAM)
-  createdAt       DateTime        @default(now())
+  createdAt       DateTime         @default(now())
   updatedAt       DateTime?
   deletedAt       DateTime?
-  createdById     String?         @db.Uuid
-  updatedById     String?         @db.Uuid
-  deletedById     String?         @db.Uuid
-  calendarEntry   CalendarEntry   @relation(fields: [calendarEntryId], references: [id], onDelete: Cascade)
+  createdById     String?          @db.Uuid
+  updatedById     String?          @db.Uuid
+  deletedById     String?          @db.Uuid
+  calendarEntry   CalendarEntry    @relation(fields: [calendarEntryId], references: [id], onDelete: Cascade)
   examSlots       ExamSlot[]
 
   @@unique([calendarEntryId, examDate, startTime, endTime], name: "unique_exam_dateslot")
@@ -1009,28 +1018,195 @@ model ExamDateslot {
 }
 
 model ExamSlot {
-  id            String        @id @default(uuid())
+  id             String                @id @default(uuid())
   examScheduleId String
-  dateslotId    String
-  subjectId     String?
-  roomId        String?
-  duration      Int?          // Duration in minutes
-  instructions  String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime?
-  deletedAt     DateTime?
-  createdById   String?       @db.Uuid
-  updatedById   String?       @db.Uuid
-  deletedById   String?       @db.Uuid
-  dateslot      ExamDateslot  @relation(fields: [dateslotId], references: [id], onDelete: Cascade)
-  examSchedule  ExamSchedule  @relation(fields: [examScheduleId], references: [id], onDelete: Cascade)
-  room          Classroom?    @relation(fields: [roomId], references: [id])
-  subject       Subject?      @relation(fields: [subjectId], references: [id])
+  dateslotId     String
+  subjectId      String?
+  roomId         String?
+  duration       Int? // Duration in minutes
+  instructions   String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime?
+  deletedAt      DateTime?
+  createdById    String?               @db.Uuid
+  updatedById    String?               @db.Uuid
+  deletedById    String?               @db.Uuid
+  dateslot       ExamDateslot          @relation(fields: [dateslotId], references: [id], onDelete: Cascade)
+  examSchedule   ExamSchedule          @relation(fields: [examScheduleId], references: [id], onDelete: Cascade)
+  room           Classroom?            @relation(fields: [roomId], references: [id])
+  subject        Subject?              @relation(fields: [subjectId], references: [id])
+  examResults    ExamResult[]
+  gradeHistory   StudentGradeHistory[]
 
   @@index([examScheduleId])
   @@index([dateslotId])
   @@index([subjectId])
   @@index([roomId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+// Grading System Models
+model GradingScale {
+  id               String            @id @default(uuid())
+  academicYear     String // Academic year as string e.g., "2024-2025"
+  name             String // e.g., "Standard Grading", "Advanced Grading"
+  description      String?
+  isDefault        Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime?
+  deletedAt        DateTime?
+  createdById      String?           @db.Uuid
+  updatedById      String?           @db.Uuid
+  deletedById      String?           @db.Uuid
+  gradeDefinitions GradeDefinition[]
+
+  @@unique([academicYear, name])
+  @@index([academicYear])
+  @@index([isDefault])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model GradeDefinition {
+  id             String       @id @default(uuid())
+  gradingScaleId String
+  grade          String // e.g., "A+", "A", "B+", "B", etc.
+  minMarks       Decimal      @db.Decimal(5, 2)
+  maxMarks       Decimal      @db.Decimal(5, 2)
+  gradePoint     Decimal?     @db.Decimal(3, 2) // GPA equivalent
+  description    String?
+  color          String? // For UI display
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime?
+  deletedAt      DateTime?
+  createdById    String?      @db.Uuid
+  updatedById    String?      @db.Uuid
+  deletedById    String?      @db.Uuid
+  gradingScale   GradingScale @relation(fields: [gradingScaleId], references: [id], onDelete: Cascade)
+  examResults    ExamResult[]
+
+  @@unique([gradingScaleId, grade])
+  @@index([gradingScaleId])
+  @@index([minMarks])
+  @@index([maxMarks])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model ExamResult {
+  id                  String               @id @default(uuid())
+  examSlotId          String
+  studentId           String
+  marksObtained       Decimal?             @db.Decimal(5, 2)
+  gradeId             String?
+  remarks             String?
+  isAbsent            Boolean              @default(false)
+  isPassed            Boolean              @default(false)
+  status              ExamResultStatus     @default(DRAFT)
+  gradedAt            DateTime?
+  gradedById          String?
+  lastModifiedAt      DateTime?
+  lastModifiedById    String?
+  modificationHistory Json? // Track all modifications with timestamps and reasons
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime?
+  deletedAt           DateTime?
+  createdById         String?
+  updatedById         String?
+  deletedById         String?
+  examSlot            ExamSlot             @relation(fields: [examSlotId], references: [id], onDelete: Cascade)
+  student             Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  grade               GradeDefinition?     @relation(fields: [gradeId], references: [id])
+  gradedBy            User?                @relation("ExamResultGradedBy", fields: [gradedById], references: [id])
+  lastModifiedBy      User?                @relation("ExamResultModifiedBy", fields: [lastModifiedById], references: [id])
+  gradeHistory        StudentGradeHistory?
+
+  @@unique([examSlotId, studentId])
+  @@index([examSlotId])
+  @@index([studentId])
+  @@index([gradeId])
+  @@index([status])
+  @@index([gradedById])
+  @@index([lastModifiedById])
+  @@index([gradedAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model GradingPermission {
+  id          String    @id @default(uuid())
+  teacherId   String
+  subjectId   String
+  classId     String
+  canGrade    Boolean   @default(true)
+  canModify   Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+  teacher     Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, subjectId, classId])
+  @@index([teacherId])
+  @@index([subjectId])
+  @@index([classId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedById])
+}
+
+model StudentGradeHistory {
+  id            String     @id @default(uuid())
+  studentId     String
+  examResultId  String     @unique
+  classId       String // Class at the time of exam
+  subjectId     String // Subject
+  examSlotId    String // Specific exam slot
+  academicYear  String // Academic year (e.g., "2024-2025")
+  examType      String // MIDTERM, FINAL, QUIZ, etc.
+  examName      String // Name of the exam
+  examDate      DateTime   @db.Date
+  marksObtained Decimal?   @db.Decimal(5, 2)
+  maxMarks      Decimal    @db.Decimal(5, 2)
+  passMarks     Decimal    @db.Decimal(5, 2)
+  percentage    Decimal?   @db.Decimal(5, 2)
+  gradeObtained String? // Grade like "A+", "B", etc.
+  gradePoint    Decimal?   @db.Decimal(3, 2)
+  isPassed      Boolean    @default(false)
+  isAbsent      Boolean    @default(false)
+  remarks       String?
+  gradedAt      DateTime?
+  gradedById    String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime?
+  deletedAt     DateTime?
+  createdById   String?    @db.Uuid
+  updatedById   String?    @db.Uuid
+  deletedById   String?    @db.Uuid
+  student       Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  examResult    ExamResult @relation(fields: [examResultId], references: [id], onDelete: Cascade)
+  class         Class      @relation(fields: [classId], references: [id])
+  subject       Subject    @relation(fields: [subjectId], references: [id])
+  examSlot      ExamSlot   @relation(fields: [examSlotId], references: [id])
+  gradedBy      User?      @relation("StudentGradeHistoryGradedBy", fields: [gradedById], references: [id])
+
+  @@unique([studentId, examResultId])
+  @@index([studentId])
+  @@index([academicYear])
+  @@index([classId])
+  @@index([subjectId])
+  @@index([examType])
+  @@index([examDate])
+  @@index([gradedById])
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
@@ -1804,7 +1980,6 @@ enum TextAlignment {
   JUSTIFY
 }
 
-
 enum NoticePriority {
   LOW
   MEDIUM
@@ -1940,4 +2115,11 @@ enum TeacherLeaveRequestStatus {
   APPROVED
   REJECTED
   CANCELLED
+}
+
+enum ExamResultStatus {
+  DRAFT
+  SUBMITTED
+  PUBLISHED
+  LOCKED
 }
