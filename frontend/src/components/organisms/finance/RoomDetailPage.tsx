@@ -395,7 +395,7 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
                         setIsQuickAddOpen(false);
                         setQuickAddModel(null);
                       }}
-                      onSuccess={createdItems => {
+                      onSuccess={(createdItems: any[]) => {
                         // find the model and append created items
                         setAssetModels(prev =>
                           prev.map(m =>

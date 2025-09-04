@@ -534,9 +534,25 @@ const AssetTab: React.FC = () => {
         initialStep={2}
         initialRoomOption={'new'}
         onRoomCreated={room => {
-          // Add created room to asset list so it appears in AssetTab
-          setRooms(prev => [room, ...prev]);
-          setFilteredRooms(prev => [room, ...prev]);
+          // Convert AvailableRoom to Room format for AssetTab
+          const assetRoom: Room = {
+            id: room.id,
+            roomNo: room.roomNo,
+            name: room.name,
+            floor: room.floor,
+            building: room.building,
+            capacity: room.capacity,
+            type: 'classroom',
+            assets: [],
+            totalAssets: 0,
+            totalDamaged: 0,
+            totalValue: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          setRooms(prev => [assetRoom, ...prev]);
+          setFilteredRooms(prev => [assetRoom, ...prev]);
           toast.success('Room added');
           setIsClassModalOpen(false);
         }}

@@ -4,10 +4,8 @@ import Textarea from '@/components/atoms/form-controls/Textarea';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import { assignmentService } from '@/api/services/assignment.service';
 import { classService, ClassResponse } from '@/api/services/class.service';
-import {
-  subjectService,
-  SubjectResponse,
-} from '@/api/services/subject.service';
+import { subjectService } from '@/api/services/subject.service';
+import { SubjectResponse } from '@/api/types/subject';
 import { teacherService } from '@/api/services/teacher.service';
 import {
   CreateAssignmentRequest,
