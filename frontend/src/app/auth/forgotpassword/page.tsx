@@ -1,19 +1,64 @@
 'use client';
 
-// templates/LoginPageLayout.tsx or pages/login.tsx
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import BannerSlider from '@/components/organisms/content/BannerSlider';
-import Form from '@/components/organisms/auth/LoginForm';
+import ForgotPasswordForm from '@/components/organisms/auth/ForgotPasswordForm';
 import { authCarouselBanners } from '@/constants/carouselData';
+import { toast } from 'sonner';
 
 export default function ForgotPasswordPage() {
-  const handleForgotPassword = (data: Record<string, unknown>) => {
-    console.log('Forgot password submitted:', data);
-    // TODO: Implement forgot password functionality
-    alert(
-      'Forgot password functionality will be implemented in a future release.',
-    );
-  };
+  const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
 
+  // Redirect authenticated users away from forgot password page
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      toast.error(
+        'You are already logged in. Please logout first to reset your password.',
+        {
+          duration: 4000,
+        },
+      );
+
+      // Redirect to appropriate dashboard based on user role
+      const getDashboardRoute = (role: string) => {
+        switch (role?.toUpperCase()) {
+          case 'SUPER_ADMIN':
+          case 'ADMIN':
+            return '/dashboard/admin';
+          case 'TEACHER':
+            return '/dashboard/teacher';
+          case 'STUDENT':
+            return '/dashboard/student';
+          case 'PARENT':
+            return '/dashboard/parent';
+          case 'ACCOUNTANT':
+            return '/dashboard/accountant';
+          case 'STAFF':
+            return '/dashboard/staff';
+          default:
+            return '/dashboard';
+        }
+      };
+
+      const dashboardRoute = getDashboardRoute(user.role);
+      router.replace(dashboardRoute);
+    }
+  }, [isAuthenticated, user, router]);
+
+  // Don't render the form if user is authenticated
+  if (isAuthenticated && user) {
+    return (
+      <div className='flex items-center justify-center min-h-screen'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto'></div>
+          <p className='mt-4 text-gray-600'>Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       className='grid grid-cols-1 lg:grid-cols-2 min-h-screen h-screen w-full overflow-hidden'
@@ -30,21 +75,7 @@ export default function ForgotPasswordPage() {
       }}
     >
       <div className='flex items-center justify-center px-4 py-8 sm:px-6 md:px-8 lg:px-10 lg:py-16 w-full min-h-screen lg:min-h-0'>
-        <Form
-          description="Don't worry, happens to all of us. Enter your email below to recover your password"
-          title='SMS'
-          subtitle='Forgot Your Password?'
-          descriptionClassName='text-[1rem] font-normal leading-[1.5rem] mt-8'
-          showBackButton={true}
-          subtitleClassName='text-[2.5rem] font-normal leading-[34px] lining-nums proportional-numstext-[#313131]'
-          showPasswordField={false}
-          showEmailField={true}
-          showRememberMe={false}
-          emailLabel='Email Address'
-          emailPlaceholder='Enter your email'
-          buttonLabel='Send Reset Link'
-          onSubmit={handleForgotPassword}
-        />
+        <ForgotPasswordForm />
       </div>
       <div className='hidden lg:block'>
         <BannerSlider banners={authCarouselBanners} />

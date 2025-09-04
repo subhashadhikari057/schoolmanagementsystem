@@ -66,12 +66,33 @@ model User {
   examResultsGraded               ExamResult[]                  @relation("ExamResultGradedBy")
   examResultsModified             ExamResult[]                  @relation("ExamResultModifiedBy")
   gradeHistoryEntries             StudentGradeHistory[]         @relation("StudentGradeHistoryGradedBy")
+  passwordResetOtps               PasswordResetOtp[]
 
   @@index([createdById])
   @@index([updatedById])
   @@index([deletedById])
   @@index([fullName])
   @@index([email])
+}
+
+model PasswordResetOtp {
+  id           String   @id @default(uuid())
+  userId       String
+  otpHash      String   // Argon2 hashed OTP (Argon2 handles salting internally)
+  identifier   String   // Email or phone used for reset
+  deliveryMethod String // 'email' or 'sms'
+  attempts     Int      @default(0)
+  maxAttempts  Int      @default(3)
+  isUsed       Boolean  @default(false)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([identifier])
+  @@index([expiresAt])
+  @@index([isUsed])
 }
 
 model Subject {
