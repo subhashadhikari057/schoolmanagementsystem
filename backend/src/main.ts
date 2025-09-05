@@ -29,8 +29,8 @@ export async function createApp() {
     credentials: true, // Allow cookies and credentials
   });
 
-  // ✅ Enable JSON body parsing
-  app.use(json());
+  // ✅ Enable JSON body parsing with increased limit for file uploads
+  app.use(json({ limit: '10mb' }));
 
   // ✅ Enable cookie parsing middleware
   app.use(cookieParser());

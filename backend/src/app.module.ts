@@ -36,6 +36,7 @@ import { LeaveRequestModule } from './modules/leave-request/leave-request.module
 import { LeaveTypeModule } from './modules/leave-type/leave-type.module';
 import { ExamTimetableModule } from './modules/exam-timetable/exam-timetable.module';
 import { GradingModule } from './modules/grading/grading.module';
+import { SchoolInformationModule } from './modules/school-information/school-information.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { GradingModule } from './modules/grading/grading.module';
     LeaveTypeModule,
     ExamTimetableModule,
     GradingModule,
+    SchoolInformationModule,
   ],
 })
 export class AppModule implements NestModule {

@@ -2,13 +2,11 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/atoms/display/Icon';
 import ReusableButton from '@/components/atoms/form-controls/Button';
 import {
   Monitor,
   Database,
-  Shield,
   AlertTriangle,
   CheckCircle,
   Settings,
@@ -249,15 +247,15 @@ export default function SystemSettings() {
           <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6'>
             <SettingItem
               icon={<Settings size={24} />}
-              title='System Settings'
-              description='Configure school information, academic settings, and system preferences'
+              title='School Information'
+              description="Configure your school's basic information and settings"
               status='excellent'
               statusText='Configured'
               configOptions={[
-                'School Information',
-                'Academic Year',
-                'System Preferences',
-                'Localization',
+                'School Name',
+                'School Code',
+                'Establishment Year',
+                'Address',
               ]}
               onClick={() => handleConfigureSettings('system')}
             />

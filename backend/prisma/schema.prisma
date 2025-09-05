@@ -2145,3 +2145,21 @@ enum ExamResultStatus {
   PUBLISHED
   LOCKED
 }
+
+model SchoolInformation {
+  id              String    @id @default(uuid())
+  schoolName      String
+  schoolCode      String    @unique
+  establishedYear Int
+  address         String
+  website         String?
+  emails          String[]  @default([])
+  contactNumbers  String[]  @default([])
+  logo            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime? @updatedAt
+  createdById     String?   @db.Uuid
+  updatedById     String?   @db.Uuid
+
+  @@map("school_information")
+}
