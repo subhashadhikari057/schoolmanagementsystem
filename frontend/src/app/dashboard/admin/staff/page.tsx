@@ -170,43 +170,218 @@ const StaffPage = () => {
       });
       if (response.success && response.data) {
         const payload: any = response.data as any;
+
+        // Console log the raw response to see what we're getting
+        console.log('📊 STAFF API RESPONSE:', {
+          success: response.success,
+          payload: payload,
+          payloadType: typeof payload,
+          isArray: Array.isArray(payload),
+          hasData: payload?.data,
+          dataIsArray: Array.isArray(payload?.data),
+        });
+
         const staffArray: any[] = Array.isArray(payload?.data)
           ? payload.data
           : Array.isArray(payload)
             ? payload
             : [];
 
+        console.log('📋 STAFF ARRAY LENGTH:', staffArray.length);
+
+        // Log the first staff member to see all available fields
+        if (staffArray.length > 0) {
+          console.log('👤 FIRST STAFF MEMBER RAW DATA:', {
+            staffMember: staffArray[0],
+            availableFields: Object.keys(staffArray[0]),
+            fieldTypes: Object.keys(staffArray[0]).reduce(
+              (acc, key) => {
+                acc[key] = typeof staffArray[0][key];
+                return acc;
+              },
+              {} as Record<string, string>,
+            ),
+          });
+        }
+
         const mappedStaff: Staff[] = staffArray.map(
-          (s: Record<string, unknown>, index: number): Staff =>
-            ({
+          (s: Record<string, unknown>, index: number): Staff => {
+            // Log each staff member's raw data during mapping
+            if (index < 3) {
+              // Only log first 3 to avoid console spam
+              console.log(`👤 STAFF MEMBER ${index + 1} RAW DATA:`, {
+                id: s.id,
+                fullName: s.fullName,
+                email: s.email,
+                phone: s.phone,
+                employeeId: s.employeeId,
+                gender: s.gender,
+                bloodGroup: s.bloodGroup,
+                designation: s.designation,
+                department: s.department,
+                basicSalary: s.basicSalary,
+                totalSalary: s.totalSalary,
+                employmentStatus: s.employmentStatus,
+                bankName: s.bankName,
+                citizenshipNumber: s.citizenshipNumber,
+                emergencyContact: s.emergencyContact,
+                joiningDate: s.joiningDate,
+                experienceYears: s.experienceYears,
+                qualification: s.qualification,
+                permissions: s.permissions,
+                allFields: Object.keys(s),
+              });
+            }
+
+            const mappedStaff = {
               id: (s.id as number) || index + 1,
               name: (s.fullName as string) || ((s as any).name as string),
+              fullName: s.fullName as string,
+              firstName: s.firstName as string,
+              middleName: s.middleName as string,
+              lastName: s.lastName as string,
+              email: s.email as string,
+              phone: s.phone as string,
+              employeeId: (s.employeeId as string) || '',
+
+              // Personal Information
+              dob: s.dob as string,
+              gender: s.gender as string,
+              bloodGroup: s.bloodGroup as string,
+              emergencyContact: s.emergencyContact as string,
+              maritalStatus: s.maritalStatus as string,
+
+              // Employment Information
+              designation: s.designation as string,
               department: (s.department as string) || 'General',
               position:
                 (s.position as string) || (s.designation as string) || 'Staff',
+              employmentDate: s.employmentDate as string,
+              joiningDate: s.joiningDate as string,
+              employmentStatus: s.employmentStatus as
+                | 'active'
+                | 'inactive'
+                | 'terminated',
+              experienceYears: s.experienceYears as number,
+
+              // Financial Information
+              basicSalary: s.basicSalary as number,
+              allowances: s.allowances as number,
+              totalSalary: s.totalSalary as number,
+              salary: (s.totalSalary || s.basicSalary) as number,
+
+              // Bank Details
+              bankAccountNumber: s.bankAccountNumber as string,
+              bankBranch: s.bankBranch as string,
+              bankName: s.bankName as string,
+
+              // Government IDs
+              citizenshipNumber: s.citizenshipNumber as string,
+              panNumber: s.panNumber as string,
+
+              // System Information
+              permissions: s.permissions as string[],
               status:
                 (s.employmentStatus as string) === 'active'
                   ? 'Active'
                   : (s.employmentStatus as string) === 'on_leave'
                     ? 'On Leave'
                     : 'Inactive',
-              email: s.email as string,
-              phone: s.phone as string,
-              employeeId: (s.employeeId as string) || '',
-              joinedDate: s.employmentDate
-                ? (s.employmentDate as string).split('T')[0]
-                : undefined,
-              salary: (s as any).totalSalary as number,
-              lastActivity: (s as any).lastActivity as string,
-              avatar: (s as any).avatar as string,
-              staffId: (s as any).staffId as string,
+              isActive: (s.employmentStatus as string) === 'active',
               isOnline:
                 (s.employmentStatus as string) === 'active' &&
                 (s as any).lastActivity &&
                 new Date((s as any).lastActivity as string) >
                   new Date(Date.now() - 10 * 60 * 1000),
-            }) as Staff,
+              lastActivity: (s as any).lastActivity as string,
+              lastLoginAt: (s as any).lastLoginAt as string,
+              avatar: (s as any).avatar as string,
+
+              // Additional fields
+              qualification: s.qualification as string,
+              contactInfo: {
+                email: s.email as string,
+                phone: s.phone as string,
+                emergencyContact: s.emergencyContact as string,
+                address: (s as any).address as string,
+              },
+
+              // Dates
+              createdAt: s.createdAt as string,
+              updatedAt: s.updatedAt as string,
+              deletedAt: s.deletedAt as string,
+
+              // Legacy fields for backward compatibility
+              joinedDate: s.employmentDate
+                ? (s.employmentDate as string).split('T')[0]
+                : s.joiningDate
+                  ? (s.joiningDate as string).split('T')[0]
+                  : undefined,
+              staffId: (s as any).staffId as string,
+            } as Staff;
+
+            // Log the mapped data for comparison
+            if (index < 3) {
+              // Only log first 3 to avoid console spam
+              console.log(`✅ MAPPED STAFF MEMBER ${index + 1}:`, {
+                name: mappedStaff.name,
+                fullName: mappedStaff.fullName,
+                email: mappedStaff.email,
+                designation: mappedStaff.designation,
+                department: mappedStaff.department,
+                salary: mappedStaff.salary,
+                totalSalary: mappedStaff.totalSalary,
+                status: mappedStaff.status,
+                employmentStatus: mappedStaff.employmentStatus,
+                hasContactInfo: !!mappedStaff.contactInfo,
+                hasBankDetails: !!(
+                  mappedStaff.bankName || mappedStaff.bankAccountNumber
+                ),
+                hasPersonalInfo: !!(
+                  mappedStaff.gender || mappedStaff.bloodGroup
+                ),
+              });
+            }
+
+            return mappedStaff;
+          },
         );
+
+        console.log('📊 FINAL STAFF DATA:', {
+          totalMappedStaff: mappedStaff.length,
+          firstStaffMapped: mappedStaff[0]
+            ? {
+                id: mappedStaff[0].id,
+                name: mappedStaff[0].name,
+                email: mappedStaff[0].email,
+                department: mappedStaff[0].department,
+                salary: mappedStaff[0].salary,
+                status: mappedStaff[0].status,
+              }
+            : 'No staff data',
+          allFieldsPresent:
+            mappedStaff.length > 0
+              ? {
+                  hasPersonalInfo: !!(
+                    mappedStaff[0]?.gender || mappedStaff[0]?.bloodGroup
+                  ),
+                  hasFinancialInfo: !!(
+                    mappedStaff[0]?.basicSalary || mappedStaff[0]?.totalSalary
+                  ),
+                  hasBankDetails: !!(
+                    mappedStaff[0]?.bankName ||
+                    mappedStaff[0]?.bankAccountNumber
+                  ),
+                  hasEmploymentInfo: !!(
+                    mappedStaff[0]?.joiningDate ||
+                    mappedStaff[0]?.employmentStatus
+                  ),
+                  hasContactInfo: !!(
+                    mappedStaff[0]?.email && mappedStaff[0]?.phone
+                  ),
+                }
+              : 'No data to check',
+        });
 
         setStaff(mappedStaff);
 
@@ -253,7 +428,11 @@ const StaffPage = () => {
       }
     } catch (err) {
       const error = err as Error;
-      console.error('Error loading staff:', error);
+      console.error('❌ FAILED TO LOAD STAFF:', {
+        error: error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : 'No stack trace',
+      });
       setError(error.message || 'Failed to load staff');
       toast.error('Failed to load staff', {
         description: 'Unable to fetch staff data. Please try again.',
@@ -416,57 +595,24 @@ const StaffPage = () => {
   };
 
   // Handle successful edit
-  const handleEditSuccess = (updatedStaff: Record<string, unknown>) => {
-    // Update the staff in the local state
-    const updatedStaffList = staff.map((s: Staff) => {
-      if (s.id === updatedStaff.id) {
-        // Create updated staff object with new data
-        return {
-          ...s,
-          name: `${updatedStaff.firstName} ${updatedStaff.middleName ? updatedStaff.middleName + ' ' : ''}${updatedStaff.lastName}`,
-          email: updatedStaff.email as string,
-          phone: updatedStaff.phone as string,
-          position:
-            (updatedStaff.designation as string) ||
-            (updatedStaff.position as string),
-          department: updatedStaff.department as string,
-          // Additional fields for compatibility
-          salary: updatedStaff.totalSalary as number,
-          employeeId: updatedStaff.employeeId as string,
-          isOnline: false,
-        } as Staff;
-      }
-      return s;
-    });
+  const handleEditSuccess = async (updatedStaff: Record<string, unknown>) => {
+    console.log(
+      '🔄 Staff updated successfully, refreshing data...',
+      updatedStaff,
+    );
 
-    setStaff(updatedStaffList);
+    // Close the modal immediately for better UX
+    setEditModalOpen(false);
+    setSelectedStaff(null);
 
-    // Also update filtered staff
-    const updatedFilteredStaffList = filteredStaff.map((s: Staff) => {
-      if (s.id === updatedStaff.id) {
-        // Create updated staff object with new data
-        return {
-          ...s,
-          name: `${updatedStaff.firstName} ${updatedStaff.middleName ? updatedStaff.middleName + ' ' : ''}${updatedStaff.lastName}`,
-          email: updatedStaff.email as string,
-          phone: updatedStaff.phone as string,
-          position:
-            (updatedStaff.designation as string) ||
-            (updatedStaff.position as string),
-          department: updatedStaff.department as string,
-          // Additional fields for compatibility
-          salary: updatedStaff.totalSalary as number,
-          employeeId: updatedStaff.employeeId as string,
-          isOnline: false,
-        } as Staff;
-      }
-      return s;
-    });
-
-    setFilteredStaff(updatedFilteredStaffList);
-
-    // Don't reload from server to avoid flickering
-    // The local state update is sufficient
+    // Refresh data from backend to get the latest information
+    try {
+      await loadStaff();
+      console.log('✅ Staff data refreshed successfully');
+    } catch (error) {
+      console.error('❌ Error refreshing staff data:', error);
+      // Optionally show a toast notification
+    }
   };
 
   // Handle staff deletion
@@ -479,20 +625,24 @@ const StaffPage = () => {
       const response = await staffService.deleteStaff(String(selectedStaff.id));
 
       if (response.success) {
-        // Update local state immediately
-        const remainingStaff = staff.filter(s => s.id !== selectedStaff.id);
-        setStaff(remainingStaff);
-
-        // Also update filtered staff to reflect change immediately
-        const updatedFilteredStaff = filteredStaff.filter(
-          s => s.id !== selectedStaff.id,
-        );
-        setFilteredStaff(updatedFilteredStaff);
-
         toast.success('Staff deleted', {
           description: `${selectedStaff.name} has been removed from the system.`,
         });
+
+        // Close modal immediately
         setDeleteModalOpen(false);
+        setSelectedStaff(null);
+
+        // Refresh data from backend to get the latest information
+        try {
+          await loadStaff();
+          console.log('✅ Staff data refreshed after deletion');
+        } catch (refreshError) {
+          console.error(
+            '❌ Error refreshing staff data after deletion:',
+            refreshError,
+          );
+        }
       } else {
         throw new Error(response.message || 'Failed to delete staff');
       }
@@ -634,9 +784,12 @@ const StaffPage = () => {
       {/* Edit Modal */}
       <StaffEditModal
         isOpen={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        onSuccess={handleEditSuccess}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedStaff(null);
+        }}
         staff={selectedStaff}
+        onSuccess={handleEditSuccess}
       />
 
       {/* Delete Confirmation Modal */}
