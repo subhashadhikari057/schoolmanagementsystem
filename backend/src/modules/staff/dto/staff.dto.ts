@@ -78,6 +78,7 @@ export const CreateStaffProfileSchema = z.object({
       city: z.string().optional(),
       state: z.string().optional(),
       zipCode: z.string().optional(),
+      pinCode: z.string().optional(),
       country: z.string().optional(),
     })
     .optional(),
@@ -173,6 +174,7 @@ export const UpdateStaffByAdminDto = z.object({
           city: z.string().optional(),
           state: z.string().optional(),
           zipCode: z.string().optional(),
+          pinCode: z.string().optional(),
           country: z.string().optional(),
         })
         .optional(),
@@ -221,6 +223,7 @@ export const UpdateStaffSelfDto = z.object({
           city: z.string().optional(),
           state: z.string().optional(),
           zipCode: z.string().optional(),
+          pinCode: z.string().optional(),
           country: z.string().optional(),
         })
         .optional(),

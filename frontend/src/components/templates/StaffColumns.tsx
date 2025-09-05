@@ -26,7 +26,7 @@ export const getStaffColumns = (
     mobileLabel: 'Staff',
     render: (item: Staff) => (
       <UserInfoCell
-        name={item.name}
+        name={item.fullName || item.name}
         id={(item.employeeId as string) || 'N/A'}
         avatar={item.avatar}
         idLabel='ID:'
@@ -38,10 +38,14 @@ export const getStaffColumns = (
     header: 'Designation & Department',
     mobileLabel: 'Designation',
     render: (item: Staff) => (
-      <RoleDepartmentCell
-        position={(item.designation as string) || 'Staff'}
-        department={(item.department as string) || 'General'}
-      />
+      <div className='text-sm'>
+        <div className='font-medium'>
+          {(item.designation as string) || (item.position as string) || 'Staff'}
+        </div>
+        <div className='text-gray-500'>
+          {(item.department as string) || 'General'}
+        </div>
+      </div>
     ),
   },
   {
@@ -49,23 +53,24 @@ export const getStaffColumns = (
     header: 'Contact Information',
     mobileLabel: 'Contact',
     render: (item: Staff) => (
-      <ContactCell
-        email={(item.contactInfo as any)?.email || (item as any).email}
-        phone={(item.contactInfo as any)?.phone || (item as any).phone}
-        address={(item.contactInfo as any)?.address || (item as any).address}
-      />
+      <div className='text-sm'>
+        <div className='font-medium'>
+          {item.contactInfo?.email || item.email || 'N/A'}
+        </div>
+        <div className='text-gray-500'>
+          {item.contactInfo?.phone || item.phone || 'N/A'}
+        </div>
+      </div>
     ),
   },
   {
     key: 'qualification',
-    header: 'Qualification & Experience',
+    header: 'Qualification',
     mobileLabel: 'Qualification',
     render: (item: Staff) => (
-      <QualificationCell
-        qualification={item.qualification as string}
-        specialization={undefined}
-        experienceYears={item.experienceYears as number}
-      />
+      <div className='text-sm'>
+        <div className='font-medium'>{item.qualification || 'N/A'}</div>
+      </div>
     ),
   },
   {
@@ -73,26 +78,53 @@ export const getStaffColumns = (
     header: 'Experience & Salary',
     mobileLabel: 'Experience',
     render: (item: Staff) => (
-      <ExperienceSalaryCell
-        experience={
-          item.experienceYears ? `${item.experienceYears} years` : 'N/A'
-        }
-        joinedDate={item.joinedDate as string}
-        salary={item.totalSalary as number}
-      />
+      <div className='text-sm'>
+        <div className='font-medium'>
+          ₹{item.totalSalary || item.basicSalary || item.salary || 0}
+        </div>
+        <div className='text-gray-500'>
+          {item.experienceYears ? `${item.experienceYears} years` : 'N/A'}
+        </div>
+      </div>
     ),
   },
   {
     key: 'status',
     header: 'Status',
     mobileLabel: 'Status',
-    render: (item: Staff) => (
-      <StatusActivityCell
-        status={item.status}
-        isOnline={item.isActive as boolean}
-        lastActivity={item.lastLoginAt as string}
-      />
-    ),
+    render: (item: Staff) => {
+      const displayStatus = item.employmentStatus || item.status || 'active';
+      let statusColor = 'text-red-600 bg-red-100'; // default
+
+      // Handle different status variations using string includes for flexibility
+      const statusLower = displayStatus
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, '_');
+
+      if (statusLower === 'active') {
+        statusColor = 'text-green-600 bg-green-100';
+      } else if (statusLower === 'on_leave' || displayStatus === 'On Leave') {
+        statusColor = 'text-yellow-600 bg-yellow-100';
+      } else if (statusLower === 'inactive') {
+        statusColor = 'text-gray-600 bg-gray-100';
+      } else if (statusLower === 'suspended') {
+        statusColor = 'text-orange-600 bg-orange-100';
+      } else if (statusLower === 'terminated') {
+        statusColor = 'text-red-600 bg-red-100';
+      }
+
+      return (
+        <div className='text-sm'>
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}
+          >
+            {displayStatus.toString().charAt(0).toUpperCase() +
+              displayStatus.toString().slice(1).replace('_', ' ')}
+          </span>
+        </div>
+      );
+    },
   },
   {
     key: 'actions',

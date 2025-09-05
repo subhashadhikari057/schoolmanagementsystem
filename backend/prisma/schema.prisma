@@ -516,6 +516,7 @@ model Staff {
   panNumber         String?
   employmentStatus  String?                 @default("active")
   experienceYears   Int?
+  qualification     String?
   user              User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   attendanceRecords StaffAttendanceRecord[] @relation("StaffAttendanceRecords")
   profile           StaffProfile?

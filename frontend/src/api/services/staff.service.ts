@@ -38,6 +38,13 @@ const STAFF_ENDPOINTS = {
   GET_CURRENT_SALARY: (id: string) => `api/v1/staff/${id}/salary`,
   GET_SALARY_FOR_MONTH: (id: string, month: string) =>
     `api/v1/staff/${id}/salary-for-month?month=${month}`,
+  // Import/Export endpoints
+  IMPORT_CSV: 'api/v1/staff-import/import',
+  EXPORT_CSV: 'api/v1/staff-import/export',
+  GET_IMPORT_TEMPLATE: 'api/v1/staff-import/import/template',
+
+  // Update endpoint
+  UPDATE: (id: string) => `api/v1/staff/${id}`,
 } as const;
 
 // ============================================================================
@@ -303,6 +310,171 @@ export class StaffService {
         message: 'Generated fallback employee ID',
         timestamp: new Date().toISOString(),
       };
+    }
+  }
+
+  // ========================================================================
+  // Import/Export Operations
+  // ========================================================================
+
+  /**
+   * Import staff from CSV file
+   */
+  async importStaffFromCSV(
+    file: File,
+    options: {
+      skipDuplicates?: boolean;
+      updateExisting?: boolean;
+    } = {},
+  ): Promise<
+    ApiResponse<{
+      success: boolean;
+      message: string;
+      totalProcessed: number;
+      successfulImports: number;
+      failedImports: number;
+      errors: Array<{
+        row: number;
+        staff: string;
+        error: string;
+      }>;
+      importedStaff: Array<{
+        id: string;
+        fullName: string;
+        email: string;
+        employeeId: string;
+        designation: string;
+      }>;
+    }>
+  > {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    if (options.skipDuplicates !== undefined) {
+      formData.append('skipDuplicates', options.skipDuplicates.toString());
+    }
+
+    if (options.updateExisting !== undefined) {
+      formData.append('updateExisting', options.updateExisting.toString());
+    }
+
+    return this.httpClient.post(STAFF_ENDPOINTS.IMPORT_CSV, formData, {
+      requiresAuth: true,
+      isMultipart: true,
+    });
+  }
+
+  /**
+   * Export staff to CSV
+   */
+  async exportStaffToCSV(params?: {
+    department?: string;
+    search?: string;
+    designation?: string;
+    employmentStatus?: string;
+  }): Promise<Blob> {
+    const queryParams = new URLSearchParams();
+
+    if (params?.department) {
+      queryParams.append('department', params.department);
+    }
+
+    if (params?.search) {
+      queryParams.append('search', params.search);
+    }
+
+    if (params?.designation) {
+      queryParams.append('designation', params.designation);
+    }
+
+    if (params?.employmentStatus) {
+      queryParams.append('employmentStatus', params.employmentStatus);
+    }
+
+    // For blob responses, we need to use fetch directly
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const endpoint = queryParams.toString()
+      ? `${STAFF_ENDPOINTS.EXPORT_CSV}?${queryParams.toString()}`
+      : STAFF_ENDPOINTS.EXPORT_CSV;
+    const fullUrl = `${baseURL}/${endpoint}`;
+
+    // Get CSRF token
+    const { csrfService } = await import('../services/csrf.service');
+    const csrfHeaders = await csrfService.addTokenToHeaders();
+
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        ...csrfHeaders,
+        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Export failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return response.blob();
+  }
+
+  /**
+   * Download CSV template for staff import
+   */
+  async downloadImportTemplate(): Promise<Blob> {
+    // For blob responses, we need to use fetch directly
+    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const fullUrl = `${baseURL}/${STAFF_ENDPOINTS.GET_IMPORT_TEMPLATE}`;
+
+    // Get CSRF token
+    const { csrfService } = await import('../services/csrf.service');
+    const csrfHeaders = await csrfService.addTokenToHeaders();
+
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        ...csrfHeaders,
+        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Template download failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.blob();
+  }
+
+  /**
+   * Update staff information
+   */
+  async updateStaff(
+    staffId: string,
+    updateData: any,
+  ): Promise<ApiResponse<any>> {
+    console.log('🔄 Updating staff:', { staffId, updateData });
+
+    try {
+      const response = await this.httpClient.put<any>(
+        STAFF_ENDPOINTS.UPDATE(staffId),
+        updateData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      console.log('✅ Staff update response:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Failed to update staff:', error);
+      throw error;
     }
   }
 }
