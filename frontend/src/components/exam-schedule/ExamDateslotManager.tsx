@@ -69,7 +69,6 @@ export default function ExamDateslotManager() {
     startTime: '',
     endTime: '',
     type: ExamDateslotType.EXAM,
-    label: '',
   });
 
   // Load dateslots from the backend
@@ -171,7 +170,6 @@ export default function ExamDateslotManager() {
       startTime: dateslot.startTime || '',
       endTime: dateslot.endTime || '',
       type: dateslot.type,
-      label: dateslot.label || '',
     });
   };
 
@@ -182,7 +180,6 @@ export default function ExamDateslotManager() {
       startTime: '',
       endTime: '',
       type: ExamDateslotType.EXAM,
-      label: '',
     });
   };
 
@@ -194,7 +191,6 @@ export default function ExamDateslotManager() {
         startTime: editFormData.startTime || undefined,
         endTime: editFormData.endTime || undefined,
         type: editFormData.type,
-        label: editFormData.label || undefined,
       };
 
       const response = await examDateslotService.updateDateslot(
@@ -208,7 +204,6 @@ export default function ExamDateslotManager() {
           startTime: response.data.startTime,
           endTime: response.data.endTime,
           type: response.data.type,
-          label: response.data.label,
         });
 
         toast.success('Dateslot updated successfully');
@@ -237,7 +232,7 @@ export default function ExamDateslotManager() {
             </h3>
             <p className='text-sm text-blue-600 mt-1'>
               Date slots are automatically created for each day of your exam
-              period. Add time slots and labels to confirm the exam schedule for
+              period. Add start and end times to confirm the exam schedule for
               each date.
             </p>
           </div>
@@ -316,7 +311,7 @@ export default function ExamDateslotManager() {
                     {
                       sortedDateslots.filter(d =>
                         d.type === ExamDateslotType.EXAM
-                          ? d.startTime && d.endTime && d.label
+                          ? d.startTime && d.endTime
                           : true,
                       ).length
                     }{' '}
@@ -330,7 +325,7 @@ export default function ExamDateslotManager() {
                       sortedDateslots.filter(
                         d =>
                           d.type === ExamDateslotType.EXAM &&
-                          (!d.startTime || !d.endTime || !d.label),
+                          (!d.startTime || !d.endTime),
                       ).length
                     }{' '}
                     Pending
@@ -387,12 +382,7 @@ export default function ExamDateslotManager() {
                     >
                       Type
                     </th>
-                    <th
-                      scope='col'
-                      className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
-                    >
-                      Label
-                    </th>
+
                     {!isViewMode && (
                       <th
                         scope='col'
@@ -423,9 +413,7 @@ export default function ExamDateslotManager() {
                           ${
                             editingDateslotId !== dateslot.id &&
                             dateslot.type === ExamDateslotType.EXAM &&
-                            (!dateslot.startTime ||
-                              !dateslot.endTime ||
-                              !dateslot.label)
+                            (!dateslot.startTime || !dateslot.endTime)
                               ? 'border-l-4 border-yellow-400 bg-yellow-50'
                               : editingDateslotId !== dateslot.id &&
                                 'border-l-4 border-green-400'
@@ -528,33 +516,6 @@ export default function ExamDateslotManager() {
                           )}
                         </td>
 
-                        {/* Label */}
-                        <td className='px-6 py-4 whitespace-nowrap text-sm'>
-                          {editingDateslotId === dateslot.id ? (
-                            <input
-                              type='text'
-                              value={editFormData.label}
-                              onChange={e =>
-                                setEditFormData(prev => ({
-                                  ...prev,
-                                  label: e.target.value,
-                                }))
-                              }
-                              placeholder='Enter label'
-                              className='w-full px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                            />
-                          ) : dateslot.label ? (
-                            <span className='text-gray-900'>
-                              {dateslot.label}
-                            </span>
-                          ) : dateslot.type === ExamDateslotType.EXAM ? (
-                            <span className='text-yellow-600 font-medium'>
-                              Not configured
-                            </span>
-                          ) : (
-                            <span className='text-gray-500'>-</span>
-                          )}
-                        </td>
                         {!isViewMode && (
                           <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
                             <div className='flex space-x-2 justify-end'>
@@ -577,9 +538,8 @@ export default function ExamDateslotManager() {
                                     <X className='w-4 h-4' />
                                   </button>
                                 </>
-                              ) : dateslot.type === ExamDateslotType.EXAM ? (
+                              ) : (
                                 <>
-                                  {/* Edit button - only for EXAM type slots */}
                                   <button
                                     onClick={() =>
                                       startEditing(
@@ -587,15 +547,11 @@ export default function ExamDateslotManager() {
                                       )
                                     }
                                     className='text-blue-600 hover:text-blue-900'
-                                    title='Edit Exam Slot'
+                                    title='Edit Slot'
                                   >
                                     <Edit className='w-4 h-4' />
                                   </button>
                                 </>
-                              ) : (
-                                <span className='text-gray-400 text-xs'>
-                                  Non-editable
-                                </span>
                               )}
                             </div>
                           </td>
@@ -626,8 +582,8 @@ export default function ExamDateslotManager() {
                   Calendar.
                 </p>
                 <p className='mt-1'>
-                  <strong>2. Configure times:</strong> Add start time, end time,
-                  and label to each exam date to activate them.
+                  <strong>2. Configure times:</strong> Add start time and end
+                  time to each exam date to activate them.
                 </p>
                 <p className='mt-1'>
                   <strong>3. Build timetable:</strong> Only configured dateslots

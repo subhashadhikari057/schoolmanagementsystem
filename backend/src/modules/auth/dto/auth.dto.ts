@@ -21,6 +21,9 @@ import {
   RequestPasswordResetSchema,
   PasswordResetSchema,
   ForceChangePasswordSchema,
+  RequestOtpSchema,
+  VerifyOtpSchema,
+  ResetPasswordWithOtpSchema,
 } from '@sms/shared-types';
 
 /**
@@ -77,6 +80,18 @@ export class ForceChangePasswordDto extends createZodDto(
 
 /**
  * =============================================================================
+ * OTP DTOs
+ * =============================================================================
+ */
+
+export class RequestOtpDto extends createZodDto(RequestOtpSchema) {}
+export class VerifyOtpDto extends createZodDto(VerifyOtpSchema) {}
+export class ResetPasswordWithOtpDto extends createZodDto(
+  ResetPasswordWithOtpSchema,
+) {}
+
+/**
+ * =============================================================================
  * TYPE EXPORTS FOR INTERNAL USE
  * =============================================================================
  */
@@ -97,4 +112,9 @@ export type RequestPasswordResetDtoType = z.infer<
 export type PasswordResetDtoType = z.infer<typeof PasswordResetSchema>;
 export type ForceChangePasswordDtoType = z.infer<
   typeof ForceChangePasswordSchema
+>;
+export type RequestOtpDtoType = z.infer<typeof RequestOtpSchema>;
+export type VerifyOtpDtoType = z.infer<typeof VerifyOtpSchema>;
+export type ResetPasswordWithOtpDtoType = z.infer<
+  typeof ResetPasswordWithOtpSchema
 >;

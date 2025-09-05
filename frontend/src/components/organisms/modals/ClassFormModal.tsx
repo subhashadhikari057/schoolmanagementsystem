@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, School, Search, User, Building, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -14,6 +14,9 @@ interface ClassFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialStep?: number;
+  initialRoomOption?: string;
+  onRoomCreated?: (room: AvailableRoom) => void;
 }
 
 interface FormData {
@@ -40,8 +43,11 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  initialStep = 1,
+  initialRoomOption = 'existing',
+  onRoomCreated,
 }) => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const [formData, setFormData] = useState<FormData>({
     className: '',
     grade: 1,
@@ -63,7 +69,9 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [roomOption, setRoomOption] = useState<'new' | 'existing'>('existing');
+  const [roomOption, setRoomOption] = useState<'new' | 'existing'>(
+    initialRoomOption as 'new' | 'existing',
+  );
   const [newRoomData, setNewRoomData] = useState<NewRoomData>({
     roomNo: '',
     name: '',
@@ -71,6 +79,24 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
     building: '',
   });
   const [isTeacherDropdownOpen, setIsTeacherDropdownOpen] = useState(false);
+
+  // Reset form function (defined early to be used in useEffect)
+  const resetForm = useCallback(() => {
+    setFormData({
+      className: '',
+      grade: 1,
+      section: 'A',
+      capacity: 30,
+      shift: 'morning',
+      classTeacherId: '',
+      roomId: '',
+    });
+    setCurrentStep(initialStep);
+    setTeacherSearchTerm('');
+    setRoomSearchTerm('');
+    setRoomOption(initialRoomOption as 'new' | 'existing');
+    setError(null);
+  }, [initialStep, initialRoomOption]);
 
   // Load teachers and rooms when modal opens or shift changes
   useEffect(() => {
@@ -86,7 +112,7 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
     if (!isOpen) {
       resetForm();
     }
-  }, [isOpen]);
+  }, [isOpen, resetForm]);
 
   // Body scroll lock
   useEffect(() => {
@@ -173,23 +199,6 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
       console.error('Failed to load available rooms:', error);
       toast.error('Failed to load available rooms');
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      className: '',
-      grade: 1,
-      section: 'A',
-      capacity: 30,
-      shift: 'morning',
-      classTeacherId: '',
-      roomId: '',
-    });
-    setCurrentStep(1);
-    setTeacherSearchTerm('');
-    setRoomSearchTerm('');
-    setRoomOption('existing');
-    setError(null);
   };
 
   const handleInputChange = (
@@ -300,6 +309,11 @@ const ClassFormModal: React.FC<ClassFormModalProps> = ({
 
         // Switch back to existing room view
         setRoomOption('existing');
+
+        // Call the onRoomCreated callback if provided
+        if (onRoomCreated) {
+          onRoomCreated(newRoom);
+        }
       } else {
         throw new Error(response.message || 'Failed to create room');
       }

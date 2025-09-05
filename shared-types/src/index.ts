@@ -31,6 +31,16 @@ export {
   ForceChangePasswordSchema,
 } from "./schemas/auth/auth.schemas";
 
+// Export OTP schemas
+export {
+  RequestOtpSchema,
+  VerifyOtpSchema,
+  ResetPasswordWithOtpSchema,
+  type RequestOtp,
+  type VerifyOtp,
+  type ResetPasswordWithOtp,
+} from "./schemas/auth/otp.schemas";
+
 // Export fee-related schemas and DTOs
 export {
   createFeeStructureSchema,

@@ -13,10 +13,14 @@ import {
 import { Request, Response } from 'express';
 import { AuthError } from '../../../shared/error-handling/auth-error.util';
 import { AuthService } from '../application/auth.service';
+import { OtpService } from '../application/otp.service';
 import {
   LoginDto,
   ForceChangePasswordDto,
   ChangePasswordDto,
+  RequestOtpDto,
+  VerifyOtpDto,
+  ResetPasswordWithOtpDto,
 } from '../dto/auth.dto';
 import { setAuthCookies, COOKIE_OPTIONS } from '../../../shared/auth/cookie';
 import { verifyToken } from '../../../shared/auth/jwt.util';
@@ -24,7 +28,10 @@ import { Public } from '../../../shared/guards/jwt-auth.guard';
 
 @Controller('api/v1/auth') // ✅ Route prefix with global prefix api/v1
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly otpService: OtpService,
+  ) {}
 
   /**
    * 🔐 Login endpoint
@@ -225,5 +232,69 @@ export class AuthController {
     }
     await this.authService.changePassword({ ...body, userId });
     return { message: 'Password changed successfully' };
+  }
+
+  /**
+   * 📧 Request OTP for password reset
+   * Only allows non-student/non-parent users
+   */
+  @Public()
+  @Post('forgot-password/request-otp')
+  @HttpCode(HttpStatus.OK)
+  async requestOtp(
+    @Body() body: RequestOtpDto,
+    @Req() req: Request,
+  ): Promise<{ message: string; success: boolean }> {
+    const ip = req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    return await this.otpService.requestOtp(
+      body.identifier,
+      body.delivery_method,
+      ip,
+      userAgent,
+    );
+  }
+
+  /**
+   * 🔐 Verify OTP and get reset token
+   */
+  @Public()
+  @Post('forgot-password/verify-otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyOtp(
+    @Body() body: VerifyOtpDto,
+    @Req() req: Request,
+  ): Promise<{ resetToken: string; message: string; success: boolean }> {
+    const ip = req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    return await this.otpService.verifyOtp(
+      body.identifier,
+      body.otp,
+      ip,
+      userAgent,
+    );
+  }
+
+  /**
+   * 🔄 Reset password with verified token
+   */
+  @Public()
+  @Post('forgot-password/reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPasswordWithOtp(
+    @Body() body: ResetPasswordWithOtpDto,
+    @Req() req: Request,
+  ): Promise<{ message: string; success: boolean }> {
+    const ip = req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    return await this.otpService.resetPassword(
+      body.reset_token,
+      body.new_password,
+      ip,
+      userAgent,
+    );
   }
 }
