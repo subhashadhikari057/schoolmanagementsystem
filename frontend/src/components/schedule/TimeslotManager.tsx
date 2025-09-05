@@ -5,7 +5,6 @@ import {
   Clock,
   Plus,
   Trash2,
-  Save,
   AlertCircle,
   Edit,
   Check,
@@ -16,27 +15,24 @@ import {
   TimeslotResponseDto as TimeSlot,
   TimeslotType,
 } from '@sms/shared-types';
-import {
-  timeslotService,
-  scheduleService,
-} from '@/api/services/schedule.service';
+import { timeslotService } from '@/api/services/schedule.service';
 import { toast } from 'sonner';
 
 const days = [
+  'sunday',
   'monday',
   'tuesday',
   'wednesday',
   'thursday',
   'friday',
-  'saturday',
 ] as const;
 const dayLabels: Record<string, string> = {
+  sunday: 'Sunday',
   monday: 'Monday',
   tuesday: 'Tuesday',
   wednesday: 'Wednesday',
   thursday: 'Thursday',
   friday: 'Friday',
-  saturday: 'Saturday',
 };
 
 // Map TimeslotType enum to UI-friendly values
@@ -93,9 +89,10 @@ export default function TimeslotManager() {
     removeTimeSlot,
     selectedClassId,
     selectedClass,
+    triggerTimetableReload,
   } = useScheduleStore();
   const [selectedDay, setSelectedDay] =
-    useState<(typeof days)[number]>('monday');
+    useState<(typeof days)[number]>('sunday');
   const [newTimeSlot, setNewTimeSlot] = useState<Partial<TimeSlot>>({
     day: selectedDay,
     startTime: '',
@@ -106,7 +103,6 @@ export default function TimeslotManager() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isViewMode, setIsViewMode] = useState(true);
 
   // Load timeslots from the backend
@@ -129,7 +125,7 @@ export default function TimeslotManager() {
         setTimeSlots(
           response.data.map(ts => ({
             id: ts.id,
-            day: ts.day,
+            day: ts.day.charAt(0).toUpperCase() + ts.day.slice(1).toLowerCase(),
             startTime: ts.startTime,
             endTime: ts.endTime,
             type: ts.type,
@@ -158,8 +154,14 @@ export default function TimeslotManager() {
     }
   }, [selectedClassId, loadTimeslots]);
 
+  // Normalize selected day for consistent comparison
+  const normalizedSelectedDay =
+    selectedDay.charAt(0).toUpperCase() + selectedDay.slice(1).toLowerCase();
+
   // Filter timeslots for the selected day and remove duplicates
-  const dayTimeSlots = timeSlots.filter(slot => slot.day === selectedDay);
+  const dayTimeSlots = timeSlots.filter(
+    slot => slot.day === normalizedSelectedDay,
+  );
 
   // Remove duplicate timeslots (same day, startTime, endTime, type)
   const uniqueTimeSlots = dayTimeSlots.reduce(
@@ -183,6 +185,20 @@ export default function TimeslotManager() {
   const sortedTimeSlots = [...uniqueTimeSlots].sort((a, b) => {
     return a.startTime.localeCompare(b.startTime);
   });
+
+  // Format time for display (e.g., "08:30" to "8:30 AM")
+  const formatTime = (time: string): string => {
+    try {
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours, 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const formattedHour = hour % 12 || 12;
+      return `${formattedHour}:${minutes} ${ampm}`;
+    } catch {
+      // Return the original time if parsing fails
+      return time;
+    }
+  };
 
   // Check for overlapping timeslots
   const checkForOverlaps = () => {
@@ -220,9 +236,11 @@ export default function TimeslotManager() {
     // Group by day
     const timeslotsByDay = days.reduce(
       (acc, day) => {
+        const normalizedDay =
+          day.charAt(0).toUpperCase() + day.slice(1).toLowerCase();
         // @ts-ignore - local TimeSlot interface omits persistence metadata not needed here
         acc[day] = allTimeSlots
-          .filter(slot => slot.day === day)
+          .filter(slot => slot.day === normalizedDay)
           .sort((a, b) => a.startTime.localeCompare(b.startTime));
         return acc;
       },
@@ -273,7 +291,9 @@ export default function TimeslotManager() {
 
     // Check for overlapping with existing timeslots
     if (newTimeSlot.startTime && newTimeSlot.endTime) {
-      const existingSlots = timeSlots.filter(slot => slot.day === selectedDay);
+      const existingSlots = timeSlots.filter(
+        slot => slot.day === normalizedSelectedDay,
+      );
 
       for (const slot of existingSlots) {
         // Check if new timeslot overlaps with existing one
@@ -318,10 +338,10 @@ export default function TimeslotManager() {
       });
 
       if (response.success && response.data) {
-        // Add to local state
+        // Add to local state with normalized day
         addTimeSlot({
           id: response.data.id,
-          day: selectedDay,
+          day: normalizedSelectedDay,
           startTime: newTimeSlot.startTime!,
           endTime: newTimeSlot.endTime!,
           type: newTimeSlot.type as TimeSlot['type'],
@@ -339,15 +359,18 @@ export default function TimeslotManager() {
 
         // Show success message with auto-schedule creation info
         toast.success(
-          'Timeslot saved successfully and schedule slots created for all active schedules!',
+          `${dayLabels[selectedDay]} timeslot saved successfully!`,
           {
             description:
-              'The new timeslot is now available as a droppable zone in the Timetable Builder.',
-            duration: 5000,
+              'The new timeslot is now available in the Timetable Builder for subject assignments.',
+            duration: 3000,
           },
         );
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
+
+        // Trigger timetable reload to refresh TimetableBuilder
+        triggerTimetableReload();
       } else {
         toast.error(response.message || 'Failed to save timeslot');
       }
@@ -362,7 +385,16 @@ export default function TimeslotManager() {
   // Handle day change
   const handleDayChange = (day: (typeof days)[number]) => {
     setSelectedDay(day);
-    setNewTimeSlot(prev => ({ ...prev, day }));
+    // Reset the entire form when switching days to prevent wrong day assignment
+    setNewTimeSlot({
+      day: day,
+      startTime: '',
+      endTime: '',
+      type: TimeslotType.REGULAR,
+      label: '',
+    });
+    // Clear any errors when switching days
+    setErrors({});
   };
 
   // Calculate duration in minutes
@@ -370,20 +402,6 @@ export default function TimeslotManager() {
     const startDate = new Date(`2000-01-01T${start}`);
     const endDate = new Date(`2000-01-01T${end}`);
     return Math.round((endDate.getTime() - startDate.getTime()) / 60000);
-  };
-
-  // Format time for display (e.g., "08:30" to "8:30 AM")
-  const formatTime = (time: string): string => {
-    try {
-      const [hours, minutes] = time.split(':');
-      const hour = parseInt(hours, 10);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const formattedHour = hour % 12 || 12;
-      return `${formattedHour}:${minutes} ${ampm}`;
-    } catch {
-      // Return the original time if parsing fails
-      return time;
-    }
   };
 
   return (
@@ -415,7 +433,7 @@ export default function TimeslotManager() {
             <button
               className='px-4 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors flex items-center mr-2'
               onClick={() => setIsViewMode(!isViewMode)}
-              disabled={isSaving}
+              disabled={isLoading}
             >
               {isViewMode ? (
                 <>
@@ -430,9 +448,9 @@ export default function TimeslotManager() {
               )}
             </button>
             <button
-              className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center mr-2'
+              className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center'
               onClick={handleAutoSort}
-              disabled={isSaving || timeSlots.length === 0}
+              disabled={isLoading || timeSlots.length === 0}
             >
               <svg
                 xmlns='http://www.w3.org/2000/svg'
@@ -444,108 +462,39 @@ export default function TimeslotManager() {
               </svg>
               Auto Sort
             </button>
-            {!isViewMode && (
-              <button
-                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center'
-                onClick={async () => {
-                  if (!selectedClassId) {
-                    toast.error('No class selected');
-                    return;
-                  }
-
-                  setIsSaving(true);
-
-                  try {
-                    // Check if there are any timeslots to save
-                    if (timeSlots.length === 0) {
-                      toast.error('No timeslots to save');
-                      return;
-                    }
-
-                    // Check if any schedules use these timeslots
-                    const schedulesResponse =
-                      await scheduleService.getSchedulesByClass(
-                        selectedClassId,
-                      );
-                    const hasSchedules =
-                      schedulesResponse.success &&
-                      schedulesResponse.data &&
-                      schedulesResponse.data.length > 0;
-
-                    // If schedules exist, show warning
-                    if (hasSchedules) {
-                      if (
-                        !window.confirm(
-                          'Warning: Updating timeslots will affect existing schedules. Continue?',
-                        )
-                      ) {
-                        return;
-                      }
-                    }
-
-                    // Use bulk create endpoint
-                    const response = await timeslotService.bulkCreateTimeslots({
-                      classId: selectedClassId,
-                      timeslots: timeSlots.map(slot => ({
-                        day: slot.day,
-                        startTime: slot.startTime,
-                        endTime: slot.endTime,
-                        type: slot.type as TimeslotType,
-                        label: slot.label,
-                      })),
-                    });
-
-                    if (response.success) {
-                      toast.success(
-                        'All timeslots saved successfully and schedule slots created!',
-                        {
-                          description:
-                            'Complete timetable framework is now ready for subject assignments.',
-                          duration: 5000,
-                        },
-                      );
-                      setShowSuccess(true);
-                      setTimeout(() => setShowSuccess(false), 3000);
-
-                      // Reload timeslots to get updated data
-                      await loadTimeslots();
-                    } else {
-                      toast.error(
-                        response.message || 'Failed to save timeslots',
-                      );
-                    }
-                  } catch (error) {
-                    console.error('Error saving timeslots:', error);
-                    toast.error('Failed to save timeslots');
-                  } finally {
-                    setIsSaving(false);
-                  }
-                }}
-                disabled={isSaving}
-              >
-                <Save className='w-4 h-4 mr-2' />
-                {isSaving ? 'Saving...' : 'Save All Timeslots'}
-              </button>
-            )}
           </div>
         </div>
 
         {/* Day tabs */}
         <div className='border-b border-gray-200 mb-6'>
           <nav className='-mb-px flex space-x-6'>
-            {days.map(day => (
-              <button
-                key={day}
-                onClick={() => handleDayChange(day)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  selectedDay === day
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {dayLabels[day]}
-              </button>
-            ))}
+            {days.map(day => {
+              const normalizedDay =
+                day.charAt(0).toUpperCase() + day.slice(1).toLowerCase();
+              const dayTimeSlots = timeSlots.filter(
+                slot => slot.day === normalizedDay,
+              );
+              const hasTimeslots = dayTimeSlots.length > 0;
+
+              return (
+                <button
+                  key={day}
+                  onClick={() => handleDayChange(day)}
+                  className={`py-2 px-3 border-b-2 font-medium text-sm relative ${
+                    selectedDay === day
+                      ? 'border-blue-500 text-blue-600 bg-blue-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {dayLabels[day]}
+                  {hasTimeslots && (
+                    <span className='ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-500 rounded-full'>
+                      {dayTimeSlots.length}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
@@ -572,9 +521,14 @@ export default function TimeslotManager() {
         {/* Add new timeslot form - only show in edit mode */}
         {!isViewMode && (
           <div className='bg-gray-50 p-4 rounded-lg mb-6 border-2 border-green-200'>
-            <h3 className='text-md font-medium text-gray-700 mb-4'>
-              Add Time Slot for {dayLabels[selectedDay]}
-            </h3>
+            <div className='flex items-center justify-between mb-4'>
+              <h3 className='text-md font-medium text-gray-700'>
+                Add Time Slot for {dayLabels[selectedDay]}
+              </h3>
+              <div className='px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium'>
+                Currently editing: {dayLabels[selectedDay]}
+              </div>
+            </div>
             {!selectedClassId && (
               <div className='bg-red-50 border border-red-200 rounded-md p-3 mb-4'>
                 <p className='text-sm text-red-700'>
@@ -656,7 +610,7 @@ export default function TimeslotManager() {
                   ) : (
                     <Plus className='w-4 h-4 mr-2' />
                   )}
-                  {isLoading ? 'Adding...' : 'Save This Time Slot'}
+                  {isLoading ? 'Adding...' : 'Add Time Slot'}
                 </button>
               </div>
             </div>
@@ -889,17 +843,16 @@ export default function TimeslotManager() {
               </h3>
               <div className='mt-2 text-sm text-blue-700'>
                 <p>
-                  <strong>1. Create individual timeslots:</strong> Use the form
-                  above to add timeslots one by one for each day.
+                  <strong>1. Select a day:</strong> Use the day tabs to choose
+                  which day you want to configure.
                 </p>
                 <p className='mt-1'>
-                  <strong>2. Click "Save This Time Slot":</strong> Each timeslot
-                  is saved immediately when you click this button.
+                  <strong>2. Add timeslots:</strong> Fill in the form and click
+                  "Add Time Slot" to save each timeslot immediately.
                 </p>
                 <p className='mt-1'>
-                  <strong>3. Use "Save All Timeslots":</strong> Only needed if
-                  you want to save all timeslots at once or update existing
-                  ones.
+                  <strong>3. Switch days:</strong> Each day maintains its own
+                  timeslots independently. Changes are saved automatically.
                 </p>
               </div>
             </div>

@@ -278,7 +278,15 @@ export const TimetableGrid: React.FC = () => {
         .filter(s => s.timeslot)
         .map(s => ({
           id: s.timeSlotId,
-          day: s.day?.charAt(0).toUpperCase() + s.day.slice(1).toLowerCase(),
+          day:
+            (s.timeslot?.day
+              ? s.timeslot.day.charAt(0).toUpperCase() +
+                s.timeslot.day.slice(1).toLowerCase()
+              : null) ||
+            (s.day
+              ? s.day.charAt(0).toUpperCase() + s.day.slice(1).toLowerCase()
+              : null) ||
+            'Monday',
           startTime: s.timeslot?.startTime || '00:00',
           endTime: s.timeslot?.endTime || '00:00',
           type:
@@ -325,7 +333,14 @@ export const TimetableGrid: React.FC = () => {
     setGroupedTimeSlots(grouped);
   }, [timeSlots, timetableSlots]);
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const days = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+  ];
   const availableDays = days.filter(
     day => (groupedTimeSlots[day]?.length || 0) > 0,
   );
