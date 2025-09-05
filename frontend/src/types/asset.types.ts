@@ -70,6 +70,15 @@ export interface Room {
   totalValue: number;
   createdAt: string;
   updatedAt: string;
+  // Optional: classes assigned to this room (for display in Asset tab)
+  assignedClasses?: Array<{
+    id: string;
+    name?: string;
+    grade: number;
+    section: string;
+    shift: 'morning' | 'day';
+    currentEnrollment?: number;
+  }>;
 }
 
 export interface CreateAssetRequest {
