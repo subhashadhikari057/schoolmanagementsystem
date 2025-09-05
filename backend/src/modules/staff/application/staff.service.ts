@@ -266,6 +266,7 @@ export class StaffService {
   }
 
   async findAll(query: GetAllStaffDtoType) {
+    console.log('🔍 STAFF SERVICE - findAll called with params:', query);
     const {
       page,
       limit,
@@ -329,27 +330,130 @@ export class StaffService {
       this.prisma.staff.count({ where }),
     ]);
 
+    console.log('📊 DATABASE QUERY RESULTS:', {
+      totalStaffFound: total,
+      staffArrayLength: staff.length,
+      whereClause: where,
+      firstStaffRecord: staff[0]
+        ? {
+            id: staff[0].id,
+            fullName: staff[0].fullName,
+            firstName: staff[0].firstName,
+            lastName: staff[0].lastName,
+            email: staff[0].email,
+            phone: staff[0].phone,
+            employeeId: staff[0].employeeId,
+            designation: staff[0].designation,
+            department: staff[0].department,
+            basicSalary: staff[0].basicSalary,
+            totalSalary: staff[0].totalSalary,
+            employmentStatus: staff[0].employmentStatus,
+            gender: staff[0].gender,
+            bloodGroup: staff[0].bloodGroup,
+            emergencyContact: staff[0].emergencyContact,
+            dob: staff[0].dob,
+            joiningDate: staff[0].joiningDate,
+            bankName: staff[0].bankName,
+            bankAccountNumber: staff[0].bankAccountNumber,
+            citizenshipNumber: staff[0].citizenshipNumber,
+            panNumber: staff[0].panNumber,
+            permissions: staff[0].permissions,
+            profile: staff[0].profile,
+            allFields: Object.keys(staff[0]),
+          }
+        : 'No staff records found',
+    });
+
+    const mappedData = staff.map(s => ({
+      id: s.id,
+      fullName: s.fullName,
+      firstName: s.firstName,
+      middleName: s.middleName,
+      lastName: s.lastName,
+      email: s.email,
+      phone: s.phone,
+      employeeId: s.employeeId,
+
+      // Personal Information
+      dob: s.dob,
+      gender: s.gender,
+      bloodGroup: s.bloodGroup,
+      emergencyContact: s.emergencyContact,
+      maritalStatus: s.maritalStatus,
+
+      // Employment Information
+      designation: s.designation,
+      department: s.department,
+      employmentDate: s.employmentDate,
+      joiningDate: s.joiningDate,
+      employmentStatus: s.employmentStatus,
+      experienceYears: s.experienceYears,
+      qualification: s.qualification,
+
+      // Financial Information
+      basicSalary: s.basicSalary,
+      allowances: s.allowances,
+      totalSalary: s.totalSalary,
+
+      // Bank Details
+      bankAccountNumber: s.bankAccountNumber,
+      bankBranch: s.bankBranch,
+      bankName: s.bankName,
+
+      // Government IDs
+      citizenshipNumber: s.citizenshipNumber,
+      panNumber: s.panNumber,
+
+      // System Information
+      permissions: s.permissions,
+
+      // Profile Information
+      profilePhotoUrl: s.profile?.profilePhotoUrl,
+      bio: s.profile?.bio,
+      contactInfo: s.profile?.contactInfo,
+      additionalData: s.profile?.additionalData,
+
+      // System fields
+      hasUserAccount: !!(s as any).userId,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+      deletedAt: s.deletedAt,
+    }));
+
+    console.log('✅ MAPPED STAFF DATA FOR API:', {
+      mappedDataLength: mappedData.length,
+      firstMappedRecord: mappedData[0]
+        ? {
+            id: mappedData[0].id,
+            fullName: mappedData[0].fullName,
+            email: mappedData[0].email,
+            designation: mappedData[0].designation,
+            totalSalary: mappedData[0].totalSalary,
+            hasPersonalInfo: !!(
+              mappedData[0].gender || mappedData[0].bloodGroup
+            ),
+            hasFinancialInfo: !!(
+              mappedData[0].basicSalary || mappedData[0].totalSalary
+            ),
+            hasBankDetails: !!(
+              mappedData[0].bankName || mappedData[0].bankAccountNumber
+            ),
+            hasGovernmentIds: !!(
+              mappedData[0].citizenshipNumber || mappedData[0].panNumber
+            ),
+            qualification: mappedData[0].qualification,
+            mappedFields: Object.keys(mappedData[0]).filter(
+              key =>
+                mappedData[0][key as keyof (typeof mappedData)[0]] !== null &&
+                mappedData[0][key as keyof (typeof mappedData)[0]] !==
+                  undefined,
+            ),
+          }
+        : 'No mapped data',
+    });
+
     return {
-      data: staff.map(s => ({
-        id: s.id,
-        fullName: s.fullName,
-        email: s.email,
-        phone: s.phone,
-        designation: s.designation,
-        department: s.department,
-        employmentDate: s.employmentDate,
-        employmentStatus: s.employmentStatus,
-        experienceYears: s.experienceYears,
-        basicSalary: s.basicSalary,
-        allowances: s.allowances,
-        totalSalary: s.totalSalary,
-        employeeId: s.employeeId,
-        profilePhotoUrl: s.profile?.profilePhotoUrl,
-        bio: s.profile?.bio,
-        hasUserAccount: !!(s as any).userId,
-        createdAt: s.createdAt,
-        updatedAt: s.updatedAt,
-      })),
+      data: mappedData,
       pagination: {
         page,
         limit,
@@ -541,6 +645,9 @@ export class StaffService {
           ...(profile?.maritalStatus !== undefined && {
             maritalStatus: profile.maritalStatus,
           }),
+          ...(profile?.qualification !== undefined && {
+            qualification: profile.qualification,
+          }),
 
           // Update salary fields if provided
           ...(salary?.basicSalary !== undefined && {
@@ -590,11 +697,16 @@ export class StaffService {
             }),
             additionalData: {
               ...(staff.profile.additionalData as any),
-              ...(profile?.qualification !== undefined && {
-                qualification: profile.qualification,
-              }),
-              ...(profile?.address !== undefined && {
-                address: profile.address,
+              // Store address information in additionalData if provided
+              ...(profile?.address && {
+                address: {
+                  street: profile.address.street,
+                  city: profile.address.city,
+                  state: profile.address.state,
+                  zipCode: profile.address.zipCode || profile.address.pinCode,
+                  pinCode: profile.address.pinCode || profile.address.zipCode,
+                  country: profile.address.country,
+                },
               }),
             },
           },

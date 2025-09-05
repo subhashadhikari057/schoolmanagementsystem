@@ -452,19 +452,69 @@ export interface Parent extends BaseItem {
 }
 
 export interface Staff extends BaseItem {
-  id: number;
+  id: number | string;
   name: string;
-  department: string;
-  position: string;
-  status: 'Active' | 'On Leave' | 'Inactive' | 'Suspended' | 'Transferred';
-  avatar?: string;
-  staffId?: string;
+  fullName?: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  email: string;
+  phone: string;
   employeeId?: string;
-  email?: string;
-  phone?: string;
-  salary?: number;
-  lastActivity?: string;
+
+  // Personal Information
+  dob?: Date | string;
+  gender?: string;
+  bloodGroup?: string;
+  emergencyContact?: string;
+  maritalStatus?: string;
+
+  // Employment Information
+  designation?: string;
+  department?: string;
+  position?: string; // For backward compatibility
+  employmentDate?: Date | string;
+  joiningDate?: Date | string;
+  employmentStatus?: 'active' | 'inactive' | 'terminated';
+  experienceYears?: number;
+
+  // Financial Information
+  basicSalary?: number;
+  allowances?: number;
+  totalSalary?: number;
+  salary?: number; // For backward compatibility
+
+  // Bank Details
+  bankAccountNumber?: string;
+  bankBranch?: string;
+  bankName?: string;
+
+  // Government IDs
+  citizenshipNumber?: string;
+  panNumber?: string;
+
+  // System Information
+  permissions?: string[];
+  status: 'Active' | 'On Leave' | 'Inactive' | 'Suspended' | 'Transferred';
+  isActive?: boolean;
   isOnline?: boolean;
+  lastActivity?: string;
+  lastLoginAt?: string;
+  avatar?: string;
+
+  // Additional fields
+  qualification?: string;
+  contactInfo?: {
+    email?: string;
+    phone?: string;
+    emergencyContact?: string;
+    address?: string;
+  };
+
+  // Dates
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  deletedAt?: Date | string;
 }
 
 export interface Subject extends BaseItem {
