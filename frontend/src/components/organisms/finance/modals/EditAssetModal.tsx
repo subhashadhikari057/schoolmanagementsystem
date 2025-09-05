@@ -29,6 +29,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
   const [form, setForm] = useState({
     modelName: '',
     serialNumber: '',
+    tagNumber: '',
     status: 'ok',
     purchaseDate: '',
     cost: 0,
@@ -42,6 +43,7 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
       setForm({
         modelName: item.tagNumber || '',
         serialNumber: item.serialNumber,
+        tagNumber: item.tagNumber || '',
         status: item.status,
         purchaseDate: item.purchaseDate,
         cost: item.cost,
@@ -123,6 +125,22 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
               />
             </div>
 
+            <div>
+              <label className='block text-sm font-medium text-gray-700'>
+                Tag Number
+              </label>
+              <Input
+                value={form.tagNumber}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, tagNumber: e.target.value }))
+                }
+                placeholder='e.g., TAG-001'
+                className='mt-1 text-base h-12 rounded-lg'
+              />
+            </div>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>
               <Label>Status *</Label>
               <Select

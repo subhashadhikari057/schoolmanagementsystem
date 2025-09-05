@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Package, Calendar, DollarSign } from 'lucide-react';
+import { X, Plus, Package, Calendar, DollarSign, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -13,6 +13,12 @@ interface QuickAddUnitsModalProps {
   onSuccess: (createdItems: any[]) => void;
   modelName: string;
   modelId: string;
+}
+
+interface AssetUnit {
+  id: string;
+  serialNumber: string;
+  tagNumber: string;
 }
 
 const QuickAddUnitsModal: React.FC<QuickAddUnitsModalProps> = ({
@@ -27,6 +33,9 @@ const QuickAddUnitsModal: React.FC<QuickAddUnitsModalProps> = ({
   const [purchaseDate, setPurchaseDate] = useState<string>('');
   const [vendor, setVendor] = useState<string>('');
   const [warranty, setWarranty] = useState<string>('1 year');
+  const [assetUnits, setAssetUnits] = useState<AssetUnit[]>([
+    { id: '1', serialNumber: '', tagNumber: '' },
+  ]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -34,6 +43,52 @@ const QuickAddUnitsModal: React.FC<QuickAddUnitsModalProps> = ({
       setPurchaseDate(new Date().toISOString().split('T')[0]);
     }
   }, [isOpen]);
+
+  const handleQuantityChange = (newQuantity: number) => {
+    setQuantity(newQuantity);
+    const currentUnits = [...assetUnits];
+
+    if (newQuantity > currentUnits.length) {
+      // Add more units
+      for (let i = currentUnits.length; i < newQuantity; i++) {
+        currentUnits.push({
+          id: String(i + 1),
+          serialNumber: '',
+          tagNumber: '',
+        });
+      }
+    } else if (newQuantity < currentUnits.length) {
+      // Remove excess units
+      currentUnits.splice(newQuantity);
+    }
+
+    setAssetUnits(currentUnits);
+  };
+
+  const handleUnitChange = (
+    unitId: string,
+    field: 'serialNumber' | 'tagNumber',
+    value: string,
+  ) => {
+    setAssetUnits(prev =>
+      prev.map(unit =>
+        unit.id === unitId ? { ...unit, [field]: value } : unit,
+      ),
+    );
+  };
+
+  const generateSerialNumbers = async () => {
+    const { generateSerial } = await import('@/utils/serial');
+    setAssetUnits(prev =>
+      prev.map(unit => ({
+        ...unit,
+        serialNumber: unit.serialNumber || generateSerial(modelName || 'ASSET'),
+        tagNumber:
+          unit.tagNumber ||
+          `TAG-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+      })),
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -44,6 +99,7 @@ const QuickAddUnitsModal: React.FC<QuickAddUnitsModalProps> = ({
     setCostPerUnit(0);
     setVendor('');
     setWarranty('1 year');
+    setAssetUnits([{ id: '1', serialNumber: '', tagNumber: '' }]);
     onClose();
   };
 
@@ -51,16 +107,34 @@ const QuickAddUnitsModal: React.FC<QuickAddUnitsModalProps> = ({
     e.preventDefault();
     if (quantity < 1) return;
 
+    // Validate that all units have serial numbers
+    const emptySerials = assetUnits.filter(unit => !unit.serialNumber.trim());
+    if (emptySerials.length > 0) {
+      toast.error(`Please provide serial numbers for all ${quantity} units`);
+      return;
+    }
+
+    // Check for duplicate serial numbers
+    const serialNumbers = assetUnits.map(unit => unit.serialNumber.trim());
+    const duplicates = serialNumbers.filter(
+      (serial, index) => serialNumbers.indexOf(serial) !== index,
+    );
+    if (duplicates.length > 0) {
+      toast.error('Serial numbers must be unique');
+      return;
+    }
+
     setIsLoading(true);
     const loading = toast.loading('Adding units...', {
       description: `${quantity} × ${modelName}`,
     });
     try {
-      const { generateSerial } = await import('@/utils/serial');
-      const items = Array.from({ length: quantity }).map(() => ({
+      const items = assetUnits.map(unit => ({
         id: `tmp-${Math.random().toString(36).slice(2, 9)}`,
-        serialNumber: generateSerial(modelName),
-        tagNumber: '',
+        serialNumber: unit.serialNumber.trim(),
+        tagNumber:
+          unit.tagNumber.trim() ||
+          `TAG-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
         status: 'ok' as const,
         purchaseDate,
         cost: costPerUnit,
@@ -129,7 +203,9 @@ const QuickAddUnitsModal: React.FC<QuickAddUnitsModalProps> = ({
                 type='number'
                 min={1}
                 value={quantity}
-                onChange={e => setQuantity(parseInt(e.target.value) || 0)}
+                onChange={e =>
+                  handleQuantityChange(parseInt(e.target.value) || 1)
+                }
                 className='mt-1 h-11 text-base'
               />
             </div>
@@ -187,6 +263,68 @@ const QuickAddUnitsModal: React.FC<QuickAddUnitsModalProps> = ({
             />
           </div>
 
+          {/* Individual Asset Units */}
+          <div className='space-y-3 border border-gray-200 rounded-lg p-4'>
+            <div className='flex items-center justify-between'>
+              <h3 className='text-md font-semibold text-gray-900'>
+                Individual Units ({assetUnits.length})
+              </h3>
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                onClick={generateSerialNumbers}
+                className='text-xs'
+              >
+                Auto-generate
+              </Button>
+            </div>
+            <p className='text-xs text-gray-500 mb-3'>
+              Enter serial numbers and tag numbers for each unit
+            </p>
+
+            <div className='space-y-3 max-h-48 overflow-y-auto'>
+              {assetUnits.map((unit, index) => (
+                <div
+                  key={unit.id}
+                  className='grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50'
+                >
+                  <div>
+                    <label className='block text-xs font-medium text-gray-700 mb-1'>
+                      Unit {index + 1} - Serial Number{' '}
+                      <span className='text-red-500'>*</span>
+                    </label>
+                    <Input
+                      value={unit.serialNumber}
+                      onChange={e =>
+                        handleUnitChange(
+                          unit.id,
+                          'serialNumber',
+                          e.target.value,
+                        )
+                      }
+                      placeholder={`e.g., SN${String(index + 1).padStart(3, '0')}`}
+                      className='text-sm h-9'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-xs font-medium text-gray-700 mb-1'>
+                      Unit {index + 1} - Tag Number
+                    </label>
+                    <Input
+                      value={unit.tagNumber}
+                      onChange={e =>
+                        handleUnitChange(unit.id, 'tagNumber', e.target.value)
+                      }
+                      placeholder={`e.g., TAG-${String(index + 1).padStart(3, '0')}`}
+                      className='text-sm h-9'
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className='flex items-center justify-between pt-4 border-t'>
             <div className='text-sm text-gray-600'>
               Total:{' '}
@@ -200,7 +338,11 @@ const QuickAddUnitsModal: React.FC<QuickAddUnitsModalProps> = ({
               </Button>
               <Button
                 type='submit'
-                disabled={isLoading || quantity < 1}
+                disabled={
+                  isLoading ||
+                  quantity < 1 ||
+                  assetUnits.some(unit => !unit.serialNumber.trim())
+                }
                 className='bg-gradient-to-r from-emerald-600 to-emerald-700 text-white'
               >
                 {isLoading ? (
