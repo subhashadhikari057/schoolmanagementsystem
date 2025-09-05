@@ -106,9 +106,14 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
         console.log('API Response:', response);
         console.log('Response data:', response.data);
 
-        // The API returns { data: students[], total, page, limit, totalPages }
-        if (response && response.data && Array.isArray(response.data)) {
-          const studentsData = response.data;
+        // The API returns ApiResponse<{ data: students[], total, page, limit, totalPages }>
+        if (
+          response &&
+          response.data &&
+          response.data.data &&
+          Array.isArray(response.data.data)
+        ) {
+          const studentsData = response.data.data;
 
           if (studentsData.length > 0) {
             // Transform API response to local Student interface
