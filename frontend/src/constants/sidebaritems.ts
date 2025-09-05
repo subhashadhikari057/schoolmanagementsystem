@@ -109,7 +109,7 @@ export const sidebarItems = {
           path: '/dashboard/admin/finance/fee-management',
         },
         {
-          label: 'Salaries and Expenses',
+          label: 'Finance and Assets',
           icon: 'TrendingUp',
           path: '/dashboard/admin/finance/expenses',
         },

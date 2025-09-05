@@ -27,6 +27,8 @@ import { expenseCategories } from '@/constants/expenseCategories';
 type Asset = {
   id: string;
   name: string;
+  serialNumber?: string;
+  tagNumber?: string;
   category?: string;
   quantity: number;
   condition?: string;
@@ -185,6 +187,36 @@ export default function EditRoomAssetsPage() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                    </div>
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
+                      <div>
+                        <Label>Serial Number</Label>
+                        <Input
+                          value={asset.serialNumber ?? ''}
+                          onChange={e =>
+                            handleAssetChange(
+                              asset.id,
+                              'serialNumber',
+                              e.target.value,
+                            )
+                          }
+                          placeholder='e.g., SN001'
+                        />
+                      </div>
+                      <div>
+                        <Label>Tag Number</Label>
+                        <Input
+                          value={asset.tagNumber ?? ''}
+                          onChange={e =>
+                            handleAssetChange(
+                              asset.id,
+                              'tagNumber',
+                              e.target.value,
+                            )
+                          }
+                          placeholder='e.g., TAG-001'
+                        />
                       </div>
                     </div>
                     <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-4'>

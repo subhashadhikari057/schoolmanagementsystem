@@ -51,6 +51,9 @@ const MoveAssetModal: React.FC<MoveAssetModalProps> = ({
 
         <div className='rounded-lg bg-gray-50 p-4 mb-4 border border-gray-100'>
           <div className='font-medium text-gray-900'>{item.serialNumber}</div>
+          {item.tagNumber && (
+            <div className='text-sm text-gray-600'>Tag: {item.tagNumber}</div>
+          )}
           <div className='text-sm text-gray-500'>
             Currently in: {item.assignedTo?.name || 'Unknown'}
           </div>

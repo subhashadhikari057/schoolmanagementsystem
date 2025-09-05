@@ -32,8 +32,8 @@ interface ReplaceAssetModalProps {
 
 interface ReplaceFormData {
   reason: string;
-  newModelName: string;
   newSerialNumber: string;
+  newTagNumber: string;
   purchaseDate: string;
   cost: number;
   vendor: string;
@@ -49,8 +49,8 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<ReplaceFormData>({
     reason: '',
-    newModelName: '',
     newSerialNumber: '',
+    newTagNumber: '',
     purchaseDate: new Date().toISOString().split('T')[0],
     cost: 0,
     vendor: '',
@@ -69,11 +69,11 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
           ...prev,
           reason:
             item.status === 'damaged' ? 'damaged_beyond_repair' : 'upgrade',
-          newModelName: '', // Will be filled by user or keep same model
           vendor: item.vendor || '',
           newSerialNumber: generateSerial(
             item.tagNumber || item.serialNumber || undefined,
           ),
+          newTagNumber: `TAG-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
         }));
       })();
     }
@@ -108,10 +108,6 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
       setError('Replacement reason is required');
       return;
     }
-    if (!formData.newModelName.trim()) {
-      setError('New model name is required');
-      return;
-    }
     if (!formData.newSerialNumber.trim()) {
       setError('New serial number is required');
       return;
@@ -140,7 +136,9 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
       const createdItem = {
         id: `tmp-${Math.random().toString(36).slice(2, 9)}`,
         serialNumber: formData.newSerialNumber.trim(),
-        tagNumber: '',
+        tagNumber:
+          formData.newTagNumber.trim() ||
+          `TAG-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
         status: 'ok' as const,
         purchaseDate: formData.purchaseDate,
         cost: formData.cost,
@@ -159,8 +157,8 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
       // Reset form
       setFormData({
         reason: '',
-        newModelName: '',
         newSerialNumber: '',
+        newTagNumber: '',
         purchaseDate: new Date().toISOString().split('T')[0],
         cost: 0,
         vendor: '',
@@ -189,8 +187,8 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
     if (!isLoading) {
       setFormData({
         reason: '',
-        newModelName: '',
         newSerialNumber: '',
+        newTagNumber: '',
         purchaseDate: new Date().toISOString().split('T')[0],
         cost: 0,
         vendor: '',
@@ -400,34 +398,30 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div className='space-y-2'>
-                  <Label htmlFor='newModelName'>
-                    New Model Name <span className='text-red-500'>*</span>
-                  </Label>
-                  <Input
-                    id='newModelName'
-                    name='newModelName'
-                    value={formData.newModelName}
-                    onChange={handleInputChange}
-                    placeholder='Same model or enter new model'
-                    disabled={isLoading}
-                    className='w-full text-base h-12 rounded-lg'
-                  />
-                  <p className='text-xs text-gray-500'>
-                    Leave empty to use same model, or specify new model name
-                  </p>
-                </div>
-
-                <div className='space-y-2'>
                   <Label htmlFor='newSerialNumber'>
                     New Serial Number <span className='text-red-500'>*</span>
                   </Label>
-                  {/* Auto-generated and not editable */}
                   <Input
                     id='newSerialNumber'
+                    name='newSerialNumber'
                     value={formData.newSerialNumber}
-                    readOnly
+                    onChange={handleInputChange}
+                    placeholder='Enter serial number'
                     disabled={isLoading}
-                    className='w-full font-mono text-base h-12 rounded-lg bg-gray-50 cursor-not-allowed'
+                    className='w-full font-mono text-base h-12 rounded-lg'
+                  />
+                </div>
+
+                <div className='space-y-2'>
+                  <Label htmlFor='newTagNumber'>New Tag Number</Label>
+                  <Input
+                    id='newTagNumber'
+                    name='newTagNumber'
+                    value={formData.newTagNumber}
+                    onChange={handleInputChange}
+                    placeholder='Enter tag number (optional)'
+                    disabled={isLoading}
+                    className='w-full text-base h-12 rounded-lg'
                   />
                 </div>
               </div>
@@ -569,7 +563,6 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
                 disabled={
                   isLoading ||
                   !formData.reason ||
-                  !formData.newModelName.trim() ||
                   !formData.newSerialNumber.trim() ||
                   !formData.purchaseDate ||
                   formData.cost <= 0 ||

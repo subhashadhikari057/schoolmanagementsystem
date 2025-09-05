@@ -38,6 +38,13 @@ export default function AddAssetPage() {
   const [purchaseDate, setPurchaseDate] = useState('');
   const [condition, setCondition] = useState('');
   const [notes, setNotes] = useState('');
+  const [assetUnits, setAssetUnits] = useState<
+    Array<{
+      id: string;
+      serialNumber: string;
+      tagNumber: string;
+    }>
+  >([{ id: '1', serialNumber: '', tagNumber: '' }]);
 
   useEffect(() => {
     let mounted = true;
@@ -60,10 +67,75 @@ export default function AddAssetPage() {
     };
   }, [roomId]);
 
+  const handleQuantityChange = (newQuantity: number) => {
+    setQuantity(newQuantity);
+    const currentUnits = [...assetUnits];
+
+    if (newQuantity > currentUnits.length) {
+      // Add more units
+      for (let i = currentUnits.length; i < newQuantity; i++) {
+        currentUnits.push({
+          id: String(i + 1),
+          serialNumber: '',
+          tagNumber: '',
+        });
+      }
+    } else if (newQuantity < currentUnits.length) {
+      // Remove excess units
+      currentUnits.splice(newQuantity);
+    }
+
+    setAssetUnits(currentUnits);
+  };
+
+  const handleUnitChange = (
+    unitId: string,
+    field: 'serialNumber' | 'tagNumber',
+    value: string,
+  ) => {
+    setAssetUnits(prev =>
+      prev.map(unit =>
+        unit.id === unitId ? { ...unit, [field]: value } : unit,
+      ),
+    );
+  };
+
+  const generateSerialNumbers = () => {
+    setAssetUnits(prev =>
+      prev.map(unit => ({
+        ...unit,
+        serialNumber:
+          unit.serialNumber ||
+          `SN-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+        tagNumber:
+          unit.tagNumber ||
+          `TAG-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+      })),
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate that all units have serial numbers
+    const emptySerials = assetUnits.filter(unit => !unit.serialNumber.trim());
+    if (emptySerials.length > 0) {
+      toast.error('Please provide serial numbers for all units');
+      return;
+    }
+
+    // Check for duplicate serial numbers
+    const serialNumbers = assetUnits.map(unit => unit.serialNumber.trim());
+    const duplicates = serialNumbers.filter(
+      (serial, index) => serialNumbers.indexOf(serial) !== index,
+    );
+    if (duplicates.length > 0) {
+      toast.error('Serial numbers must be unique');
+      return;
+    }
+
     toast.success('Asset added', {
-      description: `${assetName} added to room ${roomNo}`,
+      description: `${assetName} with ${quantity} units added to room ${roomNo}`,
     });
     router.push('/dashboard/admin/finance/expenses');
   };
@@ -144,7 +216,7 @@ export default function AddAssetPage() {
                   type='number'
                   min={1}
                   value={quantity}
-                  onChange={e => setQuantity(Number(e.target.value))}
+                  onChange={e => handleQuantityChange(Number(e.target.value))}
                   required
                 />
               </div>
@@ -182,6 +254,68 @@ export default function AddAssetPage() {
                 placeholder='Optional notes'
                 rows={4}
               />
+            </div>
+
+            {/* Individual Asset Units */}
+            <div className='space-y-3 border border-gray-200 rounded-lg p-4'>
+              <div className='flex items-center justify-between'>
+                <h3 className='text-md font-semibold text-gray-900'>
+                  Individual Asset Units ({assetUnits.length})
+                </h3>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  onClick={generateSerialNumbers}
+                  className='text-xs'
+                >
+                  Auto-generate
+                </Button>
+              </div>
+              <p className='text-xs text-gray-500 mb-3'>
+                Enter serial numbers and tag numbers for each physical unit
+              </p>
+
+              <div className='space-y-3 max-h-60 overflow-y-auto'>
+                {assetUnits.map((unit, index) => (
+                  <div
+                    key={unit.id}
+                    className='grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50'
+                  >
+                    <div>
+                      <label className='block text-xs font-medium text-gray-700 mb-1'>
+                        Unit {index + 1} - Serial Number{' '}
+                        <span className='text-red-500'>*</span>
+                      </label>
+                      <Input
+                        value={unit.serialNumber}
+                        onChange={e =>
+                          handleUnitChange(
+                            unit.id,
+                            'serialNumber',
+                            e.target.value,
+                          )
+                        }
+                        placeholder={`e.g., SN${String(index + 1).padStart(3, '0')}`}
+                        className='text-sm h-9'
+                      />
+                    </div>
+                    <div>
+                      <label className='block text-xs font-medium text-gray-700 mb-1'>
+                        Unit {index + 1} - Tag Number
+                      </label>
+                      <Input
+                        value={unit.tagNumber}
+                        onChange={e =>
+                          handleUnitChange(unit.id, 'tagNumber', e.target.value)
+                        }
+                        placeholder={`e.g., TAG-${String(index + 1).padStart(3, '0')}`}
+                        className='text-sm h-9'
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </CardContent>
           <CardFooter className='flex items-center justify-between bg-gray-50 rounded-b-xl'>
