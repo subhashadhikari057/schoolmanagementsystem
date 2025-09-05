@@ -207,14 +207,39 @@ const StudentsPage = () => {
       console.log('Student API Response:', response);
 
       if (response.success && response.data) {
-        // Check if response.data has the expected structure
-        const studentsData = response.data.data || response.data || [];
-        const totalItems = response.data.total || 0;
+        // Normalize API payload to support multiple backend shapes
+        const payload: any = response.data as any;
+        const studentsData = Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload)
+            ? payload
+            : [];
 
-        // Use backend-provided totalPages when available; otherwise compute it
-        const totalPages =
-          (response.data.totalPages as number) ||
-          Math.max(1, Math.ceil(totalItems / itemsPerPage));
+        // Prefer flat totals, then nested pagination totals, else fallback to length
+        const totalFromResponse: number | undefined =
+          typeof payload?.total === 'number'
+            ? payload.total
+            : typeof payload?.count === 'number'
+              ? payload.count
+              : typeof payload?.pagination?.total === 'number'
+                ? payload.pagination.total
+                : undefined;
+
+        const computedTotalItems: number =
+          totalFromResponse ??
+          (Array.isArray(studentsData) ? studentsData.length : 0);
+
+        // Use backend-provided totalPages when available; otherwise compute it from total/itemsPerPage
+        const pagesFromResponse: number | undefined =
+          typeof payload?.totalPages === 'number'
+            ? payload.totalPages
+            : typeof payload?.pagination?.totalPages === 'number'
+              ? payload.pagination.totalPages
+              : undefined;
+
+        const computedTotalPages: number =
+          pagesFromResponse ??
+          Math.max(1, Math.ceil(computedTotalItems / itemsPerPage));
 
         // Ensure studentsData is an array before mapping
         if (Array.isArray(studentsData)) {
@@ -239,8 +264,8 @@ const StudentsPage = () => {
           );
 
           setStudents(transformedStudents);
-          setTotalItems(totalItems);
-          setTotalPages(totalPages);
+          setTotalItems(computedTotalItems);
+          setTotalPages(computedTotalPages);
         } else {
           console.warn(
             'Expected array of students but received:',

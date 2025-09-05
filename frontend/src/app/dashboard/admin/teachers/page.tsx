@@ -68,6 +68,8 @@ const TeachersPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [filters, setFilters] = useState<TeacherFilters>({
     search: '',
     designation: '',
@@ -153,23 +155,40 @@ const TeachersPage = () => {
       setTimeout(() => {
         setTeachers(mockTeachers);
         setFilteredTeachers(mockTeachers);
+        setTotalItems(mockTeachers.length);
+        setTotalPages(
+          Math.max(1, Math.ceil(mockTeachers.length / itemsPerPage)),
+        );
         setIsLoading(false);
       }, 500); // Simulate network delay
       return;
     }
     try {
-      const response = await teacherService.getAllTeachers();
+      const response = await teacherService.getAllTeachers({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: filters.search || undefined,
+        designation: filters.designation || undefined,
+        // subjects filtering is client-only for now
+      });
       if (response.success && response.data) {
-        const mappedTeachers: Teacher[] = response.data.map(
-          (teacher, index) =>
+        const payload: any = response.data as any;
+        const teachersArray: any[] = Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload)
+            ? payload
+            : [];
+
+        const mappedTeachers: Teacher[] = teachersArray.map(
+          (teacher: any, index: number) =>
             ({
               id: teacher.id || index + 1,
               name: teacher.fullName,
               faculty: teacher.department || 'General',
-              subjects: teacher.subjects?.map(s => s.name) || [],
+              subjects: teacher.subjects?.map((s: any) => s.name) || [],
               classTeacher:
                 teacher.classAssignments
-                  ?.map(ca => `${ca.className} ${ca.section}`)
+                  ?.map((ca: any) => `${ca.className} ${ca.section}`)
                   .join(', ') || '',
               status:
                 teacher.employmentStatus === 'active'
@@ -198,7 +217,40 @@ const TeachersPage = () => {
             }) as Teacher,
         );
         setTeachers(mappedTeachers);
-        setFilteredTeachers(mappedTeachers);
+        // Apply subject filter on the client side if needed
+        if (filters.subjects) {
+          setFilteredTeachers(
+            mappedTeachers.filter(t =>
+              t.subjects?.some(s =>
+                s.toLowerCase().includes(filters.subjects!.toLowerCase()),
+              ),
+            ),
+          );
+        } else {
+          setFilteredTeachers(mappedTeachers);
+        }
+
+        const totalFromResponse: number | undefined =
+          typeof payload?.total === 'number'
+            ? payload.total
+            : typeof payload?.count === 'number'
+              ? payload.count
+              : typeof payload?.pagination?.total === 'number'
+                ? payload.pagination.total
+                : undefined;
+        const computedTotal = totalFromResponse ?? mappedTeachers.length;
+        setTotalItems(computedTotal);
+
+        const pagesFromResponse: number | undefined =
+          typeof payload?.totalPages === 'number'
+            ? payload.totalPages
+            : typeof payload?.pagination?.totalPages === 'number'
+              ? payload.pagination.totalPages
+              : undefined;
+        setTotalPages(
+          pagesFromResponse ??
+            Math.max(1, Math.ceil(computedTotal / itemsPerPage)),
+        );
       } else {
         throw new Error(response.message || 'Failed to load teachers');
       }
@@ -214,10 +266,10 @@ const TeachersPage = () => {
     }
   };
 
-  // Load data on component mount
+  // Load data when page or filters change
   useEffect(() => {
     loadTeachers();
-  }, []);
+  }, [currentPage, filters.search, filters.designation]);
 
   // Apply filters to teachers
   const applyFilters = (filters: TeacherFilters) => {
@@ -272,6 +324,7 @@ const TeachersPage = () => {
   // Handle filter changes
   const handleFilterChange = (newFilters: TeacherFilters) => {
     applyFilters(newFilters);
+    setCurrentPage(1);
   };
 
   // Handle page change
@@ -419,11 +472,8 @@ const TeachersPage = () => {
     }
   };
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredTeachers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentTeachers = filteredTeachers.slice(startIndex, endIndex);
+  // Current page items are provided by server; fall back to slice if needed
+  const currentTeachers = teachers;
 
   // Show loading state
   if (isLoading) {
@@ -535,7 +585,7 @@ const TeachersPage = () => {
               )}
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={filteredTeachers.length}
+              totalItems={totalItems}
               itemsPerPage={itemsPerPage}
               emptyMessage='No teachers found matching your criteria'
               onPageChange={handlePageChange}

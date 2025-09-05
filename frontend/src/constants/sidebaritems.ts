@@ -44,6 +44,11 @@ export const sidebarItems = {
           path: '/dashboard/admin/academics/attendance',
         },
         {
+          label: 'Student Promotions',
+          icon: 'ArrowUpCircle',
+          path: '/dashboard/admin/academics/promotions',
+        },
+        {
           label: 'Reports',
           icon: 'FileText',
           path: '/dashboard/admin/reports/report',

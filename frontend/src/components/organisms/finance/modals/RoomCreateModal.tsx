@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Plus, Building2, MapPin, Layers3 } from 'lucide-react';
+import { X, Plus, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,8 +19,6 @@ interface RoomFormData {
   name: string;
   floor: number;
   building: string;
-  capacity: number;
-  type: string;
 }
 
 const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
@@ -32,9 +30,7 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
     roomNo: '',
     name: '',
     floor: 1,
-    building: 'Main Building',
-    capacity: 30,
-    type: 'Classroom',
+    building: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +41,7 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]:
-        name === 'floor' || name === 'capacity' ? parseInt(value) || 0 : value,
+      [name]: name === 'floor' ? parseInt(value) || 0 : value,
     }));
     if (error) setError(null);
   };
@@ -60,22 +55,12 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
       setError('Room number is required');
       return;
     }
-    if (!formData.name.trim()) {
-      setError('Room name is required');
-      return;
-    }
-    if (!formData.building.trim()) {
-      setError('Building is required');
-      return;
-    }
+    // Room name and building are optional
     if (formData.floor < 1) {
       setError('Floor must be at least 1');
       return;
     }
-    if (formData.capacity < 1) {
-      setError('Capacity must be at least 1');
-      return;
-    }
+    // No capacity in this simplified form
 
     setIsLoading(true);
     const loadingToast = toast.loading('Creating room...', {
@@ -88,7 +73,6 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
         name: formData.name.trim() || undefined,
         floor: formData.floor,
         building: formData.building.trim() || undefined,
-        capacity: formData.capacity,
         isAvailable: true,
       };
 
@@ -106,7 +90,7 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
         name: created.name,
         floor: created.floor,
         building: created.building,
-        capacity: created.capacity ?? formData.capacity,
+        capacity: created.capacity,
         type: 'Classroom',
         assets: [],
         totalAssets: 0,
@@ -126,9 +110,7 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
         roomNo: '',
         name: '',
         floor: 1,
-        building: 'Main Building',
-        capacity: 30,
-        type: 'Classroom',
+        building: '',
       });
 
       onSuccess(newRoom);
@@ -154,9 +136,7 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
         roomNo: '',
         name: '',
         floor: 1,
-        building: 'Main Building',
-        capacity: 30,
-        type: 'Classroom',
+        building: '',
       });
       setError(null);
       onClose();
@@ -238,7 +218,7 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
                   htmlFor='name'
                   className='block text-sm font-semibold text-gray-700'
                 >
-                  Room Name <span className='text-red-500'>*</span>
+                  Room Name
                 </label>
                 <Input
                   id='name'
@@ -259,22 +239,17 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
                   htmlFor='building'
                   className='block text-sm font-semibold text-gray-700'
                 >
-                  Building <span className='text-red-500'>*</span>
+                  Building
                 </label>
-                <select
+                <Input
                   id='building'
                   name='building'
                   value={formData.building}
                   onChange={handleInputChange}
+                  placeholder='e.g., Main Building'
                   disabled={isLoading}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-200 text-gray-900'
-                >
-                  <option value='Main Building'>Main Building</option>
-                  <option value='Science Building'>Science Building</option>
-                  <option value='Academic Building'>Academic Building</option>
-                  <option value='Sports Complex'>Sports Complex</option>
-                  <option value='Library Building'>Library Building</option>
-                </select>
+                  className='w-full text-base h-12 rounded-lg'
+                />
               </div>
 
               <div className='space-y-2'>
@@ -298,54 +273,7 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
               </div>
             </div>
 
-            {/* Room Type and Capacity */}
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <div className='space-y-2'>
-                <label
-                  htmlFor='type'
-                  className='block text-sm font-semibold text-gray-700'
-                >
-                  Room Type
-                </label>
-                <select
-                  id='type'
-                  name='type'
-                  value={formData.type}
-                  onChange={handleInputChange}
-                  disabled={isLoading}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed transition-all duration-200 text-gray-900'
-                >
-                  <option value='Classroom'>Classroom</option>
-                  <option value='Laboratory'>Laboratory</option>
-                  <option value='Office'>Office</option>
-                  <option value='Library'>Library</option>
-                  <option value='Study Area'>Study Area</option>
-                  <option value='Conference Room'>Conference Room</option>
-                  <option value='Storage'>Storage</option>
-                  <option value='Other'>Other</option>
-                </select>
-              </div>
-
-              <div className='space-y-2'>
-                <label
-                  htmlFor='capacity'
-                  className='block text-sm font-semibold text-gray-700'
-                >
-                  Capacity <span className='text-red-500'>*</span>
-                </label>
-                <Input
-                  type='number'
-                  id='capacity'
-                  name='capacity'
-                  value={formData.capacity}
-                  onChange={handleInputChange}
-                  min='1'
-                  placeholder='30'
-                  disabled={isLoading}
-                  className='w-full text-base h-12 rounded-lg'
-                />
-              </div>
-            </div>
+            {/* Capacity/Type removed to match class page room fields */}
 
             {/* Error Message */}
             {error && (
@@ -374,12 +302,7 @@ const RoomCreateModal: React.FC<RoomCreateModalProps> = ({
             <Button
               type='submit'
               disabled={
-                isLoading ||
-                !formData.roomNo.trim() ||
-                !formData.name.trim() ||
-                !formData.building.trim() ||
-                formData.floor < 1 ||
-                formData.capacity < 1
+                isLoading || !formData.roomNo.trim() || formData.floor < 1
               }
               className='bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200'
             >

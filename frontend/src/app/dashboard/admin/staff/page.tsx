@@ -65,6 +65,8 @@ const StaffPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [filters, setFilters] = useState<StaffFilters>({
     search: '',
     designation: '',
@@ -151,49 +153,101 @@ const StaffPage = () => {
       setTimeout(() => {
         setStaff(mockStaff);
         setFilteredStaff(mockStaff);
+        setTotalItems(mockStaff.length);
+        setTotalPages(Math.max(1, Math.ceil(mockStaff.length / itemsPerPage)));
         setIsLoading(false);
       }, 500); // Simulate network delay
       return;
     }
 
     try {
-      const response = await staffService.getAllStaff();
+      const response = await staffService.getAllStaff({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: filters.search || undefined,
+        department: filters.department || undefined,
+        // employmentStatus filter not in UI; designation handled client-side
+      });
       if (response.success && response.data) {
-        const mappedStaff: Staff[] = response.data.map(
-          (staff: Record<string, unknown>, index: number): Staff =>
+        const payload: any = response.data as any;
+        const staffArray: any[] = Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload)
+            ? payload
+            : [];
+
+        const mappedStaff: Staff[] = staffArray.map(
+          (s: Record<string, unknown>, index: number): Staff =>
             ({
-              id: (staff.id as number) || index + 1,
-              name: staff.fullName as string,
-              department: (staff.department as string) || 'General',
+              id: (s.id as number) || index + 1,
+              name: (s.fullName as string) || ((s as any).name as string),
+              department: (s.department as string) || 'General',
               position:
-                (staff.position as string) ||
-                (staff.designation as string) ||
-                'Staff',
+                (s.position as string) || (s.designation as string) || 'Staff',
               status:
-                (staff.employmentStatus as string) === 'active'
+                (s.employmentStatus as string) === 'active'
                   ? 'Active'
-                  : (staff.employmentStatus as string) === 'on_leave'
+                  : (s.employmentStatus as string) === 'on_leave'
                     ? 'On Leave'
                     : 'Inactive',
-              email: staff.email as string,
-              phone: staff.phone as string,
-              employeeId: (staff.employeeId as string) || '',
-              joinedDate: staff.employmentDate
-                ? (staff.employmentDate as string).split('T')[0]
+              email: s.email as string,
+              phone: s.phone as string,
+              employeeId: (s.employeeId as string) || '',
+              joinedDate: s.employmentDate
+                ? (s.employmentDate as string).split('T')[0]
                 : undefined,
-              salary: staff.totalSalary as number,
-              lastActivity: staff.lastActivity as string,
-              avatar: staff.avatar as string,
-              staffId: staff.staffId as string,
+              salary: (s as any).totalSalary as number,
+              lastActivity: (s as any).lastActivity as string,
+              avatar: (s as any).avatar as string,
+              staffId: (s as any).staffId as string,
               isOnline:
-                (staff.employmentStatus as string) === 'active' &&
-                staff.lastActivity &&
-                new Date(staff.lastActivity as string) >
+                (s.employmentStatus as string) === 'active' &&
+                (s as any).lastActivity &&
+                new Date((s as any).lastActivity as string) >
                   new Date(Date.now() - 10 * 60 * 1000),
             }) as Staff,
         );
+
         setStaff(mappedStaff);
-        setFilteredStaff(mappedStaff);
+
+        // Apply client-only designation filter if provided
+        if (filters.designation) {
+          const filtered = mappedStaff.filter(st => {
+            if (!st.position) return false;
+            return designationOptions.some(
+              option =>
+                (option.value === filters.designation &&
+                  st.position?.toLowerCase() === option.label.toLowerCase()) ||
+                st.position?.toLowerCase() ===
+                  filters.designation.toLowerCase(),
+            );
+          });
+          setFilteredStaff(filtered);
+        } else {
+          setFilteredStaff(mappedStaff);
+        }
+
+        const totalFromResponse: number | undefined =
+          typeof payload?.total === 'number'
+            ? payload.total
+            : typeof payload?.count === 'number'
+              ? payload.count
+              : typeof payload?.pagination?.total === 'number'
+                ? payload.pagination.total
+                : undefined;
+        const computedTotal = totalFromResponse ?? mappedStaff.length;
+        setTotalItems(computedTotal);
+
+        const pagesFromResponse: number | undefined =
+          typeof payload?.totalPages === 'number'
+            ? payload.totalPages
+            : typeof payload?.pagination?.totalPages === 'number'
+              ? payload.pagination.totalPages
+              : undefined;
+        setTotalPages(
+          pagesFromResponse ??
+            Math.max(1, Math.ceil(computedTotal / itemsPerPage)),
+        );
       } else {
         throw new Error(response.message || 'Failed to load staff');
       }
@@ -209,10 +263,10 @@ const StaffPage = () => {
     }
   };
 
-  // Load data on component mount
+  // Load data when page or server-applied filters change
   useEffect(() => {
     loadStaff();
-  }, []);
+  }, [currentPage, filters.search, filters.department]);
 
   // Apply filters to staff
   const applyFilters = (filters: StaffFilters) => {
@@ -453,11 +507,8 @@ const StaffPage = () => {
     }
   };
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentStaffList = filteredStaff.slice(startIndex, endIndex);
+  // Current page items are provided by server; apply optional client-only filters
+  const currentStaffList = filteredStaff;
 
   // Show loading state
   if (isLoading) {
@@ -564,7 +615,7 @@ const StaffPage = () => {
               )}
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={filteredStaff.length}
+              totalItems={totalItems}
               itemsPerPage={itemsPerPage}
               emptyMessage='No staff found matching your criteria'
               onPageChange={handlePageChange}

@@ -429,12 +429,31 @@ export class TeacherService {
   }
 
   /**
-   * Get all teachers
+   * Get all teachers (supports optional pagination and filters)
    */
-  async getAllTeachers(): Promise<ApiResponse<TeacherListResponse[]>> {
-    return this.httpClient.get<TeacherListResponse[]>(
+  async getAllTeachers(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    designation?: string;
+    department?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<
+    ApiResponse<
+      | TeacherListResponse[]
+      | {
+          data: TeacherListResponse[];
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        }
+    >
+  > {
+    return this.httpClient.get(
       TEACHER_ENDPOINTS.LIST,
-      undefined,
+      params as Record<string, unknown>,
       { requiresAuth: true },
     );
   }
