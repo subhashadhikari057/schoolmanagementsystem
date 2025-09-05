@@ -1,5 +1,3 @@
-import { last } from 'lodash';
-
 export const sidebarItems = {
   Superadmin: [
     {
@@ -123,6 +121,11 @@ export const sidebarItems = {
           icon: 'Settings',
           path: '/dashboard/admin/settings',
         },
+        {
+          label: 'My Account',
+          icon: 'UserCog',
+          path: '/dashboard/system/myprofile',
+        },
       ],
     },
   ],
@@ -186,6 +189,16 @@ export const sidebarItems = {
         },
       ],
     },
+    {
+      title: 'SYSTEM',
+      items: [
+        {
+          label: 'My Account',
+          icon: 'UserCog',
+          path: '/dashboard/system/myprofile',
+        },
+      ],
+    },
   ],
   student: [
     {
@@ -226,6 +239,11 @@ export const sidebarItems = {
           label: 'Complaints and leaves',
           icon: 'Mailbox',
           path: '/dashboard/student/complaints-leave',
+        },
+        {
+          label: 'My Account',
+          icon: 'UserCog',
+          path: '/dashboard/system/myprofile',
         },
       ],
     },
@@ -275,6 +293,11 @@ export const sidebarItems = {
           label: 'TimeTable',
           icon: 'Megaphone',
           path: '/dashboard/parent/timetable',
+        },
+        {
+          label: 'My Account',
+          icon: 'UserCog',
+          path: '/dashboard/system/myprofile',
         },
       ],
     },

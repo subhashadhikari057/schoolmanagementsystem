@@ -217,16 +217,35 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                         item.icon && typeof item.icon === 'string'
                           ? item.icon
                           : 'Circle';
-                      const Icon = (Icons as any)[iconName] || Icons.Circle;
+                      const Icon =
+                        (
+                          Icons as unknown as Record<
+                            string,
+                            React.ComponentType<{
+                              size?: number;
+                              className?: string;
+                            }>
+                          >
+                        )[iconName] || Icons.Circle;
+
+                      // Handle dynamic paths for My Account
+                      let itemPath = item.path;
+                      if (
+                        item.path === '/dashboard/system/myprofile' &&
+                        user?.id
+                      ) {
+                        itemPath = `/dashboard/system/myprofile/${user.id}`;
+                      }
+
                       const isActive =
-                        pathname === item.path ||
+                        pathname === itemPath ||
                         (pathname &&
-                          pathname.startsWith(item.path + '/dashboard'));
+                          pathname.startsWith(itemPath + '/dashboard'));
                       return (
                         <li key={item.label}>
                           <Link
-                            href={item.path}
-                            onClick={e => {
+                            href={itemPath}
+                            onClick={_e => {
                               if (
                                 typeof window !== 'undefined' &&
                                 window.innerWidth < 768 &&
@@ -238,12 +257,14 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                             className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
                               text-foreground hover:bg-muted-hover hover:font-bold
                               ${isCollapsed && !expandedByHover ? 'justify-center' : ''}
-                              ${isActive ? 'bg-blue-300 font-bold text-black' : ''}`}
+                              ${isActive ? 'bg-blue-500 font-bold text-white' : ''}`}
                             title={isCollapsed ? item.label : ''}
                           >
                             <Icon
                               size={16}
-                              className={`flex-shrink-0 text-gray-500`}
+                              className={`flex-shrink-0 ${
+                                isActive ? 'text-white' : 'text-gray-500'
+                              }`}
                             />
                             {(!isCollapsed || expandedByHover) && (
                               <span className='truncate'>{item.label}</span>
@@ -258,41 +279,6 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
             ),
           )}
         </nav>
-
-        {/* My Account Link at the end */}
-        {/* Removed dev mode My Account link */}
-        {user && (
-          <div className='mb-4 mt-2'>
-            <ul className='space-y-2'>
-              <li>
-                <Link
-                  href={`/dashboard/system/myprofile/${user.id}`}
-                  onClick={e => {
-                    if (
-                      typeof window !== 'undefined' &&
-                      window.innerWidth < 768 &&
-                      onToggle
-                    ) {
-                      onToggle();
-                    }
-                  }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
-                    text-foreground hover:bg-muted-hover hover:font-bold
-                    ${isCollapsed && !expandedByHover ? 'justify-center' : ''}`}
-                  title={isCollapsed ? 'My Account' : ''}
-                >
-                  <Icons.UserCog
-                    size={16}
-                    className='flex-shrink-0 text-gray-500'
-                  />
-                  {(!isCollapsed || expandedByHover) && (
-                    <span className='truncate'>My Account</span>
-                  )}
-                </Link>
-              </li>
-            </ul>
-          </div>
-        )}
       </aside>
     </>
   );

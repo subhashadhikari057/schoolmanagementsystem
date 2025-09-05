@@ -194,6 +194,7 @@ interface ScheduleState {
   updateTimeSlot: (id: string, timeSlot: Partial<TimeSlot>) => void;
   removeTimeSlot: (id: string) => void;
   setTimeSlots: (timeSlots: TimeSlot[]) => void;
+  triggerTimetableReload: () => void;
 
   // Timetable management
   assignSubjectToSlot: (
@@ -233,42 +234,42 @@ interface ScheduleState {
 const defaultTimeSlots: TimeSlot[] = [
   {
     id: '1',
-    day: 'Monday',
+    day: 'Sunday',
     startTime: '08:00',
     endTime: '09:00',
     type: 'period',
   },
   {
     id: '2',
-    day: 'Monday',
+    day: 'Sunday',
     startTime: '09:00',
     endTime: '10:00',
     type: 'period',
   },
   {
     id: '3',
-    day: 'Monday',
+    day: 'Sunday',
     startTime: '10:15',
     endTime: '11:15',
     type: 'period',
   },
   {
     id: '4',
-    day: 'Monday',
+    day: 'Sunday',
     startTime: '11:15',
     endTime: '12:15',
     type: 'period',
   },
   {
     id: '5',
-    day: 'Monday',
+    day: 'Sunday',
     startTime: '13:00',
     endTime: '14:00',
     type: 'period',
   },
   {
     id: '6',
-    day: 'Monday',
+    day: 'Sunday',
     startTime: '14:00',
     endTime: '15:00',
     type: 'period',
@@ -276,42 +277,42 @@ const defaultTimeSlots: TimeSlot[] = [
 
   {
     id: '7',
-    day: 'Tuesday',
+    day: 'Monday',
     startTime: '08:00',
     endTime: '09:00',
     type: 'period',
   },
   {
     id: '8',
-    day: 'Tuesday',
+    day: 'Monday',
     startTime: '09:00',
     endTime: '10:00',
     type: 'period',
   },
   {
     id: '9',
-    day: 'Tuesday',
+    day: 'Monday',
     startTime: '10:15',
     endTime: '11:15',
     type: 'period',
   },
   {
     id: '10',
-    day: 'Tuesday',
+    day: 'Monday',
     startTime: '11:15',
     endTime: '12:15',
     type: 'period',
   },
   {
     id: '11',
-    day: 'Tuesday',
+    day: 'Monday',
     startTime: '13:00',
     endTime: '14:00',
     type: 'period',
   },
   {
     id: '12',
-    day: 'Tuesday',
+    day: 'Monday',
     startTime: '14:00',
     endTime: '15:00',
     type: 'period',
@@ -319,42 +320,42 @@ const defaultTimeSlots: TimeSlot[] = [
 
   {
     id: '13',
-    day: 'Wednesday',
+    day: 'Tuesday',
     startTime: '08:00',
     endTime: '09:00',
     type: 'period',
   },
   {
     id: '14',
-    day: 'Wednesday',
+    day: 'Tuesday',
     startTime: '09:00',
     endTime: '10:00',
     type: 'period',
   },
   {
     id: '15',
-    day: 'Wednesday',
+    day: 'Tuesday',
     startTime: '10:15',
     endTime: '11:15',
     type: 'period',
   },
   {
     id: '16',
-    day: 'Wednesday',
+    day: 'Tuesday',
     startTime: '11:15',
     endTime: '12:15',
     type: 'period',
   },
   {
     id: '17',
-    day: 'Wednesday',
+    day: 'Tuesday',
     startTime: '13:00',
     endTime: '14:00',
     type: 'period',
   },
   {
     id: '18',
-    day: 'Wednesday',
+    day: 'Tuesday',
     startTime: '14:00',
     endTime: '15:00',
     type: 'period',
@@ -362,42 +363,42 @@ const defaultTimeSlots: TimeSlot[] = [
 
   {
     id: '19',
-    day: 'Thursday',
+    day: 'Wednesday',
     startTime: '08:00',
     endTime: '09:00',
     type: 'period',
   },
   {
     id: '20',
-    day: 'Thursday',
+    day: 'Wednesday',
     startTime: '09:00',
     endTime: '10:00',
     type: 'period',
   },
   {
     id: '21',
-    day: 'Thursday',
+    day: 'Wednesday',
     startTime: '10:15',
     endTime: '11:15',
     type: 'period',
   },
   {
     id: '22',
-    day: 'Thursday',
+    day: 'Wednesday',
     startTime: '11:15',
     endTime: '12:15',
     type: 'period',
   },
   {
     id: '23',
-    day: 'Thursday',
+    day: 'Wednesday',
     startTime: '13:00',
     endTime: '14:00',
     type: 'period',
   },
   {
     id: '24',
-    day: 'Thursday',
+    day: 'Wednesday',
     startTime: '14:00',
     endTime: '15:00',
     type: 'period',
@@ -405,41 +406,84 @@ const defaultTimeSlots: TimeSlot[] = [
 
   {
     id: '25',
-    day: 'Friday',
+    day: 'Thursday',
     startTime: '08:00',
     endTime: '09:00',
     type: 'period',
   },
   {
     id: '26',
-    day: 'Friday',
+    day: 'Thursday',
     startTime: '09:00',
     endTime: '10:00',
     type: 'period',
   },
   {
     id: '27',
-    day: 'Friday',
+    day: 'Thursday',
     startTime: '10:15',
     endTime: '11:15',
     type: 'period',
   },
   {
     id: '28',
-    day: 'Friday',
+    day: 'Thursday',
     startTime: '11:15',
     endTime: '12:15',
     type: 'period',
   },
   {
     id: '29',
-    day: 'Friday',
+    day: 'Thursday',
     startTime: '13:00',
     endTime: '14:00',
     type: 'period',
   },
   {
     id: '30',
+    day: 'Thursday',
+    startTime: '14:00',
+    endTime: '15:00',
+    type: 'period',
+  },
+
+  {
+    id: '31',
+    day: 'Friday',
+    startTime: '08:00',
+    endTime: '09:00',
+    type: 'period',
+  },
+  {
+    id: '32',
+    day: 'Friday',
+    startTime: '09:00',
+    endTime: '10:00',
+    type: 'period',
+  },
+  {
+    id: '33',
+    day: 'Friday',
+    startTime: '10:15',
+    endTime: '11:15',
+    type: 'period',
+  },
+  {
+    id: '34',
+    day: 'Friday',
+    startTime: '11:15',
+    endTime: '12:15',
+    type: 'period',
+  },
+  {
+    id: '35',
+    day: 'Friday',
+    startTime: '13:00',
+    endTime: '14:00',
+    type: 'period',
+  },
+  {
+    id: '36',
     day: 'Friday',
     startTime: '14:00',
     endTime: '15:00',
@@ -569,6 +613,10 @@ export const useScheduleStore = create<ScheduleState>()(
 
       setTimeSlots: (timeSlots: TimeSlot[]) => {
         set({ timeSlots });
+      },
+
+      triggerTimetableReload: () => {
+        set({ hasLoadedTimetable: false });
       },
 
       // Timetable management

@@ -499,6 +499,552 @@ export function TimetableBuilder() {
 
   const [isExportOpen, setIsExportOpen] = React.useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isPrintingPDF, setIsPrintingPDF] = useState(false);
+
+  // Generate printable schedule HTML for PDF
+  const generatePrintableSchedule = (
+    classInfo: NonNullable<typeof selectedClass>,
+    timeSlotsData: typeof timeSlots,
+    timetableSlotsData: typeof timetableSlots,
+  ): string => {
+    // Group timetable slots by day
+    const days = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+    ];
+    const daySlots = days
+      .map(day => {
+        const dayTimeSlots = timeSlotsData
+          .filter(ts => ts.day === day)
+          .sort((a, b) => a.startTime.localeCompare(b.startTime));
+        return {
+          day,
+          timeSlots: dayTimeSlots.map(timeSlot => {
+            const assignment = timetableSlotsData.find(
+              slot =>
+                (slot.timeslotId || slot.timeSlotId) === timeSlot.id &&
+                slot.day === day,
+            );
+            return {
+              timeSlot,
+              assignment,
+            };
+          }),
+        };
+      })
+      .filter(dayData => dayData.timeSlots.length > 0);
+
+    const formatTime = (time: string): string => {
+      try {
+        const [hours, minutes] = time.split(':');
+        const hour = parseInt(hours, 10);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const formattedHour = hour % 12 || 12;
+        return `${formattedHour}:${minutes} ${ampm}`;
+      } catch {
+        return time;
+      }
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Class Timetable - Grade ${classInfo.grade} Section ${classInfo.section}</title>
+          <style>
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+              margin: 20px; 
+              color: #333;
+              line-height: 1.6;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 20px; 
+              border-bottom: 2px solid #2563eb; 
+              padding-bottom: 15px; 
+            }
+            .header h1 { 
+              color: #1e40af; 
+              margin-bottom: 8px; 
+              font-size: 20px;
+            }
+            .header h2 { 
+              color: #374151; 
+              margin-bottom: 6px; 
+              font-size: 16px;
+            }
+            .header h3 { 
+              color: #6b7280; 
+              margin-bottom: 10px; 
+              font-size: 14px;
+            }
+            .info { 
+              margin-bottom: 15px; 
+              font-size: 12px;
+              background: #f8fafc;
+              padding: 10px;
+              border-radius: 6px;
+            }
+            .day-section {
+              margin-bottom: 25px;
+              page-break-inside: avoid;
+            }
+            .day-title {
+              background: linear-gradient(135deg, #2563eb, #1d4ed8);
+              color: white;
+              padding: 10px 15px;
+              font-weight: 600;
+              font-size: 16px;
+              border-radius: 6px 6px 0 0;
+            }
+            .schedule-table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              border-radius: 0 0 6px 6px;
+              overflow: hidden;
+            }
+            .schedule-table th { 
+              background: #f1f5f9;
+              color: #374151;
+              padding: 12px;
+              text-align: left;
+              font-weight: 600;
+              font-size: 13px;
+              border-bottom: 2px solid #e2e8f0;
+            }
+            .schedule-table td { 
+              border: 1px solid #e5e7eb; 
+              padding: 12px; 
+              vertical-align: top;
+            }
+            .schedule-table tr:nth-child(even) { 
+              background-color: #f8fafc; 
+            }
+            .time-slot { 
+              font-weight: 500; 
+              color: #059669;
+              font-size: 14px;
+            }
+            .subject-name { 
+              font-weight: 600; 
+              color: #1e40af; 
+              font-size: 14px;
+            }
+            .subject-code { 
+              color: #6b7280; 
+              font-size: 11px; 
+              margin-top: 2px;
+            }
+            .teacher-name {
+              color: #7c3aed;
+              font-size: 12px;
+              margin-top: 2px;
+            }
+            .slot-type { 
+              background: #dcfce7; 
+              padding: 2px 6px; 
+              border-radius: 4px; 
+              font-size: 11px; 
+              color: #166534;
+              text-transform: uppercase;
+            }
+            .slot-type.break {
+              background: #fef3c7;
+              color: #92400e;
+            }
+            .slot-type.lunch {
+              background: #d1fae5;
+              color: #065f46;
+            }
+            .no-assignment { 
+              color: #dc2626; 
+              font-style: italic; 
+              font-size: 12px;
+            }
+            .duration {
+              color: #6b7280;
+              font-size: 11px;
+            }
+            @media print { 
+              body { margin: 10px; }
+              .header { margin-bottom: 15px; padding-bottom: 10px; }
+              .info { margin-bottom: 10px; padding: 8px; }
+              .day-section { page-break-inside: avoid; margin-bottom: 20px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Weekly Class Timetable</h1>
+            <h2>Grade ${classInfo.grade} Section ${classInfo.section}</h2>
+            <h3>Academic Year: ${new Date().getFullYear()}</h3>
+          </div>
+          
+          <div class="info">
+            <p><strong>Total Days:</strong> ${daySlots.length}</p>
+            <p><strong>Total Periods:</strong> ${daySlots.reduce((sum, day) => sum + day.timeSlots.length, 0)}</p>
+            <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          </div>
+
+          ${daySlots
+            .map(
+              dayData => `
+            <div class="day-section">
+              <div class="day-title">${dayData.day}</div>
+              <table class="schedule-table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%">Time</th>
+                    <th style="width: 30%">Subject</th>
+                    <th style="width: 25%">Teacher</th>
+                    <th style="width: 15%">Type</th>
+                    <th style="width: 10%">Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${dayData.timeSlots
+                    .map(({ timeSlot, assignment }) => {
+                      const duration = Math.round(
+                        (new Date(`2000-01-01T${timeSlot.endTime}`).getTime() -
+                          new Date(
+                            `2000-01-01T${timeSlot.startTime}`,
+                          ).getTime()) /
+                          60000,
+                      );
+
+                      return `
+                    <tr>
+                      <td class="time-slot">${formatTime(timeSlot.startTime)} - ${formatTime(timeSlot.endTime)}</td>
+                      <td>
+                        ${
+                          assignment?.subject
+                            ? `<div class="subject-name">${assignment.subject.name}</div>
+                             <div class="subject-code">Code: ${assignment.subject.code}</div>
+                             ${assignment.subject.description ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">${assignment.subject.description}</div>` : ''}`
+                            : timeSlot.type === 'regular'
+                              ? '<span class="no-assignment">No subject assigned</span>'
+                              : `<span style="color: #6b7280; font-style: italic;">${timeSlot.label || timeSlot.type}</span>`
+                        }
+                      </td>
+                      <td>
+                        ${
+                          assignment?.teacher
+                            ? `<div class="teacher-name">${assignment.teacher.user?.fullName || 'Unknown Teacher'}</div>
+                             ${assignment.teacher.employeeId ? `<div style="font-size: 11px; color: #9ca3af;">ID: ${assignment.teacher.employeeId}</div>` : ''}`
+                            : timeSlot.type === 'regular'
+                              ? '<span class="no-assignment">Not assigned</span>'
+                              : '<span style="color: #9ca3af; font-size: 12px;">—</span>'
+                        }
+                      </td>
+                      <td>
+                        <span class="slot-type ${timeSlot.type}">${timeSlot.type.replace('_', ' ')}</span>
+                      </td>
+                      <td class="duration">${duration} min</td>
+                    </tr>
+                    `;
+                    })
+                    .join('')}
+                </tbody>
+              </table>
+            </div>
+          `,
+            )
+            .join('')}
+          
+          <div style="margin-top: 30px; font-size: 12px; color: #666;">
+            <p>This is an official class timetable. Please verify all details before implementation.</p>
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  // Print single class timetable as PDF
+  const handlePrintTimetable = async () => {
+    if (!selectedClass) {
+      alert('No class selected');
+      return;
+    }
+
+    setIsPrintingPDF(true);
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const { default: html2canvas } = await import('html2canvas');
+
+      // Create a temporary div with the schedule content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = generatePrintableSchedule(
+        selectedClass,
+        timeSlots,
+        timetableSlots,
+      );
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = '210mm'; // A4 width
+      document.body.appendChild(tempDiv);
+
+      // Convert to canvas and then PDF
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+      });
+
+      // Remove temporary div
+      document.body.removeChild(tempDiv);
+
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 295; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add additional pages if needed
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Download PDF
+      const fileName = `Grade${selectedClass.grade}${selectedClass.section}_ClassTimetable.pdf`;
+      pdf.save(fileName);
+
+      alert('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF');
+    } finally {
+      setIsPrintingPDF(false);
+    }
+  };
+
+  // Print all classes timetables as ZIP
+  const handlePrintAllTimetables = async () => {
+    setIsPrintingPDF(true);
+    try {
+      // Import required libraries
+      const { default: jsPDF } = await import('jspdf');
+      const { default: html2canvas } = await import('html2canvas');
+      const { default: JSZip } = await import('jszip');
+      const { ClassService } = await import('@/api/services/class.service');
+
+      // Get all classes
+      const classServiceInstance = new ClassService();
+      const classesResponse = await classServiceInstance.getAllClasses();
+
+      if (!classesResponse.success || !classesResponse.data) {
+        alert('Failed to load classes');
+        return;
+      }
+
+      const classes = classesResponse.data;
+      const zip = new JSZip();
+      let processedCount = 0;
+
+      // Process each class
+      for (const classData of classes) {
+        try {
+          // Load timeslots and timetable for this class
+          const timeslotResponse = await timeslotService.getTimeslotsByClass(
+            classData.id,
+          );
+          const scheduleResponse = await scheduleService.getSchedulesByClass(
+            classData.id,
+          );
+
+          let classTimeSlots: typeof timeSlots = [];
+          let classTimetableSlots: typeof timetableSlots = [];
+
+          if (timeslotResponse.success && timeslotResponse.data) {
+            classTimeSlots = timeslotResponse.data.map(ts => ({
+              id: ts.id,
+              day:
+                ts.day.charAt(0).toUpperCase() + ts.day.slice(1).toLowerCase(),
+              startTime: ts.startTime,
+              endTime: ts.endTime,
+              type: ts.type.toString(),
+              label: ts.label || undefined,
+              classId: ts.classId,
+            }));
+          }
+
+          if (
+            scheduleResponse.success &&
+            scheduleResponse.data &&
+            scheduleResponse.data.length > 0
+          ) {
+            const activeSchedule =
+              scheduleResponse.data.find(s => s.status === 'active') ||
+              scheduleResponse.data[0];
+
+            const timetableResponse = await timetableService.getTimetable({
+              classId: classData.id,
+              scheduleId: activeSchedule.id,
+              includeConflicts: true,
+            });
+
+            if (timetableResponse.success && timetableResponse.data) {
+              classTimetableSlots = timetableResponse.data.map(slot => ({
+                ...slot,
+                timeSlotId: slot.timeslotId,
+                scheduleId: activeSchedule.id,
+                subjectId: slot.subjectId || undefined,
+                teacherId: slot.teacherId || undefined,
+                roomId: slot.roomId || undefined,
+                type: slot.type.toString(),
+                timeslot: slot.timeslot
+                  ? {
+                      ...slot.timeslot,
+                      type: slot.timeslot.type.toString(),
+                      label: slot.timeslot.label || undefined,
+                    }
+                  : undefined,
+                subject: slot.subject
+                  ? {
+                      ...slot.subject,
+                      description: slot.subject.description || undefined,
+                    }
+                  : undefined,
+                teacher: slot.teacher
+                  ? {
+                      ...slot.teacher,
+                      employeeId: slot.teacher.employeeId || undefined,
+                    }
+                  : undefined,
+                room: slot.room
+                  ? {
+                      ...slot.room,
+                      name: slot.room.name || undefined,
+                      building: slot.room.building || undefined,
+                    }
+                  : undefined,
+              }));
+            }
+          }
+
+          // Skip classes with no timeslots
+          if (classTimeSlots.length === 0) {
+            console.log(
+              `Skipping class Grade ${classData.grade} Section ${classData.section} - no timeslots`,
+            );
+            continue;
+          }
+
+          // Create class object compatible with generatePrintableSchedule
+          const classInfo = {
+            id: classData.id,
+            classId: classData.id,
+            gradeLevel: classData.grade,
+            grade: classData.grade,
+            section: classData.section,
+            academicYearId: '',
+          };
+
+          // Generate HTML for this class
+          const htmlContent = generatePrintableSchedule(
+            classInfo,
+            classTimeSlots,
+            classTimetableSlots,
+          );
+
+          // Create temporary div
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = htmlContent;
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.left = '-9999px';
+          tempDiv.style.width = '210mm';
+          document.body.appendChild(tempDiv);
+
+          // Convert to canvas and PDF
+          const canvas = await html2canvas(tempDiv, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+          });
+
+          document.body.removeChild(tempDiv);
+
+          // Create PDF
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = 210;
+          const pageHeight = 295;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          let heightLeft = imgHeight;
+          let position = 0;
+
+          // Add first page
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+
+          // Add additional pages if needed
+          while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+          }
+
+          // Add PDF to ZIP
+          const pdfBlob = pdf.output('blob');
+          const fileName = `Grade${classInfo.grade}${classInfo.section}_ClassTimetable.pdf`;
+          zip.file(fileName, pdfBlob);
+
+          processedCount++;
+
+          // Show progress (optional - could be enhanced with a progress bar)
+          console.log(`Processed ${processedCount}/${classes.length} classes`);
+        } catch (error) {
+          console.error(
+            `Error processing class Grade ${classData.grade} Section ${classData.section}:`,
+            error,
+          );
+          // Continue with next class instead of failing entirely
+        }
+      }
+
+      if (processedCount === 0) {
+        alert('No classes with timetables found to export');
+        return;
+      }
+
+      // Generate and download ZIP
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `AllClassTimetables_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+      alert(
+        `Successfully generated ${processedCount} class timetable PDFs in ZIP file`,
+      );
+    } catch (error) {
+      console.error('Error generating bulk PDFs:', error);
+      alert('Failed to generate bulk PDFs');
+    } finally {
+      setIsPrintingPDF(false);
+    }
+  };
 
   const handleExport = async (
     format: 'csv' | 'xlsx' | 'pdf',
@@ -506,6 +1052,18 @@ export function TimetableBuilder() {
   ) => {
     if (isEditMode) return; // safety
     setIsExportOpen(false);
+
+    // Use new PDF printing for PDF format
+    if (format === 'pdf') {
+      if (scope === 'class') {
+        await handlePrintTimetable();
+      } else {
+        await handlePrintAllTimetables();
+      }
+      return;
+    }
+
+    // Use existing export for CSV and XLSX
     setIsExporting(true);
     try {
       const resp = await timetableService.exportTimetables({
@@ -677,16 +1235,20 @@ export function TimetableBuilder() {
                   <button
                     type='button'
                     onClick={() => setIsExportOpen(o => !o)}
-                    disabled={isExporting}
-                    className={`inline-flex items-center px-3 py-2 border text-sm font-medium rounded-md transition-colors ${isExporting ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed' : isExportOpen ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'}`}
+                    disabled={isExporting || isPrintingPDF}
+                    className={`inline-flex items-center px-3 py-2 border text-sm font-medium rounded-md transition-colors ${isExporting || isPrintingPDF ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed' : isExportOpen ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'}`}
                   >
                     <Download className='w-4 h-4 mr-2' />{' '}
-                    {isExporting ? 'Exporting...' : 'Export'}
-                    {isExportOpen && !isExporting && (
+                    {isExporting
+                      ? 'Exporting...'
+                      : isPrintingPDF
+                        ? 'Generating PDF...'
+                        : 'Export'}
+                    {isExportOpen && !isExporting && !isPrintingPDF && (
                       <X className='w-3 h-3 ml-1' />
                     )}
                   </button>
-                  {isExportOpen && !isExporting && (
+                  {isExportOpen && !isExporting && !isPrintingPDF && (
                     <div className='absolute right-0 z-30 mt-2 w-64 origin-top-right rounded-md border border-gray-200 bg-white shadow-lg focus:outline-none animate-fade-in'>
                       <div className='p-3 space-y-3 text-sm max-h-96 overflow-auto'>
                         <div>
