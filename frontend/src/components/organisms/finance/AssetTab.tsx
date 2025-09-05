@@ -46,75 +46,11 @@ import AddAssetModal from './modals/AddAssetModal';
 import ImportCSVModal from './modals/ImportCSVModal';
 // Room detail will live on its own page now
 
-// Mock data for demonstration
-const mockRooms: Room[] = [
-  {
-    id: '1',
-    roomNo: '101',
-    name: 'Computer Lab A',
-    floor: 1,
-    building: 'Main Building',
-    capacity: 30,
-    type: 'Laboratory',
-    assets: [],
-    totalAssets: 25,
-    totalDamaged: 2,
-    totalValue: 125000,
-    createdAt: '2024-01-15T08:00:00Z',
-    updatedAt: '2024-09-01T10:30:00Z',
-  },
-  {
-    id: '2',
-    roomNo: '102',
-    name: 'Science Lab',
-    floor: 1,
-    building: 'Science Building',
-    capacity: 25,
-    type: 'Laboratory',
-    assets: [],
-    totalAssets: 15,
-    totalDamaged: 1,
-    totalValue: 85000,
-    createdAt: '2024-01-15T08:00:00Z',
-    updatedAt: '2024-09-01T10:30:00Z',
-  },
-  {
-    id: '3',
-    roomNo: '201',
-    name: 'Library',
-    floor: 2,
-    building: 'Main Building',
-    capacity: 100,
-    type: 'Study Area',
-    assets: [],
-    totalAssets: 50,
-    totalDamaged: 0,
-    totalValue: 75000,
-    createdAt: '2024-01-15T08:00:00Z',
-    updatedAt: '2024-09-01T10:30:00Z',
-  },
-  {
-    id: '4',
-    roomNo: '301',
-    name: 'Classroom 101',
-    floor: 3,
-    building: 'Academic Building',
-    capacity: 35,
-    type: 'Classroom',
-    assets: [],
-    totalAssets: 20,
-    totalDamaged: 1,
-    totalValue: 45000,
-    createdAt: '2024-01-15T08:00:00Z',
-    updatedAt: '2024-09-01T10:30:00Z',
-  },
-];
-
 const AssetTab: React.FC = () => {
   const router = useRouter();
-  const [rooms, setRooms] = useState<Room[]>(mockRooms);
-  const [filteredRooms, setFilteredRooms] = useState<Room[]>(mockRooms);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filters, setFilters] = useState<AssetSearchFilters>({});
@@ -250,7 +186,7 @@ const AssetTab: React.FC = () => {
         } catch (e) {
           // ignore class fetch errors for now; rooms still render
         }
-        setRooms(roomsData.length > 0 ? roomsData : mockRooms);
+        setRooms(roomsData);
         return;
       }
 
@@ -332,15 +268,15 @@ const AssetTab: React.FC = () => {
           }),
         );
 
-        setRooms(roomsData.length > 0 ? roomsData : mockRooms);
+        setRooms(roomsData);
       } else {
-        setRooms(mockRooms);
+        setRooms([]);
       }
     } catch (err) {
       console.error('Error loading rooms:', err);
-      setRooms(mockRooms); // Fallback to mock data
-      toast.error('Using demo data', {
-        description: 'Connected to demo asset data',
+      setRooms([]); // No fallback data - show empty state
+      toast.error('Failed to load rooms', {
+        description: 'Unable to connect to asset management service',
       });
     } finally {
       setLoading(false);

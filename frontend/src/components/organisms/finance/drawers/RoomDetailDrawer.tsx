@@ -40,81 +40,13 @@ interface RoomDetailDrawerProps {
   onAssetUpdate: () => void;
 }
 
-// Mock asset data for demonstration
-const mockAssetModels: AssetModel[] = [
-  {
-    id: '1',
-    name: 'Dell OptiPlex 7080',
-    category: 'electronics',
-    description: 'Desktop computer for educational use',
-    manufacturer: 'Dell',
-    modelNumber: 'OP7080-MT',
-    totalQuantity: 20,
-    okCount: 18,
-    damagedCount: 1,
-    underRepairCount: 1,
-    retiredCount: 0,
-    totalValue: 17999.8,
-    createdAt: '2024-01-15T08:00:00Z',
-    updatedAt: '2024-09-01T10:30:00Z',
-    items: [
-      {
-        id: '1-1',
-        serialNumber: 'DOT001',
-        tagNumber: 'TAG001',
-        status: 'ok',
-        purchaseDate: '2024-01-15',
-        cost: 899.99,
-        warranty: '3 years',
-        vendor: 'TechCorp Solutions',
-        createdAt: '2024-01-15T08:00:00Z',
-        updatedAt: '2024-09-01T10:30:00Z',
-      },
-      {
-        id: '1-2',
-        serialNumber: 'DOT002',
-        tagNumber: 'TAG002',
-        status: 'damaged',
-        purchaseDate: '2024-01-15',
-        cost: 899.99,
-        warranty: '3 years',
-        vendor: 'TechCorp Solutions',
-        lastEvent: {
-          type: 'Damage Report',
-          date: '2024-08-15',
-          description: 'Screen cracked during transport',
-        },
-        createdAt: '2024-01-15T08:00:00Z',
-        updatedAt: '2024-08-15T14:20:00Z',
-      },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Office Chair',
-    category: 'furniture',
-    description: 'Ergonomic office chair for student seating',
-    manufacturer: 'Steelcase',
-    modelNumber: 'Series1',
-    totalQuantity: 25,
-    okCount: 24,
-    damagedCount: 1,
-    underRepairCount: 0,
-    retiredCount: 0,
-    totalValue: 6249.75,
-    createdAt: '2024-02-01T08:00:00Z',
-    updatedAt: '2024-09-01T10:30:00Z',
-    items: [],
-  },
-];
-
 const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
   isOpen,
   onClose,
   room,
   onAssetUpdate,
 }) => {
-  const [assetModels, setAssetModels] = useState<AssetModel[]>(mockAssetModels);
+  const [assetModels, setAssetModels] = useState<AssetModel[]>([]);
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
   const [selectedItem, setSelectedItem] = useState<AssetItem | null>(null);
   const [isItemDrawerOpen, setIsItemDrawerOpen] = useState(false);
@@ -137,7 +69,8 @@ const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
     try {
       // Mock API call - replace with actual service
       await new Promise(resolve => setTimeout(resolve, 500));
-      setAssetModels(mockAssetModels);
+      // TODO: Load real asset models from API
+      setAssetModels([]);
     } catch (error) {
       console.error('Error loading room assets:', error);
     } finally {

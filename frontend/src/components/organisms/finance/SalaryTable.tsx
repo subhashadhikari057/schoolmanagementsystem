@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import GenericList, { BaseItem } from '@/components/templates/GenericList';
-import SectionTitle from '@/components/atoms/display/SectionTitle';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import { TeacherService } from '@/api/services/teacher.service';
 import { StaffService } from '@/api/services/staff.service';
@@ -35,12 +34,11 @@ const SalaryTable = () => {
   const [loading, setLoading] = useState(true);
   const itemsPerPage = 10;
 
-  // Initialize service instances
-  const teacherService = new TeacherService();
-  const staffService = new StaffService();
-
   // Fetch teachers and staff data
   useEffect(() => {
+    // Initialize service instances inside useEffect to avoid dependency issues
+    const teacherService = new TeacherService();
+    const staffService = new StaffService();
     const fetchEmployeeData = async () => {
       try {
         setLoading(true);
@@ -60,55 +58,52 @@ const SalaryTable = () => {
         // Process teachers data
         if (teachersResponse.success && teachersResponse.data) {
           console.log('Raw Teachers Data:', teachersResponse.data);
-          const teacherSalaries = teachersResponse.data.map(
+          // Handle different response formats - sometimes data is directly in data, sometimes in data.data
+          const teachersArray = Array.isArray(teachersResponse.data)
+            ? teachersResponse.data
+            : Array.isArray(teachersResponse.data.data)
+              ? teachersResponse.data.data
+              : [];
+
+          const teacherSalaries = teachersArray.map(
             (teacher: any, index: number) => {
               // Extract name properly from different possible formats
               let teacherName = 'Unknown Teacher';
               if (teacher.name) {
-                teacherName = teacher.name;
+                teacherName = teacher.name as string;
               } else if (teacher.firstName || teacher.lastName) {
                 teacherName =
-                  `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim();
+                  `${(teacher.firstName as string) || ''} ${(teacher.lastName as string) || ''}`.trim();
               } else if (teacher.fullName) {
-                teacherName = teacher.fullName;
+                teacherName = teacher.fullName as string;
               }
 
-              return {
-                id: `teacher_${teacher.id || index}`,
-                employeeId:
-                  teacher.teacherId ||
-                  teacher.id ||
-                  `TCH${String(index + 1).padStart(3, '0')}`,
-                name: teacherName,
-                role: 'Teacher',
-                department: teacher.department || teacher.subject || 'Academic',
-                basicSalary:
-                  teacher.basicSalary ||
+              const basicSalary = Number(
+                teacher.basicSalary ||
                   teacher.salary ||
                   teacher.currentSalary ||
                   50000,
-                allowances:
-                  teacher.allowances ||
-                  Math.floor(
-                    (teacher.basicSalary ||
-                      teacher.salary ||
-                      teacher.currentSalary ||
-                      50000) * 0.2,
-                  ),
-                deductions: teacher.deductions || 0,
-                amount:
-                  (teacher.basicSalary ||
-                    teacher.salary ||
-                    teacher.currentSalary ||
-                    50000) +
-                  (teacher.allowances ||
-                    Math.floor(
-                      (teacher.basicSalary ||
-                        teacher.salary ||
-                        teacher.currentSalary ||
-                        50000) * 0.2,
-                    )) -
-                  (teacher.deductions || 0),
+              );
+              const allowances =
+                Number(teacher.allowances) || Math.floor(basicSalary * 0.2);
+              const deductions = Number(teacher.deductions) || 0;
+
+              return {
+                id: `teacher_${teacher.id || index}`,
+                employeeId: String(
+                  teacher.teacherId ||
+                    teacher.id ||
+                    `TCH${String(index + 1).padStart(3, '0')}`,
+                ),
+                name: teacherName,
+                role: 'Teacher',
+                department: String(
+                  teacher.department || teacher.subject || 'Academic',
+                ),
+                basicSalary,
+                allowances,
+                deductions,
+                amount: basicSalary + allowances - deductions,
                 date: new Date().toISOString().split('T')[0],
                 status: Math.random() > 0.3 ? 'Paid' : 'Pending',
                 payPeriod: new Date().toISOString().slice(0, 7),
@@ -122,73 +117,74 @@ const SalaryTable = () => {
         // Process staff data
         if (staffResponse.success && staffResponse.data) {
           console.log('Raw Staff Data:', staffResponse.data);
-          const staffSalaries = staffResponse.data.map(
-            (staff: any, index: number) => {
-              // Extract name properly from different possible formats
-              let staffName = 'Unknown Staff';
-              if (staff.name) {
-                staffName = staff.name;
-              } else if (staff.firstName || staff.lastName) {
-                staffName =
-                  `${staff.firstName || ''} ${staff.lastName || ''}`.trim();
-              } else if (staff.fullName) {
-                staffName = staff.fullName;
-              }
+          // Handle different response formats - sometimes data is directly in data, sometimes in data.data
+          const staffArray = Array.isArray(staffResponse.data)
+            ? staffResponse.data
+            : Array.isArray(staffResponse.data.data)
+              ? staffResponse.data.data
+              : [];
 
-              return {
-                id: `staff_${staff.id || index}`,
-                employeeId:
-                  staff.staffId ||
+          const staffSalaries = staffArray.map((staff: any, index: number) => {
+            // Extract name properly from different possible formats
+            let staffName = 'Unknown Staff';
+            if (staff.name) {
+              staffName = staff.name as string;
+            } else if (staff.firstName || staff.lastName) {
+              staffName =
+                `${(staff.firstName as string) || ''} ${(staff.lastName as string) || ''}`.trim();
+            } else if (staff.fullName) {
+              staffName = staff.fullName as string;
+            }
+
+            const basicSalary = Number(
+              staff.basicSalary || staff.salary || staff.currentSalary || 40000,
+            );
+            const allowances =
+              Number(staff.allowances) || Math.floor(basicSalary * 0.15);
+            const deductions = Number(staff.deductions) || 0;
+
+            return {
+              id: `staff_${staff.id || index}`,
+              employeeId: String(
+                staff.staffId ||
                   staff.id ||
                   `STF${String(index + 1).padStart(3, '0')}`,
-                name: staffName,
-                role: staff.position || staff.role || staff.jobTitle || 'Staff',
-                department: staff.department || 'Administration',
-                basicSalary:
-                  staff.basicSalary ||
-                  staff.salary ||
-                  staff.currentSalary ||
-                  40000,
-                allowances:
-                  staff.allowances ||
-                  Math.floor(
-                    (staff.basicSalary ||
-                      staff.salary ||
-                      staff.currentSalary ||
-                      40000) * 0.15,
-                  ),
-                deductions: staff.deductions || 0,
-                amount:
-                  (staff.basicSalary ||
-                    staff.salary ||
-                    staff.currentSalary ||
-                    40000) +
-                  (staff.allowances ||
-                    Math.floor(
-                      (staff.basicSalary ||
-                        staff.salary ||
-                        staff.currentSalary ||
-                        40000) * 0.15,
-                    )) -
-                  (staff.deductions || 0),
-                date: new Date().toISOString().split('T')[0],
-                status: Math.random() > 0.3 ? 'Paid' : 'Pending',
-                payPeriod: new Date().toISOString().slice(0, 7),
-                employeeType: 'staff' as const,
-              };
-            },
-          );
+              ),
+              name: staffName,
+              role: String(
+                staff.position || staff.role || staff.jobTitle || 'Staff',
+              ),
+              department: String(staff.department || 'Administration'),
+              basicSalary,
+              allowances,
+              deductions,
+              amount: basicSalary + allowances - deductions,
+              date: new Date().toISOString().split('T')[0],
+              status: Math.random() > 0.3 ? 'Paid' : 'Pending',
+              payPeriod: new Date().toISOString().slice(0, 7),
+              employeeType: 'staff' as const,
+            };
+          });
           combinedSalaryData.push(...staffSalaries);
         }
 
         setSalaryData(combinedSalaryData);
 
         if (combinedSalaryData.length === 0) {
-          toast.info('No employee data found');
+          toast.info(
+            'No staff or teachers found. Please add staff or teachers first to manage salaries.',
+          );
         }
       } catch (error) {
         console.error('Error fetching employee data:', error);
-        toast.error('Failed to load employee salary data');
+        // Check if it's a specific API error
+        if (error instanceof Error && error.message.includes('qualification')) {
+          toast.error(
+            'Database schema issue detected. Please contact system administrator.',
+          );
+        } else {
+          toast.error('Failed to load employee salary data');
+        }
         setSalaryData([]);
       } finally {
         setLoading(false);
@@ -269,7 +265,8 @@ const SalaryTable = () => {
         ),
       },
     ],
-    emptyMessage: 'No salaries found.',
+    emptyMessage:
+      'No staff or teachers found. Please add staff or teachers first to manage their salaries.',
   };
 
   // Filter and search logic
