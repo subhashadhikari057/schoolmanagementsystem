@@ -268,7 +268,6 @@ import RoleDepartmentCell from '@/components/molecules/display/RoleDepartmentCel
 import StatusActivityCell from '@/components/molecules/display/StatusActivityCell';
 import ActionsCell from '@/components/molecules/display/ActionsCell';
 import ChildrenCell from '@/components/molecules/display/ChildrenCell';
-import ParentInfoCell from '@/components/molecules/display/ParentInfoCell';
 import SubjectsClassesCell from '@/components/molecules/display/SubjectsClassesCell';
 import ExperienceSalaryCell from '@/components/molecules/display/ExperienceSalaryCell';
 import ClassSectionCell from '@/components/molecules/display/ClassSectionCell';
@@ -1650,7 +1649,7 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         render: (item: Staff) => (
           <UserInfoCell
             name={item.name}
-            id={item.staffId || item.id}
+            id={String(item.staffId || item.id || '')}
             avatar={item.avatar}
             idLabel='STF'
           />
@@ -1662,8 +1661,8 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         mobileLabel: 'Role',
         render: (item: Staff) => (
           <RoleDepartmentCell
-            position={item.position}
-            department={item.department}
+            position={item.position || item.designation || 'Staff'}
+            department={item.department || 'General'}
           />
         ),
       },
@@ -1894,10 +1893,9 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
           <div className='flex items-center gap-3'>
             <div className='w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0'>
               {item.avatar ? (
-                <img
-                  src={item.avatar}
-                  alt={item.cardId}
-                  className='w-10 h-10 rounded-full'
+                <div
+                  className='w-10 h-10 rounded-full bg-cover bg-center'
+                  style={{ backgroundImage: `url(${item.avatar})` }}
                 />
               ) : (
                 <span className='text-xs font-medium text-gray-600'>ID</span>

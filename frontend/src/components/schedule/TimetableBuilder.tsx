@@ -245,6 +245,8 @@ export function TimetableBuilder() {
             ...slot,
             timeSlotId: slot.timeslotId, // Map timeslotId to timeSlotId for compatibility
             scheduleId: scheduleId,
+            // Use the correct day from the timeslot data, not from the schedule slot
+            day: slot.timeslot?.day || slot.day,
             subjectId: slot.subjectId || undefined,
             teacherId: slot.teacherId || undefined,
             roomId: slot.roomId || undefined,
@@ -284,7 +286,8 @@ export function TimetableBuilder() {
               snapshot[s.id] = {
                 id: s.id,
                 timeslotId: s.timeslotId || s.timeSlotId,
-                day: s.day,
+                // Use the correct day from the timeslot data
+                day: s.timeslot?.day || s.day,
                 subjectId: s.subjectId || null,
                 teacherId: s.teacherId || null,
                 roomId: s.roomId || null,
@@ -353,13 +356,45 @@ export function TimetableBuilder() {
     const day = over.data.current?.day;
     const timeSlotId = over.data.current?.timeSlotId;
 
+    // Debug information to help diagnose issues
+    console.log('Drag end event data:', {
+      subject: subject ? { id: subject.id, name: subject.name } : null,
+      timeSlot: timeSlot
+        ? {
+            id: timeSlot.id,
+            day: timeSlot.day,
+            type: timeSlot.type,
+            startTime: timeSlot.startTime,
+            endTime: timeSlot.endTime,
+          }
+        : null,
+      day,
+      timeSlotId,
+    });
+
     if (subject && timeSlot && day && timeSlotId) {
+      // Normalize slot type for consistent comparison
       const slotType = (timeSlot.type || '').toLowerCase();
       const isRegular = ['regular', 'period'].includes(slotType);
+
       if (!isRegular) {
+        console.warn('Cannot assign to non-regular timeslot:', timeSlot);
         return; // Only allow assignment to regular academic slots
       }
-      assignSubjectToSlot(timeSlotId, day, subject);
+
+      // Ensure day is properly normalized before assignment
+      const normalizedDay =
+        day.charAt(0).toUpperCase() + day.slice(1).toLowerCase();
+
+      // Assign the subject to the slot with the normalized day
+      assignSubjectToSlot(timeSlotId, normalizedDay, subject);
+    } else {
+      console.warn('Missing required data for drag and drop:', {
+        subject,
+        timeSlot,
+        day,
+        timeSlotId,
+      });
     }
   };
 

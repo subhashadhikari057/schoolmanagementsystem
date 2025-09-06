@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 interface PromotionState {
-  status: 'idle' | 'loading' | 'running' | 'completed' | 'error';
+  status: 'idle' | 'loading' | 'running' | 'completed' | 'error' | 'empty';
   progress: number;
   message?: string;
 }

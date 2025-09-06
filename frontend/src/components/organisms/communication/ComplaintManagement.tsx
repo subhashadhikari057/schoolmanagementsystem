@@ -298,8 +298,13 @@ const ComplaintManagement: React.FC = () => {
     try {
       const response = await teacherService.getAllTeachers();
       if (response.success && response.data) {
+        // Handle both direct array and paginated response
+        const teacherList = Array.isArray(response.data)
+          ? response.data
+          : response.data.data;
+
         // Only keep the essential fields we need for assignment
-        const essentialTeachers = response.data.map(teacher => ({
+        const essentialTeachers = teacherList.map(teacher => ({
           id: teacher.id,
           userId: teacher.userId,
           fullName: teacher.fullName,

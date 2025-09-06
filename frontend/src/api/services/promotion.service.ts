@@ -3,36 +3,38 @@ import { ApiResponse } from '../types';
 
 // Promotion endpoints
 export const PROMOTION_ENDPOINTS = {
-  PREVIEW_PROMOTIONS: 'api/v1/promotions/preview',
-  EXECUTE_PROMOTIONS: 'api/v1/promotions/execute',
-  GET_PROMOTION_HISTORY: 'api/v1/promotions/history',
-  GET_ELIGIBLE_STUDENTS: 'api/v1/promotions/eligible',
-  BULK_UPDATE_STATUS: 'api/v1/promotions/bulk-status',
+  PREVIEW_PROMOTIONS: 'api/promotions/preview',
+  EXECUTE_PROMOTIONS: 'api/promotions/execute',
+  GET_PROMOTION_BATCHES: 'api/promotions/batches',
+  GET_PROMOTION_BATCH: 'api/promotions/batch',
+  GET_ACADEMIC_YEARS: 'api/promotions/academic-years',
+  GET_CURRENT_ACADEMIC_YEAR: 'api/promotions/academic-years/current',
+  CREATE_ACADEMIC_YEAR: 'api/promotions/academic-years',
 } as const;
 
 // Types for promotion service
 export interface PromotionPreviewRequest {
   academicYear: string;
-  fromGrade?: number;
-  toGrade?: number;
-  classIds?: string[];
-  excludeStudentIds?: string[];
+  excludedStudentIds?: string[];
 }
 
 export interface PromotionStudentInfo {
   id: string;
   fullName: string;
   rollNumber: string;
-  studentId?: string;
+  studentId: string | null;
   className: string;
   currentGrade: number;
   section: string;
   academicStatus: string;
   isEligible: boolean;
-  ineligibilityReasons?: string[];
-  feeStatus?: string;
-  attendancePercentage?: number;
-  gpa?: number;
+  ineligibilityReasons: string[];
+  feeStatus: string | null;
+  attendancePercentage: number | null;
+  gpa: number | null;
+  promotionType: 'PROMOTED' | 'RETAINED' | 'GRADUATED';
+  targetGrade: number | null;
+  targetSection: string | null;
 }
 
 export interface PromotionSummary {
@@ -43,31 +45,33 @@ export interface PromotionSummary {
   ineligibleStudents: number;
   promotingStudents: number;
   stayingStudents: number;
+  graduatingStudents: number;
 }
 
 export interface PromotionPreviewResponse {
-  academicYear: string;
+  fromAcademicYear: string;
+  toAcademicYear: string;
   summaryByGrade: PromotionSummary[];
-  students: PromotionStudentInfo[];
+  promotionStudents: PromotionStudentInfo[];
   totalStats: {
     totalStudents: number;
     totalPromoting: number;
     totalStaying: number;
+    totalGraduating: number;
     totalIneligible: number;
+  };
+  metadata?: {
+    hasClasses: boolean;
+    hasStudents: boolean;
+    message?: string;
   };
 }
 
 export interface ExecutePromotionRequest {
   academicYear: string;
-  newAcademicYear: string;
-  promotions: Array<{
-    studentId: string;
-    fromClassId: string;
-    toClassId?: string; // null for graduates
-    action: 'promote' | 'stay' | 'graduate';
-    notes?: string;
-  }>;
-  dryRun?: boolean;
+  toAcademicYear: string;
+  excludedStudentIds?: string[];
+  reason?: string;
 }
 
 export interface PromotionResult {
@@ -81,19 +85,15 @@ export interface PromotionResult {
 }
 
 export interface ExecutePromotionResponse {
-  executionId: string;
-  academicYear: string;
-  newAcademicYear: string;
-  timestamp: string;
-  summary: {
-    totalProcessed: number;
-    promoted: number;
-    stayed: number;
-    graduated: number;
-    failed: number;
-  };
-  results: PromotionResult[];
-  errors: string[];
+  success: boolean;
+  batchId: string;
+  message: string;
+  totalProcessed: number;
+  promoted: number;
+  retained: number;
+  graduated: number;
+  failed: number;
+  errors?: string[];
 }
 
 export interface PromotionHistoryEntry {
@@ -112,12 +112,42 @@ export interface PromotionHistoryEntry {
   status: 'completed' | 'failed' | 'partial';
 }
 
-export interface EligibleStudentsResponse {
-  students: PromotionStudentInfo[];
-  summary: {
-    totalEligible: number;
-    byGrade: Record<number, number>;
-  };
+export interface AcademicYear {
+  id: string;
+  year: string;
+  startDate: string;
+  endDate: string;
+  isCurrent: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateAcademicYearRequest {
+  year: string;
+  startDate: string;
+  endDate: string;
+  isCurrent?: boolean;
+}
+
+export interface PromotionBatch {
+  id: string;
+  fromAcademicYear: string;
+  toAcademicYear: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+  totalStudents: number;
+  promotedStudents: number;
+  retainedStudents: number;
+  graduatedStudents: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  executedBy: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 export class PromotionService {
@@ -154,117 +184,65 @@ export class PromotionService {
   }
 
   /**
-   * Get promotion history
+   * Get promotion batches
    */
-  async getPromotionHistory(params?: {
-    academicYear?: string;
-    page?: number;
+  async getPromotionBatches(params?: {
     limit?: number;
-  }): Promise<
-    ApiResponse<{
-      data: PromotionHistoryEntry[];
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    }>
-  > {
+    offset?: number;
+  }): Promise<ApiResponse<PromotionBatch[]>> {
     return this.httpClient.get(
-      PROMOTION_ENDPOINTS.GET_PROMOTION_HISTORY,
+      PROMOTION_ENDPOINTS.GET_PROMOTION_BATCHES,
       params,
       { requiresAuth: true },
     );
   }
 
   /**
-   * Get eligible students for promotion
+   * Get specific promotion batch
    */
-  async getEligibleStudents(params?: {
-    grade?: number;
-    classId?: string;
-    academicYear?: string;
-  }): Promise<ApiResponse<EligibleStudentsResponse>> {
+  async getPromotionBatch(
+    batchId: string,
+  ): Promise<ApiResponse<PromotionBatch>> {
     return this.httpClient.get(
-      PROMOTION_ENDPOINTS.GET_ELIGIBLE_STUDENTS,
-      params,
+      `${PROMOTION_ENDPOINTS.GET_PROMOTION_BATCH}/${batchId}`,
+      {},
       { requiresAuth: true },
     );
   }
 
   /**
-   * Bulk update student academic status
+   * Get all academic years
    */
-  async bulkUpdateStatus(request: {
-    studentIds: string[];
-    status: 'active' | 'suspended' | 'graduated' | 'transferred';
-    reason?: string;
-  }): Promise<ApiResponse<{ updated: number; failed: string[] }>> {
+  async getAcademicYears(): Promise<ApiResponse<AcademicYear[]>> {
+    return this.httpClient.get(
+      PROMOTION_ENDPOINTS.GET_ACADEMIC_YEARS,
+      {},
+      { requiresAuth: true },
+    );
+  }
+
+  /**
+   * Get current academic year
+   */
+  async getCurrentAcademicYear(): Promise<ApiResponse<AcademicYear>> {
+    return this.httpClient.get(
+      PROMOTION_ENDPOINTS.GET_CURRENT_ACADEMIC_YEAR,
+      {},
+      { requiresAuth: true },
+    );
+  }
+
+  /**
+   * Create new academic year
+   */
+  async createAcademicYear(
+    request: CreateAcademicYearRequest,
+  ): Promise<ApiResponse<AcademicYear>> {
     return this.httpClient.post(
-      PROMOTION_ENDPOINTS.BULK_UPDATE_STATUS,
+      PROMOTION_ENDPOINTS.CREATE_ACADEMIC_YEAR,
       request,
       { requiresAuth: true },
     );
-  }
-
-  /**
-   * Mock implementation for preview (to be replaced with real API)
-   */
-  async mockPreviewPromotions(
-    academicYear: string = '2024-25',
-  ): Promise<PromotionPreviewResponse> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const mockData: PromotionPreviewResponse = {
-      academicYear,
-      summaryByGrade: [
-        {
-          fromGrade: 9,
-          toGrade: 10,
-          totalStudents: 45,
-          eligibleStudents: 42,
-          ineligibleStudents: 3,
-          promotingStudents: 40,
-          stayingStudents: 5,
-        },
-        {
-          fromGrade: 10,
-          toGrade: 11,
-          totalStudents: 38,
-          eligibleStudents: 36,
-          ineligibleStudents: 2,
-          promotingStudents: 35,
-          stayingStudents: 3,
-        },
-        {
-          fromGrade: 11,
-          toGrade: 12,
-          totalStudents: 32,
-          eligibleStudents: 30,
-          ineligibleStudents: 2,
-          promotingStudents: 28,
-          stayingStudents: 4,
-        },
-        {
-          fromGrade: 12,
-          toGrade: 'Graduate',
-          totalStudents: 28,
-          eligibleStudents: 26,
-          ineligibleStudents: 2,
-          promotingStudents: 24,
-          stayingStudents: 4,
-        },
-      ],
-      students: [], // Would be populated with actual student data
-      totalStats: {
-        totalStudents: 143,
-        totalPromoting: 127,
-        totalStaying: 16,
-        totalIneligible: 9,
-      },
-    };
-
-    return mockData;
   }
 }
 

@@ -292,7 +292,12 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
         console.log('Admin subjects loaded:', transformedSubjects);
 
         // Transform teachers data
-        const transformedTeachers: TeacherOption[] = teachersResponse.data.map(
+        // Handle both direct array and paginated response
+        const teacherList = Array.isArray(teachersResponse.data)
+          ? teachersResponse.data
+          : teachersResponse.data.data;
+
+        const transformedTeachers: TeacherOption[] = teacherList.map(
           (teacher: TeacherResponse) => ({
             id: teacher.id,
             name: teacher.fullName,

@@ -127,7 +127,12 @@ const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
         teachersResponse.value.success
       ) {
         console.log('Modal - Raw Teachers Data:', teachersResponse.value.data);
-        const teachers = teachersResponse.value.data.map((teacher: any) => {
+        // Handle both direct array and paginated response
+        const teacherList = Array.isArray(teachersResponse.value.data)
+          ? teachersResponse.value.data
+          : teachersResponse.value.data.data;
+
+        const teachers = teacherList.map((teacher: any) => {
           // Extract name properly from different possible formats
           let teacherName = 'Unknown Teacher';
           if (teacher.fullName) {

@@ -60,8 +60,10 @@ export default function ApiErrorBoundary({
         return;
       }
 
-      // Set error state for other errors
-      setError(apiError);
+      // Only set error state for non-validation errors
+      if (!apiError.validationErrors) {
+        setError(apiError);
+      }
     };
 
     // Add event listener
