@@ -25,6 +25,7 @@ const PARENT_ENDPOINTS = {
   REMOVE_CHILD: (parentId: string, childId: string) =>
     `api/v1/parents/${parentId}/children/${childId}`,
   UPDATE_PROFILE: (id: string) => `api/v1/parents/${id}/profile`,
+  EXPORT: 'api/v1/parents/export',
 } as const;
 
 // ============================================================================
@@ -436,6 +437,25 @@ export class ParentService {
         requiresAuth: true,
       },
     );
+  }
+
+  /**
+   * Export parents data to Excel
+   */
+  async exportParents(format: string = 'xlsx'): Promise<
+    ApiResponse<{
+      filename: string;
+      mime: string;
+      data: string; // base64 encoded file data
+    }>
+  > {
+    return this.httpClient.get<{
+      filename: string;
+      mime: string;
+      data: string;
+    }>(`${PARENT_ENDPOINTS.EXPORT}?format=${format}`, undefined, {
+      requiresAuth: true,
+    });
   }
 }
 

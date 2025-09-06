@@ -8,6 +8,7 @@ import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
 import { generateRandomPassword } from '../../../shared/utils/password.util';
 import { hashPassword } from '../../../shared/auth/hash.util';
+import * as ExcelJS from 'exceljs';
 import {
   CreateParentDtoType,
   UpdateParentByAdminDtoType,
@@ -1351,5 +1352,189 @@ export class ParentService {
       },
       message: `Submission details for ${child.student.user.fullName}`,
     };
+  }
+
+  /**
+   * Export parents data to Excel format
+   */
+  async exportParents(
+    format: string = 'xlsx',
+  ): Promise<{ filename: string; mime: string; buffer: Buffer }> {
+    try {
+      // Fetch all parents with comprehensive data
+      const parents = await this.prisma.parent.findMany({
+        where: {
+          deletedAt: null,
+          user: {
+            deletedAt: null,
+          },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          profile: {
+            select: {
+              profilePhotoUrl: true,
+              bio: true,
+              socialLinks: true,
+              additionalData: true,
+            },
+          },
+          children: {
+            where: {
+              deletedAt: null,
+            },
+            include: {
+              student: {
+                include: {
+                  user: {
+                    select: {
+                      fullName: true,
+                    },
+                  },
+                  class: {
+                    select: {
+                      grade: true,
+                      section: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          user: {
+            fullName: 'asc',
+          },
+        },
+      });
+
+      if (format === 'xlsx') {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Parents');
+
+        // Define columns with proper headers
+        worksheet.columns = [
+          { header: 'ID', key: 'id', width: 15 },
+          { header: 'Full Name', key: 'fullName', width: 25 },
+          { header: 'Email', key: 'email', width: 30 },
+          { header: 'Phone', key: 'phone', width: 15 },
+          { header: 'Date of Birth', key: 'dateOfBirth', width: 12 },
+          { header: 'Gender', key: 'gender', width: 10 },
+          { header: 'Occupation', key: 'occupation', width: 20 },
+          { header: 'Work Place', key: 'workPlace', width: 25 },
+          { header: 'Work Phone', key: 'workPhone', width: 15 },
+          {
+            header: 'Emergency Contact Name',
+            key: 'emergencyContactName',
+            width: 25,
+          },
+          {
+            header: 'Emergency Contact Phone',
+            key: 'emergencyContactPhone',
+            width: 18,
+          },
+          {
+            header: 'Emergency Contact Relationship',
+            key: 'emergencyContactRelationship',
+            width: 25,
+          },
+          { header: 'Address Street', key: 'addressStreet', width: 30 },
+          { header: 'Address City', key: 'addressCity', width: 15 },
+          { header: 'Address State', key: 'addressState', width: 15 },
+          { header: 'Address Pin Code', key: 'addressPinCode', width: 12 },
+          { header: 'Address Country', key: 'addressCountry', width: 15 },
+          { header: 'Notes', key: 'notes', width: 30 },
+          {
+            header: 'Special Instructions',
+            key: 'specialInstructions',
+            width: 30,
+          },
+          { header: 'Children Count', key: 'childrenCount', width: 12 },
+          { header: 'Children Details', key: 'childrenDetails', width: 50 },
+          { header: 'Created At', key: 'createdAt', width: 12 },
+          { header: 'Updated At', key: 'updatedAt', width: 12 },
+        ];
+
+        // Style the header row
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE0E0E0' },
+        };
+
+        // Add data rows
+        parents.forEach(parent => {
+          const profile = parent.profile || {};
+
+          // Format children details
+          const childrenDetails = parent.children
+            .map(
+              child =>
+                `${child.student.user.fullName} (${child.relationship}) - Grade ${child.student.class.grade} ${child.student.class.section}`,
+            )
+            .join('; ');
+
+          worksheet.addRow({
+            id: parent.id,
+            fullName: parent.user.fullName,
+            email: parent.user.email,
+            phone: parent.user.phone,
+            dateOfBirth: parent.dateOfBirth
+              ? new Date(parent.dateOfBirth).toLocaleDateString()
+              : '',
+            gender: parent.gender || '',
+            occupation: parent.occupation || '',
+            workPlace: parent.workPlace || '',
+            workPhone: parent.workPhone || '',
+            emergencyContactName: parent.emergencyContactName || '',
+            emergencyContactPhone: parent.emergencyContactPhone || '',
+            emergencyContactRelationship:
+              parent.emergencyContactRelationship || '',
+            addressStreet: parent.street || '',
+            addressCity: parent.city || '',
+            addressState: parent.state || '',
+            addressPinCode: parent.pinCode || '',
+            addressCountry: parent.country || '',
+            notes: parent.notes || '',
+            specialInstructions: parent.specialInstructions || '',
+            childrenCount: parent.children.length,
+            childrenDetails: childrenDetails,
+            createdAt: new Date(parent.user.createdAt).toLocaleDateString(),
+            updatedAt: parent.user.updatedAt
+              ? new Date(parent.user.updatedAt).toLocaleDateString()
+              : '',
+          });
+        });
+
+        // Auto-fit columns
+        worksheet.columns.forEach(column => {
+          if (column.width && column.width < 10) column.width = 10;
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const timestamp = new Date().toISOString().split('T')[0];
+
+        return {
+          filename: `parents_export_${timestamp}.xlsx`,
+          mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          buffer: Buffer.from(buffer),
+        };
+      }
+
+      throw new BadRequestException('Unsupported export format');
+    } catch (error) {
+      throw new BadRequestException(`Export failed: ${error.message}`);
+    }
   }
 }

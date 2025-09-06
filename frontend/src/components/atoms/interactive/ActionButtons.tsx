@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { csrfService } from '@/api/services/csrf.service';
+import { parentService } from '@/api/services/parent.service';
 import AddTeacherFormModal from '@/components/organisms/modals/AddTeacherFormModal';
 import AddStudentFormModal from '@/components/organisms/modals/AddStudentFormModal';
 import AddStaffFormModal from '@/components/organisms/modals/AddStaffFormModal';
@@ -1009,62 +1010,126 @@ const getActionButtonsConfig = (
         ]
       : pageType === 'students'
         ? [] // Students have their own specific configuration
-        : [
-            {
-              id: 'import',
-              label: 'Import',
-              variant: 'import',
-              className:
-                'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
-              icon: <Upload size={16} />,
-              onClick: () => {
-                if (pageType === 'subjects') {
-                  alert(
-                    `📚 Import ${pageType} functionality will allow you to bulk upload subject data from CSV/Excel files. Feature coming soon!`,
-                  );
-                } else if (pageType === 'id-cards') {
-                  alert(
-                    `🆔 Import ID card data - Bulk upload card holder information and generate cards automatically. Feature coming soon!`,
-                  );
-                } else {
-                  alert(
-                    `📥 Import ${pageType} data from external files. This feature is under development.`,
-                  );
-                }
+        : pageType === 'parents'
+          ? [
+              // Parents: Only Excel export, no import
+              {
+                id: 'export-excel',
+                label: 'Export',
+                variant: 'export',
+                className:
+                  'bg-green-50 text-green-700 hover:bg-green-100 rounded-lg',
+                icon: <Download size={16} />,
+                onClick: async () => {
+                  try {
+                    toast.loading('Generating Excel file from backend...', {
+                      id: 'export-parents-excel',
+                    });
+
+                    // Call backend export endpoint
+                    const response = await parentService.exportParents('xlsx');
+
+                    if (response.success && response.data) {
+                      const { filename, mime, data } = response.data;
+
+                      // Convert base64 to blob and download
+                      const byteCharacters = atob(data);
+                      const byteNumbers = new Array(byteCharacters.length);
+                      for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                      }
+                      const byteArray = new Uint8Array(byteNumbers);
+                      const blob = new Blob([byteArray], { type: mime });
+
+                      // Create download link
+                      const url = window.URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = filename;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(url);
+
+                      toast.success(
+                        'Successfully exported parent data to Excel file',
+                        {
+                          id: 'export-parents-excel',
+                          description:
+                            'The file has been downloaded to your device',
+                        },
+                      );
+                    } else {
+                      throw new Error(
+                        response.message || 'Failed to export parent data',
+                      );
+                    }
+                  } catch (error) {
+                    console.error('Export error:', error);
+                    toast.error('Failed to export parent data', {
+                      id: 'export-parents-excel',
+                      description:
+                        error instanceof Error
+                          ? error.message
+                          : 'Please try again',
+                    });
+                  }
+                },
               },
-            },
-            {
-              id: 'export',
-              label: 'Export Data',
-              variant: 'export',
-              className:
-                'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
-              icon: <Download size={16} />,
-              onClick: () => {
-                if (pageType === 'subjects') {
-                  alert(
-                    `📊 Export all subject data including syllabus, schedules, and teacher assignments. Download will start shortly!`,
-                  );
-                } else if (pageType === 'id-cards') {
-                  alert(
-                    `🃏 Export ID card data - Download all card information, print logs, and templates. Export starting now!`,
-                  );
-                } else {
-                  alert(
-                    `📤 Export ${pageType} data to CSV/PDF format. Processing your request...`,
-                  );
-                }
+            ]
+          : [
+              // Other page types: Both import and export
+              {
+                id: 'import',
+                label: 'Import',
+                variant: 'import',
+                className:
+                  'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+                icon: <Upload size={16} />,
+                onClick: () => {
+                  if (pageType === 'subjects') {
+                    alert(
+                      `📚 Import ${pageType} functionality will allow you to bulk upload subject data from CSV/Excel files. Feature coming soon!`,
+                    );
+                  } else if (pageType === 'id-cards') {
+                    alert(
+                      `🆔 Import ID card data - Bulk upload card holder information and generate cards automatically. Feature coming soon!`,
+                    );
+                  } else {
+                    alert(
+                      `📥 Import ${pageType} data from external files. This feature is under development.`,
+                    );
+                  }
+                },
               },
-            },
-          ];
+              {
+                id: 'export',
+                label: 'Export Data',
+                variant: 'export',
+                className:
+                  'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+                icon: <Download size={16} />,
+                onClick: () => {
+                  if (pageType === 'subjects') {
+                    alert(
+                      `📊 Export all subject data including syllabus, schedules, and teacher assignments. Download will start shortly!`,
+                    );
+                  } else if (pageType === 'id-cards') {
+                    alert(
+                      `🃏 Export ID card data - Download all card information, print logs, and templates. Export starting now!`,
+                    );
+                  } else {
+                    alert(
+                      `📤 Export ${pageType} data to CSV/PDF format. Processing your request...`,
+                    );
+                  }
+                },
+              },
+            ];
 
   const additionalButtons: ActionButtonConfig[] = [];
 
-  if (
-    pageType === 'students' ||
-    pageType === 'parents' ||
-    pageType === 'teachers'
-  ) {
+  if (pageType === 'students' || pageType === 'teachers') {
     additionalButtons.push({
       id: 'mass-emails',
       label: 'Mass Generate Emails',
@@ -1091,7 +1156,6 @@ const getActionButtonsConfig = (
 
   if (
     pageType === 'staff' ||
-    pageType === 'parents' ||
     pageType === 'teachers' ||
     pageType === 'students'
   ) {
@@ -1164,21 +1228,14 @@ export const ActionButtons = ({
   const actionButtonsConfig = getActionButtonsConfig(
     pageType,
     openAddModal,
-    pageType === 'staff' ||
-      pageType === 'parents' ||
-      pageType === 'teachers' ||
-      pageType === 'students'
+    pageType === 'staff' || pageType === 'teachers' || pageType === 'students'
       ? () => setIsSendCommModalOpen(true)
       : undefined,
     onRefresh,
   );
 
   // Patch the onClick for Mass Generate Emails button if present
-  if (
-    pageType === 'students' ||
-    pageType === 'parents' ||
-    pageType === 'teachers'
-  ) {
+  if (pageType === 'students' || pageType === 'teachers') {
     const idx = actionButtonsConfig.findIndex(b => b.id === 'mass-emails');
     if (idx !== -1) {
       actionButtonsConfig[idx].onClick = openMassEmailModal;

@@ -391,7 +391,7 @@ const CustomBSCalendar = ({
                             : hasEmergencyClosure
                               ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-red-400 hover:from-red-700 hover:to-red-800'
                               : hasHoliday
-                                ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-white shadow-orange-200 hover:from-orange-500 hover:to-orange-600'
+                                ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
                                 : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
                         }
                       `}
@@ -416,36 +416,44 @@ const CustomBSCalendar = ({
                           </div>
                         </div>
 
-                        {/* Event Badges */}
+                        {/* Event Badges - Only show dots for non-holiday events (holidays are indicated by red background) */}
                         {hasEvents && (
                           <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
-                            {dayEvents.slice(0, 2).map((event, eventIndex) => {
-                              const eventType =
-                                (event as any).type?.toLowerCase() || 'event';
-                              let badgeColor = 'bg-blue-500 text-white';
-                              let dotColor = 'bg-blue-600';
+                            {dayEvents
+                              .filter(event => {
+                                const eventType =
+                                  (event as any).type?.toLowerCase() || 'event';
+                                // Only show dots for non-holiday events (never show red dots for holidays)
+                                return eventType !== 'holiday';
+                              })
+                              .slice(0, 2)
+                              .map((event, eventIndex) => {
+                                const eventType =
+                                  (event as any).type?.toLowerCase() || 'event';
+                                let badgeColor = 'bg-blue-500 text-white';
+                                let dotColor = 'bg-blue-600';
 
-                              if (eventType === 'holiday') {
-                                badgeColor = 'bg-red-500 text-white';
-                                dotColor = 'bg-red-600';
-                              } else if (eventType === 'emergency_closure') {
-                                badgeColor = 'bg-red-700 text-white';
-                                dotColor = 'bg-red-800';
-                              } else if (eventType === 'exam') {
-                                badgeColor = 'bg-purple-500 text-white';
-                                dotColor = 'bg-purple-600';
-                              } else if (eventType === 'event') {
-                                badgeColor = 'bg-blue-500 text-white';
-                                dotColor = 'bg-blue-600';
-                              }
+                                if (eventType === 'holiday') {
+                                  badgeColor = 'bg-red-500 text-white';
+                                  dotColor = 'bg-red-600';
+                                } else if (eventType === 'emergency_closure') {
+                                  badgeColor = 'bg-red-700 text-white';
+                                  dotColor = 'bg-red-800';
+                                } else if (eventType === 'exam') {
+                                  badgeColor = 'bg-purple-500 text-white';
+                                  dotColor = 'bg-purple-600';
+                                } else if (eventType === 'event') {
+                                  badgeColor = 'bg-blue-500 text-white';
+                                  dotColor = 'bg-blue-600';
+                                }
 
-                              return (
-                                <div
-                                  key={`${event.id}-${eventIndex}`}
-                                  className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
-                                ></div>
-                              );
-                            })}
+                                return (
+                                  <div
+                                    key={`${event.id}-${eventIndex}`}
+                                    className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
+                                  ></div>
+                                );
+                              })}
                             {dayEvents.length > 2 && (
                               <div className='text-xs text-gray-500 px-1'>
                                 +{dayEvents.length - 2}
@@ -889,36 +897,44 @@ const CustomADCalendar = ({
                           </div>
                         </div>
 
-                        {/* Event Badges */}
+                        {/* Event Badges - Only show dots for non-holiday events (holidays are indicated by red background) */}
                         {hasEvents && (
                           <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
-                            {dayEvents.slice(0, 2).map((event, eventIndex) => {
-                              const eventType =
-                                (event as any).type?.toLowerCase() || 'event';
-                              let badgeColor = 'bg-blue-500 text-white';
-                              let dotColor = 'bg-blue-600';
+                            {dayEvents
+                              .filter(event => {
+                                const eventType =
+                                  (event as any).type?.toLowerCase() || 'event';
+                                // Only show dots for non-holiday events (never show red dots for holidays)
+                                return eventType !== 'holiday';
+                              })
+                              .slice(0, 2)
+                              .map((event, eventIndex) => {
+                                const eventType =
+                                  (event as any).type?.toLowerCase() || 'event';
+                                let badgeColor = 'bg-blue-500 text-white';
+                                let dotColor = 'bg-blue-600';
 
-                              if (eventType === 'holiday') {
-                                badgeColor = 'bg-red-500 text-white';
-                                dotColor = 'bg-red-600';
-                              } else if (eventType === 'emergency_closure') {
-                                badgeColor = 'bg-red-700 text-white';
-                                dotColor = 'bg-red-800';
-                              } else if (eventType === 'exam') {
-                                badgeColor = 'bg-purple-500 text-white';
-                                dotColor = 'bg-purple-600';
-                              } else if (eventType === 'event') {
-                                badgeColor = 'bg-blue-500 text-white';
-                                dotColor = 'bg-blue-600';
-                              }
+                                if (eventType === 'holiday') {
+                                  badgeColor = 'bg-red-500 text-white';
+                                  dotColor = 'bg-red-600';
+                                } else if (eventType === 'emergency_closure') {
+                                  badgeColor = 'bg-red-700 text-white';
+                                  dotColor = 'bg-red-800';
+                                } else if (eventType === 'exam') {
+                                  badgeColor = 'bg-purple-500 text-white';
+                                  dotColor = 'bg-purple-600';
+                                } else if (eventType === 'event') {
+                                  badgeColor = 'bg-blue-500 text-white';
+                                  dotColor = 'bg-blue-600';
+                                }
 
-                              return (
-                                <div
-                                  key={`${event.id}-${eventIndex}`}
-                                  className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
-                                ></div>
-                              );
-                            })}
+                                return (
+                                  <div
+                                    key={`${event.id}-${eventIndex}`}
+                                    className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
+                                  ></div>
+                                );
+                              })}
                             {dayEvents.length > 2 && (
                               <div className='text-xs text-gray-500 px-1'>
                                 +{dayEvents.length - 2}

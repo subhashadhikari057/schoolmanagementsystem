@@ -28,7 +28,7 @@
   "author": "School Management System Team",
   "license": "MIT",
   "dependencies": {
-    "zod": "^3.22.4"
+    "zod": "3.22.4"
   },
   "devDependencies": {
     "@types/jest": "^29.5.8",
@@ -40,9 +40,6 @@
     "rimraf": "^5.0.5",
     "ts-jest": "^29.1.1",
     "typescript": "^5.3.2"
-  },
-  "peerDependencies": {
-    "zod": "^3.22.4"
   },
   "files": [
     "dist/**/*",
