@@ -8,7 +8,6 @@
  */
 
 import { z } from 'zod';
-import { createZodDto } from 'nestjs-zod';
 import {
   LoginRequestSchema,
   LoginResponseSchema,
@@ -32,8 +31,8 @@ import {
  * =============================================================================
  */
 
-export class LoginDto extends createZodDto(LoginRequestSchema) {}
-export class LoginResponseDto extends createZodDto(LoginResponseSchema) {}
+export type LoginDto = z.infer<typeof LoginRequestSchema>;
+export type LoginResponseDto = z.infer<typeof LoginResponseSchema>;
 
 /**
  * =============================================================================
@@ -41,8 +40,8 @@ export class LoginResponseDto extends createZodDto(LoginResponseSchema) {}
  * =============================================================================
  */
 
-export class RegisterDto extends createZodDto(RegisterRequestSchema) {}
-export class RegisterResponseDto extends createZodDto(RegisterResponseSchema) {}
+export type RegisterDto = z.infer<typeof RegisterRequestSchema>;
+export type RegisterResponseDto = z.infer<typeof RegisterResponseSchema>;
 
 /**
  * =============================================================================
@@ -50,10 +49,10 @@ export class RegisterResponseDto extends createZodDto(RegisterResponseSchema) {}
  * =============================================================================
  */
 
-export class RefreshTokenDto extends createZodDto(RefreshTokenRequestSchema) {}
-export class RefreshTokenResponseDto extends createZodDto(
-  RefreshTokenResponseSchema,
-) {}
+export type RefreshTokenDto = z.infer<typeof RefreshTokenRequestSchema>;
+export type RefreshTokenResponseDto = z.infer<
+  typeof RefreshTokenResponseSchema
+>;
 
 /**
  * =============================================================================
@@ -61,7 +60,7 @@ export class RefreshTokenResponseDto extends createZodDto(
  * =============================================================================
  */
 
-export class MeResponseDto extends createZodDto(MeResponseSchema) {}
+export type MeResponseDto = z.infer<typeof MeResponseSchema>;
 
 /**
  * =============================================================================
@@ -69,14 +68,12 @@ export class MeResponseDto extends createZodDto(MeResponseSchema) {}
  * =============================================================================
  */
 
-export class ChangePasswordDto extends createZodDto(ChangePasswordSchema) {}
-export class RequestPasswordResetDto extends createZodDto(
-  RequestPasswordResetSchema,
-) {}
-export class PasswordResetDto extends createZodDto(PasswordResetSchema) {}
-export class ForceChangePasswordDto extends createZodDto(
-  ForceChangePasswordSchema,
-) {}
+export type ChangePasswordDto = z.infer<typeof ChangePasswordSchema>;
+export type RequestPasswordResetDto = z.infer<
+  typeof RequestPasswordResetSchema
+>;
+export type PasswordResetDto = z.infer<typeof PasswordResetSchema>;
+export type ForceChangePasswordDto = z.infer<typeof ForceChangePasswordSchema>;
 
 /**
  * =============================================================================
@@ -84,11 +81,11 @@ export class ForceChangePasswordDto extends createZodDto(
  * =============================================================================
  */
 
-export class RequestOtpDto extends createZodDto(RequestOtpSchema) {}
-export class VerifyOtpDto extends createZodDto(VerifyOtpSchema) {}
-export class ResetPasswordWithOtpDto extends createZodDto(
-  ResetPasswordWithOtpSchema,
-) {}
+export type RequestOtpDto = z.infer<typeof RequestOtpSchema>;
+export type VerifyOtpDto = z.infer<typeof VerifyOtpSchema>;
+export type ResetPasswordWithOtpDto = z.infer<
+  typeof ResetPasswordWithOtpSchema
+>;
 
 /**
  * =============================================================================

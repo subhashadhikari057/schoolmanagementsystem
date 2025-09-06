@@ -3,7 +3,7 @@
 import React from 'react';
 import { useAnalyticsOverview } from '@/context/AnalyticsOverviewContext';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
-import { Users, GraduationCap, DollarSign, CreditCard } from 'lucide-react';
+import { Users, GraduationCap, BookOpen, UserCheck } from 'lucide-react';
 import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
 import { useCalendarEvents } from '@/components/organisms/calendar/hooks/useCalendarEvents';
 import NotificationPanel from '@/components/organisms/dashboard/NotificationPanel';
@@ -14,13 +14,20 @@ import FeeCollectionChart from '@/components/organisms/dashboard/FeeCollectionCh
 import AttendanceOverview from '@/components/organisms/dashboard/AttendanceOverview';
 import SystemHealthOverview from '@/components/organisms/dashboard/SystemHealthOverview';
 import { adminQuickActions } from '@/constants/mockData';
+import { useAdminStats } from '@/hooks/useAdminStats';
 
-const statsData = [
+// This will be replaced with dynamic data from the hook
+const getStatsData = (
+  totalStudents: number,
+  totalTeachers: number,
+  totalSubjects: number,
+  totalStaff: number,
+) => [
   {
     icon: Users,
     bgColor: 'bg-blue-600',
     iconColor: 'text-white',
-    value: '2,856',
+    value: totalStudents.toLocaleString(),
     label: 'Total Students',
     change: '3.1%',
     isPositive: true,
@@ -29,34 +36,44 @@ const statsData = [
     icon: GraduationCap,
     bgColor: 'bg-green-600',
     iconColor: 'text-white',
-    value: '182',
+    value: totalTeachers.toLocaleString(),
     label: 'Total Teachers',
     change: '1.8%',
     isPositive: true,
   },
   {
-    icon: DollarSign,
+    icon: BookOpen,
     bgColor: 'bg-yellow-600',
     iconColor: 'text-white',
-    value: '$428,560',
-    label: 'Total Fees Collected',
-    change: '5.2%',
+    value: totalSubjects.toLocaleString(),
+    label: 'Total Subjects',
+    change: '2.1%',
     isPositive: true,
   },
   {
-    icon: CreditCard,
+    icon: UserCheck,
     bgColor: 'bg-red-600',
     iconColor: 'text-white',
-    value: '$215,400',
-    label: 'Total Salaries Paid',
-    change: '2.4%',
-    isPositive: false,
+    value: totalStaff.toLocaleString(),
+    label: 'Total Staff',
+    change: '1.5%',
+    isPositive: true,
   },
 ];
 
 export default function AdminDashboard() {
   const [showAllCharts, setShowAllCharts] = React.useState(false);
   const { showAnalytics } = useAnalyticsOverview();
+
+  // Fetch admin stats (students, teachers, subjects, and staff count)
+  const {
+    totalStudents,
+    totalTeachers,
+    totalSubjects,
+    totalStaff,
+    loading: statsLoading,
+    error: statsError,
+  } = useAdminStats();
 
   // Fetch all calendar events (exams, holidays, events)
   const { events: calendarEvents } = useCalendarEvents({ page: 1, limit: 50 });
@@ -70,6 +87,14 @@ export default function AdminDashboard() {
     status: typeof ev.status === 'string' ? ev.status : 'Active',
     type: ev.type || 'event',
   }));
+
+  // Generate stats data with real values
+  const statsData = getStatsData(
+    totalStudents,
+    totalTeachers,
+    totalSubjects,
+    totalStaff,
+  );
 
   return (
     <div className='min-h-screen bg-background'>
@@ -86,7 +111,24 @@ export default function AdminDashboard() {
       <div className='px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
         <div className='w-full space-y-4 sm:space-y-5 lg:space-y-6 mt-4 sm:mt-5 lg:mt-6'>
           {/* Stats Grid - Mobile: 2x2 compact, Desktop: 1x4 */}
-          <Statsgrid stats={statsData} />
+          {statsLoading ? (
+            <div className='grid grid-cols-2 lg:grid-cols-4 gap-4'>
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className='bg-white rounded-xl p-4 animate-pulse'>
+                  <div className='h-4 bg-gray-200 rounded w-3/4 mb-2'></div>
+                  <div className='h-8 bg-gray-200 rounded w-1/2'></div>
+                </div>
+              ))}
+            </div>
+          ) : statsError ? (
+            <div className='bg-red-50 border border-red-200 rounded-xl p-4'>
+              <p className='text-red-600 text-sm'>
+                Error loading stats: {statsError}
+              </p>
+            </div>
+          ) : (
+            <Statsgrid stats={statsData} />
+          )}
 
           {/* Main Content Grid - Mobile: Stacked with proper spacing */}
           <div className='space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6'>

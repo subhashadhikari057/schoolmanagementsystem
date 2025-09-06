@@ -139,6 +139,23 @@ export class ParentController {
     return this.parentService.getAvailableStudents();
   }
 
+  @Get('export')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Export parents data as Excel file' })
+  @ApiQuery({
+    name: 'format',
+    required: false,
+    description: 'Export format (xlsx)',
+  })
+  async exportParents(@Query('format') format: string = 'xlsx') {
+    const result = await this.parentService.exportParents(format);
+    return {
+      filename: result.filename,
+      mime: result.mime,
+      data: result.buffer.toString('base64'),
+    };
+  }
+
   @Get('me')
   @Roles(UserRole.PARENT)
   async getMyProfile(@CurrentUser() user: { id: string }) {
