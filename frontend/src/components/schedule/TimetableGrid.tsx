@@ -84,15 +84,21 @@ const DroppableCell: React.FC<DroppableCellProps> = ({
   onRemoveAssignment,
 }) => {
   const { dropZoneHighlight } = useScheduleStore();
-  const dropId = `${timeSlot.day}-${timeSlot.id}`;
+  // Ensure the day is properly normalized for consistent dropId generation
+  const normalizedDay =
+    timeSlot.day.charAt(0).toUpperCase() + timeSlot.day.slice(1).toLowerCase();
+  const dropId = `${normalizedDay}-${timeSlot.id}`;
 
   const { isOver, setNodeRef } = useDroppable({
     id: dropId,
     disabled: !isEditMode, // Only allow drops in edit mode
     data: {
       type: 'timeslot',
-      timeSlot,
-      day: timeSlot.day,
+      timeSlot: {
+        ...timeSlot,
+        day: normalizedDay, // Ensure consistent day format
+      },
+      day: normalizedDay,
       timeSlotId: timeSlot.id,
     },
   });
@@ -269,6 +275,27 @@ export const TimetableGrid: React.FC = () => {
     Record<string, TimeSlot[]>
   >({});
 
+  // Helpers: normalize day/time for robust comparisons
+  const normalizeDayName = (d: string) => {
+    if (!d) return d;
+    const lower = d.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  };
+  const normalizeTime = (t?: string) => {
+    if (!t) return '';
+    const trimmed = t.trim();
+    // Match H:mm, HH:mm, H:mm:ss, HH:mm:ss
+    const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (match) {
+      const hour = match[1].padStart(2, '0');
+      const minute = match[2];
+      return `${hour}:${minute}`;
+    }
+    // Fallback: if in ISO or other format, try first 5 chars if it resembles time
+    if (/^\d{2}:\d{2}/.test(trimmed)) return trimmed.slice(0, 5);
+    return trimmed;
+  };
+
   // Group time slots by day (normalize casing)
   useEffect(() => {
     // Fallback: derive synthetic timeslots from timetableSlots if backend timeslots not loaded
@@ -276,60 +303,99 @@ export const TimetableGrid: React.FC = () => {
     if (source.length === 0 && timetableSlots.length > 0) {
       const synthetic: TimeSlot[] = timetableSlots
         .filter(s => s.timeslot)
-        .map(s => ({
-          id: s.timeSlotId,
-          day:
-            (s.timeslot?.day
-              ? s.timeslot.day.charAt(0).toUpperCase() +
-                s.timeslot.day.slice(1).toLowerCase()
-              : null) ||
-            (s.day
-              ? s.day.charAt(0).toUpperCase() + s.day.slice(1).toLowerCase()
-              : null) ||
-            'Monday',
-          startTime: s.timeslot?.startTime || '00:00',
-          endTime: s.timeslot?.endTime || '00:00',
-          type:
-            (s.timeslot?.type?.toLowerCase() === 'regular'
-              ? 'regular'
-              : s.timeslot?.type?.toLowerCase()) || 'regular',
-          label: s.timeslot?.label || undefined,
-          classId: s.timeslot?.id,
-        }));
-      // Deduplicate by id
+        .map(s => {
+          // CRITICAL FIX: Use schedule slot's day first, then fall back to timeslot's day
+          // This ensures Monday slots don't get overridden by Sunday timeslot day
+          const correctDay = s.day || s.timeslot?.day || 'Monday';
+          const normalizedDay =
+            correctDay.charAt(0).toUpperCase() +
+            correctDay.slice(1).toLowerCase();
+
+          return {
+            id: s.timeSlotId,
+            day: normalizedDay,
+            startTime: s.timeslot?.startTime || '00:00',
+            endTime: s.timeslot?.endTime || '00:00',
+            type:
+              (s.timeslot?.type?.toLowerCase() === 'regular'
+                ? 'regular'
+                : s.timeslot?.type?.toLowerCase()) || 'regular',
+            label: s.timeslot?.label || undefined,
+            classId: s.timeslot?.id,
+          };
+        });
+
+      // Deduplicate by day + time only (ID-independent) to preserve identical periods on different days
       const seen = new Set<string>();
       source = synthetic.filter(ts => {
-        if (seen.has(ts.id)) return false;
-        seen.add(ts.id);
+        const compositeKey = `${ts.day}-${normalizeTime(ts.startTime)}-${normalizeTime(ts.endTime)}`;
+        if (seen.has(compositeKey)) return false;
+        seen.add(compositeKey);
         return true;
       });
     }
-    const normalizeDay = (d: string) => {
-      if (!d) return d;
-      const lower = d.toLowerCase();
-      return lower.charAt(0).toUpperCase() + lower.slice(1);
-    };
+
+    const normalizeDay = normalizeDayName;
+
+    // Completely revamped grouping logic to ensure day-specific timeslots
     const grouped = source.reduce(
       (acc, slot) => {
+        // Ensure we have a valid day - this is critical
+        if (!slot.day) {
+          console.warn('Timeslot missing day information:', slot);
+          return acc;
+        }
+
+        // Normalize day name for consistent lookup
         const dayKey = normalizeDay(slot.day);
+
+        // Normalize slot type for consistent display
         const normalizedType =
           slot.type?.toLowerCase() === 'regular' || slot.type === 'REGULAR'
             ? 'regular'
-            : slot.type?.toLowerCase();
+            : slot.type?.toLowerCase() === 'period'
+              ? 'regular'
+              : slot.type?.toLowerCase();
+
+        // Create a normalized timeslot with proper day and type values
         const normalized: TimeSlot = {
           ...slot,
           day: dayKey,
+          // Persist times in HH:mm to avoid HH:mm:ss mismatches
+          startTime: normalizeTime(slot.startTime),
+          endTime: normalizeTime(slot.endTime),
           type: normalizedType || slot.type,
         };
+
+        // Initialize array for this day if it doesn't exist
         if (!acc[dayKey]) acc[dayKey] = [];
-        acc[dayKey].push(normalized);
+
+        // Check if this exact timeslot already exists for this day
+        const existingSlotIndex = acc[dayKey].findIndex(
+          existing =>
+            existing.id === slot.id &&
+            existing.startTime === normalizeTime(slot.startTime) &&
+            existing.endTime === normalizeTime(slot.endTime),
+        );
+
+        // Replace if exists, otherwise add
+        if (existingSlotIndex >= 0) {
+          acc[dayKey][existingSlotIndex] = normalized;
+        } else {
+          // Add the timeslot to its specific day
+          acc[dayKey].push(normalized);
+        }
+
         return acc;
       },
       {} as Record<string, TimeSlot[]>,
     );
+
+    // Sort timeslots by start time within each day
     Object.keys(grouped).forEach(day => {
       grouped[day].sort((a, b) => a.startTime.localeCompare(b.startTime));
     });
+
     setGroupedTimeSlots(grouped);
   }, [timeSlots, timetableSlots]);
 
@@ -341,32 +407,51 @@ export const TimetableGrid: React.FC = () => {
     'Thursday',
     'Friday',
   ];
+  // CRITICAL FIX: Ensure availableDays maintains the predefined order regardless of groupedTimeSlots key order
   const availableDays = days.filter(
     day => (groupedTimeSlots[day]?.length || 0) > 0,
   );
 
-  // Get unique time periods across all days for consistent grid
-  const allTimePeriods = Array.from(
-    new Set(timeSlots.map(slot => `${slot.startTime}-${slot.endTime}`)),
-  ).sort();
+  // Build a simple lookup: period -> day -> timeslot
+  // CRITICAL: Use availableDays order to ensure consistent column ordering
+  const periodToDaySlots: Record<string, Record<string, TimeSlot>> = {};
+  availableDays.forEach(day => {
+    const daySlots = groupedTimeSlots[day] || [];
+    daySlots.forEach(slot => {
+      const period = `${normalizeTime(slot.startTime)}-${normalizeTime(slot.endTime)}`;
+      if (!periodToDaySlots[period]) periodToDaySlots[period] = {};
+      periodToDaySlots[period][day] = slot;
+    });
+  });
+
+  // All unique periods across days
+  const uniqueTimePeriods = Object.keys(periodToDaySlots).sort();
 
   const getAssignmentForSlot = (
     day: string,
     timeSlotId: string,
   ): TimetableSlot | undefined => {
-    return timetableSlots.find(
-      slot => slot.day === day && slot.timeSlotId === timeSlotId,
-    );
+    // Ensure we only match slots that have an actual subject assigned
+    // This prevents "Unknown Subject" placeholders from appearing
+    return timetableSlots.find(slot => {
+      // Use the day from the timeslot data, not from the schedule slot
+      // This ensures we get the correct day information
+      const correctDay = slot.timeslot?.day || slot.day;
+      return (
+        correctDay.toLowerCase() === day.toLowerCase() &&
+        slot.timeSlotId === timeSlotId &&
+        slot.subjectId
+      ); // Only return slots with an actual subject assigned
+    });
   };
 
+  // Modified to ensure we only return timeslots that exactly match the day and time period
   const getTimeSlotForPeriod = (
     day: string,
     period: string,
   ): TimeSlot | undefined => {
-    const [startTime, endTime] = period.split('-');
-    return groupedTimeSlots[day]?.find(
-      slot => slot.startTime === startTime && slot.endTime === endTime,
-    );
+    const normalizedDay = normalizeDayName(day);
+    return periodToDaySlots[period]?.[normalizedDay];
   };
 
   if (availableDays.length === 0) {
@@ -426,13 +511,14 @@ export const TimetableGrid: React.FC = () => {
             </tr>
           </thead>
 
-          {/* Table Body */}
+          {/* Table Body - Simplified and Fixed */}
           <tbody className='bg-white divide-y divide-gray-200'>
-            {allTimePeriods.map((period, periodIndex) => {
+            {/* We now iterate through our unique time periods list */}
+            {uniqueTimePeriods.map(period => {
               const [startTime, endTime] = period.split('-');
 
               return (
-                <tr key={period} className='hover:bg-gray-50'>
+                <tr key={`period-${period}`} className='hover:bg-gray-50'>
                   {/* Time Column */}
                   <td className='w-24 px-4 py-2 border-r border-gray-200 bg-gray-50'>
                     <div className='text-center'>
@@ -447,15 +533,14 @@ export const TimetableGrid: React.FC = () => {
 
                   {/* Day Columns */}
                   {availableDays.map(day => {
-                    const timeSlot = getTimeSlotForPeriod(day, period);
-                    const assignment = timeSlot
-                      ? getAssignmentForSlot(day, timeSlot.id)
-                      : undefined;
+                    // Check if this day has this specific time period
+                    const hasPeriod = !!periodToDaySlots[period]?.[day];
 
-                    if (!timeSlot) {
+                    // If this day doesn't have this period, render an empty cell
+                    if (!hasPeriod) {
                       return (
                         <td
-                          key={`${day}-${periodIndex}`}
+                          key={`${day}-empty-${period}`}
                           className='border-r border-gray-200 last:border-r-0 bg-gray-100 min-h-[80px]'
                         >
                           <div className='flex items-center justify-center h-20 text-gray-400'>
@@ -465,15 +550,42 @@ export const TimetableGrid: React.FC = () => {
                       );
                     }
 
+                    // Find the timeslot for this day and period
+                    const timeSlot = getTimeSlotForPeriod(day, period);
+
+                    // Get assignment for this specific timeslot
+                    const assignment = timeSlot
+                      ? getAssignmentForSlot(day, timeSlot.id)
+                      : undefined;
+
+                    // If we found a timeslot, render a droppable cell
+                    if (timeSlot) {
+                      return (
+                        <td
+                          key={`${day}-${timeSlot.id}`}
+                          className='border-r border-gray-200 last:border-r-0'
+                        >
+                          <DroppableCell
+                            timeSlot={timeSlot}
+                            assignment={assignment}
+                            isEditMode={isEditMode}
+                            onAssignTeacher={openTeacherModal}
+                            onRemoveAssignment={removeAssignmentFromSlot}
+                          />
+                        </td>
+                      );
+                    }
+
+                    // Fallback - should not happen but just in case
                     return (
-                      <DroppableCell
-                        key={`${day}-${timeSlot.id}`}
-                        timeSlot={timeSlot}
-                        assignment={assignment}
-                        isEditMode={isEditMode}
-                        onAssignTeacher={openTeacherModal}
-                        onRemoveAssignment={removeAssignmentFromSlot}
-                      />
+                      <td
+                        key={`${day}-fallback-${period}`}
+                        className='border-r border-gray-200 last:border-r-0 bg-gray-100 min-h-[80px]'
+                      >
+                        <div className='flex items-center justify-center h-20 text-gray-400'>
+                          <span className='text-xs'>No Slot</span>
+                        </div>
+                      </td>
                     );
                   })}
                 </tr>

@@ -319,7 +319,6 @@ export class HttpClient {
                   constraints?: Record<string, string>;
                 },
               ) => {
-                // Extract the property and constraints
                 const property = error.property;
                 const constraints =
                   Object.values(error.constraints || {})[0] || 'Invalid value';
@@ -329,9 +328,10 @@ export class HttpClient {
               {},
             );
 
-            // Create a user-friendly error message
-            errorMessage =
-              'Validation failed. Please check the highlighted fields.';
+            // Instead of generic message, use first validation error
+            const firstErrorMessage =
+              Object.values(validationErrors)[0] || 'Invalid value';
+            errorMessage = firstErrorMessage;
           }
 
           // Handle other common error formats

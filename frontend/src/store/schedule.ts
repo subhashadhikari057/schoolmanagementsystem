@@ -625,17 +625,52 @@ export const useScheduleStore = create<ScheduleState>()(
         day: string,
         subject: Subject,
       ) => {
+        // Normalize day for consistent comparison
+        const normalizedDay =
+          day.charAt(0).toUpperCase() + day.slice(1).toLowerCase();
+
+        // Find the base timeslot to get its type
         const baseTs = get().timeSlots.find(t => t.id === timeSlotId);
-        const normalizedType = baseTs
-          ? baseTs.type?.toLowerCase() === 'regular'
+
+        if (!baseTs) {
+          console.error(
+            `Cannot assign subject: timeslot with ID ${timeSlotId} not found`,
+          );
+          return;
+        }
+
+        // Ensure we're only assigning to slots for the correct day
+        if (baseTs.day.toLowerCase() !== normalizedDay.toLowerCase()) {
+          console.error(
+            `Timeslot day mismatch: ${baseTs.day} vs ${normalizedDay}`,
+          );
+          return;
+        }
+
+        // Normalize the type for consistent handling
+        const normalizedType =
+          baseTs.type?.toLowerCase() === 'regular' ||
+          baseTs.type?.toLowerCase() === 'period'
             ? 'regular'
-            : baseTs.type?.toLowerCase() === 'period'
-              ? 'regular'
-              : baseTs.type?.toLowerCase()
-          : 'regular';
-        const existingSlotIndex = get().timetableSlots.findIndex(
-          slot => slot.timeSlotId === timeSlotId && slot.day === day,
-        );
+            : baseTs.type?.toLowerCase();
+
+        // Only allow assignments to regular/period slots
+        if (normalizedType !== 'regular') {
+          console.warn(
+            `Cannot assign to non-regular timeslot type: ${baseTs.type}`,
+          );
+          return;
+        }
+
+        // Find if there's an existing assignment for this exact timeslot and day
+        // Use the correct day from the timeslot data, not from the schedule slot
+        const existingSlotIndex = get().timetableSlots.findIndex(slot => {
+          const correctDay = slot.timeslot?.day || slot.day;
+          return (
+            slot.timeSlotId === timeSlotId &&
+            correctDay.toLowerCase() === normalizedDay.toLowerCase()
+          );
+        });
 
         if (existingSlotIndex >= 0) {
           // Update existing slot
@@ -666,7 +701,8 @@ export const useScheduleStore = create<ScheduleState>()(
             scheduleId: get().currentSchedule?.id || '',
             timeSlotId,
             timeslotId: timeSlotId,
-            day,
+            // Use the correct day from the timeslot data
+            day: baseTs?.day || day,
             subjectId: subject.id,
             teacherId: undefined,
             roomId: undefined,
@@ -678,6 +714,17 @@ export const useScheduleStore = create<ScheduleState>()(
               code: subject.code,
               description: subject.description,
             },
+            // Include the timeslot data for reference
+            timeslot: baseTs
+              ? {
+                  id: baseTs.id,
+                  day: baseTs.day,
+                  startTime: baseTs.startTime,
+                  endTime: baseTs.endTime,
+                  type: baseTs.type,
+                  label: baseTs.label,
+                }
+              : undefined,
           };
 
           set(state => ({

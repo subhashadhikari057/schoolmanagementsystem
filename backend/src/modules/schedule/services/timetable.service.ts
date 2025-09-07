@@ -42,6 +42,25 @@ export class TimetableService {
       activeScheduleId = activeSchedule.id;
     }
 
+    // First, get all timeslots for this class to ensure we have the correct day information
+    const classTimeslots = await this.prisma.classTimeslot.findMany({
+      where: {
+        classId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        day: true,
+        startTime: true,
+        endTime: true,
+        type: true,
+        label: true,
+      },
+    });
+
+    // Create a map of timeslot IDs to their full details for quick lookup
+    const timeslotMap = new Map(classTimeslots.map(ts => [ts.id, ts]));
+
     const timetableSlots = await this.prisma.scheduleSlot.findMany({
       where: {
         scheduleId: activeScheduleId,
@@ -95,6 +114,31 @@ export class TimetableService {
       orderBy: [{ day: 'asc' }, { timeslot: { startTime: 'asc' } }],
     });
 
+    // Ensure each schedule slot uses the correct day from its associated timeslot
+    for (const slot of timetableSlots) {
+      // Get the original timeslot data
+      const originalTimeslot = timeslotMap.get(slot.timeslotId);
+
+      if (originalTimeslot) {
+        // Ensure the day in the schedule slot matches the day in the timeslot
+        if (slot.day !== originalTimeslot.day) {
+          // Update the day to match the timeslot's day
+          await this.prisma.scheduleSlot.update({
+            where: { id: slot.id },
+            data: { day: originalTimeslot.day },
+          });
+
+          // Update the day in the current object for immediate use
+          slot.day = originalTimeslot.day;
+
+          // Also update the embedded timeslot data
+          if (slot.timeslot) {
+            slot.timeslot.day = originalTimeslot.day;
+          }
+        }
+      }
+    }
+
     // Check for conflicts if requested
     if (includeConflicts) {
       for (const slot of timetableSlots) {
@@ -120,7 +164,7 @@ export class TimetableService {
     assignDto: AssignSubjectToTimeslotDto,
     userId: string,
   ): Promise<TimetableSlotDto> {
-    const { scheduleId, timeslotId, day, subjectId } = assignDto;
+    const { scheduleId, timeslotId, subjectId } = assignDto; // Remove 'day' as we'll use the timeslot's day
 
     // Verify schedule exists
     const schedule = await this.prisma.classSchedule.findUnique({
@@ -149,12 +193,15 @@ export class TimetableService {
       throw new NotFoundException(`Subject with ID ${subjectId} not found`);
     }
 
-    // Check if slot already exists
+    // Use the day from the timeslot to ensure consistency
+    const correctDay = timeslot.day;
+
+    // Check if slot already exists - use the timeslot's day, not the provided day
     const existingSlot = await this.prisma.scheduleSlot.findFirst({
       where: {
         scheduleId,
         timeslotId,
-        day,
+        day: correctDay, // Use the correct day from the timeslot
         deletedAt: null,
       },
     });
@@ -169,6 +216,7 @@ export class TimetableService {
           teacherId: null, // Reset teacher when changing subject
           updatedById: userId,
           updatedAt: new Date(),
+          day: correctDay, // Ensure day is consistent with timeslot
         },
         include: {
           timeslot: {
@@ -222,7 +270,7 @@ export class TimetableService {
         data: {
           scheduleId,
           timeslotId,
-          day,
+          day: correctDay, // Use the day from the timeslot, not the provided day
           subjectId,
           type: timeslot.type,
           createdById: userId,

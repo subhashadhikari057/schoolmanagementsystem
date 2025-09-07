@@ -153,7 +153,11 @@ const AddSubjectFormModal: React.FC<AddSubjectFormModalProps> = ({
       // Handle teachers response
       if (teachersResponse.success && teachersResponse.data) {
         console.log('Setting teachers:', teachersResponse.data);
-        setTeachers(teachersResponse.data);
+        // Handle both direct array and paginated response
+        const teacherList = Array.isArray(teachersResponse.data)
+          ? teachersResponse.data
+          : teachersResponse.data.data;
+        setTeachers(teacherList);
       } else {
         console.error('Teachers fetch failed:', teachersResponse.message);
         if (

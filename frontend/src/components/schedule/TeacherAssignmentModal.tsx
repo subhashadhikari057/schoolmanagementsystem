@@ -33,8 +33,13 @@ export function TeacherAssignmentModal() {
       const service = new TeacherService();
       const resp = await service.getAllTeachers();
       if (resp.success && resp.data) {
+        // Handle both direct array and paginated response
+        const teacherList = Array.isArray(resp.data)
+          ? resp.data
+          : resp.data.data;
+
         // Map API response to Teacher shape expected by store
-        const mapped: Teacher[] = resp.data.map(t => ({
+        const mapped: Teacher[] = teacherList.map(t => ({
           id: t.id,
           userId: t.id, // backend Teacher entity id; userId not directly returned in list, reuse id
           employeeId: t.employeeId,

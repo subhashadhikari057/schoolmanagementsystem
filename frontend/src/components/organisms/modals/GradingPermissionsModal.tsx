@@ -89,7 +89,11 @@ const GradingPermissionsModal: React.FC<GradingPermissionsModalProps> = ({
         subjectService.getAllSubjects(),
       ]);
 
-      setTeachers(teachersRes.data || []);
+      // Handle both direct array and paginated response
+      const teacherList = Array.isArray(teachersRes.data)
+        ? teachersRes.data
+        : teachersRes.data?.data || [];
+      setTeachers(teacherList);
       setClasses(classesRes.data || []);
       setSubjects(subjectsRes.data || []);
 

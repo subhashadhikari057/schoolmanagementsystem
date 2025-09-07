@@ -67,6 +67,7 @@ model User {
   examResultsModified             ExamResult[]                  @relation("ExamResultModifiedBy")
   gradeHistoryEntries             StudentGradeHistory[]         @relation("StudentGradeHistoryGradedBy")
   passwordResetOtps               PasswordResetOtp[]
+  promotionBatchesExecuted        PromotionBatch[]              @relation("PromotionBatchExecutor")
 
   @@index([createdById])
   @@index([updatedById])
@@ -154,6 +155,8 @@ model Class {
   examSchedules           ExamSchedule[]
   gradingPermissions      GradingPermission[]
   gradeHistory            StudentGradeHistory[]
+  promotionsFrom          PromotionRecord[]     @relation("PromotionFromClass")
+  promotionsTo            PromotionRecord[]     @relation("PromotionToClass")
 
   @@index([createdById])
   @@index([updatedById])
@@ -271,6 +274,7 @@ model Student {
   submissions            Submission[]
   examResults            ExamResult[]
   gradeHistory           StudentGradeHistory[]
+  promotionRecords       PromotionRecord[]
 
   @@unique([classId, rollNumber])
   @@index([userId])
@@ -2162,4 +2166,89 @@ model SchoolInformation {
   updatedById     String?   @db.Uuid
 
   @@map("school_information")
+}
+
+model AcademicYear {
+  id                String             @id @default(uuid())
+  year              String             @unique // e.g., "2024-2025"
+  startDate         DateTime           @db.Date
+  endDate           DateTime           @db.Date
+  isCurrent         Boolean            @default(false)
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime?          @updatedAt
+  createdById       String?            @db.Uuid
+  updatedById       String?            @db.Uuid
+  promotionBatches  PromotionBatch[]
+
+  @@map("academic_years")
+}
+
+model PromotionBatch {
+  id                String             @id @default(uuid())
+  academicYearId    String
+  fromAcademicYear  String             // e.g., "2024-2025"
+  toAcademicYear    String             // e.g., "2025-2026"
+  status            PromotionStatus    @default(PENDING)
+  totalStudents     Int                @default(0)
+  promotedStudents  Int                @default(0)
+  retainedStudents  Int                @default(0)
+  graduatedStudents Int                @default(0)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  executedById      String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime?          @updatedAt
+  createdById       String?            @db.Uuid
+  updatedById       String?            @db.Uuid
+  academicYear      AcademicYear       @relation(fields: [academicYearId], references: [id])
+  executedBy        User?              @relation("PromotionBatchExecutor", fields: [executedById], references: [id])
+  promotionRecords  PromotionRecord[]
+
+  @@map("promotion_batches")
+}
+
+model PromotionRecord {
+  id                  String             @id @default(uuid())
+  batchId             String
+  studentId           String
+  fromClassId         String
+  toClassId           String?            // null if graduated
+  promotionType       PromotionType
+  status              PromotionStatus    @default(PENDING)
+  reason              String?            // reason for retention/graduation
+  isEligible          Boolean            @default(true)
+  ineligibilityReasons String[]         @default([])
+  attendancePercentage Decimal?         @db.Decimal(5, 2)
+  gpa                 Decimal?           @db.Decimal(4, 2)
+  processedAt         DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime?          @updatedAt
+  createdById         String?            @db.Uuid
+  updatedById         String?            @db.Uuid
+  batch               PromotionBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student             Student            @relation(fields: [studentId], references: [id])
+  fromClass           Class              @relation("PromotionFromClass", fields: [fromClassId], references: [id])
+  toClass             Class?             @relation("PromotionToClass", fields: [toClassId], references: [id])
+
+  @@unique([batchId, studentId])
+  @@index([studentId])
+  @@index([fromClassId])
+  @@index([toClassId])
+  @@index([promotionType])
+  @@index([status])
+  @@map("promotion_records")
+}
+
+enum PromotionType {
+  PROMOTED
+  RETAINED
+  GRADUATED
+}
+
+enum PromotionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
 }
