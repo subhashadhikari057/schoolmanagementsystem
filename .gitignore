@@ -323,4 +323,10 @@ fixtures/generated/
 scripts/dev-*
 scripts/local-*
 
+# Package files (should not be tracked)
+package-lock.json
+frontend/package.json
+frontend/package-lock.json
+frontend/node_modules/
+
 # End of .gitignore 
