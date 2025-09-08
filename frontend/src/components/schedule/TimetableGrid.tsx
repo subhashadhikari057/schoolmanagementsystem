@@ -256,12 +256,12 @@ const DroppableCell: React.FC<DroppableCellProps> = ({
 
   const getCellClassName = () => {
     const baseClasses = `
-      relative border border-gray-200 transition-all duration-300 group
-      min-h-[120px] flex flex-col rounded-lg
+      relative transition-all duration-300 group h-full w-full
+      min-h-[120px] flex flex-col rounded-lg p-1
     `;
 
     if (isBreakTime || isLunchTime) {
-      return `${baseClasses} bg-orange-50 border-orange-200`;
+      return `${baseClasses} bg-orange-50 border-orange-200 border`;
     }
 
     if (isHighlighted) {
@@ -270,20 +270,20 @@ const DroppableCell: React.FC<DroppableCellProps> = ({
 
     if (hasAssignment) {
       const conflictClasses = assignment?.hasConflict
-        ? 'bg-amber-50 border-amber-300 shadow-sm'
-        : 'bg-green-50 border-green-300 shadow-sm';
+        ? 'bg-amber-50 border-amber-300 shadow-sm border'
+        : 'bg-green-50 border-green-300 shadow-sm border';
       return `${baseClasses} ${conflictClasses} hover:shadow-md hover:scale-[1.01]`;
     }
     if (isRegular) {
-      return `${baseClasses} bg-white hover:bg-blue-50 border-dashed hover:border-blue-300 hover:shadow-sm`;
+      return `${baseClasses} bg-white hover:bg-blue-50 border-dashed border-gray-300 hover:border-blue-300 hover:shadow-sm border`;
     }
-    return `${baseClasses} bg-gray-50`;
+    return `${baseClasses} bg-gray-50 border border-gray-200`;
   };
 
   return (
-    <td ref={setNodeRef} className={getCellClassName()}>
+    <div ref={setNodeRef} className={getCellClassName()}>
       {getCellContent()}
-    </td>
+    </div>
   );
 };
 

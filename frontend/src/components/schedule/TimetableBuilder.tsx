@@ -4,6 +4,9 @@ import {
   DragEndEvent,
   DragStartEvent,
   DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
 } from '@dnd-kit/core';
 import {
   Book,
@@ -52,6 +55,15 @@ const DraggedSubjectOverlay: React.FC<{ subject: Subject }> = ({ subject }) => (
 );
 
 export function TimetableBuilder() {
+  // Configure drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+  );
+
   const {
     selectedClassId,
     selectedClass,
@@ -1215,7 +1227,11 @@ export function TimetableBuilder() {
   }
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div className='space-y-6'>
         {/* Header with Actions */}
         <div className='bg-white rounded-lg border border-gray-200 p-6'>
