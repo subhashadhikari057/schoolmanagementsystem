@@ -105,8 +105,10 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
           },
         ];
       case 'teacher':
-        // For teachers: view, edit, toggle-status, delete
-        return allActions;
+        // For teachers: view, edit, toggle-status, delete (NO attendance)
+        return allActions.filter(action =>
+          ['view', 'edit', 'toggle-status', 'delete'].includes(action.action),
+        );
       case 'staff':
         // For staff: view, edit, delete (no status toggle for now)
         return allActions.filter(action =>

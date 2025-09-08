@@ -116,28 +116,40 @@ const DroppableCell: React.FC<DroppableCellProps> = ({
   const getCellContent = () => {
     if (isBreakTime) {
       return (
-        <div className='flex items-center justify-center h-full text-orange-600'>
-          <Coffee className='w-4 h-4 mr-2' />
-          <span className='text-sm font-medium'>Break</span>
+        <div className='flex items-center justify-center h-full text-orange-700 bg-orange-50 rounded-lg border border-orange-200'>
+          <div className='text-center py-2'>
+            <div className='flex items-center justify-center w-10 h-10 bg-orange-100 rounded-full mb-2 mx-auto'>
+              <Coffee className='w-5 h-5 text-orange-700' />
+            </div>
+            <span className='text-sm font-semibold'>Break Time</span>
+          </div>
         </div>
       );
     }
 
     if (isLunchTime) {
       return (
-        <div className='flex items-center justify-center h-full text-green-600'>
-          <Utensils className='w-4 h-4 mr-2' />
-          <span className='text-sm font-medium'>Lunch</span>
+        <div className='flex items-center justify-center h-full text-green-700 bg-green-50 rounded-lg border border-green-200'>
+          <div className='text-center py-2'>
+            <div className='flex items-center justify-center w-10 h-10 bg-green-100 rounded-full mb-2 mx-auto'>
+              <Utensils className='w-5 h-5 text-green-700' />
+            </div>
+            <span className='text-sm font-semibold'>Lunch Break</span>
+          </div>
         </div>
       );
     }
 
     if (!hasAssignment && isRegular) {
       return (
-        <div className='flex items-center justify-center h-full text-gray-400'>
-          <div className='text-center'>
-            <BookOpen className='w-6 h-6 mx-auto mb-1 opacity-50' />
-            <p className='text-xs'>Drop subject here</p>
+        <div className='flex items-center justify-center h-full text-gray-400 transition-all duration-300 group-hover:text-blue-600'>
+          <div className='text-center py-4'>
+            <div className='flex items-center justify-center w-12 h-12 bg-gray-50 rounded-full mb-2 mx-auto border-2 border-dashed border-gray-300 group-hover:border-blue-400 transition-all duration-300'>
+              <BookOpen className='w-6 h-6 opacity-50 group-hover:opacity-70 transition-all duration-300 text-gray-500 group-hover:text-blue-500' />
+            </div>
+            <p className='text-xs font-medium group-hover:text-blue-600 transition-colors'>
+              Drop subject here
+            </p>
           </div>
         </div>
       );
@@ -154,30 +166,36 @@ const DroppableCell: React.FC<DroppableCellProps> = ({
     }
 
     return assignment ? (
-      <div className='p-3 h-full'>
+      <div className='p-4 h-full flex flex-col justify-between bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200'>
         {/* Subject Info */}
-        <div className='flex items-center justify-between mb-2'>
+        <div className='flex items-center justify-between mb-3'>
           <div className='flex-1 min-w-0'>
-            <h4 className='text-sm font-semibold text-gray-900 truncate'>
+            <h4 className='text-sm font-semibold text-gray-900 truncate mb-1'>
               {assignment.subject?.name || 'Unknown Subject'}
             </h4>
-            <p className='text-xs text-gray-600'>
+            <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-md border border-blue-100'>
               {assignment.subject?.code || 'N/A'}
-            </p>
+            </span>
           </div>
 
           {/* Conflict Warning */}
           {assignment.hasConflict && (
-            <AlertTriangle className='w-4 h-4 text-amber-500 flex-shrink-0' />
+            <div className='flex-shrink-0 ml-2'>
+              <div className='flex items-center justify-center w-6 h-6 bg-amber-50 rounded-full border border-amber-200'>
+                <AlertTriangle className='w-4 h-4 text-amber-600' />
+              </div>
+            </div>
           )}
         </div>
 
         {/* Teacher Info */}
-        <div className='mb-2'>
+        <div className='mb-3'>
           {assignment.teacher ? (
-            <div className='flex items-center text-xs text-blue-600'>
-              <User className='w-3 h-3 mr-1 flex-shrink-0' />
-              <span className='truncate'>
+            <div className='flex items-center text-xs text-blue-700 bg-blue-50 px-3 py-2 rounded-md border border-blue-100'>
+              <div className='flex items-center justify-center w-4 h-4 bg-blue-100 rounded-full mr-2'>
+                <User className='w-2.5 h-2.5 text-blue-600' />
+              </div>
+              <span className='truncate font-medium'>
                 {assignment.teacher.user.fullName}
               </span>
             </div>
@@ -186,14 +204,18 @@ const DroppableCell: React.FC<DroppableCellProps> = ({
               onClick={() =>
                 assignment && isEditMode && onAssignTeacher(assignment)
               }
-              className='flex items-center text-xs text-gray-500 hover:text-blue-600 transition-colors'
+              className='flex items-center text-xs text-gray-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-md transition-all w-full border border-gray-200 hover:border-blue-300'
             >
-              <User className='w-3 h-3 mr-1' />
-              <span>Assign Teacher</span>
+              <div className='flex items-center justify-center w-4 h-4 bg-gray-50 rounded-full mr-2'>
+                <User className='w-2.5 h-2.5' />
+              </div>
+              <span className='font-medium'>Assign Teacher</span>
             </button>
           ) : (
-            <div className='text-xs text-gray-400 italic flex items-center'>
-              <User className='w-3 h-3 mr-1' />
+            <div className='text-xs text-gray-500 italic flex items-center px-3 py-2 bg-gray-50 rounded-md border border-gray-200'>
+              <div className='flex items-center justify-center w-4 h-4 bg-gray-100 rounded-full mr-2'>
+                <User className='w-2.5 h-2.5 text-gray-400' />
+              </div>
               <span>No teacher</span>
             </div>
           )}
@@ -201,24 +223,27 @@ const DroppableCell: React.FC<DroppableCellProps> = ({
 
         {/* Room Info */}
         {assignment.room && (
-          <div className='flex items-center text-xs text-gray-600 mb-2'>
-            <span>Room: {assignment.room.roomNo}</span>
+          <div className='flex items-center text-xs text-gray-700 bg-gray-50 px-3 py-2 rounded-md border border-gray-200 mb-2'>
+            <div className='flex items-center justify-center w-4 h-4 bg-gray-100 rounded-full mr-2'>
+              <span className='text-xs font-bold text-gray-600'>R</span>
+            </div>
+            <span className='font-medium'>Room {assignment.room.roomNo}</span>
           </div>
         )}
 
         {/* Action Buttons */}
         {isEditMode && (
-          <div className='flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity'>
+          <div className='flex items-center justify-end space-x-2 pt-2 border-t border-gray-100 opacity-0 group-hover:opacity-100 transition-all duration-300'>
             <button
               onClick={() => assignment && onAssignTeacher(assignment)}
-              className='p-1 text-gray-400 hover:text-blue-600 transition-colors'
+              className='p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all duration-200'
               title='Edit assignment'
             >
               <Edit3 className='w-3 h-3' />
             </button>
             <button
               onClick={() => assignment && onRemoveAssignment(assignment.id)}
-              className='p-1 text-gray-400 hover:text-red-600 transition-colors'
+              className='p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all duration-200'
               title='Remove assignment'
             >
               <Trash2 className='w-3 h-3' />
@@ -231,26 +256,26 @@ const DroppableCell: React.FC<DroppableCellProps> = ({
 
   const getCellClassName = () => {
     const baseClasses = `
-      relative border border-gray-200 transition-all duration-200 group
-      min-h-[80px] flex flex-col
+      relative border border-gray-200 transition-all duration-300 group
+      min-h-[120px] flex flex-col rounded-lg
     `;
 
     if (isBreakTime || isLunchTime) {
-      return `${baseClasses} bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300`;
+      return `${baseClasses} bg-orange-50 border-orange-200`;
     }
 
     if (isHighlighted) {
-      return `${baseClasses} bg-blue-50 border-blue-300 border-2 shadow-sm`;
+      return `${baseClasses} bg-blue-50 border-blue-400 border-2 shadow-md transform scale-[1.01] z-10`;
     }
 
     if (hasAssignment) {
       const conflictClasses = assignment?.hasConflict
-        ? 'bg-amber-50 border-amber-200'
-        : 'bg-green-50 border-green-200';
-      return `${baseClasses} ${conflictClasses} hover:shadow-sm`;
+        ? 'bg-amber-50 border-amber-300 shadow-sm'
+        : 'bg-green-50 border-green-300 shadow-sm';
+      return `${baseClasses} ${conflictClasses} hover:shadow-md hover:scale-[1.01]`;
     }
     if (isRegular) {
-      return `${baseClasses} bg-white hover:bg-blue-50 border-dashed`;
+      return `${baseClasses} bg-white hover:bg-blue-50 border-dashed hover:border-blue-300 hover:shadow-sm`;
     }
     return `${baseClasses} bg-gray-50`;
   };
@@ -491,43 +516,52 @@ export const TimetableGrid: React.FC = () => {
         </div>
       </div>
 
-      {/* Timetable Grid */}
-      <div className='overflow-x-auto'>
-        <table className='w-full'>
-          {/* Table Header */}
-          <thead className='bg-gray-50'>
+      {/* Professional Timetable Grid */}
+      <div className='overflow-x-auto bg-white rounded-lg shadow-md border border-gray-200'>
+        <table className='w-full table-fixed min-w-[1300px]'>
+          {/* Blue Table Header to Match Tab Color */}
+          <thead className='bg-blue-600 text-white'>
             <tr>
-              <th className='w-24 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200'>
-                Time
+              <th className='w-36 px-6 py-4 text-left text-sm font-semibold border-r border-blue-500'>
+                <div className='flex items-center space-x-2'>
+                  <Clock className='w-4 h-4 text-blue-200' />
+                  <span>Time Slot</span>
+                </div>
               </th>
               {availableDays.map(day => (
                 <th
                   key={day}
-                  className='px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0'
+                  className='px-4 py-4 text-center text-sm font-semibold border-r border-blue-500 last:border-r-0 min-w-[200px]'
                 >
-                  {day}
+                  <div>
+                    <div className='font-semibold'>{day}</div>
+                  </div>
                 </th>
               ))}
             </tr>
           </thead>
 
-          {/* Table Body - Simplified and Fixed */}
+          {/* Clean Table Body */}
           <tbody className='bg-white divide-y divide-gray-200'>
             {/* We now iterate through our unique time periods list */}
             {uniqueTimePeriods.map(period => {
               const [startTime, endTime] = period.split('-');
 
               return (
-                <tr key={`period-${period}`} className='hover:bg-gray-50'>
-                  {/* Time Column */}
-                  <td className='w-24 px-4 py-2 border-r border-gray-200 bg-gray-50'>
+                <tr
+                  key={`period-${period}`}
+                  className='hover:bg-gray-50 transition-colors duration-200'
+                >
+                  {/* Clean Time Column */}
+                  <td className='w-36 px-6 py-4 border-r border-gray-200 bg-gray-50'>
                     <div className='text-center'>
-                      <div className='text-xs font-medium text-gray-900'>
+                      <div className='text-sm font-semibold text-gray-900 mb-1'>
                         {startTime.slice(0, 5)}
                       </div>
-                      <div className='text-xs text-gray-700'>
-                        {endTime.slice(0, 5)}
+                      <div className='text-xs text-gray-600'>
+                        to {endTime.slice(0, 5)}
                       </div>
+                      <div className='mt-2 h-px w-8 bg-gray-300 mx-auto'></div>
                     </div>
                   </td>
 
@@ -536,15 +570,22 @@ export const TimetableGrid: React.FC = () => {
                     // Check if this day has this specific time period
                     const hasPeriod = !!periodToDaySlots[period]?.[day];
 
-                    // If this day doesn't have this period, render an empty cell
+                    // If this day doesn't have this period, render a clean empty cell
                     if (!hasPeriod) {
                       return (
                         <td
                           key={`${day}-empty-${period}`}
-                          className='border-r border-gray-200 last:border-r-0 bg-gray-100 min-h-[80px]'
+                          className='border-r border-gray-200 last:border-r-0 bg-gray-50 min-h-[120px] p-3'
                         >
-                          <div className='flex items-center justify-center h-20 text-gray-400'>
-                            <span className='text-xs'>No Slot</span>
+                          <div className='flex items-center justify-center h-24 text-gray-400 border-2 border-dashed border-gray-300 rounded-md hover:border-gray-400 transition-colors duration-300'>
+                            <div className='text-center'>
+                              <div className='w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-1'>
+                                <span className='text-sm text-gray-400'>∅</span>
+                              </div>
+                              <span className='text-xs font-medium text-gray-500'>
+                                No Slot
+                              </span>
+                            </div>
                           </div>
                         </td>
                       );
@@ -558,12 +599,12 @@ export const TimetableGrid: React.FC = () => {
                       ? getAssignmentForSlot(day, timeSlot.id)
                       : undefined;
 
-                    // If we found a timeslot, render a droppable cell
+                    // If we found a timeslot, render an enhanced droppable cell
                     if (timeSlot) {
                       return (
                         <td
                           key={`${day}-${timeSlot.id}`}
-                          className='border-r border-gray-200 last:border-r-0'
+                          className='border-r border-gray-200 last:border-r-0 p-2 min-h-[120px] w-full'
                         >
                           <DroppableCell
                             timeSlot={timeSlot}
@@ -576,13 +617,13 @@ export const TimetableGrid: React.FC = () => {
                       );
                     }
 
-                    // Fallback - should not happen but just in case
+                    // Clean fallback - should not happen but just in case
                     return (
                       <td
                         key={`${day}-fallback-${period}`}
-                        className='border-r border-gray-200 last:border-r-0 bg-gray-100 min-h-[80px]'
+                        className='border-r border-gray-200 last:border-r-0 bg-gray-50 min-h-[120px] p-3'
                       >
-                        <div className='flex items-center justify-center h-20 text-gray-400'>
+                        <div className='flex items-center justify-center h-24 text-gray-400 border border-dashed border-gray-300 rounded-md'>
                           <span className='text-xs'>No Slot</span>
                         </div>
                       </td>
@@ -595,13 +636,33 @@ export const TimetableGrid: React.FC = () => {
         </table>
       </div>
 
-      {/* Instructions */}
+      {/* Clean Professional Instructions */}
       <div className='px-6 py-3 bg-gray-50 border-t border-gray-200'>
-        <p className='text-xs text-gray-600 text-center'>
-          {isEditMode
-            ? '💡 Drag subjects into time slots • Click an assignment to manage teachers'
-            : 'Viewing timetable (switch to Edit Mode to modify)'}
-        </p>
+        <div className='flex items-center justify-center space-x-6 text-sm'>
+          {isEditMode ? (
+            <>
+              <div className='flex items-center space-x-2 text-blue-600'>
+                <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
+                <span className='font-medium'>
+                  💡 Drag subjects into time slots
+                </span>
+              </div>
+              <div className='flex items-center space-x-2 text-slate-600'>
+                <div className='w-2 h-2 bg-slate-500 rounded-full'></div>
+                <span className='font-medium'>
+                  📝 Click assignments to manage teachers
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className='flex items-center space-x-2 text-gray-600'>
+              <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+              <span className='font-medium'>
+                👁️ Viewing timetable (switch to Edit Mode to modify)
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

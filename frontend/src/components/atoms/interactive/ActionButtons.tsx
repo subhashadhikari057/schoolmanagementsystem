@@ -1009,54 +1009,48 @@ const getActionButtonsConfig = (
         ]
       : pageType === 'students'
         ? [] // Students have their own specific configuration
-        : [
-            {
-              id: 'import',
-              label: 'Import',
-              variant: 'import',
-              className:
-                'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
-              icon: <Upload size={16} />,
-              onClick: () => {
-                if (pageType === 'subjects') {
-                  alert(
-                    `📚 Import ${pageType} functionality will allow you to bulk upload subject data from CSV/Excel files. Feature coming soon!`,
-                  );
-                } else if (pageType === 'id-cards') {
-                  alert(
-                    `🆔 Import ID card data - Bulk upload card holder information and generate cards automatically. Feature coming soon!`,
-                  );
-                } else {
-                  alert(
-                    `📥 Import ${pageType} data from external files. This feature is under development.`,
-                  );
-                }
+        : pageType === 'subjects'
+          ? [] // Remove import/export for subjects
+          : [
+              {
+                id: 'import',
+                label: 'Import',
+                variant: 'import',
+                className:
+                  'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+                icon: <Upload size={16} />,
+                onClick: () => {
+                  if (pageType === 'id-cards') {
+                    alert(
+                      `🆔 Import ID card data - Bulk upload card holder information and generate cards automatically. Feature coming soon!`,
+                    );
+                  } else {
+                    alert(
+                      `📥 Import ${pageType} data from external files. This feature is under development.`,
+                    );
+                  }
+                },
               },
-            },
-            {
-              id: 'export',
-              label: 'Export Data',
-              variant: 'export',
-              className:
-                'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
-              icon: <Download size={16} />,
-              onClick: () => {
-                if (pageType === 'subjects') {
-                  alert(
-                    `📊 Export all subject data including syllabus, schedules, and teacher assignments. Download will start shortly!`,
-                  );
-                } else if (pageType === 'id-cards') {
-                  alert(
-                    `🃏 Export ID card data - Download all card information, print logs, and templates. Export starting now!`,
-                  );
-                } else {
-                  alert(
-                    `📤 Export ${pageType} data to CSV/PDF format. Processing your request...`,
-                  );
-                }
+              {
+                id: 'export',
+                label: 'Export Data',
+                variant: 'export',
+                className:
+                  'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
+                icon: <Download size={16} />,
+                onClick: () => {
+                  if (pageType === 'id-cards') {
+                    alert(
+                      `🃏 Export ID card data - Download all card information, print logs, and templates. Export starting now!`,
+                    );
+                  } else {
+                    alert(
+                      `📤 Export ${pageType} data to CSV/PDF format. Processing your request...`,
+                    );
+                  }
+                },
               },
-            },
-          ];
+            ];
 
   const additionalButtons: ActionButtonConfig[] = [];
 

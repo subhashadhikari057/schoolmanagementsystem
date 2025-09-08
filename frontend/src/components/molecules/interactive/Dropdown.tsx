@@ -202,8 +202,8 @@ export default function Dropdown({
               <div className='w-full'>
                 {/* Profile Button */}
                 <Menu.Button
-                  className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full min-w-[200px] bg-white border border-gray-200 rounded-lg transition-all ${
-                    open ? 'rounded-b-none shadow-sm' : 'shadow-sm'
+                  className={`flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 md:py-3 w-full min-w-[200px] bg-white  rounded-lg transition-all ${
+                    open ? 'rounded-b-none border-none' : 'border-none'
                   }`}
                 >
                   <Avatar

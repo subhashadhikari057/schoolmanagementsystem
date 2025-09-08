@@ -4,6 +4,7 @@ import Icon from '@/components/atoms/display/Icon';
 
 import { Calendar, MapPin, Clock } from 'lucide-react';
 import Button from '@/components/atoms/form-controls/Button';
+import { ad2bs } from 'hamro-nepali-patro';
 
 interface Event {
   id: string;
@@ -34,13 +35,49 @@ interface UpcomingEventsPanelProps {
   viewAllHref?: string;
 }
 
+// Nepali month names
+const nepaliMonths = [
+  'बैशाख',
+  'जेठ',
+  'असार',
+  'साउन',
+  'भदौ',
+  'असोज',
+  'कार्तिक',
+  'मंसिर',
+  'पुष',
+  'माघ',
+  'फागुन',
+  'चैत',
+];
+
+// Format date for display badge (convert AD to BS)
 const formatDateBadge = (dateStr: string) => {
-  const date = new Date(dateStr);
-  const day = date.getDate();
-  const month = date
-    .toLocaleDateString('en-US', { month: 'short' })
-    .toUpperCase();
-  return { day, month };
+  try {
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+
+    const bsDate = ad2bs(year, month, day);
+    const nepaliMonth = nepaliMonths[bsDate.month - 1] || 'N/A';
+
+    return {
+      day: bsDate.date,
+      month: nepaliMonth.substring(0, 3),
+      fullMonth: nepaliMonth,
+      year: bsDate.year,
+    };
+  } catch (error) {
+    console.error('Date conversion error:', error);
+    // Fallback to AD format
+    const date = new Date(dateStr);
+    const day = date.getDate();
+    const month = date
+      .toLocaleDateString('en-US', { month: 'short' })
+      .toUpperCase();
+    return { day, month, fullMonth: month, year: date.getFullYear() };
+  }
 };
 
 const formatEventDetails = (event: Event) => {
@@ -80,7 +117,7 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
   itemActionLabel = 'Learn More',
   viewAllHref,
 }) => {
-  // Mock data for upcoming events
+  // Mock data for upcoming events with various types
   const mockUpcomingEvents: Event[] = [
     {
       id: '1',
@@ -89,6 +126,7 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
       time: '09:00 AM',
       location: 'Main Auditorium',
       status: 'Scheduled',
+      type: 'meeting',
     },
     {
       id: '2',
@@ -97,6 +135,7 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
       time: '08:00 AM',
       location: 'Sports Ground',
       status: 'Active',
+      type: 'celebration',
     },
     {
       id: '3',
@@ -105,6 +144,7 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
       time: '10:00 AM',
       location: 'Science Lab',
       status: 'Scheduled',
+      type: 'event',
     },
     {
       id: '4',
@@ -113,6 +153,7 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
       time: '09:00 AM',
       location: 'All Classrooms',
       status: 'Scheduled',
+      type: 'exam',
     },
     {
       id: '5',
@@ -121,6 +162,7 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
       time: '02:00 PM',
       location: 'Main Hall',
       status: 'Active',
+      type: 'celebration',
     },
     {
       id: '6',
@@ -129,45 +171,99 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
       time: '03:30 PM',
       location: 'Conference Room',
       status: 'Scheduled',
+      type: 'meeting',
+    },
+    {
+      id: '7',
+      title: 'Dashain Holiday',
+      date: '2025-10-15',
+      time: '',
+      location: '',
+      status: 'Active',
+      type: 'holiday',
     },
   ];
 
   const eventList = events || mockUpcomingEvents;
 
+  // Helper: get current Nepali month and year
+  const today = new Date();
+  const { year: bsYear, month: bsMonth } = ad2bs(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    today.getDate(),
+  );
+
   // For list-cards variant (activities), show all events without date filtering
-  // For other variants, filter to only upcoming events
+  // For other variants, filter to only events in current Nepali month
   const upcomingEvents =
     variant === 'list-cards'
       ? eventList.slice(0, maxEvents)
       : eventList
-          .filter(event => new Date(event.date) >= new Date())
+          .map(ev => {
+            // Convert event date to Nepali (BS)
+            const d = new Date(ev.date);
+            const bs = ad2bs(d.getFullYear(), d.getMonth() + 1, d.getDate());
+            return { ...ev, _bsYear: bs.year, _bsMonth: bs.month };
+          })
+          .filter(
+            ev =>
+              ev._bsYear === bsYear &&
+              ev._bsMonth === bsMonth &&
+              new Date(ev.date) >= today,
+          )
           .sort(
             (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
           )
-          .slice(0, maxEvents);
+          .slice(0, 4);
 
   if (variant === 'list-cards') {
     // Helper to get badge color and label
     const getTypeBadge = (type?: string) => {
+      const getTypeLabel = (t: string) =>
+        t.charAt(0).toUpperCase() + t.slice(1).replace('_', ' ');
+
       if (!type || type === 'event')
         return (
-          <span className='inline-block text-xs px-2 py-1 rounded font-semibold bg-blue-100 text-blue-700 mr-2'>
+          <span className='inline-block text-xs px-2 py-1 rounded-full font-semibold bg-green-100 text-green-800 border border-green-200 mr-2'>
             Event
           </span>
         );
       if (type === 'exam')
         return (
-          <span className='inline-block text-xs px-2 py-1 rounded font-semibold bg-purple-100 text-purple-700 mr-2'>
+          <span className='inline-block text-xs px-2 py-1 rounded-full font-semibold bg-purple-100 text-purple-800 border border-purple-200 mr-2'>
             Exam
           </span>
         );
       if (type === 'holiday')
         return (
-          <span className='inline-block text-xs px-2 py-1 rounded font-semibold bg-red-100 text-red-700 mr-2'>
+          <span className='inline-block text-xs px-2 py-1 rounded-full font-semibold bg-red-100 text-red-800 border border-red-200 mr-2'>
             Holiday
           </span>
         );
-      return null;
+      if (type === 'meeting')
+        return (
+          <span className='inline-block text-xs px-2 py-1 rounded-full font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200 mr-2'>
+            Meeting
+          </span>
+        );
+      if (type === 'celebration')
+        return (
+          <span className='inline-block text-xs px-2 py-1 rounded-full font-semibold bg-pink-100 text-pink-800 border border-pink-200 mr-2'>
+            Celebration
+          </span>
+        );
+      if (type === 'emergency_closure')
+        return (
+          <span className='inline-block text-xs px-2 py-1 rounded-full font-semibold bg-orange-100 text-orange-800 border border-orange-200 mr-2'>
+            Emergency Closure
+          </span>
+        );
+      return (
+        <span className='inline-block text-xs px-2 py-1 rounded-full font-semibold bg-blue-100 text-blue-800 border border-blue-200 mr-2'>
+          {getTypeLabel(type)}
+        </span>
+      );
     };
     return (
       <div
@@ -282,22 +378,41 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
     );
   }
 
+  // Always render 4 slots, fill with placeholders if not enough events
+  const slots = Array.from({ length: 4 }, (_, i) => upcomingEvents[i] || null);
   return (
-    <div
-      className={`bg-white rounded-xl py-2 sm:p-4 min-h-[365px] ${className}`}
-    >
-      <ChartHeader title='Upcoming Events' toggleLabel='All' />
-
-      <div className='space-y-0 px-2 max-h-80 overflow-y-auto modal-scrollbar'>
-        {upcomingEvents.length === 0 ? (
-          <div className='text-center py-8 text-gray-500'>
-            <Calendar className='w-12 h-12 mx-auto mb-3 opacity-30' />
-            <p className='text-sm'>No upcoming events</p>
-          </div>
-        ) : (
-          upcomingEvents.map((event, idx) => (
-            <React.Fragment key={event.id}>
-              <div className='flex items-start gap-4 group transition-all duration-200 hover:bg-blue-50/60 rounded-xl p-3 mb-0 shadow-sm'>
+    <div className={`bg-white rounded-xl sm:p-4 ${className}`}>
+      <div className='flex items-center justify-between mb-3'>
+        <div className='text-base font-semibold text-gray-900'>
+          Upcoming Events
+        </div>
+      </div>
+      <div className='space-y-3'>
+        {slots.map((event, idx) => {
+          if (event) {
+            const dateBadge = formatDateBadge(event.date);
+            return (
+              <div
+                key={event.id}
+                className='flex items-start gap-4 group transition-all duration-200 hover:bg-blue-50/60 rounded-xl p-3 border border-gray-100'
+              >
+                {/* Date Badge */}
+                <div className='flex-shrink-0'>
+                  <div
+                    className={`text-center text-white rounded-xl p-2 shadow-lg min-w-[60px] ${
+                      event.type === 'holiday'
+                        ? 'bg-gradient-to-b from-red-500 to-red-600'
+                        : 'bg-gradient-to-b from-blue-500 to-blue-600'
+                    }`}
+                  >
+                    <div className='text-xs font-medium opacity-90'>
+                      {dateBadge.month}
+                    </div>
+                    <div className='text-lg font-bold leading-tight'>
+                      {dateBadge.day}
+                    </div>
+                  </div>
+                </div>
                 <div className='flex-1 min-w-0'>
                   <div className='flex items-start justify-between gap-2'>
                     <span className='text-base font-semibold text-gray-900 line-clamp-2'>
@@ -307,12 +422,16 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
                       <span
                         className={`inline-block text-xs px-2 py-1 rounded-full font-semibold flex-shrink-0 shadow-sm ${
                           event.type === 'holiday'
-                            ? 'bg-red-100 text-red-700'
+                            ? 'bg-red-100 text-red-800 border border-red-200'
                             : event.type === 'exam'
-                              ? 'bg-purple-100 text-purple-700'
+                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
                               : event.type === 'emergency_closure'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-blue-100 text-blue-700'
+                                ? 'bg-orange-100 text-orange-800 border border-orange-200'
+                                : event.type === 'meeting'
+                                  ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                                  : event.type === 'celebration'
+                                    ? 'bg-pink-100 text-pink-800 border border-pink-200'
+                                    : 'bg-green-100 text-green-800 border border-green-200'
                         }`}
                       >
                         {event.type.charAt(0).toUpperCase() +
@@ -320,7 +439,6 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
                       </span>
                     )}
                   </div>
-                  {/* Time/location left, status right, in a single row below title */}
                   <div className='flex items-center justify-between mt-1'>
                     <div className='flex gap-4'>
                       {event.type === 'holiday' ? null : (
@@ -359,24 +477,45 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
                         </>
                       )}
                     </div>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full font-semibold flex-shrink-0 shadow-sm ${
-                        event.status.toLowerCase() === 'active'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-orange-100 text-orange-700'
-                      }`}
-                    >
-                      {event.status}
-                    </span>
+                    {/* Status badge removed as per request */}
                   </div>
                 </div>
               </div>
-              {idx < upcomingEvents.length - 1 && (
-                <div className='border-b border-gray-200 mx-4' />
-              )}
-            </React.Fragment>
-          ))
-        )}
+            );
+          } else {
+            // Placeholder for future events
+            return (
+              <div
+                key={idx}
+                className='flex items-center gap-4 rounded-xl p-3 border border-dashed border-gray-200 bg-gray-50 min-h-[72px]'
+              >
+                <div className='flex-shrink-0'>
+                  <div className='text-center text-gray-300 rounded-xl p-2 min-w-[60px] bg-gray-200'>
+                    <div className='text-xs font-medium opacity-60'>--</div>
+                    <div className='text-lg font-bold leading-tight opacity-60'>
+                      --
+                    </div>
+                  </div>
+                </div>
+                <div className='flex-1 min-w-0'>
+                  <div className='flex items-start justify-between gap-2'>
+                    <span className='text-base font-semibold text-gray-400 line-clamp-2'>
+                      Future Event
+                    </span>
+                  </div>
+                  <div className='flex items-center justify-between mt-1'>
+                    <div className='flex gap-4'>
+                      <div className='text-xs text-gray-400 font-medium'>
+                        TBA
+                      </div>
+                    </div>
+                    {/* Status badge removed as per request */}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+        })}
       </div>
     </div>
   );

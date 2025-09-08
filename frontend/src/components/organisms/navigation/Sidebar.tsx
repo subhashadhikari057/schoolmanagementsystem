@@ -3,12 +3,11 @@
 import Link from 'next/link';
 import * as Icons from 'lucide-react';
 import { sidebarItems } from '@/constants/sidebaritems';
-import { useState } from 'react';
+import { useState, type ComponentType } from 'react';
 import { usePathname } from 'next/navigation';
 import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import ProfileDropdown from '@/components/molecules/interactive/Dropdown';
 import { useAuth } from '@/hooks/useAuth';
-// import { isDevMockEnabled } from '@/utils';
 
 type SidebarRole = 'Superadmin' | 'teacher' | 'student' | 'parent';
 
@@ -21,7 +20,6 @@ interface SidebarProps {
 export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isHoveringLogo, setIsHoveringLogo] = useState(false);
   const [isHoverExpanded, setIsHoverExpanded] = useState(false);
   const enableHoverExpand = true; // Always allow hover-to-expand
   const [suppressHover, setSuppressHover] = useState(false); // prevents hover expand until next mouse leave
@@ -30,13 +28,12 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
 
   // Convert UserRole enum to sidebar key
   const getSidebarRole = (userRole: string | undefined): SidebarRole => {
-    // Normalize the role to handle backend inconsistencies (e.g., SUPER_ADMIN -> superadmin)
     const normalizedRole = userRole?.toLowerCase().replace(/_/g, '');
 
     switch (normalizedRole) {
       case 'admin':
       case 'superadmin':
-        return 'Superadmin'; // Admin and superadmin users get Superadmin sidebar
+        return 'Superadmin';
       case 'teacher':
         return 'teacher';
       case 'student':
@@ -44,13 +41,11 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
       case 'parent':
         return 'parent';
       default:
-        return 'student'; // fallback
+        return 'student';
     }
   };
 
-  // const sidebarRole = getSidebarRole(user?.role);
-
-  // DEV-ONLY: Use path to override sidebar role for development
+  // DEV-ONLY override by path
   let sidebarRole = getSidebarRole(user?.role);
   if (
     typeof window !== 'undefined' &&
@@ -60,20 +55,16 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
   }
 
   const toggleSidebar = () => {
-    // If we are collapsing on desktop while the cursor is inside,
-    // suppress hover expansion until the next mouseleave
     if (!isCollapsed) {
       setSuppressHover(true);
       setIsHoverExpanded(false);
       setIsCollapsed(true);
       return;
     }
-    // Expanding via button clears suppression
     setSuppressHover(false);
     setIsCollapsed(false);
   };
 
-  // Use only actual user role for sidebar
   const effectiveRole = sidebarRole;
 
   const expandedByHover =
@@ -92,14 +83,14 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={`
-    sidebar-scroll group
-    fixed md:relative top-0 left-0 z-50 md:z-auto
-    h-screen border-r border-gray-200 px-4 py-2 bg-white
-  transition-transform transition-width  duration-150 cubic-bezier(0.4,0,0.2,1)
-    ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-    ${expandedByHover ? 'w-64' : isCollapsed ? 'w-20' : 'w-64'}
-    shadow-lg md:shadow-none
-  `}
+          sidebar-scroll
+          fixed md:relative top-0 left-0 z-50 md:z-auto
+          h-screen border-r border-gray-200 px-4 py-2 bg-white
+          transition-[transform,width] duration-150 ease-in-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          ${expandedByHover ? 'w-64' : isCollapsed ? 'w-20' : 'w-64'}
+          shadow-lg md:shadow-none
+        `}
         onMouseEnter={() => {
           if (
             !isOpen &&
@@ -120,16 +111,11 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
           ) {
             setIsHoverExpanded(false);
           }
-          // Leaving the sidebar clears suppression so next enter can expand
           if (suppressHover) setSuppressHover(false);
         }}
       >
         {/* Logo and Toggle Container */}
-        <div
-          className='flex flex-col gap-4 items-center justify-between mt-4 mb-8'
-          onMouseEnter={() => setIsHoveringLogo(true)}
-          onMouseLeave={() => setIsHoveringLogo(false)}
-        >
+        <div className='relative flex flex-col gap-4 items-center justify-between mt-4 mb-8'>
           {/* Mobile Close Button */}
           <button
             type='button'
@@ -144,23 +130,44 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
           </button>
 
           {/* Logo Section */}
-          <div className='flex items-center justify-center h-10 w-full relative'>
+          <div className='flex items-center h-10 w-full relative'>
             {!isCollapsed ? (
-              <div className='text-xl font-bold text-gray-800 flex items-center gap-2'>
-                <span>🎓</span>
-                <span>SMS</span>
-              </div>
+              <>
+                <div className='text-xl font-bold text-gray-800 flex items-center gap-2'>
+                  <span aria-hidden>🎓</span>
+                  <span>SMS</span>
+                </div>
+                <button
+                  onClick={toggleSidebar}
+                  className='absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center hover:bg-gray-100 rounded-md p-1'
+                  aria-label='Collapse sidebar'
+                  title='Collapse'
+                >
+                  <PanelLeftClose size={20} className='text-gray-500' />
+                </button>
+              </>
             ) : (
               <button
                 onClick={toggleSidebar}
-                className='w-full h-full flex items-center justify-center hover:bg-gray-100 rounded-md'
+                className='group/logo relative w-full h-full flex items-center justify-center rounded-md hover:bg-gray-100 focus-visible:outline-none'
                 aria-label='Expand sidebar'
+                title='Expand'
               >
-                {isHoveringLogo ? (
-                  <PanelLeftOpen size={20} className='text-gray-600' />
-                ) : (
-                  <span className='text-xl'>🎓</span>
-                )}
+                {/* default: 🎓 */}
+                <span
+                  className='text-xl transition-opacity duration-150 group-hover/logo:opacity-0 group-focus-visible/logo:opacity-0'
+                  aria-hidden
+                >
+                  🎓
+                </span>
+                {/* on hover/focus: show open-panel icon */}
+                <span className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+                  <PanelLeftOpen
+                    size={20}
+                    className='text-gray-600 opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100 group-focus-visible/logo:opacity-100'
+                    aria-hidden
+                  />
+                </span>
               </button>
             )}
           </div>
@@ -169,11 +176,10 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
           {!isCollapsed && (
             <button
               onClick={toggleSidebar}
-              className='mr-5 mt-2 hidden md:flex items-center justify-center absolute -right-3 top-6 hover:bg-gray-100 rounded-md'
+              className='mr-5 mt-2 hidden md:flex items-center justify-center absolute right-0.25 top-3 -translate-y-1/2 hover:bg-gray-100 rounded-md'
               aria-label='Collapse sidebar'
-            >
-              <PanelLeftClose size={20} className='text-gray-500' />
-            </button>
+              title='Collapse'
+            ></button>
           )}
         </div>
 
@@ -217,18 +223,16 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                         item.icon && typeof item.icon === 'string'
                           ? item.icon
                           : 'Circle';
+
                       const Icon =
                         (
                           Icons as unknown as Record<
                             string,
-                            React.ComponentType<{
-                              size?: number;
-                              className?: string;
-                            }>
+                            ComponentType<{ size?: number; className?: string }>
                           >
                         )[iconName] || Icons.Circle;
 
-                      // Handle dynamic paths for My Account
+                      // Dynamic path for My Account
                       let itemPath = item.path;
                       if (
                         item.path === '/dashboard/system/myprofile' &&
@@ -241,6 +245,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                         pathname === itemPath ||
                         (pathname &&
                           pathname.startsWith(itemPath + '/dashboard'));
+
                       return (
                         <li key={item.label}>
                           <Link
@@ -254,17 +259,17 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                                 onToggle();
                               }
                             }}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
-                              text-foreground hover:bg-muted-hover hover:font-bold
+                            className={`group/item flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
+                              text-foreground
                               ${isCollapsed && !expandedByHover ? 'justify-center' : ''}
-                              ${isActive ? 'bg-blue-500 font-bold text-white' : ''}`}
+                              ${isActive ? 'bg-blue-500 font-bold text-white' : 'hover:bg-muted-hover hover:font-bold'}`}
                             title={isCollapsed ? item.label : ''}
                           >
                             <Icon
                               size={16}
-                              className={`flex-shrink-0 ${
-                                isActive ? 'text-white' : 'text-gray-500'
-                              }`}
+                              className={`flex-shrink-0 transition-transform duration-200 will-change-transform
+                                ${isActive ? 'text-white scale-110' : 'text-gray-500 group-hover/item:text-blue-500 group-hover/item:scale-110'}
+                              `}
                             />
                             {(!isCollapsed || expandedByHover) && (
                               <span className='truncate'>{item.label}</span>

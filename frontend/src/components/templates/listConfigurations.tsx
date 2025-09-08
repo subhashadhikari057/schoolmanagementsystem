@@ -1265,14 +1265,7 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
           />
         ),
       },
-      {
-        key: 'attendance',
-        header: 'Attendance',
-        mobileLabel: 'Attendance',
-        render: (item: Student) => (
-          <AttendanceCell attendance={item.attendance} />
-        ),
-      },
+      // Attendance column removed
       {
         key: 'status',
         header: 'Status',

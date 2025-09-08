@@ -7,7 +7,6 @@ import {
   Subject,
 } from '@/components/templates/listConfigurations';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
-import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import {
   Users,
   UserCheck,
@@ -15,6 +14,7 @@ import {
   GraduationCap,
   BookOpen,
 } from 'lucide-react';
+import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import { subjectService } from '@/api/services';
 import { SubjectResponse } from '@/api/types/subject';
 import SubjectDetailModal from '@/components/organisms/modals/SubjectDetailModal';
@@ -371,7 +371,13 @@ const SubjectsPage = () => {
               onPageChange={handlePageChange}
               onSubjectAction={handleSubjectAction}
               customActions={
-                <ActionButtons pageType='subjects' onRefresh={handleRefresh} />
+                <div className='flex justify-end'>
+                  {/* Only show Add Subject button, not import/export */}
+                  <ActionButtons
+                    pageType='subjects'
+                    onRefresh={handleRefresh}
+                  />
+                </div>
               }
             />
           )}
