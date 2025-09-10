@@ -798,22 +798,40 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         key: 'recipients',
         header: 'Recipients & Reach',
         mobileLabel: 'Recipients',
-        render: (item: any) => (
-          <div>
-            <div className='text-xs font-medium text-gray-700'>
-              {item.recipients}
+        render: (item: any) => {
+          // Determine recipient type display
+          const getRecipientTypeDisplay = (recipientType: string) => {
+            switch (recipientType) {
+              case 'SPECIFIC_PARENT':
+                return 'Specific Person';
+              case 'ALL':
+              case 'STUDENT':
+              case 'PARENT':
+              case 'TEACHER':
+              case 'STAFF':
+              case 'CLASS':
+              default:
+                return 'Collection';
+            }
+          };
+
+          return (
+            <div>
+              <div className='text-xs font-medium text-gray-700'>
+                {getRecipientTypeDisplay(item.recipientType)}
+              </div>
+              <div className='text-xs text-green-600 font-semibold'>
+                {item.read} / {item.total} read
+              </div>
+              <div className='w-28 bg-gray-200 rounded-full h-2 mt-1'>
+                <div
+                  className='bg-green-500 h-2 rounded-full'
+                  style={{ width: `${(item.read / item.total) * 100}%` }}
+                ></div>
+              </div>
             </div>
-            <div className='text-xs text-green-600 font-semibold'>
-              {item.read} / {item.total} read
-            </div>
-            <div className='w-28 bg-gray-200 rounded-full h-2 mt-1'>
-              <div
-                className='bg-green-500 h-2 rounded-full'
-                style={{ width: `${(item.read / item.total) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-        ),
+          );
+        },
       },
       {
         key: 'status',

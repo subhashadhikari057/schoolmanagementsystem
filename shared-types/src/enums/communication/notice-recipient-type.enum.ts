@@ -13,6 +13,7 @@ export enum NoticeRecipientType {
   TEACHER = "teacher",
   STAFF = "staff",
   CLASS = "class",
+  SPECIFIC_PARENT = "specific_parent",
 }
 
 /**
@@ -25,4 +26,5 @@ export const NoticeRecipientTypeLabels: Record<NoticeRecipientType, string> = {
   [NoticeRecipientType.TEACHER]: "Teacher",
   [NoticeRecipientType.STAFF]: "Staff",
   [NoticeRecipientType.CLASS]: "Class",
+  [NoticeRecipientType.SPECIFIC_PARENT]: "Specific Parent",
 };

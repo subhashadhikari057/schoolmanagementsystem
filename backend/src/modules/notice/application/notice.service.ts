@@ -43,6 +43,33 @@ export class NoticeService {
       }
     }
 
+    // Validate student exists if recipient type is SPECIFIC_PARENT
+    if (
+      dto.recipientType === NoticeRecipientType.SPECIFIC_PARENT &&
+      dto.selectedStudentId
+    ) {
+      const studentExists = await this.prisma.student.findUnique({
+        where: { id: dto.selectedStudentId, deletedAt: null },
+        include: {
+          parents: {
+            include: {
+              parent: {
+                include: {
+                  user: { select: { id: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!studentExists) {
+        throw new BadRequestException('Selected student does not exist');
+      }
+      if (!studentExists.parents || studentExists.parents.length === 0) {
+        throw new BadRequestException('Selected student has no parents linked');
+      }
+    }
+
     // Create the notice
     const notice = await this.prisma.notice.create({
       data: {
@@ -51,6 +78,7 @@ export class NoticeService {
         priority: dto.priority,
         recipientType: dto.recipientType,
         selectedClassId: dto.selectedClassId,
+        selectedStudentId: dto.selectedStudentId,
         category: dto.category,
         publishDate: dto.publishDate,
         expiryDate: dto.expiryDate,
@@ -88,6 +116,7 @@ export class NoticeService {
       notice.id,
       dto.recipientType,
       dto.selectedClassId,
+      dto.selectedStudentId,
     );
 
     // Audit log
@@ -297,7 +326,12 @@ export class NoticeService {
       dto.recipientType &&
       dto.recipientType !== existingNotice.recipientType
     ) {
-      await this.reassignRecipients(id, dto.recipientType, dto.selectedClassId);
+      await this.reassignRecipients(
+        id,
+        dto.recipientType,
+        dto.selectedClassId,
+        dto.selectedStudentId,
+      );
     }
 
     // Audit log
@@ -458,12 +492,62 @@ export class NoticeService {
   }
 
   /**
+   * Get students with their parent information for notice targeting
+   */
+  async getStudentsWithParents() {
+    return this.prisma.student.findMany({
+      where: { deletedAt: null },
+      select: {
+        id: true,
+        rollNumber: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        class: {
+          select: {
+            id: true,
+            name: true,
+            grade: true,
+            section: true,
+            shift: true,
+          },
+        },
+        parents: {
+          include: {
+            parent: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { class: { grade: 'asc' } },
+        { class: { section: 'asc' } },
+        { rollNumber: 'asc' },
+      ],
+    });
+  }
+
+  /**
    * Assign recipients to a notice based on recipient type
    */
   private async assignRecipients(
     noticeId: string,
     recipientType: NoticeRecipientType,
     selectedClassId?: string,
+    selectedStudentId?: string,
   ) {
     let userIds: string[] = [];
 
@@ -545,6 +629,47 @@ export class NoticeService {
           .filter(Boolean) as string[];
         break;
       }
+
+      case NoticeRecipientType.SPECIFIC_PARENT: {
+        if (!selectedStudentId) {
+          throw new BadRequestException(
+            'Student ID is required for specific parent recipients',
+          );
+        }
+        // Get parents of the selected student
+        const studentWithParents = await this.prisma.student.findUnique({
+          where: { id: selectedStudentId, deletedAt: null },
+          include: {
+            parents: {
+              include: {
+                parent: {
+                  include: {
+                    user: { select: { id: true } },
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (!studentWithParents) {
+          throw new BadRequestException('Selected student not found');
+        }
+
+        if (
+          !studentWithParents.parents ||
+          studentWithParents.parents.length === 0
+        ) {
+          throw new BadRequestException(
+            'Selected student has no parents linked',
+          );
+        }
+
+        userIds = studentWithParents.parents
+          .map(parentLink => parentLink.parent.user?.id)
+          .filter(Boolean) as string[];
+        break;
+      }
     }
 
     // Create recipient records
@@ -568,6 +693,7 @@ export class NoticeService {
     noticeId: string,
     recipientType: NoticeRecipientType,
     selectedClassId?: string,
+    selectedStudentId?: string,
   ) {
     // Delete existing recipients
     await this.prisma.noticeRecipient.deleteMany({
@@ -575,6 +701,11 @@ export class NoticeService {
     });
 
     // Assign new recipients
-    await this.assignRecipients(noticeId, recipientType, selectedClassId);
+    await this.assignRecipients(
+      noticeId,
+      recipientType,
+      selectedClassId,
+      selectedStudentId,
+    );
   }
 }

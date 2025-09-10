@@ -106,6 +106,12 @@ export class NoticeController {
     return this.noticeService.getAvailableClasses();
   }
 
+  @Get('students-with-parents')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async getStudentsWithParents() {
+    return this.noticeService.getStudentsWithParents();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     // No role checks here - simply retrieve the notice by ID

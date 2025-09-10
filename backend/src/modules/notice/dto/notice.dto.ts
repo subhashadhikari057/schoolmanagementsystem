@@ -24,6 +24,7 @@ export const CreateNoticeSchema = z
       errorMap: () => ({ message: 'Invalid recipient type' }),
     }),
     selectedClassId: z.string().uuid().optional(),
+    selectedStudentId: z.string().uuid().optional(),
     category: z
       .nativeEnum(NoticeCategory, {
         errorMap: () => ({ message: 'Invalid category' }),
@@ -60,6 +61,21 @@ export const CreateNoticeSchema = z
   )
   .refine(
     data => {
+      if (
+        data.recipientType === NoticeRecipientType.SPECIFIC_PARENT &&
+        !data.selectedStudentId
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Student ID is required when recipient type is SPECIFIC_PARENT',
+      path: ['selectedStudentId'],
+    },
+  )
+  .refine(
+    data => {
       return data.expiryDate > data.publishDate;
     },
     {
@@ -92,6 +108,7 @@ export const UpdateNoticeSchema = z
       })
       .optional(),
     selectedClassId: z.string().uuid().optional(),
+    selectedStudentId: z.string().uuid().optional(),
     category: z
       .nativeEnum(NoticeCategory, {
         errorMap: () => ({ message: 'Invalid category' }),
@@ -127,6 +144,21 @@ export const UpdateNoticeSchema = z
     {
       message: 'Class ID is required when recipient type is CLASS',
       path: ['selectedClassId'],
+    },
+  )
+  .refine(
+    data => {
+      if (
+        data.recipientType === NoticeRecipientType.SPECIFIC_PARENT &&
+        !data.selectedStudentId
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Student ID is required when recipient type is SPECIFIC_PARENT',
+      path: ['selectedStudentId'],
     },
   )
   .refine(

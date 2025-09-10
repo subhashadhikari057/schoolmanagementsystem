@@ -10,6 +10,7 @@ export const NOTICE_ENDPOINTS = {
   DELETE: (id: string) => `/api/v1/notices/${id}`,
   GET_MY_NOTICES: '/api/v1/notices/my-notices',
   GET_AVAILABLE_CLASSES: '/api/v1/notices/classes',
+  GET_STUDENTS_WITH_PARENTS: '/api/v1/notices/students-with-parents',
   MARK_AS_READ: (id: string) => `/api/v1/notices/${id}/read`,
 } as const;
 
@@ -18,8 +19,16 @@ export interface CreateNoticeRequest {
   title: string;
   content: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  recipientType: 'ALL' | 'STUDENT' | 'PARENT' | 'TEACHER' | 'STAFF' | 'CLASS';
+  recipientType:
+    | 'ALL'
+    | 'STUDENT'
+    | 'PARENT'
+    | 'TEACHER'
+    | 'STAFF'
+    | 'CLASS'
+    | 'SPECIFIC_PARENT';
   selectedClassId?: string;
+  selectedStudentId?: string;
   category?:
     | 'GENERAL'
     | 'ACADEMIC'
@@ -42,6 +51,7 @@ export interface UpdateNoticeRequest {
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   recipientType?: 'ALL' | 'STUDENT' | 'PARENT' | 'TEACHER' | 'STAFF' | 'CLASS';
   selectedClassId?: string;
+  selectedStudentId?: string;
   category?:
     | 'GENERAL'
     | 'ACADEMIC'
@@ -108,8 +118,16 @@ export interface Notice {
   title: string;
   content: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  recipientType: 'ALL' | 'STUDENT' | 'PARENT' | 'TEACHER' | 'STAFF' | 'CLASS';
+  recipientType:
+    | 'ALL'
+    | 'STUDENT'
+    | 'PARENT'
+    | 'TEACHER'
+    | 'STAFF'
+    | 'CLASS'
+    | 'SPECIFIC_PARENT';
   selectedClassId?: string;
+  selectedStudentId?: string;
   category?:
     | 'GENERAL'
     | 'ACADEMIC'
@@ -165,6 +183,32 @@ export interface AvailableClass {
   section: string;
   shift: 'MORNING' | 'DAY';
   currentEnrollment: number;
+}
+
+export interface StudentWithParents {
+  id: string;
+  rollNumber: string;
+  user: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+  class: {
+    id: string;
+    name: string;
+    grade: number;
+    section: string;
+    shift: 'MORNING' | 'DAY';
+  };
+  parents: Array<{
+    parent: {
+      user: {
+        id: string;
+        fullName: string;
+        email: string;
+      };
+    };
+  }>;
 }
 
 // Notice Service Class
@@ -317,6 +361,19 @@ export class NoticeService {
   }
 
   /**
+   * Get students with their parent information for notice targeting
+   */
+  async getStudentsWithParents(): Promise<ApiResponse<StudentWithParents[]>> {
+    try {
+      return await this.httpClient.get<StudentWithParents[]>(
+        NOTICE_ENDPOINTS.GET_STUDENTS_WITH_PARENTS,
+      );
+    } catch (error) {
+      throw this.handleError(error, 'Failed to fetch students with parents');
+    }
+  }
+
+  /**
    * Mark a notice as read for the current user
    */
   async markNoticeAsRead(
@@ -417,6 +474,7 @@ export class NoticeService {
       TEACHER: 'Teacher',
       STAFF: 'Staff',
       CLASS: 'Class',
+      SPECIFIC_PARENT: 'Specific Parent',
     };
     return labels[recipientType as keyof typeof labels] || recipientType;
   }

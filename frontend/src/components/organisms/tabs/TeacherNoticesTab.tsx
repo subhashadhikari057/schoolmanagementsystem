@@ -165,7 +165,9 @@ const NoticeViewModal: React.FC<NoticeViewModalProps> = ({
             </div>
             <div className='flex items-center gap-2'>
               <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700'>
-                {notice.recipientType.toLowerCase()}
+                {notice.recipientType === 'SPECIFIC_PARENT'
+                  ? 'Specific Person'
+                  : 'Collection'}
               </span>
               {notice.selectedClass && (
                 <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700'>
@@ -442,7 +444,9 @@ export default function TeacherNoticesTab() {
                       {notice.priority.toLowerCase()}
                     </span>
                     <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700'>
-                      {notice.recipientType.toLowerCase()}
+                      {notice.recipientType === 'SPECIFIC_PARENT'
+                        ? 'Specific Person'
+                        : 'Collection'}
                     </span>
                   </div>
 
