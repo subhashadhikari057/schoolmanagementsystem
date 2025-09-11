@@ -18,12 +18,18 @@ export default function MetricDisplay({
 }) {
   return (
     <div className={`space-y-1 sm:space-y-2 min-w-0 flex-1 ${className}`}>
-      <Label className='hidden sm:block  md:block'>{label}</Label>
+      <Label className='text-xs sm:text-sm opacity-70 sm:opacity-100'>
+        {label}
+      </Label>
       <Metric
-        className='font-xs text-xs sm:font-semibold sm:text-lg'
+        className='text-lg sm:text-xl lg:text-2xl font-semibold'
         value={value}
       />
-      <Change value={change} isPositive={isPositive} />
+      <Change
+        value={change}
+        isPositive={isPositive}
+        className='text-xs sm:text-sm'
+      />
     </div>
   );
 }

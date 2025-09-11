@@ -9,5 +9,15 @@ export default function Change({
   isPositive?: boolean;
   className?: string;
 }) {
-  return null;
+  const changeColor = isPositive ? 'text-green-600' : 'text-red-600';
+  const changeIcon = isPositive ? '↗' : '↘';
+
+  return (
+    <div
+      className={`flex items-center gap-1 ${changeColor} ${className || 'text-xs sm:text-sm'}`}
+    >
+      <span className='text-xs'>{changeIcon}</span>
+      <span>{value}</span>
+    </div>
+  );
 }

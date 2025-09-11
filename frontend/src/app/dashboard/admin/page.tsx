@@ -3,7 +3,13 @@
 import React from 'react';
 import { useAnalyticsOverview } from '@/context/AnalyticsOverviewContext';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
-import { Users, GraduationCap, DollarSign, CreditCard } from 'lucide-react';
+import {
+  Users,
+  GraduationCap,
+  DollarSign,
+  CreditCard,
+  Loader2,
+} from 'lucide-react';
 import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
 import { useCalendarEvents } from '@/components/organisms/calendar/hooks/useCalendarEvents';
 import NotificationPanel from '@/components/organisms/dashboard/NotificationPanel';
@@ -14,26 +20,10 @@ import FeeCollectionChart from '@/components/organisms/dashboard/FeeCollectionCh
 import AttendanceOverview from '@/components/organisms/dashboard/AttendanceOverview';
 import SystemHealthOverview from '@/components/organisms/dashboard/SystemHealthOverview';
 import { adminQuickActions } from '@/constants/mockData';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 
-const statsData = [
-  {
-    icon: Users,
-    bgColor: 'bg-blue-600',
-    iconColor: 'text-white',
-    value: '2,856',
-    label: 'Total Students',
-    change: '3.1%',
-    isPositive: true,
-  },
-  {
-    icon: GraduationCap,
-    bgColor: 'bg-green-600',
-    iconColor: 'text-white',
-    value: '182',
-    label: 'Total Teachers',
-    change: '1.8%',
-    isPositive: true,
-  },
+// Financial data is still mocked - can be implemented in a future enhancement
+const financialData = [
   {
     icon: DollarSign,
     bgColor: 'bg-yellow-600',
@@ -56,7 +46,10 @@ const statsData = [
 
 export default function AdminDashboard() {
   const [showAllCharts, setShowAllCharts] = React.useState(false);
+  const [showDebug, setShowDebug] = React.useState(false);
   const { showAnalytics } = useAnalyticsOverview();
+  const { studentCount, teacherCount, loading, error, debug } =
+    useDashboardStats();
 
   // Fetch all calendar events (exams, holidays, events)
   const { events: calendarEvents } = useCalendarEvents({ page: 1, limit: 50 });
@@ -70,6 +63,29 @@ export default function AdminDashboard() {
     status: typeof ev.status === 'string' ? ev.status : 'Active',
     type: ev.type || 'event',
   }));
+
+  // Prepare stats data with real-time student and teacher counts
+  const statsData = [
+    {
+      icon: Users,
+      bgColor: 'bg-blue-600',
+      iconColor: 'text-white',
+      value: loading ? '...' : studentCount.toLocaleString(),
+      label: 'Total Students',
+      change: '—', // Removed percentage change since we don't have historical data
+      isPositive: true,
+    },
+    {
+      icon: GraduationCap,
+      bgColor: 'bg-green-600',
+      iconColor: 'text-white',
+      value: loading ? '...' : teacherCount.toLocaleString(),
+      label: 'Total Teachers',
+      change: '—', // Removed percentage change
+      isPositive: true,
+    },
+    ...financialData,
+  ];
 
   return (
     <div className='min-h-screen bg-background'>
@@ -86,7 +102,31 @@ export default function AdminDashboard() {
       <div className='px-3 sm:px-4 lg:px-6 pb-4 sm:pb-6 lg:pb-8'>
         <div className='w-full space-y-4 sm:space-y-5 lg:space-y-6 mt-4 sm:mt-5 lg:mt-6'>
           {/* Stats Grid - Mobile: 2x2 compact, Desktop: 1x4 */}
-          <Statsgrid stats={statsData} />
+          {error ? (
+            <div className='p-4 bg-red-50 border border-red-200 rounded-lg text-red-800'>
+              <p>Error loading statistics: {error}</p>
+            </div>
+          ) : (
+            <>
+              <Statsgrid stats={statsData} />
+
+              {/* Debug information - double-click anywhere to toggle */}
+              <div
+                className='mt-2'
+                onDoubleClick={() => setShowDebug(!showDebug)}
+              >
+                {showDebug && debug && (
+                  <div className='p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono overflow-auto max-h-60'>
+                    <p className='font-semibold mb-1'>Debug Information:</p>
+                    <pre>{debug}</pre>
+                    <p className='text-gray-500 mt-2 text-right'>
+                      Double-click to hide
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Main Content Grid - Mobile: Stacked with proper spacing */}
           <div className='space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6'>
