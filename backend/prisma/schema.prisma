@@ -274,6 +274,7 @@ model Student {
   submissions            Submission[]
   examResults            ExamResult[]
   gradeHistory           StudentGradeHistory[]
+  notices                Notice[]                @relation("NoticeStudent")
   promotionRecords       PromotionRecord[]
 
   @@unique([classId, rollNumber])
@@ -1299,6 +1300,7 @@ model Notice {
   priority              NoticePriority
   recipientType         NoticeRecipientType
   selectedClassId       String?
+  selectedStudentId     String?
   category              NoticeCategory?
   publishDate           DateTime
   expiryDate            DateTime
@@ -1313,6 +1315,7 @@ model Notice {
   createdBy             User?               @relation("NoticeCreator", fields: [createdById], references: [id])
   deletedBy             User?               @relation("NoticeDeleter", fields: [deletedById], references: [id])
   selectedClass         Class?              @relation("NoticeClass", fields: [selectedClassId], references: [id])
+  selectedStudent       Student?            @relation("NoticeStudent", fields: [selectedStudentId], references: [id])
   updatedBy             User?               @relation("NoticeUpdater", fields: [updatedById], references: [id])
   attachments           NoticeAttachment[]
   recipients            NoticeRecipient[]
@@ -2020,6 +2023,7 @@ enum NoticeRecipientType {
   TEACHER
   STAFF
   CLASS
+  SPECIFIC_PARENT
 }
 
 enum NoticeCategory {

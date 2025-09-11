@@ -46,8 +46,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { studentService } from '@/api/services/student.service';
 import { assignmentService } from '@/api/services/assignment.service';
 import { submissionService } from '@/api/services/submission.service';
+import { TodaysClasses } from '@/components/dashboard/TodaysClasses';
 
-// Mock data for demonstration
+// Mock data for demonstration (keeping only what's still needed)
 const subjects: StudentSubject[] = [
   {
     subject: {
@@ -95,36 +96,6 @@ const subjects: StudentSubject[] = [
     },
   },
 ];
-const subjectsLoading = false;
-// Add status/info for color logic
-const classes: Array<
-  SubjectTeacher & {
-    status: 'completed' | 'upcoming' | 'pending';
-    info?: string;
-  }
-> = [
-  {
-    subject: 'Mathematics',
-    teacher: 'Ram Bahadur',
-    status: 'completed',
-  },
-  {
-    subject: 'Science',
-    teacher: 'Hari Prasang',
-    status: 'completed',
-  },
-  {
-    subject: 'English',
-    teacher: 'Sita Devi',
-    status: 'upcoming',
-  },
-  { subject: 'Social Studies', teacher: 'Krishna Sharma', status: 'pending' },
-  { subject: 'Nepali', teacher: 'Maya Gurung', status: 'pending' },
-];
-const classesLoading = false;
-const handleClassClick = (classId: string) => {
-  alert(`Go to class ${classId}`);
-};
 
 // Example events and notices (for further UI expansion)
 const assignments = [
@@ -429,63 +400,13 @@ export default function Page() {
             }
           })()}
 
-          {/* Today Classes */}
-          <div className='space-y-2'>
-            <div className='flex items-center justify-between'>
-              <SectionTitle
-                text='Todays Classes'
-                level={3}
-                className='text-sm font-semibold text-gray-700'
-              />
-              <span
-                className='text-xs cursor-pointer !text-blue-600 hover:text-blue-800'
-                onClick={() => router.push('/dashboard/student/subjects')}
-              >
-                View All
-              </span>
-            </div>
-            <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3'>
-              {classes.map(item => {
-                let cardColor = 'bg-white';
-                let textColor = 'text-gray-900';
-                let infoColor = 'text-gray-600';
-                if (item.status === 'completed') {
-                  cardColor = 'bg-green-500';
-                  textColor = 'text-white';
-                  infoColor = 'text-white';
-                } else if (item.info === 'in 10 min') {
-                  cardColor = 'bg-blue-600';
-                  textColor = 'text-white';
-                  infoColor = 'text-white';
-                }
-                return (
-                  <div
-                    key={item.subject + item.teacher}
-                    className={`${cardColor} rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer group p-6 min-h-[120px] flex flex-col justify-between`}
-                  >
-                    <div className='flex items-center justify-between mb-2'>
-                      {item.info && (
-                        <span className={`text-xs font-medium ${infoColor}`}>
-                          {item.info}
-                        </span>
-                      )}
-                    </div>
-                    <div className='space-y-1'>
-                      <h3
-                        className={`text-lg font-semibold ${textColor} group-hover:text-blue-200 transition-colors`}
-                      >
-                        {item.subject}
-                      </h3>
-                      <p className={`text-sm ${infoColor}`}>
-                        Teacher:{' '}
-                        <span className='font-medium'>{item.teacher}</span>
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* Today Classes - Real Data */}
+          {studentProfile?.classId && (
+            <TodaysClasses
+              classId={studentProfile.classId}
+              className={student.className}
+            />
+          )}
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
               <SectionTitle

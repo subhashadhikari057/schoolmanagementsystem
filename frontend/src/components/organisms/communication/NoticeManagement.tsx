@@ -28,6 +28,7 @@ type Row = BaseItem & {
   author: string;
   files: number;
   recipients: string;
+  recipientType: string; // Add this field for the display logic
   read: number;
   total: number;
   status: string;
@@ -177,6 +178,7 @@ const NoticeManagement: React.FC = () => {
           author: n.createdBy?.fullName || '—',
           files: n.attachments?.length || 0,
           recipients: n.recipientType,
+          recipientType: n.recipientType, // Add this field for the display logic
           read: Array.isArray(n.recipients)
             ? n.recipients.filter(r => !!r.readAt).length
             : 0,
@@ -570,6 +572,7 @@ function NoticeViewModal({
             author: n.createdBy?.fullName || '—',
             files: n.attachments?.length || 0,
             recipients: n.recipientType,
+            recipientType: n.recipientType, // Add this field for the display logic
             read: 0,
             total: n.recipientCount || 0,
             status: n.status,
