@@ -222,4 +222,17 @@ export const timetableService = {
       };
     }
   },
+
+  // Additional convenience methods for the student dashboard
+  async getTimetableByClass(classId: string) {
+    return this.getTimetable({ classId, includeConflicts: true });
+  },
+
+  async getTimetableBySchedule(scheduleId: string) {
+    return this.getTimetable({
+      classId: '',
+      scheduleId,
+      includeConflicts: true,
+    });
+  },
 };

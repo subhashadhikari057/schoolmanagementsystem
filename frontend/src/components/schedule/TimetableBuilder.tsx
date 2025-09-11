@@ -27,6 +27,7 @@ import { SubjectLibrary } from './SubjectLibrary';
 import { TimetableGrid } from './TimetableGrid';
 import { TeacherAssignmentModal } from './TeacherAssignmentModal';
 import { timetableService } from '@/api/services/timetable.service';
+import { toast } from 'sonner';
 import {
   scheduleService,
   timeslotService,
@@ -413,8 +414,12 @@ export function TimetableBuilder() {
   const handleSaveTimetable = async () => {
     if (!currentSchedule) {
       console.error('No schedule available to save');
+      toast.error('No schedule available to save');
       return;
     }
+
+    // Show loading toast
+    const loadingToast = toast.loading('Saving timetable...');
 
     // Validate before saving
     const validation = validateSchedule();
@@ -422,6 +427,7 @@ export function TimetableBuilder() {
     if (!validation.valid && validation.errors.length > 0) {
       // Show validation warnings but allow saving (partial timetables are allowed)
       console.warn('Validation warnings:', validation.errors);
+      toast.warning('Saving with validation warnings');
     }
 
     try {
@@ -506,7 +512,8 @@ export function TimetableBuilder() {
       const operations = [...createOps, ...updateOps, ...deleteOps];
 
       if (operations.length === 0) {
-        alert('No changes to save.');
+        toast.dismiss(loadingToast);
+        toast.info('No changes to save.');
         return;
       }
 
@@ -517,7 +524,8 @@ export function TimetableBuilder() {
 
       if (saveResponse.success) {
         console.log('Timetable saved successfully');
-        alert('Timetable saved successfully!');
+        toast.dismiss(loadingToast);
+        toast.success('Timetable saved successfully!');
 
         // Reload the timetable to get the latest state
         await loadClassSchedule();
@@ -526,7 +534,8 @@ export function TimetableBuilder() {
       }
     } catch (error) {
       console.error('Error saving timetable:', error);
-      alert('Failed to save timetable. Please try again.');
+      toast.dismiss(loadingToast);
+      toast.error('Failed to save timetable. Please try again.');
     }
   };
 
