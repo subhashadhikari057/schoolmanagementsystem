@@ -245,22 +245,36 @@ const StudentsPage = () => {
         if (Array.isArray(studentsData)) {
           // Transform backend data to frontend format
           const transformedStudents: Student[] = studentsData.map(
-            (student, index) => ({
-              id: student.id || `temp-${index}`, // Use original UUID string ID or temporary ID
-              name: student.fullName || 'Unknown',
-              rollNo: student.rollNumber || '',
-              class: student.className || 'No Class',
-              parent: '1', // Will be updated when parent data is available
-              status: (student.academicStatus === 'active'
-                ? 'Active'
-                : student.academicStatus === 'suspended'
-                  ? 'Suspended'
-                  : 'Active') as 'Active' | 'Suspended' | 'Warning',
-              email: student.email || '',
-              attendance: { present: 0, total: 0 }, // Placeholder until attendance is implemented
-              grade: student.className || 'No Grade', // Use actual class data
-              section: 'A', // Default section - will be updated when backend provides section data
-            }),
+            (student, index) => {
+              // Debug logging to see what profilePhotoUrl we're getting
+              if (student.profilePhotoUrl) {
+                console.log(
+                  'Student Profile Photo URL:',
+                  student.profilePhotoUrl,
+                );
+              }
+
+              return {
+                id: student.id || `temp-${index}`, // Use original UUID string ID or temporary ID
+                name: student.fullName || 'Unknown',
+                rollNo: student.rollNumber || '',
+                class: student.className || 'No Class',
+                parent: '1', // Will be updated when parent data is available
+                status: (student.academicStatus === 'active'
+                  ? 'Active'
+                  : student.academicStatus === 'suspended'
+                    ? 'Suspended'
+                    : 'Active') as 'Active' | 'Suspended' | 'Warning',
+                email: student.email || '',
+                attendance: { present: 0, total: 0 }, // Placeholder until attendance is implemented
+                grade: student.className || 'No Grade', // Use actual class data
+                section: 'A', // Default section - will be updated when backend provides section data
+                avatar: student.profilePhotoUrl || undefined, // Map profilePhotoUrl to avatar
+                studentId: student.studentId,
+                phone: student.phone,
+                address: student.address,
+              };
+            },
           );
 
           setStudents(transformedStudents);
@@ -335,16 +349,26 @@ const StudentsPage = () => {
 
   // Handle student actions
   const handleStudentAction = async (action: string, student: Student) => {
+    // Transform the student data to ensure avatar field is set correctly for all actions
+    const transformedStudent = {
+      ...student,
+      avatar: student.avatar || (student as any).profilePhotoUrl || undefined,
+    };
+
     // View action
     if (action === 'view') {
-      setSelectedStudent(student);
+      console.log('View Modal - Original student:', student);
+      console.log('View Modal - Transformed student:', transformedStudent);
+      setSelectedStudent(transformedStudent);
       setViewModalOpen(true);
       return;
     }
 
     // Edit action
     if (action === 'edit') {
-      setSelectedStudent(student);
+      console.log('Edit Modal - Original student:', student);
+      console.log('Edit Modal - Transformed student:', transformedStudent);
+      setSelectedStudent(transformedStudent);
       setEditModalOpen(true);
       return;
     }

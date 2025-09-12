@@ -9,8 +9,8 @@ import {
   getListConfig,
   Parent,
 } from '@/components/templates/listConfigurations';
+// import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
-import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import {
   Users,
   UserCheck,
@@ -209,13 +209,23 @@ const ParentsPage = () => {
 
   // Action handlers for parent rows
   const handleParentAction = (action: string, parent: Parent) => {
+    // Transform the parent data to ensure avatar field is set correctly for all actions
+    const transformedParent = {
+      ...parent,
+      avatar: parent.avatar || (parent as any).profilePhotoUrl || undefined,
+    };
+
     switch (action) {
       case 'view':
-        setSelectedParent(parent);
+        console.log('View Modal - Original parent:', parent);
+        console.log('View Modal - Transformed parent:', transformedParent);
+        setSelectedParent(transformedParent);
         setIsViewModalOpen(true);
         break;
       case 'edit':
-        setSelectedParent(parent);
+        console.log('Edit Modal - Original parent:', parent);
+        console.log('Edit Modal - Transformed parent:', transformedParent);
+        setSelectedParent(transformedParent);
         setIsEditModalOpen(true);
         break;
       case 'delete':
@@ -368,7 +378,7 @@ const ParentsPage = () => {
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             onItemAction={handleParentAction}
-            customActions={<ActionButtons pageType='parents' />}
+            // customActions={<ActionButtons pageType='parents' hideMassEmails hideSendCommunication />}
             onPageChange={handlePageChange}
           />
         </div>

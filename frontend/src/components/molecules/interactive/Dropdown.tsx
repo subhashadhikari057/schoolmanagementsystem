@@ -22,6 +22,10 @@ import { useRouter } from 'next/navigation';
 import ChangePasswordModal from '@/components/organisms/modals/ChangePasswordModal';
 import { Menu, Transition } from '@headlessui/react';
 import { AuthUser } from '@/api/types/auth';
+import { studentService } from '@/api/services/student.service';
+import { teacherService } from '@/api/services/teacher.service';
+import { staffService } from '@/api/services/staff.service';
+import { parentService } from '@/api/services/parent.service';
 
 interface DropdownOption {
   value: string;
@@ -85,6 +89,9 @@ export default function Dropdown({
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | undefined>(
+    undefined,
+  );
 
   // SECURITY: Preserve last known user info during logout to prevent "Guest User" flash
   const lastKnownUser = useRef<AuthUser | null>(null);
@@ -102,6 +109,96 @@ export default function Dropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { showAnalytics, toggleAnalytics } = useAnalyticsOverview();
+
+  // Function to fetch profile photo based on user role
+  const fetchProfilePhoto = useCallback(
+    async (userId: string, role: string) => {
+      try {
+        const normalizedRole = role.toLowerCase().replace(/_/g, '');
+        let profileData: any = null;
+
+        switch (normalizedRole) {
+          case 'student':
+            try {
+              const studentResponse =
+                await studentService.getStudentByUserId(userId);
+              profileData = studentResponse.data;
+            } catch (error) {
+              console.log(
+                'Could not fetch student profile by user ID, trying current student API',
+              );
+              // Fallback - this might not work for all cases
+            }
+            break;
+          case 'teacher':
+            try {
+              // Try getCurrentTeacher first since it's designed for current user
+              const teacherResponse = await teacherService.getCurrentTeacher();
+              if (teacherResponse.data?.id) {
+                // Now get full teacher data with profile photo
+                const fullTeacherResponse = await teacherService.getTeacherById(
+                  teacherResponse.data.id,
+                );
+                profileData = fullTeacherResponse.data;
+              }
+            } catch (error) {
+              console.log('Could not fetch teacher profile');
+            }
+            break;
+          case 'staff':
+            try {
+              // For staff, we might need to find a different approach since there's no getCurrentStaff
+              // For now, skip staff profile photos
+              console.log('Staff profile photos not yet supported in dropdown');
+            } catch (error) {
+              console.log('Could not fetch staff profile');
+            }
+            break;
+          case 'parent':
+            try {
+              // For parent, we might need to find a different approach since there's no getCurrentParent
+              // For now, skip parent profile photos
+              console.log(
+                'Parent profile photos not yet supported in dropdown',
+              );
+            } catch (error) {
+              console.log('Could not fetch parent profile');
+            }
+            break;
+          case 'superadmin':
+          case 'admin':
+          case 'accountant':
+          default:
+            // For admin roles, we might not have profile photos yet
+            console.log(
+              'Admin role profile photos not yet supported in dropdown',
+            );
+            return;
+        }
+
+        if (profileData?.profilePhotoUrl) {
+          setProfilePhotoUrl(profileData.profilePhotoUrl);
+          console.log(
+            'Profile photo loaded for dropdown:',
+            profileData.profilePhotoUrl,
+          );
+        }
+      } catch (error) {
+        console.log('Could not fetch profile photo for dropdown:', error);
+        // Silently fail - user will see initials instead
+      }
+    },
+    [],
+  );
+
+  // Fetch profile photo when user changes
+  useEffect(() => {
+    if (displayUser?.id && displayUser?.role) {
+      fetchProfilePhoto(displayUser.id, displayUser.role);
+    } else {
+      setProfilePhotoUrl(undefined);
+    }
+  }, [displayUser?.id, displayUser?.role, fetchProfilePhoto]);
 
   // Profile dropdown options with Animesh's View Profile change
   const profileOptions = useMemo(() => {
@@ -207,13 +304,19 @@ export default function Dropdown({
                   }`}
                 >
                   <Avatar
+                    src={profilePhotoUrl}
                     name={
                       displayUser?.full_name ||
                       displayUser?.email ||
                       'Guest User'
                     }
+                    role={
+                      (displayUser?.role
+                        ?.toLowerCase()
+                        .replace(/_/g, '') as any) || 'student'
+                    }
                     className='w-8 h-8 md:w-9 md:h-9 rounded-full flex-shrink-0'
-                    showInitials={true}
+                    context='profile-dropdown'
                   />
                   <div className='text-left flex-1 min-w-0'>
                     <p className='text-sm font-semibold text-foreground truncate'>

@@ -220,7 +220,14 @@ export default function AllAssignmentsTab({
       // Note: We already have student data from the backend, so we don't need to fetch class details separately
       // The backend's findAll method includes students in the class data
 
-      setAssignments(processedAssignments);
+      // Sort assignments by creation date (most recent first)
+      const sortedAssignments = processedAssignments.sort((a, b) => {
+        const dateA = new Date(a.originalData.createdAt || 0);
+        const dateB = new Date(b.originalData.createdAt || 0);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      setAssignments(sortedAssignments);
 
       // Debug: Log assignment data to understand student count issues (commented out for production)
       // console.log('Processed assignments:', processedAssignments.map(a => ({

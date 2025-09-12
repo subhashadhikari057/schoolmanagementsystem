@@ -45,6 +45,7 @@ import ReusableButton from '@/components/atoms/form-controls/Button';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import { Card } from '@/components/ui/card';
+import Avatar from '@/components/atoms/display/Avatar';
 
 const ProfileSettings = forwardRef<ProfileSettingsHandle, ProfileSettingsProps>(
   (props, ref) => {
@@ -53,6 +54,9 @@ const ProfileSettings = forwardRef<ProfileSettingsHandle, ProfileSettingsProps>(
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [editing, setEditing] = useState(false);
+    const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | undefined>(
+      undefined,
+    );
     useEffect(() => {
       if (typeof props.editing === 'boolean') {
         setEditing(props.editing);
@@ -68,6 +72,54 @@ const ProfileSettings = forwardRef<ProfileSettingsHandle, ProfileSettingsProps>(
       useState<TeacherListResponse | null>(null);
     const [teacherLoading, setTeacherLoading] = useState(false);
     const baseButtonClass = 'p-1 px-2 rounded-lg shadow-sm cursor-pointer';
+
+    // Function to fetch profile photo based on user role
+    const fetchProfilePhoto = async (userId: string, role: string) => {
+      try {
+        const normalizedRole = role.toLowerCase().replace(/_/g, '');
+        let profileData: any = null;
+
+        switch (normalizedRole) {
+          case 'student': {
+            const studentResponse =
+              await studentService.getStudentByUserId(userId);
+            profileData = studentResponse.data;
+            break;
+          }
+          case 'teacher': {
+            const currentTeacherResp = await teacherService.getCurrentTeacher();
+            if (currentTeacherResp?.success && currentTeacherResp.data) {
+              const teacherResponse = await teacherService.getTeacherById(
+                currentTeacherResp.data.id,
+              );
+              profileData = teacherResponse.data;
+            }
+            break;
+          }
+          case 'staff':
+            // Staff service doesn't have getCurrentStaff, so we'll handle this differently
+            console.log('Staff profile photo fetching not yet implemented');
+            return;
+          case 'parent':
+            // Parent service doesn't have getCurrentParent, so we'll handle this differently
+            console.log('Parent profile photo fetching not yet implemented');
+            return;
+          case 'superadmin':
+          case 'admin':
+          case 'accountant':
+          default:
+            // For admin roles, we might not have profile photos yet
+            return;
+        }
+
+        if (profileData?.profilePhotoUrl) {
+          setProfilePhotoUrl(profileData.profilePhotoUrl);
+        }
+      } catch (error) {
+        console.log('Could not fetch profile photo:', error);
+        // Silently fail - user will see initials instead
+      }
+    };
 
     useEffect(() => {
       // Fetch student details for parent info (for student dashboard)
@@ -176,6 +228,15 @@ const ProfileSettings = forwardRef<ProfileSettingsHandle, ProfileSettingsProps>(
       };
       load();
     }, []);
+
+    // Fetch profile photo when profile is loaded
+    useEffect(() => {
+      if (profile?.id && profile?.role) {
+        fetchProfilePhoto(profile.id, profile.role);
+      } else {
+        setProfilePhotoUrl(undefined);
+      }
+    }, [profile?.id, profile?.role]);
 
     // For student dashboard: fetch parents from backend
     useEffect(() => {
@@ -493,13 +554,13 @@ const ProfileSettings = forwardRef<ProfileSettingsHandle, ProfileSettingsProps>(
               </div>
               <div className='flex gap-6 items-center mt-4'>
                 <div className='flex flex-col items-center justify-center'>
-                  <div className='w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-xl font-semibold mb-2'>
-                    {profile?.fullName
-                      ?.split(' ')
-                      .map((n: string) => n[0])
-                      .slice(0, 2)
-                      .join('') ?? '-'}
-                  </div>
+                  <Avatar
+                    src={profilePhotoUrl}
+                    name={profile?.fullName || 'Unknown User'}
+                    role={(profile?.role?.toLowerCase() as any) || 'student'}
+                    className='w-16 h-16 rounded-full mb-2'
+                    context='profile-settings'
+                  />
                   <div className='text-base font-semibold'>
                     {editing ? (
                       <input

@@ -334,16 +334,26 @@ const TeachersPage = () => {
 
   // Handle teacher actions
   const handleTeacherAction = async (action: string, teacher: Teacher) => {
+    // Transform the teacher data to ensure avatar field is set correctly for all actions
+    const transformedTeacher = {
+      ...teacher,
+      avatar: teacher.avatar || (teacher as any).profilePhotoUrl || undefined,
+    };
+
     // View action
     if (action === 'view') {
-      setSelectedTeacher(teacher);
+      console.log('View Modal - Original teacher:', teacher);
+      console.log('View Modal - Transformed teacher:', transformedTeacher);
+      setSelectedTeacher(transformedTeacher);
       setViewModalOpen(true);
       return;
     }
 
     // Edit action
     if (action === 'edit') {
-      setSelectedTeacher(teacher);
+      console.log('Edit Modal - Original teacher:', teacher);
+      console.log('Edit Modal - Transformed teacher:', transformedTeacher);
+      setSelectedTeacher(transformedTeacher);
       setEditModalOpen(true);
       return;
     }
