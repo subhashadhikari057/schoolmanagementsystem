@@ -28,12 +28,15 @@ import {
   PreviewPromotionSchema,
   ExecutePromotionDto,
   ExecutePromotionSchema,
+  IndividualPromotionDto,
+  IndividualPromotionSchema,
   CreateAcademicYearDto,
   CreateAcademicYearSchema,
   UpdateAcademicYearDto,
   UpdateAcademicYearSchema,
   PromotionPreviewResponseDto,
   PromotionExecutionResult,
+  IndividualPromotionResult,
   PromotionBatchResponseDto,
   AcademicYearResponseDto,
 } from '../dto/promotion.dto';
@@ -43,6 +46,33 @@ import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PromotionController {
   constructor(private readonly promotionService: PromotionService) {}
+
+  /**
+   * Debug endpoint to check classes in database
+   */
+  @Get('debug/classes')
+  @Roles(UserRole.SUPER_ADMIN)
+  async debugClasses() {
+    return this.promotionService.debugClasses();
+  }
+
+  /**
+   * Debug endpoint to check promotion batches
+   */
+  @Get('debug/batches')
+  @Roles(UserRole.SUPER_ADMIN)
+  async debugBatches() {
+    return this.promotionService.debugBatches();
+  }
+
+  /**
+   * Debug endpoint to clean up stuck promotion batches
+   */
+  @Post('debug/cleanup-stuck-batches')
+  @Roles(UserRole.SUPER_ADMIN)
+  async cleanupStuckBatches() {
+    return this.promotionService.cleanupStuckBatches();
+  }
 
   /**
    * Preview student promotions for an academic year
@@ -92,6 +122,53 @@ export class PromotionController {
       }
       throw error;
     }
+  }
+
+  /**
+   * Promote individual student
+   */
+  @Post('individual')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  async promoteIndividualStudent(
+    @Body() body: any,
+    @CurrentUser() user: any,
+  ): Promise<IndividualPromotionResult> {
+    try {
+      // Validate the request body manually
+      const dto = IndividualPromotionSchema.parse(body);
+
+      return this.promotionService.promoteIndividualStudent(dto, user.id);
+    } catch (error) {
+      if (error.name === 'ZodError') {
+        throw new BadRequestException(
+          `Validation failed: ${error.issues.map(i => i.message).join(', ')}`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get promotion progress
+   */
+  @Get('progress/:batchId')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async getPromotionProgress(@Param('batchId') batchId: string) {
+    return this.promotionService.getPromotionProgress(batchId);
+  }
+
+  /**
+   * Revert promotion batch
+   */
+  @Post('revert/:batchId')
+  @Roles(UserRole.SUPER_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  async revertPromotionBatch(
+    @Param('batchId') batchId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.promotionService.revertPromotionBatch(batchId, user.id);
   }
 
   /**

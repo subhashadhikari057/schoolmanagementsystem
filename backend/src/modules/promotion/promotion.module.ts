@@ -10,12 +10,18 @@
 import { Module } from '@nestjs/common';
 import { PromotionController } from './api/promotion.controller';
 import { PromotionService } from './application/promotion.service';
+import { PromotionQueueService } from './services/promotion-queue.service';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { AuditService } from '../../shared/logger/audit.service';
 
 @Module({
   controllers: [PromotionController],
-  providers: [PromotionService, PrismaService, AuditService],
-  exports: [PromotionService],
+  providers: [
+    PromotionService,
+    PromotionQueueService,
+    PrismaService,
+    AuditService,
+  ],
+  exports: [PromotionService, PromotionQueueService],
 })
 export class PromotionModule {}

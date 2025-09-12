@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import {
   Info,
   School,
@@ -25,6 +24,7 @@ interface ClassSummary {
   totalStudents: number;
   eligibleStudents: number;
   selectedForStay: number;
+  targetClassName?: string; // Optional for backward compatibility
 }
 
 interface PromotionOverviewTabProps {
@@ -136,52 +136,130 @@ export default function PromotionOverviewTab({
           </CardDescription>
         </CardHeader>
         <CardContent className='p-6'>
-          <div className='space-y-4'>
-            {classSummary.map(summary => (
-              <div
-                key={summary.class}
-                className='flex flex-col lg:flex-row lg:items-center lg:justify-between p-6 rounded-xl border border-gray-200 bg-gradient-to-r from-gray-50 to-white hover:from-blue-50 hover:to-indigo-50 transition-all duration-200'
-              >
-                <div className='flex items-center gap-4 mb-4 lg:mb-0'>
-                  <div className='bg-white border border-gray-200 rounded-lg p-3'>
-                    <span className='text-lg font-bold text-gray-900'>
-                      Grade {summary.class}
-                    </span>
-                  </div>
-                  <ArrowRight className='w-5 h-5 text-gray-400' />
-                  <div className='bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg p-3'>
-                    <span className='text-lg font-bold'>
-                      {summary.class === '12'
-                        ? 'Graduate'
-                        : `Grade ${parseInt(summary.class) + 1}`}
-                    </span>
-                  </div>
-                </div>
+          {classSummary.length === 0 ? (
+            <div className='text-center py-8 text-gray-500'>
+              <School className='w-12 h-12 mx-auto mb-4 text-gray-300' />
+              <p>
+                No classes found. Please ensure classes are created and have
+                students assigned.
+              </p>
+            </div>
+          ) : (
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
+              {classSummary.map(summary => {
+                // Use targetClassName if available, otherwise extract from class name
+                let isGraduating = false;
+                let nextGrade = 'Next Grade';
 
-                <div className='grid grid-cols-2 lg:flex lg:items-center gap-4 lg:gap-8 text-sm'>
-                  <div className='text-center lg:text-left'>
-                    <div className='font-medium text-green-600 text-lg'>
-                      {summary.eligibleStudents - summary.selectedForStay}
+                if (summary.targetClassName) {
+                  // Use backend's targetClassName for accurate display
+                  isGraduating = summary.targetClassName === 'Graduate';
+                  nextGrade = summary.targetClassName;
+                } else {
+                  // Fallback: Extract grade number from class name
+                  const gradeMatch =
+                    summary.class.match(/Grade (\d+)/i) ||
+                    summary.class.match(/(\d+)/);
+                  const currentGrade = gradeMatch
+                    ? parseInt(gradeMatch[1])
+                    : null;
+                  isGraduating = Boolean(currentGrade && currentGrade >= 12);
+                  nextGrade = isGraduating
+                    ? 'Graduate'
+                    : currentGrade
+                      ? `Grade ${currentGrade + 1}`
+                      : 'Next Grade';
+                }
+
+                return (
+                  <div
+                    key={summary.class}
+                    className='bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 hover:border-blue-300'
+                  >
+                    {/* Class Header */}
+                    <div className='flex items-center justify-between mb-3'>
+                      <div className='bg-blue-50 px-3 py-1 rounded-full'>
+                        <span className='text-sm font-semibold text-blue-700'>
+                          {summary.class}
+                        </span>
+                      </div>
+                      <ArrowRight className='w-4 h-4 text-gray-400' />
+                      <div
+                        className={`px-3 py-1 rounded-full ${isGraduating ? 'bg-purple-50' : 'bg-green-50'}`}
+                      >
+                        <span
+                          className={`text-sm font-semibold ${isGraduating ? 'text-purple-700' : 'text-green-700'}`}
+                        >
+                          {nextGrade}
+                        </span>
+                      </div>
                     </div>
-                    <div className='text-gray-600'>Promoting</div>
-                  </div>
-                  <div className='text-center lg:text-left'>
-                    <div className='font-medium text-orange-600 text-lg'>
-                      {summary.totalStudents -
-                        summary.eligibleStudents +
-                        summary.selectedForStay}
+
+                    {/* Student Stats */}
+                    <div className='space-y-2'>
+                      <div className='flex justify-between items-center'>
+                        <span className='text-xs text-gray-500'>
+                          Total Students
+                        </span>
+                        <span className='font-bold text-gray-900'>
+                          {summary.totalStudents}
+                        </span>
+                      </div>
+                      <div className='flex justify-between items-center'>
+                        <span className='text-xs text-gray-500'>
+                          Will {isGraduating ? 'Graduate' : 'Promote'}
+                        </span>
+                        <span
+                          className={`font-bold ${isGraduating ? 'text-purple-600' : 'text-green-600'}`}
+                        >
+                          {summary.eligibleStudents - summary.selectedForStay}
+                        </span>
+                      </div>
+                      {summary.selectedForStay > 0 && (
+                        <div className='flex justify-between items-center'>
+                          <span className='text-xs text-gray-500'>
+                            Will Stay
+                          </span>
+                          <span className='font-bold text-orange-600'>
+                            {summary.selectedForStay}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div className='text-gray-600'>Staying</div>
-                  </div>
-                  <div className='text-center lg:text-left col-span-2 lg:col-span-1'>
-                    <div className='text-gray-500 text-sm'>
-                      of {summary.totalStudents} total students
+
+                    {/* Progress Bar */}
+                    <div className='mt-3 pt-3 border-t border-gray-100'>
+                      <div className='flex items-center gap-2 text-xs text-gray-500 mb-1'>
+                        <span>Promotion Rate</span>
+                        <span className='ml-auto font-medium'>
+                          {summary.totalStudents > 0
+                            ? Math.round(
+                                ((summary.eligibleStudents -
+                                  summary.selectedForStay) /
+                                  summary.totalStudents) *
+                                  100,
+                              )
+                            : 0}
+                          %
+                        </span>
+                      </div>
+                      <div className='w-full bg-gray-200 rounded-full h-2'>
+                        <div
+                          className={`h-2 rounded-full ${isGraduating ? 'bg-purple-500' : 'bg-green-500'}`}
+                          style={{
+                            width:
+                              summary.totalStudents > 0
+                                ? `${((summary.eligibleStudents - summary.selectedForStay) / summary.totalStudents) * 100}%`
+                                : '0%',
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

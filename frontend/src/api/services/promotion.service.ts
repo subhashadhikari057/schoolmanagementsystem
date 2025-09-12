@@ -5,11 +5,15 @@ import { ApiResponse } from '../types';
 export const PROMOTION_ENDPOINTS = {
   PREVIEW_PROMOTIONS: 'api/promotions/preview',
   EXECUTE_PROMOTIONS: 'api/promotions/execute',
+  INDIVIDUAL_PROMOTION: 'api/promotions/individual',
+  GET_PROMOTION_PROGRESS: 'api/promotions/progress',
+  REVERT_PROMOTION: 'api/promotions/revert',
   GET_PROMOTION_BATCHES: 'api/promotions/batches',
   GET_PROMOTION_BATCH: 'api/promotions/batch',
   GET_ACADEMIC_YEARS: 'api/promotions/academic-years',
   GET_CURRENT_ACADEMIC_YEAR: 'api/promotions/academic-years/current',
   CREATE_ACADEMIC_YEAR: 'api/promotions/academic-years',
+  CLEANUP_STUCK_BATCHES: 'api/promotions/debug/cleanup-stuck-batches',
 } as const;
 
 // Types for promotion service
@@ -40,12 +44,15 @@ export interface PromotionStudentInfo {
 export interface PromotionSummary {
   fromGrade: number;
   toGrade: number | 'Graduate';
+  className: string;
+  section: string;
   totalStudents: number;
   eligibleStudents: number;
   ineligibleStudents: number;
   promotingStudents: number;
   stayingStudents: number;
   graduatingStudents: number;
+  targetClassName: string;
 }
 
 export interface PromotionPreviewResponse {
@@ -128,6 +135,58 @@ export interface CreateAcademicYearRequest {
   startDate: string;
   endDate: string;
   isCurrent?: boolean;
+}
+
+export interface IndividualPromotionRequest {
+  studentId: string;
+  academicYear: string;
+  toAcademicYear: string;
+  reason?: string;
+}
+
+export interface IndividualPromotionResponse {
+  success: boolean;
+  message: string;
+  studentId: string;
+  studentName: string;
+  fromClass: string;
+  toClass: string;
+  promotionType: 'PROMOTED' | 'GRADUATED';
+  promotionDate: string;
+}
+
+export interface PromotionProgressResponse {
+  batchId: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+  totalStudents: number;
+  processedStudents: number;
+  promotedStudents: number;
+  retainedStudents: number;
+  graduatedStudents: number;
+  failedStudents: number;
+  progress: number; // 0-100
+  startedAt?: string;
+  completedAt?: string;
+  errors: string[];
+}
+
+export interface RevertPromotionResponse {
+  success: boolean;
+  message: string;
+  revertedCount: number;
+  failedRevertCount: number;
+  errors: string[];
+}
+
+export interface CleanupStuckBatchesResponse {
+  message: string;
+  cleanedBatches: Array<{
+    id: string;
+    fromAcademicYear: string;
+    toAcademicYear: string;
+    createdAt: string;
+    wasStuckFor: string;
+  }>;
 }
 
 export interface PromotionBatch {
@@ -241,6 +300,58 @@ export class PromotionService {
     return this.httpClient.post(
       PROMOTION_ENDPOINTS.CREATE_ACADEMIC_YEAR,
       request,
+      { requiresAuth: true },
+    );
+  }
+
+  /**
+   * Promote individual student
+   */
+  async promoteIndividualStudent(
+    request: IndividualPromotionRequest,
+  ): Promise<ApiResponse<IndividualPromotionResponse>> {
+    return this.httpClient.post<IndividualPromotionResponse>(
+      PROMOTION_ENDPOINTS.INDIVIDUAL_PROMOTION,
+      request,
+      { requiresAuth: true },
+    );
+  }
+
+  /**
+   * Get promotion progress
+   */
+  async getPromotionProgress(
+    batchId: string,
+  ): Promise<ApiResponse<PromotionProgressResponse>> {
+    return this.httpClient.get<PromotionProgressResponse>(
+      `${PROMOTION_ENDPOINTS.GET_PROMOTION_PROGRESS}/${batchId}`,
+      {},
+      { requiresAuth: true },
+    );
+  }
+
+  /**
+   * Revert promotion batch
+   */
+  async revertPromotionBatch(
+    batchId: string,
+  ): Promise<ApiResponse<RevertPromotionResponse>> {
+    return this.httpClient.post<RevertPromotionResponse>(
+      `${PROMOTION_ENDPOINTS.REVERT_PROMOTION}/${batchId}`,
+      {},
+      { requiresAuth: true },
+    );
+  }
+
+  /**
+   * Clean up stuck promotion batches (debug endpoint)
+   */
+  async cleanupStuckBatches(): Promise<
+    ApiResponse<CleanupStuckBatchesResponse>
+  > {
+    return this.httpClient.post<CleanupStuckBatchesResponse>(
+      PROMOTION_ENDPOINTS.CLEANUP_STUCK_BATCHES,
+      {},
       { requiresAuth: true },
     );
   }
