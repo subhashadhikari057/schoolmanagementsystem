@@ -48,6 +48,13 @@ export const timetableSlotSchema = z.object({
     floor: z.number(),
     building: z.string().nullable(),
   }).nullable().optional(),
+  // Add class information for teacher timetable
+  class: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    grade: z.number(),
+    section: z.string(),
+  }).optional(),
 });
 
 // Schema for bulk timetable operations
