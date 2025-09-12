@@ -20,6 +20,35 @@ interface ApiErrorBoundaryProps {
   onError?: (error: ApiError) => void;
 }
 
+/**
+ * Determine if an error should be ignored by the global error boundary
+ * These errors should be handled locally by components
+ */
+const shouldIgnoreError = (error: ApiError): boolean => {
+  // Ignore 409 Conflict errors - these are usually handled locally
+  if (error.statusCode === 409) {
+    return true;
+  }
+
+  // Ignore 400 Bad Request errors - these are usually validation or business logic errors
+  if (error.statusCode === 400) {
+    return true;
+  }
+
+  // Ignore 404 Not Found errors - these are usually handled locally
+  if (error.statusCode === 404) {
+    return true;
+  }
+
+  // Ignore auth failures on auth endpoints
+  if (error.code === 'AUTH_FAILURE') {
+    return true;
+  }
+
+  // Show global errors for 500+ server errors and other critical issues
+  return false;
+};
+
 export default function ApiErrorBoundary({
   children,
   fallback,
@@ -60,8 +89,8 @@ export default function ApiErrorBoundary({
         return;
       }
 
-      // Only set error state for non-validation errors
-      if (!apiError.validationErrors) {
+      // Only set error state for critical errors, not conflicts or validation errors
+      if (!apiError.validationErrors && !shouldIgnoreError(apiError)) {
         setError(apiError);
       }
     };

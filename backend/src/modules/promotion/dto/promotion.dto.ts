@@ -27,6 +27,13 @@ export const ExecutePromotionSchema = z.object({
   reason: z.string().optional(),
 });
 
+export const IndividualPromotionSchema = z.object({
+  studentId: z.string().min(1, 'Student ID is required'),
+  academicYear: z.string().min(1, 'Academic year is required'),
+  toAcademicYear: z.string().min(1, 'Target academic year is required'),
+  reason: z.string().optional(),
+});
+
 export const CreateAcademicYearSchema = z.object({
   year: z.string().regex(/^\d{4}-\d{4}$/, 'Year must be in format YYYY-YYYY'),
   startDate: z.coerce.date(),
@@ -58,12 +65,15 @@ export const PromotionStudentResponseSchema = z.object({
 export const PromotionSummarySchema = z.object({
   fromGrade: z.number(),
   toGrade: z.union([z.number(), z.literal('Graduate')]),
+  className: z.string(),
+  section: z.string(),
   totalStudents: z.number(),
   eligibleStudents: z.number(),
   ineligibleStudents: z.number(),
   promotingStudents: z.number(),
   stayingStudents: z.number(),
   graduatingStudents: z.number(),
+  targetClassName: z.string(),
 });
 
 export const PromotionPreviewResponseSchema = z.object({
@@ -128,6 +138,7 @@ export const AcademicYearResponseSchema = z.object({
 
 export type PreviewPromotionDto = z.infer<typeof PreviewPromotionSchema>;
 export type ExecutePromotionDto = z.infer<typeof ExecutePromotionSchema>;
+export type IndividualPromotionDto = z.infer<typeof IndividualPromotionSchema>;
 export type CreateAcademicYearDto = z.infer<typeof CreateAcademicYearSchema>;
 export type UpdateAcademicYearDto = z.infer<typeof UpdateAcademicYearSchema>;
 
@@ -161,6 +172,17 @@ export interface PromotionExecutionResult {
   graduated: number;
   failed: number;
   errors?: string[];
+}
+
+export interface IndividualPromotionResult {
+  success: boolean;
+  message: string;
+  studentId: string;
+  studentName: string;
+  fromClass: string;
+  toClass: string;
+  promotionType: 'PROMOTED' | 'GRADUATED';
+  promotionDate: string;
 }
 
 export interface PromotionProgressUpdate {

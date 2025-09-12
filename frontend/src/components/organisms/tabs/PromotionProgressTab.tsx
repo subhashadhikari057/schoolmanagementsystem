@@ -17,6 +17,14 @@ interface PromotionState {
   status: 'idle' | 'loading' | 'running' | 'completed' | 'error' | 'empty';
   progress: number;
   message?: string;
+  batchId?: string;
+  processedStudents?: number;
+  totalStudents?: number;
+  promotedStudents?: number;
+  retainedStudents?: number;
+  graduatedStudents?: number;
+  failedStudents?: number;
+  errors?: string[];
 }
 
 interface PromotionProgressTabProps {
@@ -26,6 +34,9 @@ interface PromotionProgressTabProps {
   totalGraduating: number;
   onPreviewPromotion: () => void;
   onStartPromotion: () => void;
+  onRevertPromotion?: (batchId: string) => void;
+  onRefreshPreview?: () => void;
+  onCleanupStuckBatches?: () => void;
 }
 
 export default function PromotionProgressTab({
@@ -35,6 +46,9 @@ export default function PromotionProgressTab({
   totalGraduating,
   onPreviewPromotion,
   onStartPromotion,
+  onRevertPromotion,
+  onRefreshPreview,
+  onCleanupStuckBatches,
 }: PromotionProgressTabProps) {
   return (
     <div className='space-y-6'>
@@ -68,9 +82,117 @@ export default function PromotionProgressTab({
                   (promotionState.status === 'running'
                     ? `Processing student promotions... ${promotionState.progress}%`
                     : promotionState.status === 'completed'
-                      ? `Promotion completed successfully! ${totalPromotions} students promoted.`
+                      ? `Promotion completed successfully!`
                       : 'Ready to start promotion process')}
               </div>
+
+              {/* Detailed Progress Stats */}
+              {promotionState.status === 'running' &&
+                promotionState.processedStudents !== undefined && (
+                  <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 p-4 bg-gray-50 rounded-lg'>
+                    <div className='text-center'>
+                      <div className='text-lg font-bold text-blue-600'>
+                        {promotionState.processedStudents || 0}/
+                        {promotionState.totalStudents || 0}
+                      </div>
+                      <div className='text-xs text-gray-500'>Processed</div>
+                    </div>
+                    <div className='text-center'>
+                      <div className='text-lg font-bold text-green-600'>
+                        {promotionState.promotedStudents || 0}
+                      </div>
+                      <div className='text-xs text-gray-500'>Promoted</div>
+                    </div>
+                    <div className='text-center'>
+                      <div className='text-lg font-bold text-purple-600'>
+                        {promotionState.graduatedStudents || 0}
+                      </div>
+                      <div className='text-xs text-gray-500'>Graduated</div>
+                    </div>
+                    <div className='text-center'>
+                      <div className='text-lg font-bold text-red-600'>
+                        {promotionState.failedStudents || 0}
+                      </div>
+                      <div className='text-xs text-gray-500'>Failed</div>
+                    </div>
+                  </div>
+                )}
+
+              {/* Final Results */}
+              {promotionState.status === 'completed' &&
+                promotionState.processedStudents !== undefined && (
+                  <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 p-4 bg-green-50 rounded-lg border border-green-200'>
+                    <div className='text-center'>
+                      <div className='text-lg font-bold text-green-600'>
+                        {promotionState.processedStudents || 0}
+                      </div>
+                      <div className='text-xs text-gray-600'>
+                        Total Processed
+                      </div>
+                    </div>
+                    <div className='text-center'>
+                      <div className='text-lg font-bold text-green-600'>
+                        {promotionState.promotedStudents || 0}
+                      </div>
+                      <div className='text-xs text-gray-600'>Promoted</div>
+                    </div>
+                    <div className='text-center'>
+                      <div className='text-lg font-bold text-purple-600'>
+                        {promotionState.graduatedStudents || 0}
+                      </div>
+                      <div className='text-xs text-gray-600'>Graduated</div>
+                    </div>
+                    <div className='text-center'>
+                      <div className='text-lg font-bold text-orange-600'>
+                        {promotionState.retainedStudents || 0}
+                      </div>
+                      <div className='text-xs text-gray-600'>Retained</div>
+                    </div>
+                  </div>
+                )}
+
+              {/* Error Display */}
+              {promotionState.errors && promotionState.errors.length > 0 && (
+                <div className='mt-4 p-4 bg-red-50 rounded-lg border border-red-200'>
+                  <h4 className='text-sm font-medium text-red-800 mb-2'>
+                    Errors encountered:
+                  </h4>
+                  <div className='text-xs text-red-700 space-y-1 max-h-32 overflow-y-auto'>
+                    {promotionState.errors.map((error, index) => (
+                      <div key={index} className='flex items-start gap-2'>
+                        <span className='text-red-500'>•</span>
+                        <span>{error}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Revert Button for Failed/Incomplete Promotions */}
+                  {promotionState.batchId &&
+                    (promotionState.status === 'error' ||
+                      (promotionState.failedStudents &&
+                        promotionState.failedStudents > 0) ||
+                      (promotionState.errors &&
+                        promotionState.errors.length > 0)) &&
+                    onRevertPromotion && (
+                      <div className='mt-3 pt-3 border-t border-red-200'>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          onClick={() =>
+                            onRevertPromotion(promotionState.batchId!)
+                          }
+                          className='text-red-700 border-red-300 hover:bg-red-50'
+                        >
+                          <XCircle className='w-4 h-4 mr-2' />
+                          Revert Promotion
+                        </Button>
+                        <p className='text-xs text-red-600 mt-1'>
+                          This will undo all completed promotions in this batch
+                        </p>
+                      </div>
+                    )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -104,6 +226,28 @@ export default function PromotionProgressTab({
             </div>
 
             <div className='flex flex-col sm:flex-row gap-3'>
+              {onRefreshPreview && (
+                <Button
+                  variant='outline'
+                  onClick={onRefreshPreview}
+                  disabled={promotionState.status === 'running'}
+                  className='gap-2'
+                >
+                  <RefreshCw className='w-4 h-4' />
+                  Refresh Preview
+                </Button>
+              )}
+              {onCleanupStuckBatches && (
+                <Button
+                  variant='outline'
+                  onClick={onCleanupStuckBatches}
+                  disabled={promotionState.status === 'running'}
+                  className='gap-2 text-orange-600 border-orange-200 hover:bg-orange-50'
+                >
+                  <XCircle className='w-4 h-4' />
+                  Fix Stuck Batches
+                </Button>
+              )}
               <Button
                 variant='outline'
                 onClick={onPreviewPromotion}
