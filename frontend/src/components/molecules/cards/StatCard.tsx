@@ -1,5 +1,4 @@
 import React from 'react';
-import MetricDisplay from './MetricDisplay';
 import IconContainer from '../interactive/IconContainer';
 
 export default function StatCard({
@@ -25,16 +24,18 @@ export default function StatCard({
   variant?: 'default' | 'solid';
   size?: 'sm' | 'md' | 'lg';
 }) {
-  const paddingBySize = size === 'sm' ? 'p-3' : size === 'lg' ? 'p-6' : 'p-5';
+  const paddingBySize =
+    size === 'sm' ? 'p-3 sm:p-4' : size === 'lg' ? 'p-4 sm:p-6' : 'p-4 sm:p-5';
   const valueTextBySize =
     size === 'sm'
-      ? 'text-xl'
+      ? 'text-lg sm:text-xl'
       : size === 'lg'
-        ? 'text-4xl'
-        : 'text-2xl sm:text-3xl';
-  const labelTextBySize = size === 'sm' ? 'text-[10px]' : 'text-[11px]';
+        ? 'text-2xl sm:text-3xl lg:text-4xl'
+        : 'text-xl sm:text-2xl lg:text-3xl';
+  const labelTextBySize =
+    size === 'sm' ? 'text-[10px] sm:text-[11px]' : 'text-[11px] sm:text-xs';
   const changeTextBySize =
-    size === 'sm' ? 'text-[10px]' : 'text-[11px] sm:text-xs';
+    size === 'sm' ? 'text-[10px] sm:text-[11px]' : 'text-[11px] sm:text-xs';
 
   if (variant === 'solid') {
     return (
@@ -42,16 +43,14 @@ export default function StatCard({
         className={`${bgColor ?? 'bg-blue-600'} rounded-xl ${paddingBySize} shadow-sm text-white min-w-0 w-full ${className}`}
       >
         <div
-          className={`${labelTextBySize} uppercase tracking-wide opacity-80 mb-1`}
+          className={`${labelTextBySize} uppercase tracking-wide opacity-80 mb-1 sm:mb-2`}
         >
           {label}
         </div>
-        <div className={`${valueTextBySize} font-bold leading-tight`}>
+        <div className={`${valueTextBySize} font-bold leading-tight mb-1`}>
           {value}
         </div>
-        <div className={`${changeTextBySize} opacity-80 mt-1`}>
-          {String(change)}
-        </div>
+        <div className={`${changeTextBySize} opacity-80`}>{String(change)}</div>
       </div>
     );
   }
@@ -60,15 +59,19 @@ export default function StatCard({
     <div
       className={`bg-white rounded-xl border border-gray-200 ${paddingBySize} shadow-sm hover:shadow-md transition-shadow min-w-0 w-full ${className}`}
     >
-      <div className='px-4 sm:px-0 sm:flex items-start justify-between gap-2 sm:gap-3 lg:gap-4  w-full'>
+      <div className='flex items-start justify-between gap-3 w-full'>
         <div className='flex-1 min-w-0'>
-          <MetricDisplay
-            value={value}
-            label={label}
-            change={change}
-            isPositive={isPositive}
-            className='px-4 sm:p-0'
-          />
+          <div
+            className={`${labelTextBySize} uppercase tracking-wide text-gray-500 mb-1 sm:mb-2`}
+          >
+            {label}
+          </div>
+          <div className={`${valueTextBySize} font-bold text-gray-900 mb-1`}>
+            {value}
+          </div>
+          <div
+            className={`${changeTextBySize} flex items-center gap-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}
+          ></div>
         </div>
         {IconComponent && (
           <div className='flex-shrink-0'>
@@ -76,7 +79,7 @@ export default function StatCard({
               icon={IconComponent}
               bgColor={bgColor || ''}
               iconColor={iconColor || ''}
-              size={size === 'sm' ? 'md' : size === 'lg' ? 'xl' : 'xl'}
+              size={size === 'sm' ? 'md' : size === 'lg' ? 'xl' : 'lg'}
             />
           </div>
         )}

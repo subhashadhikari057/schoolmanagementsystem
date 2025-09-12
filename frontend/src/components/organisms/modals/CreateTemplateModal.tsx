@@ -88,7 +88,7 @@ export default function CreateTemplateModal({
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(true);
 
-  const [zoomLevel, setZoomLevel] = useState(100);
+  const [zoomLevel, setZoomLevel] = useState(90);
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
   const [showValidation, setShowValidation] = useState(false);
@@ -1978,6 +1978,7 @@ export default function CreateTemplateModal({
                   <SelectContent>
                     <SelectItem value='50'>50%</SelectItem>
                     <SelectItem value='75'>75%</SelectItem>
+                    <SelectItem value='90'>90%</SelectItem>
                     <SelectItem value='100'>100%</SelectItem>
                     <SelectItem value='125'>125%</SelectItem>
                     <SelectItem value='150'>150%</SelectItem>

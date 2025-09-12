@@ -49,20 +49,26 @@ export default function Statsgrid({
 }) {
   const containerGrid =
     className ||
-    'grid grid-cols-2 grid-rows-2 sm:grid-cols-2 sm:grid-rows-2 md:grid-cols-3 md:grid-rows-1 lg:grid-cols-4 lg:grid-rows-1 gap-3 sm:gap-4 lg:gap-6'
-      .replace('md:grid-rows-1', 'md:grid-rows-none')
-      .replace('lg:grid-rows-1', 'lg:grid-rows-none');
+    'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6';
   if (variant === 'classes') {
     const classItems = items as ClassItem[];
-    const cardPadding = classesSize === 'lg' ? 'px-6 py-5' : 'px-2 py-3';
+    const cardPadding =
+      classesSize === 'lg'
+        ? 'px-4 py-4 sm:px-6 sm:py-5'
+        : 'px-3 py-3 sm:px-4 sm:py-4';
     const statusSize =
-      classesSize === 'lg' ? 'h-7 px-4 text-[12px]' : 'h-6 px-3 text-[11px]';
-    const titleSize = classesSize === 'lg' ? 'text-lg' : 'text-sm';
-    const subtitleSize = classesSize === 'lg' ? 'text-sm' : 'text-xs';
+      classesSize === 'lg'
+        ? 'h-6 px-3 text-[11px] sm:h-7 sm:px-4 sm:text-[12px]'
+        : 'h-5 px-2 text-[10px] sm:h-6 sm:px-3 sm:text-[11px]';
+    const titleSize =
+      classesSize === 'lg' ? 'text-base sm:text-lg' : 'text-sm sm:text-base';
+    const subtitleSize =
+      classesSize === 'lg' ? 'text-xs sm:text-sm' : 'text-xs';
     return (
       <div
         className={
-          className || 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3'
+          className ||
+          'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4'
         }
       >
         {classItems.map((c, idx) => (
@@ -77,7 +83,7 @@ export default function Statsgrid({
             } ${cardPadding} shadow-sm hover:shadow transition-shadow ${itemClassName}`}
           >
             <div
-              className={`inline-flex items-center justify-center ${statusSize} rounded-full uppercase font-semibold mb-2 whitespace-nowrap ${
+              className={`inline-flex items-center justify-center ${statusSize} rounded-full uppercase font-semibold mb-2 sm:mb-3 whitespace-nowrap ${
                 c.tone === 'green'
                   ? 'bg-white text-green-700'
                   : c.tone === 'blue'
@@ -88,13 +94,13 @@ export default function Statsgrid({
               {c.status}
             </div>
             <div className='flex items-center justify-between'>
-              <div>
+              <div className='flex-1 min-w-0'>
                 <div
                   className={`${titleSize} font-semibold ${
                     c.tone === 'green' || c.tone === 'blue'
                       ? 'text-white'
                       : 'text-gray-900'
-                  }`}
+                  } truncate`}
                 >
                   {c.title}
                 </div>
@@ -103,7 +109,7 @@ export default function Statsgrid({
                     c.tone === 'green' || c.tone === 'blue'
                       ? 'text-white/90'
                       : 'text-gray-500'
-                  }`}
+                  } truncate mt-0.5`}
                 >
                   {c.subtitle}
                 </div>
@@ -125,26 +131,32 @@ export default function Statsgrid({
   if (variant === 'assignments') {
     const assignmentItems = items as AssignmentItem[];
     return (
-      <div className={className || 'grid grid-cols-1 lg:grid-cols-2 gap-4'}>
+      <div
+        className={
+          className || 'grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4'
+        }
+      >
         {assignmentItems.map((a, idx) => (
           <div
             key={idx}
-            className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${itemClassName}`}
+            className={`rounded-xl border border-gray-200 bg-white p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow ${itemClassName}`}
           >
-            <div className={`flex items-center justify-between mb-1`}>
+            <div className={`flex items-start justify-between mb-2`}>
               <div
-                className={`text-base font-medium text-gray-900 line-clamp-1`}
+                className={`text-sm sm:text-base font-medium text-gray-900 line-clamp-2 flex-1 min-w-0 pr-2`}
               >
                 {a.title}
               </div>
             </div>
-            <div className={`text-xs text-gray-500 mb-3`}>
+            <div className={`text-xs text-gray-500 mb-3 truncate`}>
               Subject: {a.subject} • {a.className}
             </div>
-            <div className='flex items-center justify-between'>
-              <span className={`text-xs text-gray-500`}>{a.submissions}</span>
+            <div className='flex items-center justify-between gap-2'>
+              <span className={`text-xs text-gray-500 truncate flex-1`}>
+                {a.submissions}
+              </span>
               <Button
-                className={`px-3 py-1.5 border text-xs font-medium rounded-md bg-green-600 text-white border-green-600 hover:bg-green-700`}
+                className={`px-3 py-1.5 border text-xs font-medium rounded-md bg-green-600 text-white border-green-600 hover:bg-green-700 flex-shrink-0`}
                 label={actionLabel}
                 onClick={a.onClick}
               />
@@ -174,7 +186,7 @@ export default function Statsgrid({
   }
 
   return (
-    <div className={`${containerGrid} mb-4 sm:mb-5 lg:mb-6 w-full`}>
+    <div className={`${containerGrid} mb-3 sm:mb-4 lg:mb-6 w-full`}>
       {stats.map((stat, index) => (
         <StatCard
           key={index}

@@ -405,401 +405,412 @@ function GradingTab({
   };
 
   return (
-    <div className='space-y-6'>
-      {/* Header - only show when not grading */}
-      {!selectedClass && (
-        <div className='flex justify-between items-center'>
-          <div>
-            <SectionTitle text='Class-wise Grading' />
-            <p className='text-gray-500 text-sm mt-1'>
-              Grade students by class blocks for each subject exam
-            </p>
-          </div>
-          <div className='flex items-center space-x-3'>
-            <Button
-              onClick={() => setIsPrintReportsModalOpen(true)}
-              disabled={!selectedExam}
-              className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 flex items-center'
-            >
-              <FileText className='h-4 w-4 mr-2' />
-              Print Reports
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Search and Filters - only show when not grading */}
-      {!selectedClass && (
-        <Card className='p-6'>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            <div>
-              <Label>Search Classes/Subjects</Label>
-              <div className='relative'>
-                <Search className='absolute left-3 top-3 h-4 w-4 text-gray-400' />
-                <Input
-                  placeholder='Search by class or subject...'
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className='pl-10'
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Select Exam</Label>
-              <select
-                value={selectedExam?.id || ''}
-                onChange={e => {
-                  const exam = examEntries.find(ex => ex.id === e.target.value);
-                  setSelectedExam(exam || null);
-                }}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              >
-                <option value=''>Select an exam...</option>
-                {examEntries.map(exam => (
-                  <option key={exam.id} value={exam.id}>
-                    {exam.name} ({exam.startDate.toLocaleDateString()})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>Academic Year</Label>
-              <Input
-                value={selectedAcademicYear}
-                onChange={e => setSelectedAcademicYear(e.target.value)}
-                placeholder='2024-2025'
-              />
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Class Grading Blocks */}
-      {selectedExam && !selectedClass ? (
-        <div className='space-y-4'>
+    <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6'>
+      <div className='space-y-6'>
+        {/* Header - only show when not grading */}
+        {!selectedClass && (
           <div className='flex justify-between items-center'>
-            <h3 className='text-lg font-semibold text-gray-900'>
-              Grading for: {selectedExam.name}
-            </h3>
-            <div className='text-sm text-gray-500'>
-              {filteredClassBlocks.length} classes found
+            <div>
+              <SectionTitle text='Class-wise Grading' />
+              <p className='text-gray-500 text-sm mt-1'>
+                Grade students by class blocks for each subject exam
+              </p>
+            </div>
+            <div className='flex items-center space-x-3'>
+              <Button
+                onClick={() => setIsPrintReportsModalOpen(true)}
+                disabled={!selectedExam}
+                className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 flex items-center'
+              >
+                <FileText className='h-4 w-4 mr-2' />
+                Print Reports
+              </Button>
             </div>
           </div>
+        )}
 
-          {isLoading ? (
-            <Card className='p-8'>
-              <div className='text-center'>
-                <Clock className='mx-auto h-8 w-8 text-gray-400 animate-spin mb-4' />
-                <p className='text-gray-500'>Loading grading data...</p>
-              </div>
-            </Card>
-          ) : filteredClassBlocks.length === 0 ? (
-            <Card className='p-8'>
-              <div className='text-center'>
-                <GraduationCap className='mx-auto h-12 w-12 text-gray-400 mb-4' />
-                <h3 className='text-lg font-medium text-gray-900 mb-2'>
-                  No Classes Found
-                </h3>
-                <p className='text-gray-500'>
-                  {searchTerm
-                    ? 'No classes match your search criteria'
-                    : 'No classes available for grading in this exam'}
-                </p>
-              </div>
-            </Card>
-          ) : (
-            <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
-              {filteredClassBlocks.map(classBlock => (
-                <Card
-                  key={classBlock.id}
-                  className='p-6 hover:shadow-lg transition-shadow'
-                >
-                  <div className='flex justify-between items-start mb-4'>
-                    <div>
-                      <h4 className='text-lg font-semibold text-gray-900'>
-                        Class {classBlock.grade}
-                        {classBlock.section}
-                      </h4>
-                      <p className='text-sm text-gray-500'>
-                        {classBlock.totalStudents} students
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(classBlock.status)}`}
-                    >
-                      {classBlock.status.replace('-', ' ')}
-                    </span>
-                  </div>
-
-                  {/* Class Overview Stats */}
-                  <div className='grid grid-cols-2 gap-4 mb-4'>
-                    <div className='text-center'>
-                      <div className='text-2xl font-bold text-green-600'>
-                        {classBlock.gradedStudents}
-                      </div>
-                      <div className='text-xs text-gray-500'>Graded</div>
-                    </div>
-                    <div className='text-center'>
-                      <div className='text-2xl font-bold text-orange-600'>
-                        {classBlock.pendingStudents}
-                      </div>
-                      <div className='text-xs text-gray-500'>Pending</div>
-                    </div>
-                  </div>
-
-                  {/* Subjects List */}
-                  <div className='space-y-3'>
-                    <h5 className='text-sm font-medium text-gray-700'>
-                      Subjects:
-                    </h5>
-                    {classBlock.subjects.length > 0 ? (
-                      classBlock.subjects.map(subject => (
-                        <div
-                          key={subject.id}
-                          className='flex justify-between items-center p-3 bg-gray-50 rounded-lg'
-                        >
-                          <div className='flex-1'>
-                            <div className='font-medium text-sm text-gray-900'>
-                              {subject.name}
-                            </div>
-                            <div className='text-xs text-gray-500'>
-                              {subject.code} • Max: {subject.maxMarks} • Pass:{' '}
-                              {subject.passMarks}
-                            </div>
-                          </div>
-                          <div className='flex items-center space-x-2'>
-                            <span
-                              className={`px-2 py-1 rounded text-xs font-medium ${getSubjectStatusColor(subject.gradedCount, subject.totalCount)}`}
-                            >
-                              {subject.gradedCount}/{subject.totalCount}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className='p-4 bg-yellow-50 rounded-lg border border-yellow-200'>
-                        <div className='flex items-center'>
-                          <AlertTriangle className='h-4 w-4 text-yellow-600 mr-2' />
-                          <span className='text-sm text-yellow-800'>
-                            No exam schedule created for this class yet
-                          </span>
-                        </div>
-                        <p className='text-xs text-yellow-600 mt-1'>
-                          Create an exam timetable first in the "Exam Timetable"
-                          tab
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Class Action Buttons */}
-                  <div className='mt-4 pt-4 border-t border-gray-200 space-y-2'>
-                    {classBlock.subjects.length > 0 ? (
-                      <>
-                        <Button
-                          onClick={() => loadClassGradingData(classBlock, true)}
-                          className='w-full flex items-center justify-center bg-green-600 text-white hover:bg-green-700'
-                        >
-                          <BarChart3 className='w-4 h-4 mr-2' />
-                          Grid Grade Class {classBlock.grade}
-                          {classBlock.section}
-                        </Button>
-                        <Button
-                          onClick={() =>
-                            loadClassGradingData(classBlock, false)
-                          }
-                          className='w-full flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700'
-                        >
-                          <Eye className='w-4 h-4 mr-2' />
-                          Subject-wise Grading
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        onClick={onSwitchToTimetable}
-                        className='w-full flex items-center justify-center bg-orange-500 text-white hover:bg-orange-600'
-                      >
-                        <Calendar className='w-4 h-4 mr-2' />
-                        Create Schedule
-                      </Button>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : !selectedClass ? (
-        <Card className='p-8'>
-          <div className='text-center'>
-            <BookOpen className='mx-auto h-12 w-12 text-gray-400 mb-4' />
-            <h3 className='text-lg font-medium text-gray-900 mb-2'>
-              Select an Exam
-            </h3>
-            <p className='text-gray-500'>
-              Choose an exam from the dropdown above to start grading students
-            </p>
-          </div>
-        </Card>
-      ) : null}
-
-      {/* Show grading interface for selected class */}
-      {selectedClass && (
-        <div className='space-y-6'>
-          {/* Header with back button */}
-          <Card className='p-4'>
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center space-x-4'>
-                <Button
-                  onClick={handleBackToClasses}
-                  className='flex items-center bg-gray-500 text-white hover:bg-gray-600'
-                >
-                  <ArrowLeft className='w-4 h-4 mr-2' />
-                  Back to Classes
-                </Button>
-                <div>
-                  <h2 className='text-xl font-semibold text-gray-900'>
-                    {useGridInterface ? 'Grid Grade' : 'Grade'} Class{' '}
-                    {selectedClass.grade}
-                    {selectedClass.section}
-                  </h2>
-                  <p className='text-sm text-gray-500'>
-                    {selectedExam?.name} • {selectedClass.totalStudents}{' '}
-                    students
-                  </p>
+        {/* Search and Filters - only show when not grading */}
+        {!selectedClass && (
+          <Card className='p-4 sm:p-6 bg-gray-50 border border-gray-200'>
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+              <div>
+                <Label>Search Classes/Subjects</Label>
+                <div className='relative'>
+                  <Search className='absolute left-3 top-3 h-4 w-4 text-gray-400' />
+                  <Input
+                    placeholder='Search by class or subject...'
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className='pl-10'
+                  />
                 </div>
-                {!useGridInterface && (
-                  <Button
-                    onClick={() => setUseGridInterface(true)}
-                    className='flex items-center bg-green-600 text-white hover:bg-green-700'
-                  >
-                    <BarChart3 className='w-4 h-4 mr-2' />
-                    Switch to Grid View
-                  </Button>
-                )}
-                {useGridInterface && (
-                  <Button
-                    onClick={() => setUseGridInterface(false)}
-                    className='flex items-center bg-blue-600 text-white hover:bg-blue-700'
-                  >
-                    <Eye className='w-4 h-4 mr-2' />
-                    Switch to Subject View
-                  </Button>
-                )}
+              </div>
+              <div>
+                <Label>Select Exam</Label>
+                <select
+                  value={selectedExam?.id || ''}
+                  onChange={e => {
+                    const exam = examEntries.find(
+                      ex => ex.id === e.target.value,
+                    );
+                    setSelectedExam(exam || null);
+                  }}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                >
+                  <option value=''>Select an exam...</option>
+                  {examEntries.map(exam => (
+                    <option key={exam.id} value={exam.id}>
+                      {exam.name} ({exam.startDate.toLocaleDateString()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Academic Year</Label>
+                <Input
+                  value={selectedAcademicYear}
+                  onChange={e => setSelectedAcademicYear(e.target.value)}
+                  placeholder='2024-2025'
+                />
               </div>
             </div>
           </Card>
+        )}
 
-          {/* Loading state */}
-          {isLoadingGradingData ? (
-            <Card className='p-8'>
-              <div className='text-center'>
-                <Clock className='mx-auto h-8 w-8 text-gray-400 animate-spin mb-4' />
-                <p className='text-gray-500'>Loading grading data...</p>
+        {/* Class Grading Blocks */}
+        {selectedExam && !selectedClass ? (
+          <div className='space-y-4'>
+            <div className='flex justify-between items-center'>
+              <h3 className='text-lg font-semibold text-gray-900'>
+                Grading for: {selectedExam.name}
+              </h3>
+              <div className='text-sm text-gray-500'>
+                {filteredClassBlocks.length} classes found
               </div>
-            </Card>
-          ) : classGradingData ? (
-            <>
-              {useGridInterface ? (
-                /* Grid Grading Interface */
-                <GridGradingInterface
-                  classId={selectedClass.id}
-                  examScheduleId={examScheduleId!}
-                  calendarEntryId={selectedExam!.id}
-                  onBack={handleBackToClasses}
-                  onSuccess={() => {
-                    loadClassGradingData(selectedClass, true);
-                    loadClassGradingBlocks();
-                  }}
-                />
-              ) : (
-                <>
-                  {/* Subject Selection */}
-                  <Card className='p-6'>
-                    <h3 className='text-lg font-semibold text-gray-900 mb-4'>
-                      Select Subject to Grade
-                    </h3>
-                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4'>
-                      {classGradingData.subjects.map(subject => (
-                        <div
-                          key={subject.id}
-                          onClick={() => setSelectedSubject(subject.id)}
-                          className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                            selectedSubject === subject.id
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200 hover:border-gray-300 bg-white'
-                          }`}
-                        >
-                          <div className='flex justify-between items-start mb-2'>
-                            <div>
-                              <h4 className='font-medium text-gray-900'>
-                                {subject.name}
-                              </h4>
-                              <p className='text-sm text-gray-500'>
-                                {subject.code}
-                              </p>
-                            </div>
-                            <div className='text-right'>
-                              <p className='text-sm font-medium text-gray-700'>
-                                Max: {subject.maxMarks} • Pass:{' '}
-                                {subject.passMarks}
-                              </p>
-                            </div>
-                          </div>
-                          <div className='flex justify-between text-xs text-gray-600'>
-                            <span>
-                              Graded:{' '}
-                              {
-                                classGradingData.students.filter(s =>
-                                  s.results.some(
-                                    r => r.examSlot.subject?.id === subject.id,
-                                  ),
-                                ).length
-                              }
-                            </span>
-                            <span>
-                              Pending:{' '}
-                              {
-                                classGradingData.students.filter(
-                                  s =>
-                                    !s.results.some(
-                                      r =>
-                                        r.examSlot.subject?.id === subject.id,
-                                    ),
-                                ).length
-                              }
-                            </span>
-                          </div>
+            </div>
+
+            {isLoading ? (
+              <Card className='p-6 sm:p-8 bg-white border border-gray-200'>
+                <div className='text-center'>
+                  <Clock className='mx-auto h-8 w-8 text-gray-400 animate-spin mb-4' />
+                  <p className='text-gray-500'>Loading grading data...</p>
+                </div>
+              </Card>
+            ) : filteredClassBlocks.length === 0 ? (
+              <Card className='p-6 sm:p-8 bg-white border border-gray-200'>
+                <div className='text-center'>
+                  <GraduationCap className='mx-auto h-12 w-12 text-gray-400 mb-4' />
+                  <h3 className='text-lg font-medium text-gray-900 mb-2'>
+                    No Classes Found
+                  </h3>
+                  <p className='text-gray-500'>
+                    {searchTerm
+                      ? 'No classes match your search criteria'
+                      : 'No classes available for grading in this exam'}
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6'>
+                {filteredClassBlocks.map(classBlock => (
+                  <Card
+                    key={classBlock.id}
+                    className='p-4 sm:p-6 hover:shadow-lg transition-shadow bg-white border border-gray-200'
+                  >
+                    <div className='flex justify-between items-start mb-4'>
+                      <div>
+                        <h4 className='text-lg font-semibold text-gray-900'>
+                          Class {classBlock.grade}
+                          {classBlock.section}
+                        </h4>
+                        <p className='text-sm text-gray-500'>
+                          {classBlock.totalStudents} students
+                        </p>
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(classBlock.status)}`}
+                      >
+                        {classBlock.status.replace('-', ' ')}
+                      </span>
+                    </div>
+
+                    {/* Class Overview Stats */}
+                    <div className='grid grid-cols-2 gap-4 mb-4'>
+                      <div className='text-center'>
+                        <div className='text-2xl font-bold text-green-600'>
+                          {classBlock.gradedStudents}
                         </div>
-                      ))}
+                        <div className='text-xs text-gray-500'>Graded</div>
+                      </div>
+                      <div className='text-center'>
+                        <div className='text-2xl font-bold text-orange-600'>
+                          {classBlock.pendingStudents}
+                        </div>
+                        <div className='text-xs text-gray-500'>Pending</div>
+                      </div>
+                    </div>
+
+                    {/* Subjects List */}
+                    <div className='space-y-3'>
+                      <h5 className='text-sm font-medium text-gray-700'>
+                        Subjects:
+                      </h5>
+                      {classBlock.subjects.length > 0 ? (
+                        classBlock.subjects.map(subject => (
+                          <div
+                            key={subject.id}
+                            className='flex justify-between items-center p-3 bg-gray-50 rounded-lg'
+                          >
+                            <div className='flex-1'>
+                              <div className='font-medium text-sm text-gray-900'>
+                                {subject.name}
+                              </div>
+                              <div className='text-xs text-gray-500'>
+                                {subject.code} • Max: {subject.maxMarks} • Pass:{' '}
+                                {subject.passMarks}
+                              </div>
+                            </div>
+                            <div className='flex items-center space-x-2'>
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium ${getSubjectStatusColor(subject.gradedCount, subject.totalCount)}`}
+                              >
+                                {subject.gradedCount}/{subject.totalCount}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className='p-4 bg-yellow-50 rounded-lg border border-yellow-200'>
+                          <div className='flex items-center'>
+                            <AlertTriangle className='h-4 w-4 text-yellow-600 mr-2' />
+                            <span className='text-sm text-yellow-800'>
+                              No exam schedule created for this class yet
+                            </span>
+                          </div>
+                          <p className='text-xs text-yellow-600 mt-1'>
+                            Create an exam timetable first in the "Exam
+                            Timetable" tab
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Class Action Buttons */}
+                    <div className='mt-4 pt-4 border-t border-gray-200 space-y-2'>
+                      {classBlock.subjects.length > 0 ? (
+                        <>
+                          <Button
+                            onClick={() =>
+                              loadClassGradingData(classBlock, true)
+                            }
+                            className='w-full flex items-center justify-center bg-green-600 text-white hover:bg-green-700'
+                          >
+                            <BarChart3 className='w-4 h-4 mr-2' />
+                            Grid Grade Class {classBlock.grade}
+                            {classBlock.section}
+                          </Button>
+                          <Button
+                            onClick={() =>
+                              loadClassGradingData(classBlock, false)
+                            }
+                            className='w-full flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700'
+                          >
+                            <Eye className='w-4 h-4 mr-2' />
+                            Subject-wise Grading
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          onClick={onSwitchToTimetable}
+                          className='w-full flex items-center justify-center bg-orange-500 text-white hover:bg-orange-600'
+                        >
+                          <Calendar className='w-4 h-4 mr-2' />
+                          Create Schedule
+                        </Button>
+                      )}
                     </div>
                   </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : !selectedClass ? (
+          <Card className='p-6 sm:p-8 bg-white border border-gray-200'>
+            <div className='text-center'>
+              <BookOpen className='mx-auto h-12 w-12 text-gray-400 mb-4' />
+              <h3 className='text-lg font-medium text-gray-900 mb-2'>
+                Select an Exam
+              </h3>
+              <p className='text-gray-500'>
+                Choose an exam from the dropdown above to start grading students
+              </p>
+            </div>
+          </Card>
+        ) : null}
 
-                  {/* Student Grading Interface */}
-                  {selectedSubject && (
-                    <GradingInterface
-                      classData={classGradingData}
-                      selectedSubject={selectedSubject}
+        {/* Show grading interface for selected class */}
+        {selectedClass && (
+          <div className='space-y-6'>
+            {/* Header with back button */}
+            <Card className='p-3 sm:p-4 bg-white border border-gray-200'>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center space-x-4'>
+                  <Button
+                    onClick={handleBackToClasses}
+                    className='flex items-center bg-gray-500 text-white hover:bg-gray-600'
+                  >
+                    <ArrowLeft className='w-4 h-4 mr-2' />
+                    Back to Classes
+                  </Button>
+                  <div>
+                    <h2 className='text-xl font-semibold text-gray-900'>
+                      {useGridInterface ? 'Grid Grade' : 'Grade'} Class{' '}
+                      {selectedClass.grade}
+                      {selectedClass.section}
+                    </h2>
+                    <p className='text-sm text-gray-500'>
+                      {selectedExam?.name} • {selectedClass.totalStudents}{' '}
+                      students
+                    </p>
+                  </div>
+                  {!useGridInterface && (
+                    <Button
+                      onClick={() => setUseGridInterface(true)}
+                      className='flex items-center bg-green-600 text-white hover:bg-green-700'
+                    >
+                      <BarChart3 className='w-4 h-4 mr-2' />
+                      Switch to Grid View
+                    </Button>
+                  )}
+                  {useGridInterface && (
+                    <Button
+                      onClick={() => setUseGridInterface(false)}
+                      className='flex items-center bg-blue-600 text-white hover:bg-blue-700'
+                    >
+                      <Eye className='w-4 h-4 mr-2' />
+                      Switch to Subject View
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {/* Loading state */}
+            {isLoadingGradingData ? (
+              <Card className='p-6 sm:p-8 bg-white border border-gray-200'>
+                <div className='text-center'>
+                  <Clock className='mx-auto h-8 w-8 text-gray-400 animate-spin mb-4' />
+                  <p className='text-gray-500'>Loading grading data...</p>
+                </div>
+              </Card>
+            ) : classGradingData ? (
+              <>
+                {useGridInterface ? (
+                  /* Grid Grading Interface */
+                  <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6'>
+                    <GridGradingInterface
+                      classId={selectedClass.id}
+                      examScheduleId={examScheduleId!}
+                      calendarEntryId={selectedExam!.id}
+                      onBack={handleBackToClasses}
                       onSuccess={() => {
-                        loadClassGradingData(selectedClass, false);
+                        loadClassGradingData(selectedClass, true);
                         loadClassGradingBlocks();
                       }}
                     />
-                  )}
-                </>
-              )}
-            </>
-          ) : null}
-        </div>
-      )}
+                  </div>
+                ) : (
+                  <>
+                    {/* Subject Selection */}
+                    <Card className='p-4 sm:p-6 bg-white border border-gray-200'>
+                      <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+                        Select Subject to Grade
+                      </h3>
+                      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4'>
+                        {classGradingData.subjects.map(subject => (
+                          <div
+                            key={subject.id}
+                            onClick={() => setSelectedSubject(subject.id)}
+                            className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                              selectedSubject === subject.id
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-200 hover:border-gray-300 bg-white'
+                            }`}
+                          >
+                            <div className='flex justify-between items-start mb-2'>
+                              <div>
+                                <h4 className='font-medium text-gray-900'>
+                                  {subject.name}
+                                </h4>
+                                <p className='text-sm text-gray-500'>
+                                  {subject.code}
+                                </p>
+                              </div>
+                              <div className='text-right'>
+                                <p className='text-sm font-medium text-gray-700'>
+                                  Max: {subject.maxMarks} • Pass:{' '}
+                                  {subject.passMarks}
+                                </p>
+                              </div>
+                            </div>
+                            <div className='flex justify-between text-xs text-gray-600'>
+                              <span>
+                                Graded:{' '}
+                                {
+                                  classGradingData.students.filter(s =>
+                                    s.results.some(
+                                      r =>
+                                        r.examSlot.subject?.id === subject.id,
+                                    ),
+                                  ).length
+                                }
+                              </span>
+                              <span>
+                                Pending:{' '}
+                                {
+                                  classGradingData.students.filter(
+                                    s =>
+                                      !s.results.some(
+                                        r =>
+                                          r.examSlot.subject?.id === subject.id,
+                                      ),
+                                  ).length
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
 
-      {/* Print Reports Modal */}
-      <PrintReportsModal
-        isOpen={isPrintReportsModalOpen}
-        onClose={() => setIsPrintReportsModalOpen(false)}
-        selectedExam={selectedExam}
-        academicYear={selectedAcademicYear}
-      />
+                    {/* Student Grading Interface */}
+                    {selectedSubject && (
+                      <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6'>
+                        <GradingInterface
+                          classData={classGradingData}
+                          selectedSubject={selectedSubject}
+                          onSuccess={() => {
+                            loadClassGradingData(selectedClass, false);
+                            loadClassGradingBlocks();
+                          }}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            ) : null}
+          </div>
+        )}
+
+        {/* Print Reports Modal */}
+        <PrintReportsModal
+          isOpen={isPrintReportsModalOpen}
+          onClose={() => setIsPrintReportsModalOpen(false)}
+          selectedExam={selectedExam}
+          academicYear={selectedAcademicYear}
+        />
+      </div>
     </div>
   );
 }
@@ -807,20 +818,13 @@ function GradingTab({
 // Exam Timetable Tab with integrated schedule builder
 function ExamTimetableTab() {
   return (
-    <div>
+    <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6'>
       {/* Integrated Exam Schedule Builder */}
-      <div className='bg-white rounded-lg shadow'>
-        <div className='p-0'>
-          {/* Using dynamic import to avoid server-side rendering issues with Zustand store */}
-          <div className='w-full'>
-            {(() => {
-              const {
-                ExamScheduleBuilder,
-              } = require('@/components/exam-schedule');
-              return <ExamScheduleBuilder />;
-            })()}
-          </div>
-        </div>
+      <div className='w-full'>
+        {(() => {
+          const { ExamScheduleBuilder } = require('@/components/exam-schedule');
+          return <ExamScheduleBuilder />;
+        })()}
       </div>
     </div>
   );
@@ -832,7 +836,7 @@ function ExamSummaryCards() {
       label: 'Upcoming Exams',
       value: 8,
       icon: CalendarDays,
-      bgColor: 'bg-blue-100',
+      bgColor: 'bg-blue-500',
       iconColor: 'text-white',
       change: '+2',
       isPositive: true,
@@ -841,7 +845,7 @@ function ExamSummaryCards() {
       label: 'Completed Exams',
       value: 24,
       icon: CheckCircle2,
-      bgColor: 'bg-green-100',
+      bgColor: 'bg-green-500',
       iconColor: 'text-white',
       change: '+5',
       isPositive: true,
@@ -850,7 +854,7 @@ function ExamSummaryCards() {
       label: 'Pending Grading',
       value: 12,
       icon: Clock,
-      bgColor: 'bg-orange-100',
+      bgColor: 'bg-orange-500',
       iconColor: 'text-white',
       change: '-3',
       isPositive: false,
@@ -859,27 +863,29 @@ function ExamSummaryCards() {
       label: 'Total Students',
       value: 2847,
       icon: Users,
-      bgColor: 'bg-purple-100',
+      bgColor: 'bg-purple-500',
       iconColor: 'text-white',
       change: '+120',
       isPositive: true,
     },
   ];
   return (
-    <div className='flex flex-wrap gap-x-6 gap-y-6 w-full mb-8'>
-      {cards.map(c => (
-        <StatCard
-          key={c.label}
-          icon={c.icon}
-          bgColor={c.bgColor}
-          iconColor={c.iconColor}
-          label={c.label}
-          value={c.value}
-          change={c.change}
-          isPositive={c.isPositive}
-          className='flex-1 min-w-[220px]'
-        />
-      ))}
+    <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6'>
+      <div className='flex flex-wrap gap-x-4 gap-y-4 w-full'>
+        {cards.map(c => (
+          <StatCard
+            key={c.label}
+            icon={c.icon}
+            bgColor={c.bgColor}
+            iconColor={c.iconColor}
+            label={c.label}
+            value={c.value}
+            change={c.change}
+            isPositive={c.isPositive}
+            className='flex-1 min-w-[200px] sm:min-w-[220px]'
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -902,31 +908,35 @@ export default function ExamsPage() {
   ];
 
   return (
-    <div className='min-h-screen bg-background'>
+    <div className='min-h-screen bg-gray-50'>
       <div className='px-1 sm:px-2 lg:px-4 pt-3 sm:pt-4 lg:pt-6'>
-        <div className='max-w-7xl mx-auto'>
-          <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
-            Exam Management
-          </h1>
-          <p className='text-sm sm:text-base lg:text-lg text-gray-600 mt-1 sm:mt-2'>
-            Manage Exam Grading and Timetables
-          </p>
+        <div className='w-full mx-auto'>
+          <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6'>
+            <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
+              Exam Management
+            </h1>
+            <p className='text-sm sm:text-base lg:text-lg text-gray-600 mt-1 sm:mt-2'>
+              Manage Exam Grading and Timetables
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className='pt-3'>
-        <div className='w-full'>
+      <div className='px-1 sm:px-2 lg:px-4'>
+        <div className='w-full mx-auto'>
           <ExamSummaryCards />
         </div>
       </div>
 
       <div className='px-1 sm:px-2 lg:px-4 pb-6'>
-        <div className='max-w-7xl mx-auto'>
-          <GenericTabs
-            tabs={tabs}
-            selectedIndex={activeTab}
-            onChange={setActiveTab}
-          />
+        <div className='w-full mx-auto'>
+          <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6'>
+            <GenericTabs
+              tabs={tabs}
+              selectedIndex={activeTab}
+              onChange={setActiveTab}
+            />
+          </div>
         </div>
       </div>
     </div>
