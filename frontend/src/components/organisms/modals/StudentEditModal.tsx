@@ -813,8 +813,15 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
   if (!isOpen || !student) return null;
 
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-      <div className='bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col'>
+    // Backdrop wrapper: uses backdrop-filter blur and a semi-opaque overlay to blur the page behind the modal
+    <div className='fixed inset-0 flex items-center justify-center z-50 p-4'>
+      {/* Semi transparent dark overlay with backdrop blur */}
+      <div
+        className='absolute inset-0 bg-black/40 backdrop-blur-sm'
+        aria-hidden='true'
+      />
+
+      <div className='relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col'>
         {/* Header */}
         <div className='flex items-center justify-between p-6 border-b border-gray-200'>
           <div>
