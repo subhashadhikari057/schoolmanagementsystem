@@ -455,13 +455,15 @@ export default function TeacherAttendancePage() {
 
   if (isLoading) {
     return (
-      <div className='p-8 space-y-6'>
-        <div className='flex justify-center items-center min-h-[400px]'>
-          <div className='text-center'>
-            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
-            <Label className='text-gray-600'>
-              Loading your class information...
-            </Label>
+      <div className='min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8'>
+        <div className='w-full mx-auto'>
+          <div className='flex justify-center items-center min-h-[400px]'>
+            <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center w-full'>
+              <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
+              <Label className='text-gray-600'>
+                Loading your class information...
+              </Label>
+            </div>
           </div>
         </div>
       </div>
@@ -470,246 +472,232 @@ export default function TeacherAttendancePage() {
 
   if (error) {
     return (
-      <div className='p-8 space-y-6'>
-        <div className='flex justify-center items-center min-h-[400px]'>
-          <Card className='p-8 text-center max-w-md'>
-            <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-4' />
-            <SectionTitle
-              text='Access Restricted'
-              className='text-lg font-semibold text-gray-900 mb-2'
-            />
-            <Label className='text-gray-600 mb-4'>{error}</Label>
-            <Label className='text-sm text-gray-500'>
-              Please contact the administrator if you believe this is an error.
-            </Label>
-          </Card>
+      <div className='min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8'>
+        <div className='w-full mx-auto'>
+          <div className='flex justify-center items-center min-h-[400px]'>
+            <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center w-full'>
+              <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-4' />
+              <SectionTitle
+                text='Access Restricted'
+                className='text-lg font-semibold text-gray-900 mb-2'
+              />
+              <Label className='text-gray-600 mb-4'>{error}</Label>
+              <Label className='text-sm text-gray-500'>
+                Please contact the administrator if you believe this is an
+                error.
+              </Label>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className='p-8 space-y-6'>
-      {/* Header Section */}
-      <div className='flex justify-between items-center'>
-        <div>
-          <SectionTitle
-            text='Class Attendance'
-            className='text-2xl font-bold text-gray-900'
-          />
-          <Label className='text-gray-600 mt-1'>
-            {assignedClass &&
-              `Grade ${assignedClass.grade} - Section ${assignedClass.section}`}
-          </Label>
-        </div>
-        <div className='text-right'>
-          <Label className='text-sm text-gray-500'>Today&apos;s Date</Label>
-          <div className='text-lg font-semibold text-gray-900'>
-            {getCurrentDate()}
-          </div>
-        </div>
-      </div>
-
-      {/* Class Information Card */}
-      {assignedClass && (
-        <Card className='p-6'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center space-x-4'>
-              <div className='p-3 bg-blue-100 rounded-lg'>
-                <GraduationCap className='h-6 w-6 text-blue-600' />
-              </div>
-              <div>
-                <SectionTitle
-                  text={`Grade ${assignedClass.grade} - Section ${assignedClass.section}`}
-                  className='text-lg font-semibold text-gray-900'
-                />
-                <Label className='text-gray-600'>
-                  Total Students: {assignedClass.currentEnrollment}
-                </Label>
+    <div className='min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8'>
+      <div className='w-full mx-auto space-y-6'>
+        {/* Header Section */}
+        <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
+          <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
+            <div>
+              <SectionTitle
+                text='Class Attendance'
+                className='text-2xl font-bold text-gray-900'
+              />
+              <Label className='text-gray-600 mt-1'>
+                {assignedClass &&
+                  `Grade ${assignedClass.grade} - Section ${assignedClass.section}`}
+              </Label>
+            </div>
+            <div className='text-center sm:text-right'>
+              <Label className='text-sm text-gray-500'>Today&apos;s Date</Label>
+              <div className='text-lg font-semibold text-gray-900'>
+                {getCurrentDate()}
               </div>
             </div>
-            <div className='text-right'>
-              {assignedClass.attendanceMarked ? (
-                <div className='text-center'>
-                  <div className='flex items-center space-x-2 text-green-600 mb-1'>
-                    <CheckCircle className='h-5 w-5' />
-                    <span className='font-semibold'>Attendance Marked</span>
-                  </div>
-                  <Label className='text-xs text-gray-500'>
-                    Cannot mark again today
+          </div>
+        </div>
+
+        {/* Class Information Card */}
+        {assignedClass && (
+          <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+              <div className='flex items-center space-x-4'>
+                <div className='p-3 bg-blue-100 rounded-lg'>
+                  <GraduationCap className='h-6 w-6 text-blue-600' />
+                </div>
+                <div>
+                  <SectionTitle
+                    text={`Grade ${assignedClass.grade} - Section ${assignedClass.section}`}
+                    className='text-lg font-semibold text-gray-900'
+                  />
+                  <Label className='text-gray-600'>
+                    Total Students: {assignedClass.currentEnrollment}
                   </Label>
                 </div>
-              ) : (
-                <Button
-                  onClick={handleMarkAttendance}
-                  className='flex items-center space-x-2'
-                >
-                  <Calendar className='h-4 w-4' />
-                  <span>Mark Attendance</span>
-                </Button>
-              )}
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Attendance Status Banner */}
-      {assignedClass?.attendanceMarked && (
-        <Card className='p-4 bg-green-50 border-green-200'>
-          <div className='flex items-center justify-center space-x-3'>
-            <CheckCircle className='h-6 w-6 text-green-600' />
-            <div className='text-center'>
-              <Label className='text-green-800 font-semibold'>
-                ✅ Today&apos;s attendance has been successfully recorded
-              </Label>
-              <Label className='text-green-600 text-sm block mt-1'>
-                You can only mark attendance once per day. Come back tomorrow!
-              </Label>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Today&apos;s Attendance Summary */}
-      {attendanceStats && (
-        <Card className='p-6'>
-          <SectionTitle
-            text="Today's Attendance Summary"
-            className='text-lg font-semibold text-gray-900 mb-4'
-          />
-          <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
-            <div className='bg-green-50 p-4 rounded-lg'>
-              <div className='flex items-center space-x-2'>
-                <CheckCircle className='h-5 w-5 text-green-600' />
-                <Label className='text-sm text-green-800'>Present</Label>
               </div>
-              <div className='text-2xl font-bold text-green-900 mt-1'>
-                {attendanceStats.present}
-              </div>
-            </div>
-            <div className='bg-red-50 p-4 rounded-lg'>
-              <div className='flex items-center space-x-2'>
-                <XCircle className='h-5 w-5 text-red-600' />
-                <Label className='text-sm text-red-800'>Absent</Label>
-              </div>
-              <div className='text-2xl font-bold text-red-900 mt-1'>
-                {attendanceStats.absent}
-              </div>
-            </div>
-            <div className='bg-blue-50 p-4 rounded-lg'>
-              <div className='flex items-center space-x-2'>
-                <Users className='h-5 w-5 text-blue-600' />
-                <Label className='text-sm text-blue-800'>Total</Label>
-              </div>
-              <div className='text-2xl font-bold text-blue-900 mt-1'>
-                {attendanceStats.total}
-              </div>
-            </div>
-            <div className='bg-purple-50 p-4 rounded-lg'>
-              <div className='flex items-center space-x-2'>
-                <ClipboardCheck className='h-5 w-5 text-purple-600' />
-                <Label className='text-sm text-purple-800'>Percentage</Label>
-              </div>
-              <div className='text-2xl font-bold text-purple-900 mt-1'>
-                {attendanceStats.percentage.toFixed(1)}%
+              <div className='text-center sm:text-right'>
+                {assignedClass.attendanceMarked ? (
+                  <div className='text-center'>
+                    <div className='flex items-center space-x-2 text-green-600 mb-1'>
+                      <CheckCircle className='h-5 w-5' />
+                      <span className='font-semibold'>Attendance Marked</span>
+                    </div>
+                    <Label className='text-xs text-gray-500'>
+                      Cannot mark again today
+                    </Label>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleMarkAttendance}
+                    className='flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors'
+                  >
+                    <Calendar className='h-4 w-4' />
+                    <span>Mark Attendance</span>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
-        </Card>
-      )}
+        )}
 
-      {/* Attendance History Section */}
-      {assignedClass && (
-        <Card className='p-6'>
-          <div className='flex items-center space-x-3 mb-4'>
-            <CalendarDays className='h-6 w-6 text-blue-600' />
+        {/* Attendance Status Banner */}
+        {assignedClass?.attendanceMarked && (
+          <div className='bg-white rounded-xl shadow-sm border border-green-200 p-6'>
+            <div className='bg-green-50 rounded-lg p-4'>
+              <div className='flex items-center justify-center space-x-3'>
+                <CheckCircle className='h-6 w-6 text-green-600 flex-shrink-0' />
+                <div className='text-center'>
+                  <Label className='text-green-800 font-semibold'>
+                    ✅ Today&apos;s attendance has been successfully recorded
+                  </Label>
+                  <Label className='text-green-600 text-sm block mt-1'>
+                    You can only mark attendance once per day. Come back
+                    tomorrow!
+                  </Label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Today's Attendance Summary */}
+        {attendanceStats && (
+          <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
             <SectionTitle
-              text='Attendance History'
-              className='text-lg font-semibold text-gray-900'
+              text="Today's Attendance Summary"
+              className='text-lg font-semibold text-gray-900 mb-4'
             />
+            <div className='grid grid-cols-2 lg:grid-cols-4 gap-4'>
+              <div className='bg-green-50 p-4 rounded-lg border border-green-100'>
+                <div className='flex items-center space-x-2'>
+                  <CheckCircle className='h-5 w-5 text-green-600' />
+                  <Label className='text-sm text-green-800 font-medium'>
+                    Present
+                  </Label>
+                </div>
+                <div className='text-2xl font-bold text-green-900 mt-2'>
+                  {attendanceStats.present}
+                </div>
+              </div>
+              <div className='bg-red-50 p-4 rounded-lg border border-red-100'>
+                <div className='flex items-center space-x-2'>
+                  <XCircle className='h-5 w-5 text-red-600' />
+                  <Label className='text-sm text-red-800 font-medium'>
+                    Absent
+                  </Label>
+                </div>
+                <div className='text-2xl font-bold text-red-900 mt-2'>
+                  {attendanceStats.absent}
+                </div>
+              </div>
+              <div className='bg-blue-50 p-4 rounded-lg border border-blue-100'>
+                <div className='flex items-center space-x-2'>
+                  <Users className='h-5 w-5 text-blue-600' />
+                  <Label className='text-sm text-blue-800 font-medium'>
+                    Total
+                  </Label>
+                </div>
+                <div className='text-2xl font-bold text-blue-900 mt-2'>
+                  {attendanceStats.total}
+                </div>
+              </div>
+              <div className='bg-purple-50 p-4 rounded-lg border border-purple-100'>
+                <div className='flex items-center space-x-2'>
+                  <ClipboardCheck className='h-5 w-5 text-purple-600' />
+                  <Label className='text-sm text-purple-800 font-medium'>
+                    Percentage
+                  </Label>
+                </div>
+                <div className='text-2xl font-bold text-purple-900 mt-2'>
+                  {attendanceStats.percentage.toFixed(1)}%
+                </div>
+              </div>
+            </div>
           </div>
+        )}
 
-          {/* Date Selector */}
-          <div className='mb-4'>
-            <Label className='block text-sm font-medium text-gray-700 mb-2'>
-              Select Date to View History
-            </Label>
-            <div className='max-w-full sm:max-w-xs'>
-              <Input
-                type='date'
-                value={selectedHistoryDate}
-                onChange={e => handleHistoryDateChange(e.target.value)}
-                max={todayDate} // Prevent selecting future dates
-                className='w-full h-11 text-base' // Increased height for mobile
-                placeholder='Select a date...'
+        {/* Attendance History Section */}
+        {assignedClass && (
+          <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center space-x-3 mb-6'>
+              <CalendarDays className='h-6 w-6 text-blue-600' />
+              <SectionTitle
+                text='Attendance History'
+                className='text-lg font-semibold text-gray-900'
               />
             </div>
-            <Label className='text-xs text-gray-500 mt-1 block'>
-              💡 Tip: You can view attendance records for any past date
-            </Label>
-          </div>
 
-          {/* History Content */}
-          {!selectedHistoryDate ? (
-            // Default message when no date is selected
-            <div className='text-center py-8 bg-gray-50 rounded-lg'>
-              <Search className='h-12 w-12 text-gray-400 mx-auto mb-3' />
-              <Label className='text-gray-600 text-lg font-medium'>
-                Select a Date to View Attendance History
+            {/* Date Selector */}
+            <div className='mb-6'>
+              <Label className='block text-sm font-medium text-gray-700 mb-2'>
+                Select Date to View History
               </Label>
-              <Label className='text-gray-500 text-sm block mt-1'>
-                Choose any previous date to see the attendance records for that
-                day
-              </Label>
-            </div>
-          ) : isLoadingHistory ? (
-            // Loading state
-            <div className='text-center py-8'>
-              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3'></div>
-              <Label className='text-gray-600'>
-                Loading attendance history...
+              <div className='w-full'>
+                <Input
+                  type='date'
+                  value={selectedHistoryDate}
+                  onChange={e => handleHistoryDateChange(e.target.value)}
+                  max={todayDate} // Prevent selecting future dates
+                  className='w-full h-11 text-base border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500' // Increased height for mobile
+                  placeholder='Select a date...'
+                />
+              </div>
+              <Label className='text-xs text-gray-500 mt-1 block'>
+                💡 Tip: You can view attendance records for any past date
               </Label>
             </div>
-          ) : historyError ? (
-            // Error state
-            <div className='text-center py-8 bg-red-50 rounded-lg'>
-              <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-3' />
-              <Label className='text-red-700 text-lg font-medium'>
-                Attendance Not Available
-              </Label>
-              <Label className='text-red-600 text-sm block mt-1'>
-                No attendance records found for{' '}
-                {new Date(selectedHistoryDate).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </Label>
-            </div>
-          ) : historyAttendance.length === 0 ? (
-            // No records found
-            <div className='text-center py-8 bg-yellow-50 rounded-lg'>
-              <History className='h-12 w-12 text-yellow-500 mx-auto mb-3' />
-              <Label className='text-yellow-700 text-lg font-medium'>
-                No Attendance Records
-              </Label>
-              <Label className='text-yellow-600 text-sm block mt-1'>
-                No attendance was marked for{' '}
-                {new Date(selectedHistoryDate).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </Label>
-            </div>
-          ) : (
-            // Display attendance records
-            <div>
-              <div className='mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between bg-blue-50 p-3 rounded-lg'>
-                <Label className='text-blue-800 font-medium'>
-                  Attendance for{' '}
+
+            {/* History Content */}
+            {!selectedHistoryDate ? (
+              // Default message when no date is selected
+              <div className='text-center py-12 bg-gray-50 rounded-xl border border-gray-100'>
+                <Search className='h-12 w-12 text-gray-400 mx-auto mb-3' />
+                <Label className='text-gray-600 text-lg font-medium'>
+                  Select a Date to View Attendance History
+                </Label>
+                <Label className='text-gray-500 text-sm block mt-1'>
+                  Choose any previous date to see the attendance records for
+                  that day
+                </Label>
+              </div>
+            ) : isLoadingHistory ? (
+              // Loading state
+              <div className='text-center py-12 bg-gray-50 rounded-xl border border-gray-100'>
+                <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3'></div>
+                <Label className='text-gray-600'>
+                  Loading attendance history...
+                </Label>
+              </div>
+            ) : historyError ? (
+              // Error state
+              <div className='text-center py-12 bg-red-50 rounded-xl border border-red-100'>
+                <AlertCircle className='h-12 w-12 text-red-500 mx-auto mb-3' />
+                <Label className='text-red-700 text-lg font-medium'>
+                  Attendance Not Available
+                </Label>
+                <Label className='text-red-600 text-sm block mt-1'>
+                  No attendance records found for{' '}
                   {new Date(selectedHistoryDate).toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
@@ -717,120 +705,168 @@ export default function TeacherAttendancePage() {
                     day: 'numeric',
                   })}
                 </Label>
-                <Label className='text-blue-600 text-sm mt-1 sm:mt-0'>
-                  Total Records: {historyAttendance.length}
+              </div>
+            ) : historyAttendance.length === 0 ? (
+              // No records found
+              <div className='text-center py-12 bg-yellow-50 rounded-xl border border-yellow-100'>
+                <History className='h-12 w-12 text-yellow-500 mx-auto mb-3' />
+                <Label className='text-yellow-700 text-lg font-medium'>
+                  No Attendance Records
+                </Label>
+                <Label className='text-yellow-600 text-sm block mt-1'>
+                  No attendance was marked for{' '}
+                  {new Date(selectedHistoryDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
                 </Label>
               </div>
+            ) : (
+              // Display attendance records
+              <div>
+                <div className='mb-4 bg-blue-50 p-4 rounded-xl border border-blue-100'>
+                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
+                    <Label className='text-blue-800 font-medium'>
+                      Attendance for{' '}
+                      {new Date(selectedHistoryDate).toLocaleDateString(
+                        'en-US',
+                        {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        },
+                      )}
+                    </Label>
+                    <Label className='text-blue-600 text-sm mt-1 sm:mt-0'>
+                      Total Records: {historyAttendance.length}
+                    </Label>
+                  </div>
+                </div>
 
-              {/* Statistics Summary */}
-              <div className='grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4'>
-                <div className='bg-green-50 p-3 rounded-lg text-center'>
-                  <div className='text-green-600 text-lg font-bold'>
-                    {
-                      historyAttendance.filter(r => r.status === 'PRESENT')
-                        .length
-                    }
+                {/* Statistics Summary */}
+                <div className='grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6'>
+                  <div className='bg-green-50 p-4 rounded-xl text-center border border-green-100'>
+                    <div className='text-green-600 text-lg font-bold'>
+                      {
+                        historyAttendance.filter(r => r.status === 'PRESENT')
+                          .length
+                      }
+                    </div>
+                    <div className='text-green-800 text-xs font-medium'>
+                      Present
+                    </div>
                   </div>
-                  <div className='text-green-800 text-xs'>Present</div>
-                </div>
-                <div className='bg-red-50 p-3 rounded-lg text-center'>
-                  <div className='text-red-600 text-lg font-bold'>
-                    {
-                      historyAttendance.filter(r => r.status === 'ABSENT')
-                        .length
-                    }
+                  <div className='bg-red-50 p-4 rounded-xl text-center border border-red-100'>
+                    <div className='text-red-600 text-lg font-bold'>
+                      {
+                        historyAttendance.filter(r => r.status === 'ABSENT')
+                          .length
+                      }
+                    </div>
+                    <div className='text-red-800 text-xs font-medium'>
+                      Absent
+                    </div>
                   </div>
-                  <div className='text-red-800 text-xs'>Absent</div>
-                </div>
-                <div className='bg-yellow-50 p-3 rounded-lg text-center'>
-                  <div className='text-yellow-600 text-lg font-bold'>
-                    {historyAttendance.filter(r => r.status === 'LATE').length}
+                  <div className='bg-yellow-50 p-4 rounded-xl text-center border border-yellow-100'>
+                    <div className='text-yellow-600 text-lg font-bold'>
+                      {
+                        historyAttendance.filter(r => r.status === 'LATE')
+                          .length
+                      }
+                    </div>
+                    <div className='text-yellow-800 text-xs font-medium'>
+                      Late
+                    </div>
                   </div>
-                  <div className='text-yellow-800 text-xs'>Late</div>
-                </div>
-                <div className='bg-purple-50 p-3 rounded-lg text-center'>
-                  <div className='text-purple-600 text-lg font-bold'>
-                    {
-                      historyAttendance.filter(r => r.status === 'EXCUSED')
-                        .length
-                    }
+                  <div className='bg-purple-50 p-4 rounded-xl text-center border border-purple-100'>
+                    <div className='text-purple-600 text-lg font-bold'>
+                      {
+                        historyAttendance.filter(r => r.status === 'EXCUSED')
+                          .length
+                      }
+                    </div>
+                    <div className='text-purple-800 text-xs font-medium'>
+                      Excused
+                    </div>
                   </div>
-                  <div className='text-purple-800 text-xs'>Excused</div>
                 </div>
-              </div>
 
-              {/* Student Records List */}
-              <div className='space-y-2 max-h-96 overflow-y-auto'>
-                {historyAttendance.map((record, index) => (
-                  <div
-                    key={record.studentId}
-                    className='flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors'
-                  >
-                    <div className='flex items-center space-x-3 mb-2 sm:mb-0'>
-                      <div className='flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center'>
-                        <span className='text-sm font-medium text-gray-600'>
-                          {index + 1}
+                {/* Student Records List */}
+                <div className='space-y-3 max-h-96 overflow-y-auto'>
+                  {historyAttendance.map((record, index) => (
+                    <div
+                      key={record.studentId}
+                      className='flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors'
+                    >
+                      <div className='flex items-center space-x-3 mb-2 sm:mb-0'>
+                        <div className='flex-shrink-0 w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center'>
+                          <span className='text-sm font-medium text-gray-600'>
+                            {index + 1}
+                          </span>
+                        </div>
+                        <div className='flex-1 min-w-0'>
+                          <div className='font-medium text-gray-900 truncate'>
+                            {record.studentName}
+                          </div>
+                          <div className='text-sm text-gray-500'>
+                            Roll: {record.rollNumber}
+                          </div>
+                        </div>
+                      </div>
+                      <div className='flex items-center justify-end sm:justify-start'>
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                            record.status === 'PRESENT'
+                              ? 'bg-green-100 text-green-800 border border-green-200'
+                              : record.status === 'ABSENT'
+                                ? 'bg-red-100 text-red-800 border border-red-200'
+                                : record.status === 'LATE'
+                                  ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                                  : 'bg-purple-100 text-purple-800 border border-purple-200'
+                          }`}
+                        >
+                          {record.status === 'PRESENT' && (
+                            <CheckCircle className='w-4 h-4 mr-1' />
+                          )}
+                          {record.status === 'ABSENT' && (
+                            <XCircle className='w-4 h-4 mr-1' />
+                          )}
+                          {record.status === 'LATE' && (
+                            <AlertCircle className='w-4 h-4 mr-1' />
+                          )}
+                          {record.status === 'EXCUSED' && (
+                            <CheckCircle className='w-4 h-4 mr-1' />
+                          )}
+                          {record.status}
                         </span>
                       </div>
-                      <div className='flex-1 min-w-0'>
-                        <div className='font-medium text-gray-900 truncate'>
-                          {record.studentName}
-                        </div>
-                        <div className='text-sm text-gray-500'>
-                          Roll: {record.rollNumber}
-                        </div>
-                      </div>
                     </div>
-                    <div className='flex items-center justify-end sm:justify-start'>
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          record.status === 'PRESENT'
-                            ? 'bg-green-100 text-green-800'
-                            : record.status === 'ABSENT'
-                              ? 'bg-red-100 text-red-800'
-                              : record.status === 'LATE'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-purple-100 text-purple-800'
-                        }`}
-                      >
-                        {record.status === 'PRESENT' && (
-                          <CheckCircle className='w-4 h-4 mr-1' />
-                        )}
-                        {record.status === 'ABSENT' && (
-                          <XCircle className='w-4 h-4 mr-1' />
-                        )}
-                        {record.status === 'LATE' && (
-                          <AlertCircle className='w-4 h-4 mr-1' />
-                        )}
-                        {record.status === 'EXCUSED' && (
-                          <CheckCircle className='w-4 h-4 mr-1' />
-                        )}
-                        {record.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </Card>
-      )}
+            )}
+          </div>
+        )}
 
-      {/* Mark Attendance Modal */}
-      {assignedClass && !isReadOnlyMode && (
-        <MarkAttendanceModal
-          isOpen={isMarkAttendanceOpen}
-          onClose={() => setIsMarkAttendanceOpen(false)}
-          selectedClass={{
-            id: assignedClass.id,
-            grade: assignedClass.grade.toString(),
-            section: assignedClass.section,
-            students: assignedClass.currentEnrollment,
-          }}
-          onSuccess={handleAttendanceMarked}
-          restrictToToday={true}
-        />
-      )}
+        {/* Mark Attendance Modal */}
+        {assignedClass && !isReadOnlyMode && (
+          <MarkAttendanceModal
+            isOpen={isMarkAttendanceOpen}
+            onClose={() => setIsMarkAttendanceOpen(false)}
+            selectedClass={{
+              id: assignedClass.id,
+              grade: assignedClass.grade.toString(),
+              section: assignedClass.section,
+              students: assignedClass.currentEnrollment,
+            }}
+            onSuccess={handleAttendanceMarked}
+            restrictToToday={true}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -9,8 +9,8 @@ import {
   getListConfig,
   Parent,
 } from '@/components/templates/listConfigurations';
+// import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
-import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import {
   Users,
   UserCheck,
@@ -368,7 +368,7 @@ const ParentsPage = () => {
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             onItemAction={handleParentAction}
-            customActions={<ActionButtons pageType='parents' />}
+            // customActions={<ActionButtons pageType='parents' hideMassEmails hideSendCommunication />}
             onPageChange={handlePageChange}
           />
         </div>

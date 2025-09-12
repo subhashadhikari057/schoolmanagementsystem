@@ -128,7 +128,15 @@ export default function StudentAssignmentsTab({
             originalAssignment: a,
           };
         });
-        setAssignments(mappedAssignments);
+
+        // Sort assignments by creation date (most recent first)
+        const sortedAssignments = mappedAssignments.sort((a, b) => {
+          const dateA = new Date(a.originalAssignment?.createdAt || 0);
+          const dateB = new Date(b.originalAssignment?.createdAt || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        setAssignments(sortedAssignments);
       } catch (err) {
         setAssignments([]);
       } finally {

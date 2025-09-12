@@ -62,6 +62,8 @@ interface ActionButtonsProps {
   onRefresh?: () => void;
   onAddNew?: () => void;
   events?: CalendarEvent[]; // For calendar events
+  hideMassEmails?: boolean;
+  hideSendCommunication?: boolean;
 }
 
 const getActionButtonsConfig = (
@@ -1129,6 +1131,8 @@ export const ActionButtons = ({
   onRefresh,
   onAddNew,
   events = [],
+  hideMassEmails = false,
+  hideSendCommunication = false,
 }: ActionButtonsProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isManageEventsModalOpen, setIsManageEventsModalOpen] = useState(false);
@@ -1167,6 +1171,13 @@ export const ActionButtons = ({
     onRefresh,
   );
 
+  // Filter out specific buttons if requested via props
+  const filteredButtons = actionButtonsConfig.filter(b => {
+    if (hideMassEmails && b.id === 'mass-emails') return false;
+    if (hideSendCommunication && b.id === 'send-communication') return false;
+    return true;
+  });
+
   // Patch the onClick for Mass Generate Emails button if present
   if (
     pageType === 'students' ||
@@ -1190,7 +1201,7 @@ export const ActionButtons = ({
   return (
     <>
       <div className='grid grid-cols-2 sm:flex sm:flex-row gap-2 w-full'>
-        {actionButtonsConfig.map(button => (
+        {filteredButtons.map(button => (
           <div
             key={button.id}
             onClick={button.onClick}

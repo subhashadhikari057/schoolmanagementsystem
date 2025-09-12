@@ -139,7 +139,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
                 </div>
                 <button
                   onClick={toggleSidebar}
-                  className='absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center hover:bg-gray-100 rounded-md p-1'
+                  className='hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 items-center justify-center hover:bg-gray-100 rounded-md p-1'
                   aria-label='Collapse sidebar'
                   title='Collapse'
                 >

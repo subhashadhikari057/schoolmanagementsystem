@@ -269,7 +269,17 @@ export default function ParentAssignmentsTab({
               submission: childStatus?.submission || null,
             };
           });
-          setAssignments(mappedAssignments);
+
+          // Sort assignments by creation date (most recent first)
+          const sortedAssignments = mappedAssignments.sort(
+            (a: StudentAssignment, b: StudentAssignment) => {
+              const dateA = new Date(a.originalAssignment?.createdAt || 0);
+              const dateB = new Date(b.originalAssignment?.createdAt || 0);
+              return dateB.getTime() - dateA.getTime();
+            },
+          );
+
+          setAssignments(sortedAssignments);
         } else {
           setAssignments([]);
         }

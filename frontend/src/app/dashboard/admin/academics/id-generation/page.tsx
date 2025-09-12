@@ -230,14 +230,14 @@ const IDCardGenerationPage = () => {
   ];
 
   return (
-    <div className='min-h-screen bg-background'>
+    <div className='min-h-screen bg-background px-2 sm:px-4 lg:px-6'>
       {/* Header */}
-      <div className='pt-3'>
+      <div className='pt-3 pb-2'>
         <div className='w-full'>
-          <h1 className='text-xl font-bold text-gray-900'>
+          <h1 className='text-lg sm:text-xl lg:text-2xl font-bold text-gray-900'>
             ID Card Generation & Management
           </h1>
-          <p className='text-sm text-gray-600 mt-1'>
+          <p className='text-xs sm:text-sm text-gray-600 mt-1'>
             Generate, Print, and Manage All ID Cards
           </p>
         </div>
@@ -258,39 +258,39 @@ const IDCardGenerationPage = () => {
               {
                 name: 'Generate ID Cards',
                 content: (
-                  <div className='space-y-6'>
+                  <div className='space-y-4 sm:space-y-6'>
                     {!generationType ? (
                       // Generation Type Selection
                       <div className='space-y-4'>
-                        <div>
-                          <h2 className='text-lg font-semibold text-gray-900'>
+                        <div className='text-center sm:text-left'>
+                          <h2 className='text-base sm:text-lg font-semibold text-gray-900'>
                             Choose Generation Type
                           </h2>
-                          <p className='text-sm text-gray-600'>
+                          <p className='text-xs sm:text-sm text-gray-600 mt-1'>
                             Select how you want to generate ID cards
                           </p>
                         </div>
 
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
                           {/* Individual Generation Block */}
                           <Card
-                            className='p-6 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-blue-300'
+                            className='p-3 sm:p-4 lg:p-6 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-blue-300'
                             onClick={() => setGenerationType('individual')}
                           >
-                            <div className='text-center space-y-4'>
-                              <div className='w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto'>
-                                <User className='w-8 h-8 text-blue-600' />
+                            <div className='text-center space-y-3 sm:space-y-4'>
+                              <div className='w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto'>
+                                <User className='w-6 h-6 sm:w-8 sm:h-8 text-blue-600' />
                               </div>
                               <div>
-                                <h3 className='text-lg font-semibold text-gray-900'>
+                                <h3 className='text-base sm:text-lg font-semibold text-gray-900'>
                                   Individual Generation
                                 </h3>
-                                <p className='text-sm text-gray-600 mt-2'>
+                                <p className='text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2'>
                                   Generate ID card for a single person by
                                   selecting them individually
                                 </p>
                               </div>
-                              <div className='space-y-2 text-sm text-gray-500'>
+                              <div className='space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-500'>
                                 <div>
                                   • Select specific student, teacher, or staff
                                 </div>
@@ -299,7 +299,7 @@ const IDCardGenerationPage = () => {
                                   • Generate with real data and QR codes
                                 </div>
                               </div>
-                              <Button className='w-full bg-blue-600 hover:bg-blue-700 text-white'>
+                              <Button className='w-full bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm py-2'>
                                 Start Individual Generation
                               </Button>
                             </div>
@@ -307,30 +307,30 @@ const IDCardGenerationPage = () => {
 
                           {/* Bulk Generation Block */}
                           <Card
-                            className='p-6 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-green-300'
+                            className='p-3 sm:p-4 lg:p-6 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-green-300'
                             onClick={() => {
                               setGenerationType('bulk');
                               setCurrentStep('bulk');
                             }}
                           >
-                            <div className='text-center space-y-4'>
-                              <div className='w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center mx-auto'>
-                                <Users className='w-8 h-8 text-green-600' />
+                            <div className='text-center space-y-3 sm:space-y-4'>
+                              <div className='w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-lg flex items-center justify-center mx-auto'>
+                                <Users className='w-6 h-6 sm:w-8 sm:h-8 text-green-600' />
                               </div>
                               <div>
-                                <h3 className='text-lg font-semibold text-gray-900'>
+                                <h3 className='text-base sm:text-lg font-semibold text-gray-900'>
                                   Bulk Generation
                                 </h3>
-                                <p className='text-sm text-gray-600 mt-2'>
+                                <p className='text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2'>
                                   Generate ID cards for multiple people at once
                                 </p>
                               </div>
-                              <div className='space-y-2 text-sm text-gray-500'>
+                              <div className='space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-500'>
                                 <div>• Class-wise student ID cards</div>
                                 <div>• All teachers at once</div>
                                 <div>• All staff members at once</div>
                               </div>
-                              <Button className='w-full bg-green-600 hover:bg-green-700 text-white'>
+                              <Button className='w-full bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm py-2'>
                                 Start Bulk Generation
                               </Button>
                             </div>
@@ -339,19 +339,20 @@ const IDCardGenerationPage = () => {
                       </div>
                     ) : generationType === 'individual' ? (
                       // Individual Generation Flow
-                      <div className='space-y-6'>
-                        <div className='flex items-center justify-between'>
+                      <div className='space-y-4 sm:space-y-6'>
+                        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4'>
                           <div>
-                            <h2 className='text-lg font-semibold text-gray-900'>
+                            <h2 className='text-base sm:text-lg font-semibold text-gray-900'>
                               Individual ID Card Generation
                             </h2>
-                            <p className='text-sm text-gray-600'>
+                            <p className='text-xs sm:text-sm text-gray-600'>
                               Select a person and generate their ID card
                             </p>
                           </div>
                           <Button
                             variant='outline'
                             onClick={resetGenerationFlow}
+                            className='text-xs sm:text-sm w-full sm:w-auto'
                           >
                             Back to Selection
                           </Button>
@@ -360,26 +361,26 @@ const IDCardGenerationPage = () => {
                         {currentStep === 'type' ? (
                           // Person Type Selection
                           <div className='space-y-4'>
-                            <h3 className='text-md font-medium text-gray-900'>
+                            <h3 className='text-sm sm:text-md font-medium text-gray-900'>
                               Select Person Type
                             </h3>
-                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4'>
                               <Card
-                                className='p-4 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-blue-300'
+                                className='p-3 sm:p-4 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-blue-300'
                                 onClick={() => {
                                   setSelectedPersonType('student');
                                   setCurrentStep('person');
                                 }}
                               >
-                                <div className='text-center space-y-3'>
-                                  <div className='w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto'>
-                                    <GraduationCap className='w-6 h-6 text-blue-600' />
+                                <div className='text-center space-y-2 sm:space-y-3'>
+                                  <div className='w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto'>
+                                    <GraduationCap className='w-5 h-5 sm:w-6 sm:h-6 text-blue-600' />
                                   </div>
                                   <div>
-                                    <h4 className='font-medium text-gray-900'>
+                                    <h4 className='text-sm sm:font-medium text-gray-900'>
                                       Student
                                     </h4>
-                                    <p className='text-sm text-gray-600'>
+                                    <p className='text-xs sm:text-sm text-gray-600'>
                                       Generate student ID card
                                     </p>
                                   </div>
@@ -387,21 +388,21 @@ const IDCardGenerationPage = () => {
                               </Card>
 
                               <Card
-                                className='p-4 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-green-300'
+                                className='p-3 sm:p-4 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-green-300'
                                 onClick={() => {
                                   setSelectedPersonType('teacher');
                                   setCurrentStep('person');
                                 }}
                               >
-                                <div className='text-center space-y-3'>
-                                  <div className='w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto'>
-                                    <User className='w-6 h-6 text-green-600' />
+                                <div className='text-center space-y-2 sm:space-y-3'>
+                                  <div className='w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto'>
+                                    <User className='w-5 h-5 sm:w-6 sm:h-6 text-green-600' />
                                   </div>
                                   <div>
-                                    <h4 className='font-medium text-gray-900'>
+                                    <h4 className='text-sm sm:font-medium text-gray-900'>
                                       Teacher
                                     </h4>
-                                    <p className='text-sm text-gray-600'>
+                                    <p className='text-xs sm:text-sm text-gray-600'>
                                       Generate teacher ID card
                                     </p>
                                   </div>
@@ -409,21 +410,21 @@ const IDCardGenerationPage = () => {
                               </Card>
 
                               <Card
-                                className='p-4 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-purple-300'
+                                className='p-3 sm:p-4 hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-purple-300 sm:col-span-2 lg:col-span-1'
                                 onClick={() => {
                                   setSelectedPersonType('staff');
                                   setCurrentStep('person');
                                 }}
                               >
-                                <div className='text-center space-y-3'>
-                                  <div className='w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto'>
-                                    <UserCog className='w-6 h-6 text-purple-600' />
+                                <div className='text-center space-y-2 sm:space-y-3'>
+                                  <div className='w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto'>
+                                    <UserCog className='w-5 h-5 sm:w-6 sm:h-6 text-purple-600' />
                                   </div>
                                   <div>
-                                    <h4 className='font-medium text-gray-900'>
+                                    <h4 className='text-sm sm:font-medium text-gray-900'>
                                       Staff
                                     </h4>
-                                    <p className='text-sm text-gray-600'>
+                                    <p className='text-xs sm:text-sm text-gray-600'>
                                       Generate staff ID card
                                     </p>
                                   </div>
@@ -468,45 +469,51 @@ const IDCardGenerationPage = () => {
               {
                 name: 'Template Builder',
                 content: (
-                  <div className='space-y-6'>
-                    <div className='flex justify-between items-center'>
+                  <div className='space-y-4 sm:space-y-6'>
+                    <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4'>
                       <div>
-                        <h2 className='text-lg font-semibold text-gray-900'>
+                        <h2 className='text-base sm:text-lg font-semibold text-gray-900'>
                           Template Builder
                         </h2>
-                        <p className='text-sm text-gray-600'>
+                        <p className='text-xs sm:text-sm text-gray-600'>
                           Create and manage ID card templates
                         </p>
                       </div>
-                      <div className='flex gap-2'>
+                      <div className='flex flex-col sm:flex-row gap-2'>
                         <Button
                           variant='outline'
-                          className='flex items-center gap-2'
+                          className='flex items-center justify-center gap-2 text-xs sm:text-sm'
                         >
-                          <Upload className='w-4 h-4' />
-                          Import Template
+                          <Upload className='w-3 h-3 sm:w-4 sm:h-4' />
+                          <span className='hidden sm:inline'>
+                            Import Template
+                          </span>
+                          <span className='sm:hidden'>Import</span>
                         </Button>
                         <Button
                           onClick={() => setCreateTemplateModalOpen(true)}
-                          className='flex items-center gap-2'
+                          className='flex items-center justify-center gap-2 text-xs sm:text-sm'
                         >
-                          <Plus className='w-4 h-4' />
-                          Create Template
+                          <Plus className='w-3 h-3 sm:w-4 sm:h-4' />
+                          <span className='hidden sm:inline'>
+                            Create Template
+                          </span>
+                          <span className='sm:hidden'>Create</span>
                         </Button>
                       </div>
                     </div>
 
                     {/* Template Management Stats */}
-                    <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+                    <div className='grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
                       <Card>
-                        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                          <CardTitle className='text-sm font-medium'>
+                        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6 pt-3 sm:pt-6'>
+                          <CardTitle className='text-xs sm:text-sm font-medium'>
                             Total Templates
                           </CardTitle>
-                          <FileText className='h-4 w-4 text-muted-foreground' />
+                          <FileText className='h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground' />
                         </CardHeader>
-                        <CardContent>
-                          <div className='text-2xl font-bold'>
+                        <CardContent className='px-3 sm:px-6 pb-3 sm:pb-6'>
+                          <div className='text-lg sm:text-2xl font-bold'>
                             {templateStats?.totalTemplates || 0}
                           </div>
                           <p className='text-xs text-muted-foreground'>
@@ -518,42 +525,44 @@ const IDCardGenerationPage = () => {
                         </CardContent>
                       </Card>
                       <Card>
-                        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                          <CardTitle className='text-sm font-medium'>
+                        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6 pt-3 sm:pt-6'>
+                          <CardTitle className='text-xs sm:text-sm font-medium'>
                             Most Used
                           </CardTitle>
-                          <CreditCard className='h-4 w-4 text-muted-foreground' />
+                          <CreditCard className='h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground' />
                         </CardHeader>
-                        <CardContent>
-                          <div className='text-2xl font-bold'>125</div>
+                        <CardContent className='px-3 sm:px-6 pb-3 sm:pb-6'>
+                          <div className='text-lg sm:text-2xl font-bold'>
+                            125
+                          </div>
                           <p className='text-xs text-muted-foreground'>
                             Student Standard
                           </p>
                         </CardContent>
                       </Card>
                       <Card>
-                        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                          <CardTitle className='text-sm font-medium'>
+                        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6 pt-3 sm:pt-6'>
+                          <CardTitle className='text-xs sm:text-sm font-medium'>
                             Recent Updates
                           </CardTitle>
-                          <Palette className='h-4 w-4 text-muted-foreground' />
+                          <Palette className='h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground' />
                         </CardHeader>
-                        <CardContent>
-                          <div className='text-2xl font-bold'>3</div>
+                        <CardContent className='px-3 sm:px-6 pb-3 sm:pb-6'>
+                          <div className='text-lg sm:text-2xl font-bold'>3</div>
                           <p className='text-xs text-muted-foreground'>
                             This week
                           </p>
                         </CardContent>
                       </Card>
                       <Card>
-                        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                          <CardTitle className='text-sm font-medium'>
+                        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6 pt-3 sm:pt-6'>
+                          <CardTitle className='text-xs sm:text-sm font-medium'>
                             Total Usage
                           </CardTitle>
-                          <Printer className='h-4 w-4 text-muted-foreground' />
+                          <Printer className='h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground' />
                         </CardHeader>
-                        <CardContent>
-                          <div className='text-2xl font-bold'>
+                        <CardContent className='px-3 sm:px-6 pb-3 sm:pb-6'>
+                          <div className='text-lg sm:text-2xl font-bold'>
                             {templateStats?.totalUsage || 0}
                           </div>
                           <p className='text-xs text-muted-foreground'>
@@ -565,10 +574,12 @@ const IDCardGenerationPage = () => {
 
                     {/* Templates Grid */}
                     {isLoading ? (
-                      <div className='flex items-center justify-center py-12'>
+                      <div className='flex items-center justify-center py-8 sm:py-12'>
                         <div className='text-center'>
-                          <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4'></div>
-                          <p className='text-gray-500'>Loading templates...</p>
+                          <div className='w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3 sm:mb-4'></div>
+                          <p className='text-xs sm:text-sm text-gray-500'>
+                            Loading templates...
+                          </p>
                         </div>
                       </div>
                     ) : (
