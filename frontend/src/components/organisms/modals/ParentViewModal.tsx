@@ -21,6 +21,7 @@ import {
   StudentResponse,
 } from '@/api/services/student.service';
 import { toast } from 'sonner';
+import Avatar from '@/components/atoms/display/Avatar';
 
 interface ParentViewModalProps {
   isOpen: boolean;
@@ -263,9 +264,12 @@ const ParentViewModal: React.FC<ParentViewModalProps> = ({
               {/* Basic Info */}
               <div className='flex flex-col md:flex-row gap-4 sm:gap-6 pb-6 border-b border-gray-200'>
                 <div className='flex-shrink-0'>
-                  <div className='w-24 h-24 sm:w-32 sm:h-32 rounded-xl shadow-md bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center'>
-                    <User className='w-12 h-12 sm:w-16 sm:h-16 text-blue-600' />
-                  </div>
+                  <Avatar
+                    src={parent?.avatar}
+                    name={parentDetails?.fullName || 'Unknown Parent'}
+                    role='parent'
+                    className='w-24 h-24 sm:w-32 sm:h-32 shadow-md'
+                  />
                 </div>
 
                 <div className='flex-grow'>

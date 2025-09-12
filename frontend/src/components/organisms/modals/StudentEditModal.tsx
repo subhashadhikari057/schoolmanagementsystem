@@ -13,6 +13,7 @@ import {
   Users,
   Heart,
   Loader2,
+  Camera,
 } from 'lucide-react';
 import { Student } from '@/components/templates/listConfigurations';
 import {
@@ -22,6 +23,7 @@ import {
 import { classService } from '@/api/services/class.service';
 import { toast } from 'sonner';
 import EthnicitySelect from '@/components/molecules/form/EthnicitySelect';
+import Avatar from '@/components/atoms/display/Avatar';
 
 interface StudentEditModalProps {
   isOpen: boolean;
@@ -837,6 +839,40 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
           >
             <X className='h-6 w-6' />
           </button>
+        </div>
+
+        {/* Profile Photo Section */}
+        <div className='px-6 py-4 bg-gray-50 border-b border-gray-200'>
+          <div className='flex items-center space-x-4'>
+            <div className='flex-shrink-0'>
+              <Avatar
+                src={student.avatar}
+                name={student.name}
+                role='student'
+                className='w-16 h-16 rounded-full'
+                context='student-edit-modal'
+              />
+            </div>
+            <div className='flex-1'>
+              <h3 className='text-lg font-medium text-gray-900'>
+                {student.name}
+              </h3>
+              <p className='text-sm text-gray-600'>
+                Student ID: {student.studentId || student.rollNo}
+              </p>
+              <p className='text-sm text-gray-600'>
+                {typeof student.class === 'string'
+                  ? student.class
+                  : 'Class not assigned'}
+              </p>
+            </div>
+            <div className='flex-shrink-0'>
+              <div className='flex items-center text-sm text-gray-500'>
+                <Camera className='h-4 w-4 mr-1' />
+                {student.avatar ? 'Profile Photo' : 'No Photo'}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Form */}

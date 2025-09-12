@@ -512,16 +512,27 @@ const StaffPage = () => {
 
   // Handle staff actions
   const handleStaffAction = async (action: string, staffMember: Staff) => {
+    // Transform the staff data to ensure avatar field is set correctly for all actions
+    const transformedStaff = {
+      ...staffMember,
+      avatar:
+        staffMember.avatar || (staffMember as any).profilePhotoUrl || undefined,
+    };
+
     // View action
     if (action === 'view') {
-      setSelectedStaff(staffMember);
+      console.log('View Modal - Original staff:', staffMember);
+      console.log('View Modal - Transformed staff:', transformedStaff);
+      setSelectedStaff(transformedStaff);
       setViewModalOpen(true);
       return;
     }
 
     // Edit action
     if (action === 'edit') {
-      setSelectedStaff(staffMember);
+      console.log('Edit Modal - Original staff:', staffMember);
+      console.log('Edit Modal - Transformed staff:', transformedStaff);
+      setSelectedStaff(transformedStaff);
       setEditModalOpen(true);
       return;
     }

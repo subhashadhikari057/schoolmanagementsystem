@@ -572,6 +572,7 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
             id={item.studentId}
             avatar={item.avatar}
             idLabel=''
+            role='student'
           />
         ),
       },
@@ -1256,6 +1257,7 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
             id={item.studentId || item.rollNo}
             avatar={item.avatar}
             idLabel=''
+            role='student'
           />
         ),
       },
@@ -1348,6 +1350,7 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
             id={item.designation || 'Teacher'}
             avatar={item.avatar}
             idLabel=''
+            role='teacher'
           />
         ),
       },
@@ -1485,88 +1488,13 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
         header: 'Parent Details',
         mobileLabel: 'Parent',
         render: (item: Parent) => (
-          <div className='flex items-center gap-3'>
-            <div className='w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0'>
-              <svg
-                className='w-5 h-5 text-white'
-                fill='currentColor'
-                viewBox='0 0 20 20'
-              >
-                <path d='M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z'></path>
-              </svg>
-            </div>
-            <div className='min-w-0 flex-1'>
-              <div className='font-medium text-gray-900 truncate'>
-                {item.name}
-              </div>
-              <div className='flex items-center gap-2 mt-1'>
-                {(() => {
-                  // Determine relationship from children data or profile
-                  const relationship =
-                    item.children && item.children.length > 0
-                      ? item.children[0].relationship
-                      : item.profile?.gender === 'male'
-                        ? 'Father'
-                        : item.profile?.gender === 'female'
-                          ? 'Mother'
-                          : 'Guardian';
-
-                  return (
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        relationship === 'Father' || relationship === 'father'
-                          ? 'bg-blue-100 text-blue-800'
-                          : relationship === 'Mother' ||
-                              relationship === 'mother'
-                            ? 'bg-pink-100 text-pink-800'
-                            : relationship === 'Guardian' ||
-                                relationship === 'guardian'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {relationship || 'Parent'}
-                    </span>
-                  );
-                })()}
-                {(() => {
-                  // Get occupation from profile or job field
-                  const occupation =
-                    item.occupation || item.profile?.occupation || item.job;
-
-                  // Only show occupation badge if it exists and is not empty
-                  if (!occupation || occupation.trim() === '') {
-                    return null;
-                  }
-
-                  return (
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        occupation.toLowerCase().includes('engineer')
-                          ? 'bg-blue-100 text-blue-800'
-                          : occupation.toLowerCase().includes('doctor') ||
-                              occupation.toLowerCase().includes('physician')
-                            ? 'bg-green-100 text-green-800'
-                            : occupation.toLowerCase().includes('teacher') ||
-                                occupation.toLowerCase().includes('educator')
-                              ? 'bg-purple-100 text-purple-800'
-                              : occupation.toLowerCase().includes('business') ||
-                                  occupation
-                                    .toLowerCase()
-                                    .includes('entrepreneur')
-                                ? 'bg-orange-100 text-orange-800'
-                                : occupation.toLowerCase().includes('retired')
-                                  ? 'bg-gray-100 text-gray-800'
-                                  : 'bg-indigo-100 text-indigo-800'
-                      }`}
-                    >
-                      {occupation}
-                    </span>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
+          <UserInfoCell
+            name={item.name}
+            id={String(item.id || '')}
+            avatar={item.avatar}
+            idLabel='PAR'
+            role='parent'
+          />
         ),
       },
       {
@@ -1663,6 +1591,7 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
             id={String(item.staffId || item.id || '')}
             avatar={item.avatar}
             idLabel='STF'
+            role='staff'
           />
         ),
       },

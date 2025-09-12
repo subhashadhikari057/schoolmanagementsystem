@@ -13,7 +13,9 @@ import {
   Edit,
   Shield,
   Key,
+  Camera,
 } from 'lucide-react';
+import Avatar from '@/components/atoms/display/Avatar';
 import { Parent } from '@/components/templates/listConfigurations';
 import {
   parentService,
@@ -254,6 +256,37 @@ const ParentEditModal: React.FC<ParentEditModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Profile Photo Section */}
+        {parent && (
+          <div className='px-4 sm:px-6 py-4 bg-gray-50 border-b border-gray-200'>
+            <div className='flex items-center space-x-4'>
+              <div className='flex-shrink-0'>
+                <Avatar
+                  src={parent.avatar}
+                  name={parent.name}
+                  role='parent'
+                  className='w-16 h-16 rounded-full'
+                />
+              </div>
+              <div className='flex-1'>
+                <h3 className='text-lg font-medium text-gray-900'>
+                  {parent.name}
+                </h3>
+                <p className='text-sm text-gray-600'>
+                  {parent.relation || 'Parent'}
+                </p>
+                <p className='text-sm text-gray-600'>{parent.email}</p>
+              </div>
+              <div className='flex-shrink-0'>
+                <div className='flex items-center text-sm text-gray-500'>
+                  <Camera className='h-4 w-4 mr-1' />
+                  {parent.avatar ? 'Profile Photo' : 'No Photo'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         <div className='p-4 sm:p-6'>
