@@ -206,7 +206,7 @@ export const sidebarItems = {
       items: [
         { label: 'Dashboard', icon: 'Home', path: '/dashboard/student' },
         {
-          label: 'My Subjects',
+          label: 'Class Routine',
           icon: 'Layers',
           path: '/dashboard/student/subjects',
         },

@@ -181,16 +181,17 @@ export default function StudentClassesPage() {
     const endTime = slot.timeslot?.endTime || '00:00';
     const slotType = slot.timeslot?.type || 'REGULAR';
 
+    // Check if this is a break period
+    const isBreak = slotType === 'BREAK' || subjectName === 'No Subject';
+
     return (
       <div
         key={slot.id || index}
-        className={`rounded-xl border shadow-sm p-4 min-h-[140px] flex flex-col justify-between hover:shadow-lg hover:border-blue-400 transition-all duration-200 cursor-pointer group ${getSubjectColor(subjectName)}`}
-        onClick={() =>
-          router.push(
-            `/dashboard/student/subjects/${encodeURIComponent(subjectName.toLowerCase())}`,
-          )
-        }
-        title={`Go to ${subjectName} details`}
+        className={`rounded-xl border shadow-sm p-4 min-h-[140px] flex flex-col justify-between transition-all duration-200 ${
+          isBreak
+            ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+            : getSubjectColor(subjectName)
+        }`}
       >
         {/* Time Badge */}
         <div className='flex items-center justify-between mb-3'>
@@ -207,21 +208,28 @@ export default function StudentClassesPage() {
           )}
         </div>
 
-        {/* Subject Info */}
-        <div className='mb-3'>
-          <h3 className='text-lg font-semibold mb-1 group-hover:text-blue-700 transition-colors'>
-            {subjectName}
-          </h3>
-          {subjectCode && (
-            <p className='text-xs opacity-75 font-medium'>{subjectCode}</p>
-          )}
-        </div>
+        {/* Break Card - Show only BREAK */}
+        {isBreak ? (
+          <div className='flex-1 flex items-center justify-center'>
+            <h3 className='text-2xl font-bold text-yellow-800'>BREAK</h3>
+          </div>
+        ) : (
+          <>
+            {/* Subject Info */}
+            <div className='mb-3'>
+              <h3 className='text-lg font-semibold mb-1'>{subjectName}</h3>
+              {subjectCode && (
+                <p className='text-xs opacity-75 font-medium'>{subjectCode}</p>
+              )}
+            </div>
 
-        {/* Teacher Info */}
-        <div className='flex items-center text-sm mb-2'>
-          <User className='w-3 h-3 mr-1' />
-          <span className='font-medium'>{teacherName}</span>
-        </div>
+            {/* Teacher Info */}
+            <div className='flex items-center text-sm mb-2'>
+              <User className='w-3 h-3 mr-1' />
+              <span className='font-medium'>{teacherName}</span>
+            </div>
+          </>
+        )}
 
         {/* Room display removed as requested */}
       </div>
@@ -300,7 +308,7 @@ export default function StudentClassesPage() {
       <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 pt-8 pb-12'>
         <div className='w-full'>
           <SectionTitle
-            text='My Classes'
+            text='Class Routine'
             level={1}
             className='text-2xl font-bold text-gray-900 mb-2'
           />
@@ -373,12 +381,12 @@ export default function StudentClassesPage() {
         <div className='flex items-center justify-between mb-6'>
           <div>
             <SectionTitle
-              text='My Classes'
+              text='Class Routine'
               level={1}
               className='text-2xl font-bold text-gray-900 mb-2'
             />
             <Label className='text-base text-gray-600'>
-              Your weekly class schedule. Click on any subject for more details.
+              Your weekly class schedule.
             </Label>
           </div>
           <div className='flex items-center space-x-2'>
