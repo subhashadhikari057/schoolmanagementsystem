@@ -38,7 +38,8 @@
   --background: #f4f6f8;
   --foreground: #171717;
   --tertiary: #333333;
-  --primary: #454545;
+  --primary: #2563eb;
+  --primary-foreground: #fff;
   --secondary: #737373;
   --placeholder: #b0b0b0;
   --border: #b0b0b0;

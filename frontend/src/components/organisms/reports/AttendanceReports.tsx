@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import GenericTabs from '@/components/organisms/tabs/GenericTabs';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import {
   Calendar,
@@ -372,555 +372,561 @@ Generated on: ${new Date().toLocaleString()}
       {/* Main Content - Tabs */}
       <div className='mt-4 mb-6'>
         <div className='w-full'>
-          <Tabs defaultValue='student' className='w-full'>
-            <TabsList className='grid w-full grid-cols-3 mb-6'>
-              <TabsTrigger value='student' className='flex items-center gap-2'>
-                <GraduationCap className='w-4 h-4' />
-                Student Reports
-              </TabsTrigger>
-              <TabsTrigger value='teacher' className='flex items-center gap-2'>
-                <User className='w-4 h-4' />
-                Teacher Reports
-              </TabsTrigger>
-              <TabsTrigger value='staff' className='flex items-center gap-2'>
-                <UserCog className='w-4 h-4' />
-                Staff Reports
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Student Reports Tab */}
-            <TabsContent value='student' className='space-y-6'>
-              <Card>
-                <CardHeader>
-                  <CardTitle className='flex items-center gap-2'>
-                    <GraduationCap className='w-5 h-5' />
-                    Student Attendance Report
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className='space-y-6'>
-                  {/* Student Search */}
-                  <div className='space-y-3'>
-                    <Label className='text-sm font-medium text-gray-700'>
-                      Search Student
-                    </Label>
-                    <div className='relative'>
-                      <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
-                      {isSearchingStudent && (
-                        <Loader2 className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-500 animate-spin' />
-                      )}
-                      <Input
-                        placeholder='Search by name, roll number, or class...'
-                        className='pl-10 pr-10'
-                        value={studentSearchTerm}
-                        onChange={e =>
-                          handleStudentSearchChange(e.target.value)
-                        }
-                        onFocus={() =>
-                          setShowStudentSuggestions(
-                            studentSuggestions.length > 0,
-                          )
-                        }
-                      />
-                    </div>
-
-                    {/* Search Suggestions */}
-                    {showStudentSuggestions &&
-                      studentSuggestions.length > 0 && (
-                        <div className='absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto'>
-                          {studentSuggestions.map(person => (
-                            <div
-                              key={person.id}
-                              className='p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0'
-                              onClick={() => handleStudentSelect(person)}
-                            >
-                              <div className='flex items-center space-x-3'>
-                                <div className='w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center'>
-                                  <span className='text-white text-sm font-semibold'>
-                                    {person.name.charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                                <div>
-                                  <p className='font-medium text-gray-900'>
-                                    {person.name}
-                                  </p>
-                                  <p className='text-sm text-gray-600'>
-                                    Roll: {person.rollNumber} • {person.class}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+          <GenericTabs
+            tabs={[
+              {
+                name: 'Student Reports',
+                content: (
+                  <Card className='shadow border border-blue-100 bg-white'>
+                    <CardContent className='space-y-8 pt-6'>
+                      {/* Quick Stats Bar */}
+                      <div className='flex flex-wrap gap-3 mb-2'>
+                        <span className='bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold shadow'>
+                          Student
+                        </span>
+                        {studentReportData.personName && (
+                          <span className='bg-blue-200 text-blue-900 px-3 py-1 rounded-full text-xs font-semibold shadow'>
+                            Selected: {studentReportData.personName}
+                          </span>
+                        )}
+                        {studentReportData.class && (
+                          <span className='bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-semibold border border-blue-200'>
+                            Class: {studentReportData.class}
+                          </span>
+                        )}
+                      </div>
+                      {/* Student Search */}
+                      <div className='space-y-3'>
+                        <Label className='text-sm font-semibold text-blue-700'>
+                          Search Student
+                        </Label>
+                        <div className='relative'>
+                          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-300' />
+                          {isSearchingStudent && (
+                            <Loader2 className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-400 animate-spin' />
+                          )}
+                          <Input
+                            placeholder='Search by name, roll number, or class...'
+                            className='pl-10 pr-10 rounded-xl border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-blue-50/60 hover:bg-blue-100 transition-all duration-150 shadow-sm'
+                            value={studentSearchTerm}
+                            onChange={e =>
+                              handleStudentSearchChange(e.target.value)
+                            }
+                            onFocus={() =>
+                              setShowStudentSuggestions(
+                                studentSuggestions.length > 0,
+                              )
+                            }
+                          />
                         </div>
-                      )}
-
-                    {/* Selected Student */}
-                    {studentReportData.personName && (
-                      <div className='p-3 bg-blue-50 rounded-md border border-blue-200'>
-                        <div className='flex items-center justify-between'>
-                          <div className='flex items-center space-x-3'>
-                            <div className='w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center'>
-                              <span className='text-white font-semibold'>
-                                {studentReportData.personName
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </span>
-                            </div>
-                            <div>
-                              <p className='font-semibold text-gray-900'>
-                                {studentReportData.personName}
-                              </p>
-                              <p className='text-sm text-gray-600'>
-                                Roll: {studentReportData.rollNumber} •{' '}
-                                {studentReportData.class}
-                              </p>
-                            </div>
-                          </div>
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            onClick={() => {
-                              setStudentReportData({
-                                personId: '',
-                                personName: '',
-                                rollNumber: '',
-                                class: '',
-                                fromDate: studentReportData.fromDate,
-                                toDate: studentReportData.toDate,
-                              });
-                              setStudentSearchTerm('');
-                              setShowStudentSuggestions(false);
-                            }}
-                          >
-                            <X className='w-4 h-4' />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Date Range */}
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                    <div className='space-y-2'>
-                      <Label className='text-sm font-medium text-gray-700'>
-                        From Date
-                      </Label>
-                      <div className='relative'>
-                        <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
-                        <Input
-                          type='date'
-                          className='pl-10'
-                          value={studentReportData.fromDate}
-                          onChange={e =>
-                            setStudentReportData(prev => ({
-                              ...prev,
-                              fromDate: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className='space-y-2'>
-                      <Label className='text-sm font-medium text-gray-700'>
-                        To Date
-                      </Label>
-                      <div className='relative'>
-                        <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
-                        <Input
-                          type='date'
-                          className='pl-10'
-                          value={studentReportData.toDate}
-                          onChange={e =>
-                            setStudentReportData(prev => ({
-                              ...prev,
-                              toDate: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Generate Button */}
-                  <Button
-                    onClick={generateStudentReport}
-                    disabled={
-                      isGeneratingStudent ||
-                      !studentReportData.personId ||
-                      !studentReportData.fromDate ||
-                      !studentReportData.toDate
-                    }
-                    className='w-full'
-                  >
-                    {isGeneratingStudent ? (
-                      <>
-                        <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                        Generating Report...
-                      </>
-                    ) : (
-                      <>
-                        <Download className='w-4 h-4 mr-2' />
-                        Generate & Download Report
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Teacher Reports Tab */}
-            <TabsContent value='teacher' className='space-y-6'>
-              <Card>
-                <CardHeader>
-                  <CardTitle className='flex items-center gap-2'>
-                    <User className='w-5 h-5' />
-                    Teacher Attendance Report
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className='space-y-6'>
-                  {/* Teacher Search */}
-                  <div className='space-y-3'>
-                    <Label className='text-sm font-medium text-gray-700'>
-                      Search Teacher
-                    </Label>
-                    <div className='relative'>
-                      <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
-                      {isSearchingTeacher && (
-                        <Loader2 className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-green-500 animate-spin' />
-                      )}
-                      <Input
-                        placeholder='Search by name, employee ID, or department...'
-                        className='pl-10 pr-10'
-                        value={teacherSearchTerm}
-                        onChange={e =>
-                          handleTeacherSearchChange(e.target.value)
-                        }
-                        onFocus={() =>
-                          setShowTeacherSuggestions(
-                            teacherSuggestions.length > 0,
-                          )
-                        }
-                      />
-                    </div>
-
-                    {/* Search Suggestions */}
-                    {showTeacherSuggestions &&
-                      teacherSuggestions.length > 0 && (
-                        <div className='absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto'>
-                          {teacherSuggestions.map(person => (
-                            <div
-                              key={person.id}
-                              className='p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0'
-                              onClick={() => handleTeacherSelect(person)}
-                            >
-                              <div className='flex items-center space-x-3'>
-                                <div className='w-8 h-8 bg-green-500 rounded-full flex items-center justify-center'>
-                                  <span className='text-white text-sm font-semibold'>
-                                    {person.name.charAt(0).toUpperCase()}
-                                  </span>
+                        {/* Search Suggestions */}
+                        {showStudentSuggestions &&
+                          studentSuggestions.length > 0 && (
+                            <div className='absolute z-50 w-full bg-white border border-blue-200 rounded-xl shadow-lg max-h-60 overflow-y-auto mt-1'>
+                              {studentSuggestions.map(person => (
+                                <div
+                                  key={person.id}
+                                  className='p-3 hover:bg-blue-50 cursor-pointer border-b border-blue-100 last:border-b-0 flex items-center gap-3 transition-all duration-150'
+                                  onClick={() => handleStudentSelect(person)}
+                                >
+                                  <div className='w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center'>
+                                    <span className='text-white text-sm font-bold'>
+                                      {person.name.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className='font-semibold text-blue-900'>
+                                      {person.name}
+                                    </p>
+                                    <p className='text-xs text-blue-600'>
+                                      Roll: {person.rollNumber} • {person.class}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className='font-medium text-gray-900'>
-                                    {person.name}
-                                  </p>
-                                  <p className='text-sm text-gray-600'>
-                                    ID: {person.employeeId} •{' '}
-                                    {person.department}
-                                  </p>
-                                </div>
-                              </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      )}
-
-                    {/* Selected Teacher */}
-                    {teacherReportData.personName && (
-                      <div className='p-3 bg-green-50 rounded-md border border-green-200'>
-                        <div className='flex items-center justify-between'>
-                          <div className='flex items-center space-x-3'>
-                            <div className='w-10 h-10 bg-green-500 rounded-full flex items-center justify-center'>
-                              <span className='text-white font-semibold'>
-                                {teacherReportData.personName
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </span>
-                            </div>
-                            <div>
-                              <p className='font-semibold text-gray-900'>
-                                {teacherReportData.personName}
-                              </p>
-                              <p className='text-sm text-gray-600'>
-                                ID: {teacherReportData.employeeId} •{' '}
-                                {teacherReportData.department}
-                              </p>
-                            </div>
-                          </div>
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            onClick={() => {
-                              setTeacherReportData({
-                                personId: '',
-                                personName: '',
-                                employeeId: '',
-                                department: '',
-                                fromDate: teacherReportData.fromDate,
-                                toDate: teacherReportData.toDate,
-                              });
-                              setTeacherSearchTerm('');
-                              setShowTeacherSuggestions(false);
-                            }}
-                          >
-                            <X className='w-4 h-4' />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Date Range */}
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                    <div className='space-y-2'>
-                      <Label className='text-sm font-medium text-gray-700'>
-                        From Date
-                      </Label>
-                      <div className='relative'>
-                        <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
-                        <Input
-                          type='date'
-                          className='pl-10'
-                          value={teacherReportData.fromDate}
-                          onChange={e =>
-                            setTeacherReportData(prev => ({
-                              ...prev,
-                              fromDate: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className='space-y-2'>
-                      <Label className='text-sm font-medium text-gray-700'>
-                        To Date
-                      </Label>
-                      <div className='relative'>
-                        <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
-                        <Input
-                          type='date'
-                          className='pl-10'
-                          value={teacherReportData.toDate}
-                          onChange={e =>
-                            setTeacherReportData(prev => ({
-                              ...prev,
-                              toDate: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Generate Button */}
-                  <Button
-                    onClick={generateTeacherReport}
-                    disabled={
-                      isGeneratingTeacher ||
-                      !teacherReportData.personId ||
-                      !teacherReportData.fromDate ||
-                      !teacherReportData.toDate
-                    }
-                    className='w-full'
-                  >
-                    {isGeneratingTeacher ? (
-                      <>
-                        <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                        Generating Report...
-                      </>
-                    ) : (
-                      <>
-                        <Download className='w-4 h-4 mr-2' />
-                        Generate & Download Report
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Staff Reports Tab */}
-            <TabsContent value='staff' className='space-y-6'>
-              <Card>
-                <CardHeader>
-                  <CardTitle className='flex items-center gap-2'>
-                    <UserCog className='w-5 h-5' />
-                    Staff Attendance Report
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className='space-y-6'>
-                  {/* Staff Search */}
-                  <div className='space-y-3'>
-                    <Label className='text-sm font-medium text-gray-700'>
-                      Search Staff Member
-                    </Label>
-                    <div className='relative'>
-                      <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
-                      {isSearchingStaff && (
-                        <Loader2 className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-purple-500 animate-spin' />
-                      )}
-                      <Input
-                        placeholder='Search by name, employee ID, or department...'
-                        className='pl-10 pr-10'
-                        value={staffSearchTerm}
-                        onChange={e => handleStaffSearchChange(e.target.value)}
-                        onFocus={() =>
-                          setShowStaffSuggestions(staffSuggestions.length > 0)
-                        }
-                      />
-                    </div>
-
-                    {/* Search Suggestions */}
-                    {showStaffSuggestions && staffSuggestions.length > 0 && (
-                      <div className='absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto'>
-                        {staffSuggestions.map(person => (
-                          <div
-                            key={person.id}
-                            className='p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0'
-                            onClick={() => handleStaffSelect(person)}
-                          >
-                            <div className='flex items-center space-x-3'>
-                              <div className='w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center'>
-                                <span className='text-white text-sm font-semibold'>
-                                  {person.name.charAt(0).toUpperCase()}
+                          )}
+                        {/* Selected Student */}
+                        {studentReportData.personName && (
+                          <div className='p-3 bg-gradient-to-r from-blue-100 to-blue-50 rounded-lg border border-blue-200 flex items-center justify-between shadow'>
+                            <div className='flex items-center gap-3'>
+                              <div className='w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center'>
+                                <span className='text-white font-bold text-lg'>
+                                  {studentReportData.personName
+                                    .charAt(0)
+                                    .toUpperCase()}
                                 </span>
                               </div>
                               <div>
-                                <p className='font-medium text-gray-900'>
-                                  {person.name}
+                                <p className='font-semibold text-blue-900'>
+                                  {studentReportData.personName}
                                 </p>
-                                <p className='text-sm text-gray-600'>
-                                  ID: {person.employeeId} • {person.department}
+                                <p className='text-xs text-blue-600'>
+                                  Roll: {studentReportData.rollNumber} •{' '}
+                                  {studentReportData.class}
                                 </p>
                               </div>
                             </div>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='hover:bg-blue-200 rounded-full'
+                              onClick={() => {
+                                setStudentReportData({
+                                  personId: '',
+                                  personName: '',
+                                  rollNumber: '',
+                                  class: '',
+                                  fromDate: studentReportData.fromDate,
+                                  toDate: studentReportData.toDate,
+                                });
+                                setStudentSearchTerm('');
+                                setShowStudentSuggestions(false);
+                              }}
+                            >
+                              <X className='w-4 h-4 text-blue-700' />
+                            </Button>
                           </div>
-                        ))}
+                        )}
                       </div>
-                    )}
-
-                    {/* Selected Staff */}
-                    {staffReportData.personName && (
-                      <div className='p-3 bg-purple-50 rounded-md border border-purple-200'>
-                        <div className='flex items-center justify-between'>
-                          <div className='flex items-center space-x-3'>
-                            <div className='w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center'>
-                              <span className='text-white font-semibold'>
-                                {staffReportData.personName
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </span>
-                            </div>
-                            <div>
-                              <p className='font-semibold text-gray-900'>
-                                {staffReportData.personName}
-                              </p>
-                              <p className='text-sm text-gray-600'>
-                                ID: {staffReportData.employeeId} •{' '}
-                                {staffReportData.department}
-                              </p>
-                            </div>
+                      {/* Date Range */}
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <div className='space-y-2'>
+                          <Label className='text-sm font-semibold text-blue-700'>
+                            From Date
+                          </Label>
+                          <div className='relative'>
+                            <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-300' />
+                            <Input
+                              type='date'
+                              className='pl-10 rounded-xl border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-blue-50/60 hover:bg-blue-100 transition-all duration-150 shadow-sm'
+                              value={studentReportData.fromDate}
+                              onChange={e =>
+                                setStudentReportData(prev => ({
+                                  ...prev,
+                                  fromDate: e.target.value,
+                                }))
+                              }
+                            />
                           </div>
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            onClick={() => {
-                              setStaffReportData({
-                                personId: '',
-                                personName: '',
-                                employeeId: '',
-                                department: '',
-                                fromDate: staffReportData.fromDate,
-                                toDate: staffReportData.toDate,
-                              });
-                              setStaffSearchTerm('');
-                              setShowStaffSuggestions(false);
-                            }}
-                          >
-                            <X className='w-4 h-4' />
-                          </Button>
+                        </div>
+                        <div className='space-y-2'>
+                          <Label className='text-sm font-semibold text-blue-700'>
+                            To Date
+                          </Label>
+                          <div className='relative'>
+                            <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-300' />
+                            <Input
+                              type='date'
+                              className='pl-10 rounded-xl border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-blue-50/60 hover:bg-blue-100 transition-all duration-150 shadow-sm'
+                              value={studentReportData.toDate}
+                              onChange={e =>
+                                setStudentReportData(prev => ({
+                                  ...prev,
+                                  toDate: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Date Range */}
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                    <div className='space-y-2'>
-                      <Label className='text-sm font-medium text-gray-700'>
-                        From Date
-                      </Label>
-                      <div className='relative'>
-                        <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
-                        <Input
-                          type='date'
-                          className='pl-10'
-                          value={staffReportData.fromDate}
-                          onChange={e =>
-                            setStaffReportData(prev => ({
-                              ...prev,
-                              fromDate: e.target.value,
-                            }))
-                          }
-                        />
+                      {/* Generate Button */}
+                      <Button
+                        onClick={generateStudentReport}
+                        disabled={
+                          isGeneratingStudent ||
+                          !studentReportData.personId ||
+                          !studentReportData.fromDate ||
+                          !studentReportData.toDate
+                        }
+                        className='w-full mt-4 bg-blue-500 text-white font-bold shadow-lg border-2 border-blue-600 hover:bg-blue-600 focus:ring-4 focus:ring-blue-200 rounded-2xl py-4 text-lg transition-all duration-150 outline-none'
+                      >
+                        {isGeneratingStudent ? (
+                          <>
+                            <Loader2 className='w-4 h-4 mr-2 animate-spin' />{' '}
+                            Generating Report...
+                          </>
+                        ) : (
+                          <>
+                            <Download className='w-4 h-4 mr-2' /> Generate &
+                            Download Report
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ),
+              },
+              {
+                name: 'Teacher Reports',
+                content: (
+                  <Card className='shadow border border-blue-100 bg-white'>
+                    <CardContent className='space-y-8 pt-6'>
+                      {/* Quick Stats Bar */}
+                      <div className='flex flex-wrap gap-3 mb-2'>
+                        <span className='bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold shadow'>
+                          Teacher
+                        </span>
+                        {teacherReportData.personName && (
+                          <span className='bg-green-200 text-green-900 px-3 py-1 rounded-full text-xs font-semibold shadow'>
+                            Selected: {teacherReportData.personName}
+                          </span>
+                        )}
+                        {teacherReportData.department && (
+                          <span className='bg-green-50 text-green-600 px-3 py-1 rounded-full text-xs font-semibold border border-green-200'>
+                            Dept: {teacherReportData.department}
+                          </span>
+                        )}
                       </div>
-                    </div>
-                    <div className='space-y-2'>
-                      <Label className='text-sm font-medium text-gray-700'>
-                        To Date
-                      </Label>
-                      <div className='relative'>
-                        <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400' />
-                        <Input
-                          type='date'
-                          className='pl-10'
-                          value={staffReportData.toDate}
-                          onChange={e =>
-                            setStaffReportData(prev => ({
-                              ...prev,
-                              toDate: e.target.value,
-                            }))
-                          }
-                        />
+                      {/* Teacher Search */}
+                      <div className='space-y-3'>
+                        <Label className='text-sm font-semibold text-blue-700'>
+                          Search Teacher
+                        </Label>
+                        <div className='relative'>
+                          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-300' />
+                          {isSearchingTeacher && (
+                            <Loader2 className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-400 animate-spin' />
+                          )}
+                          <Input
+                            placeholder='Search by name, employee ID, or department...'
+                            className='pl-10 pr-10 rounded-xl border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-blue-50/60 hover:bg-blue-100 transition-all duration-150 shadow-sm'
+                            value={teacherSearchTerm}
+                            onChange={e =>
+                              handleTeacherSearchChange(e.target.value)
+                            }
+                            onFocus={() =>
+                              setShowTeacherSuggestions(
+                                teacherSuggestions.length > 0,
+                              )
+                            }
+                          />
+                        </div>
+                        {/* Search Suggestions */}
+                        {showTeacherSuggestions &&
+                          teacherSuggestions.length > 0 && (
+                            <div className='absolute z-50 w-full bg-white border border-green-200 rounded-xl shadow-lg max-h-60 overflow-y-auto mt-1'>
+                              {teacherSuggestions.map(person => (
+                                <div
+                                  key={person.id}
+                                  className='p-3 hover:bg-green-50 cursor-pointer border-b border-green-100 last:border-b-0 flex items-center gap-3 transition-all duration-150'
+                                  onClick={() => handleTeacherSelect(person)}
+                                >
+                                  <div className='w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center'>
+                                    <span className='text-white text-sm font-bold'>
+                                      {person.name.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className='font-semibold text-green-900'>
+                                      {person.name}
+                                    </p>
+                                    <p className='text-xs text-green-600'>
+                                      ID: {person.employeeId} •{' '}
+                                      {person.department}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        {/* Selected Teacher */}
+                        {teacherReportData.personName && (
+                          <div className='p-3 bg-gradient-to-r from-green-100 to-green-50 rounded-lg border border-green-200 flex items-center justify-between shadow'>
+                            <div className='flex items-center gap-3'>
+                              <div className='w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-700 flex items-center justify-center'>
+                                <span className='text-white font-bold text-lg'>
+                                  {teacherReportData.personName
+                                    .charAt(0)
+                                    .toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <p className='font-semibold text-green-900'>
+                                  {teacherReportData.personName}
+                                </p>
+                                <p className='text-xs text-green-600'>
+                                  ID: {teacherReportData.employeeId} •{' '}
+                                  {teacherReportData.department}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='hover:bg-green-200 rounded-full'
+                              onClick={() => {
+                                setTeacherReportData({
+                                  personId: '',
+                                  personName: '',
+                                  employeeId: '',
+                                  department: '',
+                                  fromDate: teacherReportData.fromDate,
+                                  toDate: teacherReportData.toDate,
+                                });
+                                setTeacherSearchTerm('');
+                                setShowTeacherSuggestions(false);
+                              }}
+                            >
+                              <X className='w-4 h-4 text-green-700' />
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Generate Button */}
-                  <Button
-                    onClick={generateStaffReport}
-                    disabled={
-                      isGeneratingStaff ||
-                      !staffReportData.personId ||
-                      !staffReportData.fromDate ||
-                      !staffReportData.toDate
-                    }
-                    className='w-full'
-                  >
-                    {isGeneratingStaff ? (
-                      <>
-                        <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                        Generating Report...
-                      </>
-                    ) : (
-                      <>
-                        <Download className='w-4 h-4 mr-2' />
-                        Generate & Download Report
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                      {/* Date Range */}
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <div className='space-y-2'>
+                          <Label className='text-sm font-semibold text-blue-700'>
+                            From Date
+                          </Label>
+                          <div className='relative'>
+                            <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-300' />
+                            <Input
+                              type='date'
+                              className='pl-10 rounded-xl border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-blue-50/60 hover:bg-blue-100 transition-all duration-150 shadow-sm'
+                              value={teacherReportData.fromDate}
+                              onChange={e =>
+                                setTeacherReportData(prev => ({
+                                  ...prev,
+                                  fromDate: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className='space-y-2'>
+                          <Label className='text-sm font-semibold text-blue-700'>
+                            To Date
+                          </Label>
+                          <div className='relative'>
+                            <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-300' />
+                            <Input
+                              type='date'
+                              className='pl-10 rounded-xl border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-blue-50/60 hover:bg-blue-100 transition-all duration-150 shadow-sm'
+                              value={teacherReportData.toDate}
+                              onChange={e =>
+                                setTeacherReportData(prev => ({
+                                  ...prev,
+                                  toDate: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {/* Generate Button */}
+                      <Button
+                        onClick={generateTeacherReport}
+                        disabled={
+                          isGeneratingTeacher ||
+                          !teacherReportData.personId ||
+                          !teacherReportData.fromDate ||
+                          !teacherReportData.toDate
+                        }
+                        className='w-full mt-4 bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 rounded-xl py-3 text-base transition-all duration-150'
+                      >
+                        {isGeneratingTeacher ? (
+                          <>
+                            <Loader2 className='w-4 h-4 mr-2 animate-spin' />{' '}
+                            Generating Report...
+                          </>
+                        ) : (
+                          <>
+                            <Download className='w-4 h-4 mr-2' /> Generate &
+                            Download Report
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ),
+              },
+              {
+                name: 'Staff Reports',
+                content: (
+                  <Card className='shadow border border-blue-100 bg-white'>
+                    <CardContent className='space-y-8 pt-6'>
+                      {/* Quick Stats Bar */}
+                      <div className='flex flex-wrap gap-3 mb-2'>
+                        <span className='bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold shadow'>
+                          Staff
+                        </span>
+                        {staffReportData.personName && (
+                          <span className='bg-purple-200 text-purple-900 px-3 py-1 rounded-full text-xs font-semibold shadow'>
+                            Selected: {staffReportData.personName}
+                          </span>
+                        )}
+                        {staffReportData.department && (
+                          <span className='bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-xs font-semibold border border-purple-200'>
+                            Dept: {staffReportData.department}
+                          </span>
+                        )}
+                      </div>
+                      {/* Staff Search */}
+                      <div className='space-y-3'>
+                        <Label className='text-sm font-semibold text-blue-700'>
+                          Search Staff Member
+                        </Label>
+                        <div className='relative'>
+                          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-300' />
+                          {isSearchingStaff && (
+                            <Loader2 className='absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-400 animate-spin' />
+                          )}
+                          <Input
+                            placeholder='Search by name, employee ID, or department...'
+                            className='pl-10 pr-10 rounded-xl border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-blue-50/60 hover:bg-blue-100 transition-all duration-150 shadow-sm'
+                            value={staffSearchTerm}
+                            onChange={e =>
+                              handleStaffSearchChange(e.target.value)
+                            }
+                            onFocus={() =>
+                              setShowStaffSuggestions(
+                                staffSuggestions.length > 0,
+                              )
+                            }
+                          />
+                        </div>
+                        {/* Search Suggestions */}
+                        {showStaffSuggestions &&
+                          staffSuggestions.length > 0 && (
+                            <div className='absolute z-50 w-full bg-white border border-purple-200 rounded-xl shadow-lg max-h-60 overflow-y-auto mt-1'>
+                              {staffSuggestions.map(person => (
+                                <div
+                                  key={person.id}
+                                  className='p-3 hover:bg-purple-50 cursor-pointer border-b border-purple-100 last:border-b-0 flex items-center gap-3 transition-all duration-150'
+                                  onClick={() => handleStaffSelect(person)}
+                                >
+                                  <div className='w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center'>
+                                    <span className='text-white text-sm font-bold'>
+                                      {person.name.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className='font-semibold text-purple-900'>
+                                      {person.name}
+                                    </p>
+                                    <p className='text-xs text-purple-600'>
+                                      ID: {person.employeeId} •{' '}
+                                      {person.department}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        {/* Selected Staff */}
+                        {staffReportData.personName && (
+                          <div className='p-3 bg-gradient-to-r from-purple-100 to-purple-50 rounded-lg border border-purple-200 flex items-center justify-between shadow'>
+                            <div className='flex items-center gap-3'>
+                              <div className='w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-700 flex items-center justify-center'>
+                                <span className='text-white font-bold text-lg'>
+                                  {staffReportData.personName
+                                    .charAt(0)
+                                    .toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <p className='font-semibold text-purple-900'>
+                                  {staffReportData.personName}
+                                </p>
+                                <p className='text-xs text-purple-600'>
+                                  ID: {staffReportData.employeeId} •{' '}
+                                  {staffReportData.department}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='hover:bg-purple-200 rounded-full'
+                              onClick={() => {
+                                setStaffReportData({
+                                  personId: '',
+                                  personName: '',
+                                  employeeId: '',
+                                  department: '',
+                                  fromDate: staffReportData.fromDate,
+                                  toDate: staffReportData.toDate,
+                                });
+                                setStaffSearchTerm('');
+                                setShowStaffSuggestions(false);
+                              }}
+                            >
+                              <X className='w-4 h-4 text-purple-700' />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      {/* Date Range */}
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        <div className='space-y-2'>
+                          <Label className='text-sm font-semibold text-blue-700'>
+                            From Date
+                          </Label>
+                          <div className='relative'>
+                            <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-300' />
+                            <Input
+                              type='date'
+                              className='pl-10 rounded-xl border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-blue-50/60 hover:bg-blue-100 transition-all duration-150 shadow-sm'
+                              value={staffReportData.fromDate}
+                              onChange={e =>
+                                setStaffReportData(prev => ({
+                                  ...prev,
+                                  fromDate: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className='space-y-2'>
+                          <Label className='text-sm font-semibold text-blue-700'>
+                            To Date
+                          </Label>
+                          <div className='relative'>
+                            <Calendar className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-blue-300' />
+                            <Input
+                              type='date'
+                              className='pl-10 rounded-xl border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-blue-50/60 hover:bg-blue-100 transition-all duration-150 shadow-sm'
+                              value={staffReportData.toDate}
+                              onChange={e =>
+                                setStaffReportData(prev => ({
+                                  ...prev,
+                                  toDate: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {/* Generate Button */}
+                      <Button
+                        onClick={generateStaffReport}
+                        disabled={
+                          isGeneratingStaff ||
+                          !staffReportData.personId ||
+                          !staffReportData.fromDate ||
+                          !staffReportData.toDate
+                        }
+                        className='w-full mt-4 bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 rounded-xl py-3 text-base transition-all duration-150'
+                      >
+                        {isGeneratingStaff ? (
+                          <>
+                            <Loader2 className='w-4 h-4 mr-2 animate-spin' />{' '}
+                            Generating Report...
+                          </>
+                        ) : (
+                          <>
+                            <Download className='w-4 h-4 mr-2' /> Generate &
+                            Download Report
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ),
+              },
+            ]}
+          />
         </div>
       </div>
     </div>
