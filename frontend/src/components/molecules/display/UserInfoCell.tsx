@@ -6,6 +6,7 @@ interface UserInfoCellProps {
   id: string | number;
   avatar?: string;
   idLabel?: string; // e.g., "STF", "STU", "PAR"
+  role?: 'student' | 'teacher' | 'staff' | 'parent' | 'admin';
 }
 
 const UserInfoCell: React.FC<UserInfoCellProps> = ({
@@ -13,6 +14,7 @@ const UserInfoCell: React.FC<UserInfoCellProps> = ({
   id,
   avatar,
   idLabel = '',
+  role = 'student',
 }) => {
   const displayId = idLabel ? `${idLabel}${id}` : String(id);
 
@@ -22,7 +24,8 @@ const UserInfoCell: React.FC<UserInfoCellProps> = ({
         src={avatar}
         name={name}
         className='w-10 h-10 rounded-full flex-shrink-0'
-        showInitials={!avatar}
+        role={role}
+        context='list-table'
       />
       <div className='min-w-0 flex-1'>
         <div className='font-medium text-gray-900 truncate'>{name}</div>

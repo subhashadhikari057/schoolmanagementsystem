@@ -257,7 +257,8 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
                 name={teacherDetails.name}
                 className='w-24 h-24 sm:w-32 sm:h-32 rounded-xl shadow-md'
                 showInitials={true}
-                src={teacherDetails.avatar}
+                src={teacher?.avatar || teacherDetails.avatar}
+                role='teacher'
               />
             </div>
 

@@ -297,7 +297,8 @@ const StaffViewModal: React.FC<StaffViewModalProps> = ({
                 name={String(staffDetails?.name || 'Unknown Staff')}
                 className='w-24 h-24 sm:w-32 sm:h-32 rounded-xl shadow-md'
                 showInitials={true}
-                src={String(staffDetails?.avatar || '')}
+                src={staff?.avatar || String(staffDetails?.avatar || '')}
+                role='staff'
               />
             </div>
 

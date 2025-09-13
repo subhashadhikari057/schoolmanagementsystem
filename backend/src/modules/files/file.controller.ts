@@ -2,10 +2,12 @@ import { Controller, Get, Param, Res, NotFoundException } from '@nestjs/common';
 import { Response } from 'express';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { Public } from '../../shared/guards/jwt-auth.guard';
 
 @Controller('api/v1/files')
 export class FileController {
   @Get(':folder/:filename')
+  @Public() // Make file serving public
   async getFile(
     @Param('folder') folder: string,
     @Param('filename') filename: string,

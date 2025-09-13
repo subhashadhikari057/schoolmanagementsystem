@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X, Loader2, Save } from 'lucide-react';
+import { X, Loader2, Save, Camera } from 'lucide-react';
 import { Staff } from '@/components/templates/listConfigurations';
 import { staffService } from '@/api/services/staff.service';
 import { toast } from 'sonner';
+import Avatar from '@/components/atoms/display/Avatar';
 
 // Use local components instead of importing from molecules/forms
 
@@ -695,6 +696,39 @@ const StaffEditModal: React.FC<StaffEditModalProps> = ({
             Update staff information
           </p>
         </div>
+
+        {/* Profile Photo Section */}
+        {staff && (
+          <div className='px-4 sm:px-6 py-4 bg-gray-50 border-b border-gray-200'>
+            <div className='flex items-center space-x-4'>
+              <div className='flex-shrink-0'>
+                <Avatar
+                  src={staff.avatar}
+                  name={staff.name}
+                  role='staff'
+                  className='w-16 h-16 rounded-full'
+                />
+              </div>
+              <div className='flex-1'>
+                <h3 className='text-lg font-medium text-gray-900'>
+                  {staff.name}
+                </h3>
+                <p className='text-sm text-gray-600'>
+                  {staff.position || staff.designation || 'Staff'}
+                </p>
+                <p className='text-sm text-gray-600'>
+                  {staff.department || 'General'}
+                </p>
+              </div>
+              <div className='flex-shrink-0'>
+                <div className='flex items-center text-sm text-gray-500'>
+                  <Camera className='h-4 w-4 mr-1' />
+                  {staff.avatar ? 'Profile Photo' : 'No Photo'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className='p-4 sm:p-6'>

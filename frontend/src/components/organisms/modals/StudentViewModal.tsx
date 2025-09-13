@@ -20,6 +20,7 @@ import {
   StudentResponse,
 } from '@/api/services/student.service';
 import { toast } from 'sonner';
+import Avatar from '@/components/atoms/display/Avatar';
 
 interface StudentViewModalProps {
   isOpen: boolean;
@@ -228,9 +229,16 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
               {/* Basic Info */}
               <div className='flex flex-col md:flex-row gap-4 sm:gap-6 pb-6 border-b border-gray-200'>
                 <div className='flex-shrink-0'>
-                  <div className='w-24 h-24 sm:w-32 sm:h-32 rounded-xl shadow-md bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center'>
-                    <User className='w-12 h-12 sm:w-16 sm:h-16 text-green-600' />
-                  </div>
+                  <Avatar
+                    src={student?.avatar}
+                    name={
+                      studentDetails?.fullName ||
+                      `${studentDetails?.firstName || ''} ${studentDetails?.lastName || ''}`.trim()
+                    }
+                    role='student'
+                    className='w-24 h-24 sm:w-32 sm:h-32 shadow-md'
+                    context='student-view-modal'
+                  />
                 </div>
 
                 <div className='flex-grow'>

@@ -8,6 +8,35 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8080',
+        pathname: '/api/v1/files/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+        port: '8080',
+        pathname: '/api/v1/files/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '8080',
+        pathname: '/api/v1/files/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '127.0.0.1',
+        port: '8080',
+        pathname: '/api/v1/files/**',
+      },
+    ],
+    domains: ['localhost', '127.0.0.1'],
+  },
   async rewrites() {
     return [
       {

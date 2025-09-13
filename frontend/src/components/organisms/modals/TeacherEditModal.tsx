@@ -13,11 +13,13 @@ import {
   GraduationCap,
   BookOpen,
   Landmark,
+  Camera,
 } from 'lucide-react';
 import { Teacher } from '@/components/templates/listConfigurations';
 import { teacherService } from '@/api/services/teacher.service';
 import { subjectService } from '@/api/services/subject.service';
 import { toast } from 'sonner';
+import Avatar from '@/components/atoms/display/Avatar';
 // Use local components instead of importing from molecules/forms
 // We'll define these components locally in this file
 
@@ -781,6 +783,37 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
 
           <h2 className='text-2xl font-bold text-gray-800'>Edit Teacher</h2>
           <p className='text-gray-600 mt-1'>Update teacher information</p>
+        </div>
+
+        {/* Profile Photo Section */}
+        <div className='px-6 py-4 bg-gray-50 border-b border-gray-200'>
+          <div className='flex items-center space-x-4'>
+            <div className='flex-shrink-0'>
+              <Avatar
+                src={teacher.avatar}
+                name={teacher.name}
+                role='teacher'
+                className='w-16 h-16 rounded-full'
+              />
+            </div>
+            <div className='flex-1'>
+              <h3 className='text-lg font-medium text-gray-900'>
+                {teacher.name}
+              </h3>
+              <p className='text-sm text-gray-600'>
+                {teacher.designation || 'Teacher'}
+              </p>
+              <p className='text-sm text-gray-600'>
+                {teacher.department || 'General'}
+              </p>
+            </div>
+            <div className='flex-shrink-0'>
+              <div className='flex items-center text-sm text-gray-500'>
+                <Camera className='h-4 w-4 mr-1' />
+                {teacher.avatar ? 'Profile Photo' : 'No Photo'}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Form */}
