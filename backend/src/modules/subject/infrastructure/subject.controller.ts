@@ -50,6 +50,16 @@ export class SubjectController {
     return this.subjectService.findAll();
   }
 
+  @Get('count')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getSubjectCount() {
+    const count = await this.subjectService.getSubjectCount();
+    return {
+      message: 'Subject count retrieved successfully',
+      data: { count },
+    };
+  }
+
   @Get(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findById(@Param('id') id: string) {

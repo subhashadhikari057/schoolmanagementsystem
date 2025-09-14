@@ -1422,4 +1422,149 @@ export class TimetableService {
       buffer: pdfBuffer,
     };
   }
+
+  /**
+   * Get complete timetable for a teacher
+   */
+  async getTimetableByTeacher(teacherId: string): Promise<TimetableSlotDto[]> {
+    // Get all schedule slots where this teacher is assigned
+    const scheduleSlots = await this.prisma.scheduleSlot.findMany({
+      where: {
+        teacherId,
+        deletedAt: null,
+      },
+      include: {
+        timeslot: {
+          select: {
+            id: true,
+            day: true,
+            startTime: true,
+            endTime: true,
+            type: true,
+            label: true,
+          },
+        },
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            description: true,
+          },
+        },
+        teacher: {
+          select: {
+            id: true,
+            userId: true,
+            employeeId: true,
+            designation: true,
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        room: {
+          select: {
+            id: true,
+            roomNo: true,
+            name: true,
+            capacity: true,
+            floor: true,
+            building: true,
+          },
+        },
+      },
+      orderBy: [{ day: 'asc' }, { timeslot: { startTime: 'asc' } }],
+    });
+
+    // Get class information for each schedule
+    const scheduleIds = [
+      ...new Set(scheduleSlots.map(slot => slot.scheduleId)),
+    ];
+    const schedules = await this.prisma.classSchedule.findMany({
+      where: {
+        id: { in: scheduleIds },
+      },
+      include: {
+        class: {
+          select: {
+            id: true,
+            name: true,
+            grade: true,
+            section: true,
+          },
+        },
+      },
+    });
+
+    const scheduleMap = new Map(schedules.map(s => [s.id, s]));
+
+    // Transform to TimetableSlotDto format
+    const timetableSlots: TimetableSlotDto[] = scheduleSlots.map(slot => {
+      const schedule = scheduleMap.get(slot.scheduleId);
+
+      return {
+        id: slot.id,
+        scheduleId: slot.scheduleId,
+        timeslotId: slot.timeslotId,
+        day: slot.day,
+        subjectId: slot.subjectId,
+        teacherId: slot.teacherId,
+        roomId: slot.roomId,
+        type: slot.type as any,
+        hasConflict: slot.hasConflict,
+        createdAt: slot.createdAt,
+        updatedAt: slot.updatedAt,
+        timeslot: {
+          id: slot.timeslot.id,
+          day: slot.timeslot.day,
+          startTime: slot.timeslot.startTime,
+          endTime: slot.timeslot.endTime,
+          type: slot.timeslot.type as any,
+          label: slot.timeslot.label,
+        },
+        subject: slot.subject
+          ? {
+              id: slot.subject.id,
+              name: slot.subject.name,
+              code: slot.subject.code,
+              description: slot.subject.description,
+            }
+          : null,
+        teacher: slot.teacher
+          ? {
+              id: slot.teacher.id,
+              userId: slot.teacher.userId,
+              employeeId: slot.teacher.employeeId,
+              designation: slot.teacher.designation,
+              user: slot.teacher.user,
+            }
+          : null,
+        room: slot.room
+          ? {
+              id: slot.room.id,
+              roomNo: slot.room.roomNo,
+              name: slot.room.name,
+              capacity: slot.room.capacity,
+              floor: slot.room.floor,
+              building: slot.room.building,
+            }
+          : null,
+        class: schedule?.class
+          ? {
+              id: schedule.class.id,
+              name: schedule.class.name,
+              grade: schedule.class.grade,
+              section: schedule.class.section,
+            }
+          : undefined,
+      };
+    });
+
+    return timetableSlots;
+  }
 }

@@ -146,6 +146,15 @@ export class SubjectService {
   }
 
   /**
+   * Get total count of subjects
+   */
+  async getSubjectCount(): Promise<number> {
+    return this.prisma.subject.count({
+      where: { deletedAt: null },
+    });
+  }
+
+  /**
    * Get single subject by ID
    */
   async findById(id: string) {

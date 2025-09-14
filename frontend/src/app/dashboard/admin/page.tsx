@@ -6,8 +6,8 @@ import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import {
   Users,
   GraduationCap,
-  DollarSign,
-  CreditCard,
+  UserCheck,
+  BookOpen,
   Loader2,
 } from 'lucide-react';
 import UpcomingEventsPanel from '@/components/organisms/dashboard/UpcomingEventsPanel';
@@ -22,25 +22,25 @@ import SystemHealthOverview from '@/components/organisms/dashboard/SystemHealthO
 import { adminQuickActions } from '@/constants/mockData';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 
-// Financial data is still mocked - can be implemented in a future enhancement
-const financialData = [
+// Staff and subject data - now using real backend data
+const getStaffAndSubjectData = (staffCount: number, subjectCount: number) => [
   {
-    icon: DollarSign,
-    bgColor: 'bg-yellow-600',
+    icon: UserCheck,
+    bgColor: 'bg-purple-600',
     iconColor: 'text-white',
-    value: '$428,560',
-    label: 'Total Fees Collected',
-    change: '5.2%',
+    value: staffCount.toLocaleString(),
+    label: 'Total Staff',
+    change: '—', // No percentage change since we don't have historical data
     isPositive: true,
   },
   {
-    icon: CreditCard,
-    bgColor: 'bg-red-600',
+    icon: BookOpen,
+    bgColor: 'bg-indigo-600',
     iconColor: 'text-white',
-    value: '$215,400',
-    label: 'Total Salaries Paid',
-    change: '2.4%',
-    isPositive: false,
+    value: subjectCount.toLocaleString(),
+    label: 'Total Subjects',
+    change: '—', // No percentage change since we don't have historical data
+    isPositive: true,
   },
 ];
 
@@ -48,8 +48,15 @@ export default function AdminDashboard() {
   const [showAllCharts, setShowAllCharts] = React.useState(false);
   const [showDebug, setShowDebug] = React.useState(false);
   const { showAnalytics } = useAnalyticsOverview();
-  const { studentCount, teacherCount, loading, error, debug } =
-    useDashboardStats();
+  const {
+    studentCount,
+    teacherCount,
+    staffCount,
+    subjectCount,
+    loading,
+    error,
+    debug,
+  } = useDashboardStats();
 
   // Fetch all calendar events (exams, holidays, events)
   const { events: calendarEvents } = useCalendarEvents({ page: 1, limit: 50 });
@@ -64,7 +71,7 @@ export default function AdminDashboard() {
     type: ev.type || 'event',
   }));
 
-  // Prepare stats data with real-time student and teacher counts
+  // Prepare stats data with real-time counts
   const statsData = [
     {
       icon: Users,
@@ -84,7 +91,10 @@ export default function AdminDashboard() {
       change: '—', // Removed percentage change
       isPositive: true,
     },
-    ...financialData,
+    ...getStaffAndSubjectData(
+      loading ? 0 : staffCount,
+      loading ? 0 : subjectCount,
+    ),
   ];
 
   return (

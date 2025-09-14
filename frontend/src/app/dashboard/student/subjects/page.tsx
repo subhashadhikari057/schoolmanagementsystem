@@ -173,7 +173,11 @@ export default function StudentClassesPage() {
   };
 
   // Render period card component
-  const renderPeriodCard = (slot: TimetableSlotDto, index: number) => {
+  const renderPeriodCard = (
+    slot: TimetableSlotDto,
+    index: number,
+    allPeriods: TimetableSlotDto[],
+  ) => {
     const subjectName = slot.subject?.name || 'No Subject';
     const subjectCode = slot.subject?.code || '';
     const teacherName = slot.teacher?.user?.fullName || 'TBA';
@@ -181,24 +185,57 @@ export default function StudentClassesPage() {
     const endTime = slot.timeslot?.endTime || '00:00';
     const slotType = slot.timeslot?.type || 'REGULAR';
 
+    // Check if this is a break period
+    const isBreak = slotType === 'BREAK' || subjectName === 'No Subject';
+
+    // Calculate period number excluding breaks
+    const getOrdinalSuffix = (num: number) => {
+      const j = num % 10;
+      const k = num % 100;
+      if (j === 1 && k !== 11) return num + 'st';
+      if (j === 2 && k !== 12) return num + 'nd';
+      if (j === 3 && k !== 13) return num + 'rd';
+      return num + 'th';
+    };
+
+    // Count only non-break periods up to current index
+    let periodNumber = 0;
+    for (let i = 0; i <= index; i++) {
+      const currentSlot = allPeriods[i];
+      const currentSlotType = currentSlot.timeslot?.type || 'REGULAR';
+      const currentSubjectName = currentSlot.subject?.name || 'No Subject';
+      const isCurrentBreak =
+        currentSlotType === 'BREAK' || currentSubjectName === 'No Subject';
+
+      if (!isCurrentBreak) {
+        periodNumber++;
+      }
+    }
+
     return (
       <div
         key={slot.id || index}
-        className={`rounded-xl border shadow-sm p-4 min-h-[140px] flex flex-col justify-between hover:shadow-lg hover:border-blue-400 transition-all duration-200 cursor-pointer group ${getSubjectColor(subjectName)}`}
-        onClick={() =>
-          router.push(
-            `/dashboard/student/subjects/${encodeURIComponent(subjectName.toLowerCase())}`,
-          )
-        }
-        title={`Go to ${subjectName} details`}
+        className={`rounded-xl border shadow-sm p-4 min-h-[140px] flex flex-col justify-between transition-all duration-200 ${
+          isBreak
+            ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+            : getSubjectColor(subjectName)
+        }`}
       >
-        {/* Time Badge */}
+        {/* Period Number and Time Badge */}
         <div className='flex items-center justify-between mb-3'>
-          <div className='flex items-center space-x-1 text-xs font-medium'>
-            <Clock className='w-3 h-3' />
-            <span>
-              {formatTime12Hour(startTime)} - {formatTime12Hour(endTime)}
-            </span>
+          <div className='flex items-center space-x-2'>
+            {/* Period Number Badge - Only show for non-break periods */}
+            {!isBreak && (
+              <div className='px-2 py-1 rounded-full text-xs font-bold bg-white bg-opacity-80 text-gray-700'>
+                {getOrdinalSuffix(periodNumber)}
+              </div>
+            )}
+            <div className='flex items-center space-x-1 text-xs font-medium'>
+              <Clock className='w-3 h-3' />
+              <span>
+                {formatTime12Hour(startTime)} - {formatTime12Hour(endTime)}
+              </span>
+            </div>
           </div>
           {slotType !== 'REGULAR' && (
             <span className='text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700'>
@@ -207,21 +244,28 @@ export default function StudentClassesPage() {
           )}
         </div>
 
-        {/* Subject Info */}
-        <div className='mb-3'>
-          <h3 className='text-lg font-semibold mb-1 group-hover:text-blue-700 transition-colors'>
-            {subjectName}
-          </h3>
-          {subjectCode && (
-            <p className='text-xs opacity-75 font-medium'>{subjectCode}</p>
-          )}
-        </div>
+        {/* Break Card - Show only BREAK */}
+        {isBreak ? (
+          <div className='flex-1 flex items-center justify-center'>
+            <h3 className='text-2xl font-bold text-yellow-800'>BREAK</h3>
+          </div>
+        ) : (
+          <>
+            {/* Subject Info */}
+            <div className='mb-3'>
+              <h3 className='text-lg font-semibold mb-1'>{subjectName}</h3>
+              {subjectCode && (
+                <p className='text-xs opacity-75 font-medium'>{subjectCode}</p>
+              )}
+            </div>
 
-        {/* Teacher Info */}
-        <div className='flex items-center text-sm mb-2'>
-          <User className='w-3 h-3 mr-1' />
-          <span className='font-medium'>{teacherName}</span>
-        </div>
+            {/* Teacher Info */}
+            <div className='flex items-center text-sm mb-2'>
+              <User className='w-3 h-3 mr-1' />
+              <span className='font-medium'>{teacherName}</span>
+            </div>
+          </>
+        )}
 
         {/* Room display removed as requested */}
       </div>
@@ -245,7 +289,9 @@ export default function StudentClassesPage() {
           </div>
         ) : (
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-            {day.periods.map((slot, index) => renderPeriodCard(slot, index))}
+            {day.periods.map((slot, index) =>
+              renderPeriodCard(slot, index, day.periods),
+            )}
           </div>
         )}
       </div>
@@ -300,7 +346,7 @@ export default function StudentClassesPage() {
       <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 pt-8 pb-12'>
         <div className='w-full'>
           <SectionTitle
-            text='My Classes'
+            text='Class Routine'
             level={1}
             className='text-2xl font-bold text-gray-900 mb-2'
           />
@@ -373,12 +419,12 @@ export default function StudentClassesPage() {
         <div className='flex items-center justify-between mb-6'>
           <div>
             <SectionTitle
-              text='My Classes'
+              text='Class Routine'
               level={1}
               className='text-2xl font-bold text-gray-900 mb-2'
             />
             <Label className='text-base text-gray-600'>
-              Your weekly class schedule. Click on any subject for more details.
+              Your weekly class schedule.
             </Label>
           </div>
           <div className='flex items-center space-x-2'>

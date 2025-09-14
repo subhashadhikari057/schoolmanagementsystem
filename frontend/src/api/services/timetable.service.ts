@@ -8,6 +8,29 @@ import {
   TimetableSlotDto,
 } from '@sms/shared-types';
 
+// Define response types for teacher timetable
+interface TimetableResponse {
+  success: true;
+  data: TimetableSlotDto[];
+  message: string;
+}
+
+interface TimetableError {
+  success: false;
+  message: string;
+  error: string;
+}
+
+// Extended TimetableSlotDto with class information
+interface TimetableSlotWithClass extends TimetableSlotDto {
+  class?: {
+    id: string;
+    name: string;
+    grade: number;
+    section: string;
+  };
+}
+
 export const timetableService = {
   /**
    * Get complete timetable for a class
@@ -234,5 +257,28 @@ export const timetableService = {
       scheduleId,
       includeConflicts: true,
     });
+  },
+
+  async getTimetableByTeacher(
+    teacherId: string,
+  ): Promise<TimetableResponse | TimetableError> {
+    try {
+      const response = await apiClient.get<TimetableSlotWithClass[]>(
+        `/api/v1/timetable/teacher/${teacherId}`,
+      );
+      return {
+        success: true,
+        data: response.data as TimetableSlotWithClass[],
+        message: 'Teacher timetable fetched successfully',
+      };
+    } catch (error: any) {
+      console.error('Error fetching teacher timetable:', error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message || 'Failed to fetch teacher timetable',
+        error: error.message,
+      };
+    }
   },
 };

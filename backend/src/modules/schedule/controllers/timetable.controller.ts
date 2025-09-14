@@ -59,6 +59,14 @@ export class TimetableController {
     return this.timetableService.getTimetable(params);
   }
 
+  @Get('teacher/:teacherId')
+  @RoleAccess.Authenticated()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get complete timetable for a teacher' })
+  async getTimetableByTeacher(@Param('teacherId') teacherId: string) {
+    return this.timetableService.getTimetableByTeacher(teacherId);
+  }
+
   @Post('assign-subject')
   @RoleAccess.Academic()
   @HttpCode(HttpStatus.OK)
