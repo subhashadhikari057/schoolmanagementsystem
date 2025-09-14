@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { studentService } from '@/api/services/student.service';
 import { teacherService } from '@/api/services/teacher.service';
+import { staffService } from '@/api/services/staff.service';
+import { subjectService } from '@/api/services/subject.service';
 
 interface DashboardStats {
   studentCount: number;
   teacherCount: number;
+  staffCount: number;
+  subjectCount: number;
   loading: boolean;
   error: string | null;
   debug?: string;
@@ -14,6 +18,8 @@ export const useDashboardStats = (): DashboardStats => {
   const [stats, setStats] = useState<DashboardStats>({
     studentCount: 0,
     teacherCount: 0,
+    staffCount: 0,
+    subjectCount: 0,
     loading: true,
     error: null,
     debug: undefined,
@@ -22,18 +28,35 @@ export const useDashboardStats = (): DashboardStats => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch student count
-        const studentCountResponse = await studentService.getStudentCount();
-
-        // For teacher count, use a higher limit to get all teachers if pagination is not working correctly
-        const teacherResponse = await teacherService.getAllTeachers({
-          limit: 1000, // Use a high number to ensure we get all teachers
-          page: 1,
-        });
+        // Fetch all counts in parallel
+        const [
+          studentCountResponse,
+          teacherResponse,
+          staffCountResponse,
+          subjectCountResponse,
+        ] = await Promise.all([
+          studentService.getStudentCount(),
+          teacherService.getAllTeachers({
+            limit: 1000, // Use a high number to ensure we get all teachers
+            page: 1,
+          }),
+          staffService.getStaffCount(),
+          subjectService.getSubjectCount(),
+        ]);
 
         // Extract the student count
         const studentCount = studentCountResponse.success
           ? studentCountResponse.data.count
+          : 0;
+
+        // Extract staff count
+        const staffCount = staffCountResponse.success
+          ? staffCountResponse.data.count
+          : 0;
+
+        // Extract subject count
+        const subjectCount = subjectCountResponse.success
+          ? subjectCountResponse.data.count
           : 0;
 
         // Debug teacher response
@@ -74,11 +97,14 @@ export const useDashboardStats = (): DashboardStats => {
         }
 
         debugInfo += `\nExtraction method: ${extractionMethod}, Count: ${teacherCount}`;
-        console.log('Teacher stats debug:', debugInfo);
+        debugInfo += `\nStaff Count: ${staffCount}, Subject Count: ${subjectCount}`;
+        console.log('Dashboard stats debug:', debugInfo);
 
         setStats({
           studentCount,
           teacherCount,
+          staffCount,
+          subjectCount,
           loading: false,
           error: null,
           debug: debugInfo,

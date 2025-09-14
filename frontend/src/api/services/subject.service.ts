@@ -24,6 +24,7 @@ const SUBJECT_ENDPOINTS = {
   CREATE: 'api/v1/subjects',
   UPDATE: (id: string) => `api/v1/subjects/${id}`,
   DELETE: (id: string) => `api/v1/subjects/${id}`,
+  GET_COUNT: 'api/v1/subjects/count',
 } as const;
 
 // ============================================================================
@@ -100,6 +101,17 @@ export class SubjectService {
       message: string;
       affectedRelations?: string[];
     }>(SUBJECT_ENDPOINTS.DELETE(id), { requiresAuth: true });
+  }
+
+  /**
+   * Get subject count
+   */
+  async getSubjectCount(): Promise<ApiResponse<{ count: number }>> {
+    return this.httpClient.get<{ count: number }>(
+      SUBJECT_ENDPOINTS.GET_COUNT,
+      undefined,
+      { requiresAuth: true },
+    );
   }
 }
 
