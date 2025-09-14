@@ -391,7 +391,7 @@ const CustomBSCalendar = ({
                             : hasEmergencyClosure
                               ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-red-400 hover:from-red-700 hover:to-red-800'
                               : hasHoliday
-                                ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-white shadow-orange-200 hover:from-orange-500 hover:to-orange-600'
+                                ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
                                 : 'bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300'
                         }
                       `}
@@ -416,39 +416,53 @@ const CustomBSCalendar = ({
                           </div>
                         </div>
 
-                        {/* Event Badges */}
+                        {/* Event Badges - Show dots only for non-holiday events */}
                         {hasEvents && (
                           <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
-                            {dayEvents.slice(0, 2).map((event, eventIndex) => {
+                            {dayEvents
+                              .filter(event => {
+                                const eventType =
+                                  (event as any).type?.toLowerCase() || 'event';
+                                return eventType !== 'holiday';
+                              })
+                              .slice(0, 2)
+                              .map((event, eventIndex) => {
+                                const eventType =
+                                  (event as any).type?.toLowerCase() || 'event';
+                                let badgeColor = 'bg-blue-500 text-white';
+                                let dotColor = 'bg-blue-600';
+
+                                if (eventType === 'emergency_closure') {
+                                  badgeColor = 'bg-red-700 text-white';
+                                  dotColor = 'bg-red-800';
+                                } else if (eventType === 'exam') {
+                                  badgeColor = 'bg-purple-500 text-white';
+                                  dotColor = 'bg-purple-600';
+                                } else if (eventType === 'event') {
+                                  badgeColor = 'bg-blue-500 text-white';
+                                  dotColor = 'bg-blue-600';
+                                }
+
+                                return (
+                                  <div
+                                    key={`${event.id}-${eventIndex}`}
+                                    className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
+                                  ></div>
+                                );
+                              })}
+                            {dayEvents.filter(event => {
                               const eventType =
                                 (event as any).type?.toLowerCase() || 'event';
-                              let badgeColor = 'bg-blue-500 text-white';
-                              let dotColor = 'bg-blue-600';
-
-                              if (eventType === 'holiday') {
-                                badgeColor = 'bg-red-500 text-white';
-                                dotColor = 'bg-red-600';
-                              } else if (eventType === 'emergency_closure') {
-                                badgeColor = 'bg-red-700 text-white';
-                                dotColor = 'bg-red-800';
-                              } else if (eventType === 'exam') {
-                                badgeColor = 'bg-purple-500 text-white';
-                                dotColor = 'bg-purple-600';
-                              } else if (eventType === 'event') {
-                                badgeColor = 'bg-blue-500 text-white';
-                                dotColor = 'bg-blue-600';
-                              }
-
-                              return (
-                                <div
-                                  key={`${event.id}-${eventIndex}`}
-                                  className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
-                                ></div>
-                              );
-                            })}
-                            {dayEvents.length > 2 && (
+                              return eventType !== 'holiday';
+                            }).length > 2 && (
                               <div className='text-xs text-gray-500 px-1'>
-                                +{dayEvents.length - 2}
+                                +
+                                {dayEvents.filter(event => {
+                                  const eventType =
+                                    (event as any).type?.toLowerCase() ||
+                                    'event';
+                                  return eventType !== 'holiday';
+                                }).length - 2}
                               </div>
                             )}
                           </div>
@@ -848,6 +862,22 @@ const CustomADCalendar = ({
             const isTodayDate = isToday(day);
             const dayEvents = getEventsForDate(day);
             const hasEvents = dayEvents.length > 0;
+            const hasHoliday =
+              hasEvents &&
+              dayEvents.some(
+                (e: any) =>
+                  (e && (e as any).type
+                    ? String((e as any).type).toLowerCase()
+                    : '') === 'holiday',
+              );
+            const hasEmergencyClosure =
+              hasEvents &&
+              dayEvents.some(
+                (e: any) =>
+                  (e && (e as any).type
+                    ? String((e as any).type).toLowerCase()
+                    : '') === 'emergency_closure',
+              );
 
             // Check if this day is Saturday (6 in JavaScript Date.getDay())
             const currentDayDate = new Date(
@@ -867,7 +897,11 @@ const CustomADCalendar = ({
                         ${
                           isSaturday
                             ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
-                            : 'bg-white hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50 text-gray-700 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300'
+                            : hasEmergencyClosure
+                              ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-red-400 hover:from-red-700 hover:to-red-800'
+                              : hasHoliday
+                                ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-300 hover:from-red-600 hover:to-red-700'
+                                : 'bg-white hover:bg-gradient-to-br hover:from-emerald-50 hover:to-teal-50 text-gray-700 hover:text-emerald-600 border border-gray-200 hover:border-emerald-300'
                         }
                       `}
                     >
@@ -879,7 +913,10 @@ const CustomADCalendar = ({
                               className={`text-sm font-bold ${
                                 isTodayDate
                                   ? 'bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto'
-                                  : isSelected || isSaturday
+                                  : isSelected ||
+                                      isSaturday ||
+                                      hasEmergencyClosure ||
+                                      hasHoliday
                                     ? 'text-white'
                                     : 'text-gray-900'
                               }`}
@@ -889,39 +926,53 @@ const CustomADCalendar = ({
                           </div>
                         </div>
 
-                        {/* Event Badges */}
+                        {/* Event Badges - Show dots only for non-holiday events */}
                         {hasEvents && (
                           <div className='absolute bottom-1 left-1 right-1 flex flex-wrap gap-1'>
-                            {dayEvents.slice(0, 2).map((event, eventIndex) => {
+                            {dayEvents
+                              .filter(event => {
+                                const eventType =
+                                  (event as any).type?.toLowerCase() || 'event';
+                                return eventType !== 'holiday';
+                              })
+                              .slice(0, 2)
+                              .map((event, eventIndex) => {
+                                const eventType =
+                                  (event as any).type?.toLowerCase() || 'event';
+                                let badgeColor = 'bg-blue-500 text-white';
+                                let dotColor = 'bg-blue-600';
+
+                                if (eventType === 'emergency_closure') {
+                                  badgeColor = 'bg-red-700 text-white';
+                                  dotColor = 'bg-red-800';
+                                } else if (eventType === 'exam') {
+                                  badgeColor = 'bg-purple-500 text-white';
+                                  dotColor = 'bg-purple-600';
+                                } else if (eventType === 'event') {
+                                  badgeColor = 'bg-blue-500 text-white';
+                                  dotColor = 'bg-blue-600';
+                                }
+
+                                return (
+                                  <div
+                                    key={`${event.id}-${eventIndex}`}
+                                    className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
+                                  ></div>
+                                );
+                              })}
+                            {dayEvents.filter(event => {
                               const eventType =
                                 (event as any).type?.toLowerCase() || 'event';
-                              let badgeColor = 'bg-blue-500 text-white';
-                              let dotColor = 'bg-blue-600';
-
-                              if (eventType === 'holiday') {
-                                badgeColor = 'bg-red-500 text-white';
-                                dotColor = 'bg-red-600';
-                              } else if (eventType === 'emergency_closure') {
-                                badgeColor = 'bg-red-700 text-white';
-                                dotColor = 'bg-red-800';
-                              } else if (eventType === 'exam') {
-                                badgeColor = 'bg-purple-500 text-white';
-                                dotColor = 'bg-purple-600';
-                              } else if (eventType === 'event') {
-                                badgeColor = 'bg-blue-500 text-white';
-                                dotColor = 'bg-blue-600';
-                              }
-
-                              return (
-                                <div
-                                  key={`${event.id}-${eventIndex}`}
-                                  className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/20`}
-                                ></div>
-                              );
-                            })}
-                            {dayEvents.length > 2 && (
+                              return eventType !== 'holiday';
+                            }).length > 2 && (
                               <div className='text-xs text-gray-500 px-1'>
-                                +{dayEvents.length - 2}
+                                +
+                                {dayEvents.filter(event => {
+                                  const eventType =
+                                    (event as any).type?.toLowerCase() ||
+                                    'event';
+                                  return eventType !== 'holiday';
+                                }).length - 2}
                               </div>
                             )}
                           </div>
