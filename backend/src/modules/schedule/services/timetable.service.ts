@@ -1557,7 +1557,9 @@ export class TimetableService {
         class: schedule?.class
           ? {
               id: schedule.class.id,
-              name: schedule.class.name,
+              name:
+                schedule.class.name ||
+                `Grade ${schedule.class.grade} ${schedule.class.section}`,
               grade: schedule.class.grade,
               section: schedule.class.section,
             }
