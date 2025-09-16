@@ -1,0 +1,48 @@
+{
+  "apps": [
+    {
+      "name": "school-backend",
+      "script": "dist/main.js",
+      "cwd": "/home/schoolapp/schoolmanagementsystem/backend",
+      "instances": "max",
+      "exec_mode": "cluster",
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "8080"
+      },
+      "env_file": "/home/schoolapp/schoolmanagementsystem/backend/.env",
+      "error_file": "/home/schoolapp/logs/backend-error.log",
+      "out_file": "/home/schoolapp/logs/backend-out.log",
+      "log_file": "/home/schoolapp/logs/backend-combined.log",
+      "time": true,
+      "watch": false,
+      "max_memory_restart": "1G",
+      "restart_delay": 4000,
+      "max_restarts": 10,
+      "min_uptime": "10s"
+    },
+    {
+      "name": "school-frontend",
+      "script": "npm",
+      "args": "start",
+      "cwd": "/home/schoolapp/schoolmanagementsystem/frontend",
+      "instances": 1,
+      "exec_mode": "fork",
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "3000",
+        "NEXT_TELEMETRY_DISABLED": "1"
+      },
+      "env_file": "/home/schoolapp/schoolmanagementsystem/frontend/.env.production",
+      "error_file": "/home/schoolapp/logs/frontend-error.log",
+      "out_file": "/home/schoolapp/logs/frontend-out.log",
+      "log_file": "/home/schoolapp/logs/frontend-combined.log",
+      "time": true,
+      "watch": false,
+      "max_memory_restart": "512M",
+      "restart_delay": 4000,
+      "max_restarts": 10,
+      "min_uptime": "10s"
+    }
+  ]
+}
