@@ -470,9 +470,9 @@ const StudentsPage = () => {
   return (
     <div className='min-h-screen bg-background'>
       {/* Header */}
-      <div className='px-1 sm:px-2 lg:px-4 pt-3 sm:pt-4 lg:pt-6'>
-        <div className='w-full'>
-          <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900'>
+      <div className='px-3 sm:px-4 md:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8'>
+        <div className='w-full max-w-7xl mx-auto'>
+          <h1 className='text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900'>
             Student Management
           </h1>
           <p className='text-sm sm:text-base lg:text-lg text-gray-600 mt-1 sm:mt-2'>
@@ -482,17 +482,17 @@ const StudentsPage = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className='px-1 sm:px-2 lg:px-4 mt-3 sm:mt-4 lg:mt-6'>
-        <div className='w-full'>
+      <div className='px-3 sm:px-4 md:px-6 lg:px-8 mt-4 sm:mt-6 lg:mt-8'>
+        <div className='w-full max-w-7xl mx-auto'>
           <Statsgrid stats={studentStatsDisplay} />
         </div>
       </div>
 
       {/* Main Content */}
-      <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
-        <div className='w-full'>
+      <div className='px-3 sm:px-4 md:px-6 lg:px-8 mt-6 sm:mt-8 lg:mt-10 mb-6 sm:mb-8 lg:mb-12'>
+        <div className='w-full max-w-7xl mx-auto space-y-6'>
           {/* Search and Filter */}
-          <div className='mb-6'>
+          <div className='w-full'>
             <StudentSearchFilter
               onFilterChange={handleFilterChange}
               classes={classOptions}
@@ -502,45 +502,71 @@ const StudentsPage = () => {
           </div>
 
           {/* Student List */}
-          <div className='bg-white p-4 rounded-lg shadow'>
-            <div className='flex items-center mb-4'>
-              <h2 className='text-lg font-semibold text-gray-800'>
-                Student Directory
-              </h2>
-              <div className='flex-1'></div>
-              <div className='flex items-center gap-2'>
-                <ActionButtons pageType='students' onRefresh={loadStudents} />
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
+            <div className='p-4 sm:p-6 border-b border-gray-200'>
+              <div className='flex flex-col gap-4'>
+                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                  <div>
+                    <h2 className='text-lg sm:text-xl font-semibold text-gray-800'>
+                      Student Directory
+                    </h2>
+                    <p className='text-sm text-gray-600 mt-1'>
+                      {totalItems > 0 && (
+                        <>
+                          Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+                          {Math.min(currentPage * itemsPerPage, totalItems)} of{' '}
+                          {totalItems} students
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className='w-full sm:w-auto'>
+                    <ActionButtons
+                      pageType='students'
+                      onRefresh={loadStudents}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            {isLoading ? (
-              <div className='text-center py-8'>
-                <div className='inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900'></div>
-                <p className='mt-2 text-gray-600'>Loading students...</p>
-              </div>
-            ) : error ? (
-              <div className='text-center py-8'>
-                <p className='text-red-500'>{error}</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className='mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
-                >
-                  Try Again
-                </button>
-              </div>
-            ) : (
-              <GenericTable
-                data={students}
-                columns={getListConfig('students').columns}
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={totalItems}
-                itemsPerPage={itemsPerPage}
-                onPageChange={handlePageChange}
-                onItemAction={handleStudentAction}
-                emptyMessage='No students found matching your filters'
-              />
-            )}
+            <div className='overflow-x-auto'>
+              {isLoading ? (
+                <div className='text-center py-12 px-4'>
+                  <div className='inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900'></div>
+                  <p className='mt-4 text-gray-600'>Loading students...</p>
+                </div>
+              ) : error ? (
+                <div className='text-center py-12 px-4'>
+                  <div className='max-w-md mx-auto'>
+                    <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
+                      <p className='text-red-700 font-medium'>
+                        Connection Error
+                      </p>
+                      <p className='text-red-600 text-sm mt-1'>{error}</p>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className='mt-4 w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium'
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <GenericTable
+                  data={students}
+                  columns={getListConfig('students').columns}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={handlePageChange}
+                  onItemAction={handleStudentAction}
+                  emptyMessage='No students found matching your filters'
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
