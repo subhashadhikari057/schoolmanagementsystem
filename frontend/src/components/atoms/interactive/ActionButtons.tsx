@@ -194,7 +194,7 @@ const getActionButtonsConfig = (
               const url = window.URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
-              a.download = `student_import_template.csv`;
+              a.download = `student_import_template.xlsx`;
               a.click();
               window.URL.revokeObjectURL(url);
 
@@ -236,10 +236,10 @@ const getActionButtonsConfig = (
         className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
         icon: <Upload size={16} />,
         onClick: () => {
-          // Create a file input element for CSV upload
+          // Create a file input element for Excel upload
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = '.csv';
+          input.accept = '.xlsx,.xls';
           input.onchange = async e => {
             const file = (e.target as HTMLInputElement).files?.[0];
             if (file) {
@@ -378,12 +378,13 @@ const getActionButtonsConfig = (
               const url = window.URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
-              a.download = `students_export_${new Date().toISOString().split('T')[0]}.csv`;
+              a.download = `students_export_${new Date().toISOString().split('T')[0]}.xlsx`;
               a.click();
               window.URL.revokeObjectURL(url);
 
               toast.success('✅ Export successful! Student data downloaded.', {
-                description: 'Your CSV file has been downloaded successfully.',
+                description:
+                  'Your Excel file has been downloaded successfully.',
                 duration: 4000,
               });
             } else {

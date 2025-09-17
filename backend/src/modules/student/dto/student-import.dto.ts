@@ -1,20 +1,29 @@
 import { z } from 'zod';
 
-// Schema for a single student import row
+// Schema for a single student import Excel row
 export const StudentImportRowSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email format'),
   phone: z.string().min(1, 'Phone number is required'),
   rollNumber: z.string().min(1, 'Roll number is required'),
   classGrade: z
-    .number()
-    .min(1, 'Class grade must be at least 1')
-    .max(12, 'Class grade cannot exceed 12'),
+    .string()
+    .regex(/^\d+$/, 'Class grade must be a number')
+    .transform(val => parseInt(val, 10))
+    .refine(
+      val => val >= 1 && val <= 12,
+      'Class grade must be between 1 and 12',
+    ),
   classSection: z.string().min(1, 'Class section is required'),
-  dateOfBirth: z.string().min(1, 'Date of birth is required'),
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   gender: z.enum(['Male', 'Female', 'Other'], {
     errorMap: () => ({ message: 'Gender must be Male, Female, or Other' }),
   }),
+  // Personal information
+  address: z.string().optional(),
+  bloodGroup: z.string().optional(),
   // Parent information
   primaryParentName: z.string().min(1, 'Primary parent name is required'),
   primaryParentPhone: z.string().min(1, 'Primary parent phone is required'),

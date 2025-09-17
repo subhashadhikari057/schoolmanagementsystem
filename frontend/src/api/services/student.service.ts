@@ -660,9 +660,9 @@ export class StudentService {
   // ========================================================================
 
   /**
-   * Import students from CSV file
+   * Import students from Excel file
    */
-  async importStudentsFromCSV(
+  async importStudentsFromExcel(
     file: File,
     options: {
       skipDuplicates?: boolean;
@@ -707,9 +707,9 @@ export class StudentService {
   }
 
   /**
-   * Export students to CSV
+   * Export students to Excel
    */
-  async exportStudentsToCSV(params?: {
+  async exportStudentsToExcel(params?: {
     classId?: string;
     search?: string;
     academicStatus?: string;
@@ -757,7 +757,7 @@ export class StudentService {
   }
 
   /**
-   * Get CSV template for student import
+   * Get Excel template for student import
    */
   async getImportTemplate(): Promise<Blob> {
     // For blob responses, we need to use fetch directly
