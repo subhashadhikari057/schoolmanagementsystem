@@ -471,6 +471,48 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
               </div>
             </div>
 
+            {/* Personal Information */}
+            <div className='bg-purple-50 rounded-lg p-4'>
+              <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
+                <Calendar className='h-4 w-4 mr-2 text-purple-600' />
+                Personal Information
+              </h4>
+              <div className='space-y-2'>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Date of Birth
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.dateOfBirth
+                      ? formatDate(teacherDetails.dateOfBirth)
+                      : 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>Gender</span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.gender || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Blood Group
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.bloodGroup || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Marital Status
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.maritalStatus || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Bank and Legal Information */}
             <div className='bg-blue-50 rounded-lg p-4'>
               <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
@@ -512,6 +554,142 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
                     {teacherDetails.citizenshipNumber || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Information */}
+            <div className='bg-gray-50 rounded-lg p-4'>
+              <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
+                <Award className='h-4 w-4 mr-2 text-gray-600' />
+                Additional Information
+              </h4>
+              <div className='space-y-2'>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Languages Known
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.languagesKnown &&
+                    teacherDetails.languagesKnown.length > 0
+                      ? teacherDetails.languagesKnown.join(', ')
+                      : 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Certifications
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.certifications || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Previous Experience
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.previousExperience || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>Bio</span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.bio || 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Links */}
+            {teacherDetails.socialLinks && (
+              <div className='bg-indigo-50 rounded-lg p-4'>
+                <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
+                  <BookOpen className='h-4 w-4 mr-2 text-indigo-600' />
+                  Social Links
+                </h4>
+                <div className='space-y-2'>
+                  {teacherDetails.socialLinks.linkedin && (
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        LinkedIn
+                      </span>
+                      <a
+                        href={teacherDetails.socialLinks.linkedin}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='text-sm font-medium text-indigo-600 hover:text-indigo-800'
+                      >
+                        {teacherDetails.socialLinks.linkedin}
+                      </a>
+                    </div>
+                  )}
+                  {teacherDetails.socialLinks.twitter && (
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Twitter
+                      </span>
+                      <a
+                        href={teacherDetails.socialLinks.twitter}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='text-sm font-medium text-indigo-600 hover:text-indigo-800'
+                      >
+                        {teacherDetails.socialLinks.twitter}
+                      </a>
+                    </div>
+                  )}
+                  {teacherDetails.socialLinks.facebook && (
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Facebook
+                      </span>
+                      <a
+                        href={teacherDetails.socialLinks.facebook}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='text-sm font-medium text-indigo-600 hover:text-indigo-800'
+                      >
+                        {teacherDetails.socialLinks.facebook}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Employment Details */}
+            <div className='bg-orange-50 rounded-lg p-4'>
+              <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
+                <Briefcase className='h-4 w-4 mr-2 text-orange-600' />
+                Employment Details
+              </h4>
+              <div className='space-y-2'>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Employment Status
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.employmentStatus || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Employment Date
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.employmentDate
+                      ? formatDate(teacherDetails.employmentDate)
+                      : 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    Class Teacher Status
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {teacherDetails.isClassTeacher ? 'Yes' : 'No'}
                   </span>
                 </div>
               </div>

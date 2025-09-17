@@ -4,7 +4,10 @@ import { AuditService } from '../../../shared/logger/audit.service';
 import { TeacherService } from './teacher.service';
 import { SubjectService } from '../../subject/application/subject.service';
 import { ClassService } from '../../class/application/class.service';
-import { parseCSV } from '../../../shared/utils/csv-parser.util';
+import {
+  parseExcel,
+  generateExcelTemplate,
+} from '../../../shared/utils/excel-parser.util';
 import {
   TeacherImportRowSchema,
   TeacherImportRow,
@@ -49,27 +52,24 @@ export class TeacherImportService {
   ) {}
 
   /**
-   * Import teachers from CSV content
+   * Import teachers from Excel content
    */
-  async importTeachersFromCSV(
-    csvContent: string,
+  async importTeachersFromExcel(
+    excelBuffer: Buffer,
     createdBy: string,
     options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
   ): Promise<TeacherImportResult> {
     try {
-      this.logger.log(`Raw CSV content length: ${csvContent.length}`);
-      this.logger.log(
-        `Raw CSV content preview: ${csvContent.substring(0, 200)}...`,
-      );
+      this.logger.log(`Excel file size: ${excelBuffer.length} bytes`);
 
-      // Parse and validate CSV
-      const parseResult = parseCSV<TeacherImportRow>(
-        csvContent,
+      // Parse and validate Excel
+      const parseResult = await parseExcel<TeacherImportRow>(
+        excelBuffer,
         TeacherImportRowSchema,
       );
 
       this.logger.log(
-        `CSV parsed successfully. Total rows: ${parseResult.data.length}`,
+        `Excel parsed successfully. Total rows: ${parseResult.data.length}`,
       );
       this.logger.log(`Parse result:`, {
         totalRows: parseResult.totalRows,
@@ -79,7 +79,7 @@ export class TeacherImportService {
       });
 
       if (parseResult.errors.length > 0) {
-        this.logger.warn(`CSV parsing errors:`, parseResult.errors);
+        this.logger.warn(`Excel parsing errors:`, parseResult.errors);
       }
 
       const result: TeacherImportResult = {
@@ -167,7 +167,7 @@ export class TeacherImportService {
       this.logger.log(`Import completed:`, result);
       return result;
     } catch (error) {
-      this.logger.error('Failed to import teachers from CSV', error);
+      this.logger.error('Failed to import teachers from Excel', error);
       throw error;
     }
   }
@@ -195,6 +195,18 @@ export class TeacherImportService {
       personal: {
         dateOfBirth: row.dateOfBirth,
         gender: row.gender as 'Male' | 'Female' | 'Other',
+        address: row.address || '',
+        bloodGroup: row.bloodGroup as
+          | 'A+'
+          | 'A-'
+          | 'B+'
+          | 'B-'
+          | 'AB+'
+          | 'AB-'
+          | 'O+'
+          | 'O-'
+          | undefined,
+        maritalStatus: row.maritalStatus || '',
       },
       professional: {
         employeeId: row.employeeId,
@@ -208,11 +220,14 @@ export class TeacherImportService {
       salary: {
         basicSalary: parseFloat(row.basicSalary || '0') || 0,
         allowances: parseFloat(row.allowances || '0') || 0,
+        totalSalary: parseFloat(row.totalSalary || '0') || 0,
       },
       bankDetails: {
         bankName: row.bankName || '',
         bankAccountNumber: row.bankAccountNumber || '',
         bankBranch: row.bankBranch || '',
+        panNumber: row.panNumber || '',
+        citizenshipNumber: row.citizenshipNumber || '',
       },
     };
 
@@ -222,7 +237,7 @@ export class TeacherImportService {
       createdBy,
       undefined, // No profile picture for import
       '127.0.0.1', // Default IP for import
-      'CSV Import', // Default user agent for import
+      'Excel Import', // Default user agent for import
     );
 
     // Log teacher account details to console
@@ -278,11 +293,28 @@ export class TeacherImportService {
       salary: {
         basicSalary: parseFloat(row.basicSalary || '0') || 0,
         allowances: parseFloat(row.allowances || '0') || 0,
+        totalSalary: parseFloat(row.totalSalary || '0') || 0,
       },
       bankDetails: {
         bankName: row.bankName || '',
         bankAccountNumber: row.bankAccountNumber || '',
         bankBranch: row.bankBranch || '',
+        panNumber: row.panNumber || '',
+        citizenshipNumber: row.citizenshipNumber || '',
+      },
+      personal: {
+        address: row.address || '',
+        bloodGroup: row.bloodGroup as
+          | 'A+'
+          | 'A-'
+          | 'B+'
+          | 'B-'
+          | 'AB+'
+          | 'AB-'
+          | 'O+'
+          | 'O-'
+          | undefined,
+        maritalStatus: row.maritalStatus || '',
       },
     };
 
@@ -382,9 +414,9 @@ export class TeacherImportService {
   }
 
   /**
-   * Export teachers to CSV
+   * Export teachers to Excel
    */
-  async exportTeachersToCSV(params: TeacherExportParams): Promise<string> {
+  async exportTeachersToExcel(params: TeacherExportParams): Promise<Buffer> {
     try {
       // Build where clause
       const where: any = { deletedAt: null };
@@ -443,96 +475,122 @@ export class TeacherImportService {
         );
       }
 
-      // Generate CSV content
-      const csvRows = [
-        // Header
-        [
-          'fullName',
-          'email',
-          'phone',
-          'employeeId',
-          'dateOfBirth',
-          'gender',
-          'joiningDate',
-          'experienceYears',
-          'highestQualification',
-          'specialization',
-          'designation',
-          'department',
-          'basicSalary',
-          'allowances',
-          'bankName',
-          'bankAccountNumber',
-          'bankBranch',
-          'subjects',
-          'classes',
-        ].join(','),
+      // Generate Excel content
+      const headers = [
+        'fullName',
+        'email',
+        'phone',
+        'employeeId',
+        'dateOfBirth',
+        'gender',
+        'joiningDate',
+        'experienceYears',
+        'highestQualification',
+        'specialization',
+        'department',
+        'basicSalary',
+        'allowances',
+        'totalSalary',
+        'bankName',
+        'bankAccountNumber',
+        'bankBranch',
+        'citizenshipNumber',
+        'panNumber',
+        'bloodGroup',
+        'maritalStatus',
+        'address',
       ];
 
-      // Data rows
-      for (const teacher of filteredTeachers) {
-        const subjects = teacher.subjectAssignments
-          .map(sa => sa.subject.code)
-          .join(';');
+      const sampleData = filteredTeachers.map(teacher => {
+        return {
+          fullName: teacher.user.fullName,
+          email: teacher.user.email,
+          phone: teacher.user.phone || '',
+          employeeId: teacher.employeeId || '',
+          dateOfBirth: teacher.dateOfBirth?.toISOString().split('T')[0] || '',
+          gender: teacher.gender || '',
+          joiningDate: teacher.joiningDate?.toISOString().split('T')[0] || '',
+          experienceYears: teacher.experienceYears || 0,
+          highestQualification: teacher.qualification || '',
+          specialization: teacher.specialization || '',
+          department: teacher.department || '',
+          basicSalary: teacher.basicSalary || 0,
+          allowances: teacher.allowances || 0,
+          totalSalary: teacher.totalSalary || 0,
+          bankName: teacher.bankName || '',
+          bankAccountNumber: teacher.bankAccountNumber || '',
+          bankBranch: teacher.bankBranch || '',
+          citizenshipNumber: teacher.citizenshipNumber || '',
+          panNumber: teacher.panNumber || '',
+          bloodGroup: teacher.bloodGroup || '',
+          maritalStatus: teacher.maritalStatus || '',
+          address: teacher.address || '',
+        };
+      });
 
-        const classes = teacher.classAssignments
-          .map(ca => `${ca.class.grade}-${ca.class.section}`)
-          .join(';');
-
-        const row = [
-          `"${teacher.user.fullName}"`,
-          `"${teacher.user.email}"`,
-          `"${teacher.user.phone || ''}"`,
-          `"${teacher.employeeId || ''}"`,
-          `"${teacher.dateOfBirth?.toISOString().split('T')[0] || ''}"`,
-          `"${teacher.gender || ''}"`,
-          `"${teacher.joiningDate?.toISOString().split('T')[0] || ''}"`,
-          `"${teacher.experienceYears || 0}"`,
-          `"${teacher.qualification || ''}"`,
-          `"${teacher.specialization || ''}"`,
-          `"${teacher.designation || ''}"`,
-          `"${teacher.department || ''}"`,
-          `"${teacher.basicSalary || 0}"`,
-          `"${teacher.allowances || 0}"`,
-          `"${teacher.bankName || ''}"`,
-          `"${teacher.bankAccountNumber || ''}"`,
-          `"${teacher.bankBranch || ''}"`,
-          `"${subjects}"`,
-          `"${classes}"`,
-        ].join(',');
-
-        csvRows.push(row);
-      }
-
-      return csvRows.join('\n');
+      return await generateExcelTemplate(headers, sampleData);
     } catch (error) {
-      this.logger.error('Failed to export teachers to CSV', error);
+      this.logger.error('Failed to export teachers to Excel', error);
       throw error;
     }
   }
 
   /**
-   * Generate CSV template for teacher import
+   * Generate Excel template for teacher import
    */
-  generateImportTemplate(): string {
+  async generateImportTemplate(): Promise<Buffer> {
     const headers = [
       'fullName',
       'email',
       'phone',
+      'employeeId',
+      'dateOfBirth',
+      'gender',
       'joiningDate',
+      'experienceYears',
       'highestQualification',
+      'specialization',
+      'department',
+      'basicSalary',
+      'allowances',
+      'totalSalary',
+      'bankName',
+      'bankAccountNumber',
+      'bankBranch',
+      'citizenshipNumber',
+      'panNumber',
+      'bloodGroup',
+      'maritalStatus',
+      'address',
     ];
 
     const sampleData = [
-      'Sarah Johnson',
-      'sarah.johnson@school.com',
-      '9876543211',
-      '2023-01-15',
-      'M.Ed',
+      {
+        fullName: 'Sarah Johnson',
+        email: 'sarah.johnson@school.com',
+        phone: '9876543211',
+        employeeId: 'T001',
+        dateOfBirth: '1985-03-15',
+        gender: 'Female',
+        joiningDate: '2023-01-15',
+        experienceYears: '5',
+        highestQualification: 'M.Ed',
+        specialization: 'Mathematics',
+        department: 'Mathematics',
+        basicSalary: '50000',
+        allowances: '5000',
+        totalSalary: '55000',
+        bankName: 'State Bank of India',
+        bankAccountNumber: '1234567890',
+        bankBranch: 'Main Branch',
+        citizenshipNumber: '1234567890',
+        panNumber: 'ABCDE1234F',
+        bloodGroup: 'O+',
+        maritalStatus: 'Married',
+        address: '123 Main Street, City',
+      },
     ];
 
-    const csvRows = [headers.join(','), sampleData.join(',')];
-
-    return csvRows.join('\n');
+    return await generateExcelTemplate(headers, sampleData);
   }
 }
