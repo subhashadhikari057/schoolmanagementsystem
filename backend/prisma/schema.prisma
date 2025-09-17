@@ -68,6 +68,8 @@ model User {
   gradeHistoryEntries             StudentGradeHistory[]         @relation("StudentGradeHistoryGradedBy")
   passwordResetOtps               PasswordResetOtp[]
   promotionBatchesExecuted        PromotionBatch[]              @relation("PromotionBatchExecutor")
+  backupMetadataCreated           BackupMetadata[]              @relation("BackupMetadataCreator")
+  backupSchedulesCreated          BackupSchedule[]              @relation("BackupScheduleCreator")
 
   @@index([createdById])
   @@index([updatedById])
@@ -2255,4 +2257,128 @@ enum PromotionStatus {
   IN_PROGRESS
   COMPLETED
   FAILED
+}
+
+// =============================================================================
+// BACKUP SYSTEM ENUMS
+// =============================================================================
+
+enum BackupType {
+  DATABASE
+  FILES
+  FULL_SYSTEM
+  CONFIGURATION
+}
+
+enum BackupStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ScheduleFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum NotificationType {
+  BACKUP_SUCCESS
+  BACKUP_FAILURE
+  BACKUP_WARNING
+  RETENTION_CLEANUP
+}
+
+// =============================================================================
+// BACKUP SYSTEM MODELS
+// =============================================================================
+
+model BackupMetadata {
+  id               String        @id @default(uuid())
+  backupId         String        @unique
+  clientId         String?
+  type             BackupType
+  size             BigInt
+  location         String
+  encrypted        Boolean       @default(false)
+  encryptionKey    String?
+  status           BackupStatus  @default(IN_PROGRESS)
+  startedAt        DateTime      @default(now())
+  completedAt      DateTime?
+  failedAt         DateTime?
+  errorMessage     String?
+  metadata         Json?         @default("{}")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime?     @updatedAt
+  createdById      String?       @db.Uuid
+
+  // Relations
+  createdBy        User?         @relation("BackupMetadataCreator", fields: [createdById], references: [id])
+  notifications    BackupNotification[]
+
+  @@index([backupId])
+  @@index([clientId])
+  @@index([type])
+  @@index([status])
+  @@index([startedAt])
+  @@map("backup_metadata")
+}
+
+model BackupSchedule {
+  id               String            @id @default(uuid())
+  name             String
+  type             BackupType
+  enabled          Boolean           @default(true)
+  frequency        ScheduleFrequency
+  time             String
+  dayOfWeek        Int?
+  dayOfMonth       Int?
+  clientId         String?
+  encrypt          Boolean           @default(false)
+  clientKey        String?
+  retentionDays    Int               @default(30)
+  maxBackups       Int               @default(10)
+  lastRun          DateTime?
+  nextRun          DateTime?
+  lastStatus       BackupStatus?
+  lastBackupId     String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime?         @updatedAt
+  createdById      String?           @db.Uuid
+
+  // Relations
+  createdBy        User?             @relation("BackupScheduleCreator", fields: [createdById], references: [id])
+  notifications    BackupNotification[]
+
+  @@index([enabled])
+  @@index([nextRun])
+  @@index([type])
+  @@index([frequency])
+  @@map("backup_schedules")
+}
+
+model BackupNotification {
+  id               String             @id @default(uuid())
+  scheduleId       String?
+  backupId         String
+  type             NotificationType
+  status           BackupStatus
+  message          String
+  details          Json?              @default("{}")
+  emailSent        Boolean            @default(false)
+  emailTo          String[]           @default([])
+  createdAt        DateTime           @default(now())
+  sentAt           DateTime?
+
+  // Relations
+  schedule         BackupSchedule?    @relation(fields: [scheduleId], references: [id])
+  backup           BackupMetadata     @relation(fields: [backupId], references: [id])
+
+  @@index([scheduleId])
+  @@index([backupId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("backup_notifications")
 }
