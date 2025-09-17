@@ -1200,7 +1200,7 @@ export const ActionButtons = ({
 
   return (
     <>
-      <div className='grid grid-cols-2 sm:flex sm:flex-row gap-2 w-full'>
+      <div className='flex flex-col sm:flex-row gap-2 w-full'>
         {filteredButtons.map(button => (
           <div
             key={button.id}
@@ -1208,12 +1208,17 @@ export const ActionButtons = ({
             className='w-full sm:w-auto'
           >
             <ToggleButton
-              className={button.className + ' w-full sm:w-auto'}
+              className={
+                button.className +
+                ' w-full sm:w-auto text-xs sm:text-sm px-2 py-2 sm:px-3 sm:py-2'
+              }
               data-id={button.id}
             >
-              <div className='flex items-center gap-2 justify-center'>
+              <div className='flex items-center gap-1 sm:gap-2 justify-center'>
                 {button.icon}
-                <span className='hidden sm:inline'>{button.label}</span>
+                <span className='text-xs sm:text-sm font-medium'>
+                  {button.label}
+                </span>
               </div>
             </ToggleButton>
           </div>

@@ -180,8 +180,16 @@ const TeachersPage = () => {
             : [];
 
         const mappedTeachers: Teacher[] = teachersArray.map(
-          (teacher: any, index: number) =>
-            ({
+          (teacher: any, index: number) => {
+            // Debug: Check what URL we're getting now
+            if (index === 0) {
+              console.log(
+                '🔍 TEACHER PROFILE PHOTO URL:',
+                teacher.profilePhotoUrl,
+              );
+            }
+
+            return {
               id: teacher.id || index + 1,
               name: teacher.fullName,
               faculty: teacher.department || 'General',
@@ -213,8 +221,10 @@ const TeachersPage = () => {
               allowances: teacher.allowances,
               salary: teacher.totalSalary,
               teacherId: teacher.employeeId,
+              avatar: teacher.profilePhotoUrl, // Add the avatar field from profilePhotoUrl
               // Add more fields as needed for filtering
-            }) as Teacher,
+            } as Teacher;
+          },
         );
         setTeachers(mappedTeachers);
         // Apply subject filter on the client side if needed

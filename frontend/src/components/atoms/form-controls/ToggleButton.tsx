@@ -16,7 +16,7 @@ export default function ToggleButton({
 }: ToggleButtonProps) {
   return (
     <Button
-      className={`text-sm text-gray-500 border px-2 py-1 rounded ${className}`}
+      className={`text-xs sm:text-sm text-gray-500 border px-3 py-2 sm:px-4 sm:py-2 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 min-h-[40px] sm:min-h-[36px] ${className}`}
       onClick={onClick}
       disabled={disabled}
     >

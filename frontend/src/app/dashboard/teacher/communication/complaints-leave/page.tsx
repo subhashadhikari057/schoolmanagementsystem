@@ -79,9 +79,9 @@ const ComplaintResponseModal: React.FC<ComplaintResponseModalProps> = ({
 
   return open ? (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8'>
-      <div className='bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto shadow-xl'>
+      <div className='bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto border border-gray-300'>
         {/* Header */}
-        <div className='bg-gradient-to-r from-blue-50 to-blue-100 p-6 border-b border-blue-200'>
+        <div className='bg-blue-50 p-6 border-b border-blue-200'>
           <div className='flex justify-between items-start'>
             <div>
               <h2 className='text-xl font-bold text-gray-800'>
@@ -91,7 +91,7 @@ const ComplaintResponseModal: React.FC<ComplaintResponseModalProps> = ({
             </div>
             <button
               onClick={handleClose}
-              className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+              className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 border border-gray-300'
             >
               <XCircle size={20} />
             </button>
@@ -121,14 +121,14 @@ const ComplaintResponseModal: React.FC<ComplaintResponseModalProps> = ({
               <Button
                 type='button'
                 onClick={handleClose}
-                className='bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-6 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg transition-all duration-200 font-medium'
+                className='bg-gray-100 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-200 border border-gray-300 transition-all duration-200 font-medium'
                 disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button
                 type='submit'
-                className='bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2.5 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium flex items-center justify-center gap-2'
+                className='bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 border border-blue-600 transition-all duration-200 font-medium flex items-center justify-center gap-2'
                 disabled={isSubmitting || !content.trim()}
               >
                 {isSubmitting ? (
@@ -360,9 +360,9 @@ const CreateComplaintModal: React.FC<CreateComplaintModalProps> = ({
 
   return open ? (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8'>
-      <div className='bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto shadow-xl'>
+      <div className='bg-white rounded-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto border border-gray-300'>
         {/* Header */}
-        <div className='bg-gradient-to-r from-orange-50 to-red-100 p-6 border-b border-orange-200'>
+        <div className='bg-orange-50 p-6 border-b border-orange-200'>
           <div className='flex justify-between items-start'>
             <div>
               <h2 className='text-xl font-bold text-gray-800'>
@@ -379,7 +379,7 @@ const CreateComplaintModal: React.FC<CreateComplaintModalProps> = ({
             </div>
             <button
               onClick={handleClose}
-              className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+              className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 border border-gray-300'
             >
               <XCircle size={20} />
             </button>
@@ -694,14 +694,14 @@ const CreateComplaintModal: React.FC<CreateComplaintModalProps> = ({
               <Button
                 type='button'
                 onClick={handleClose}
-                className='bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-6 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg transition-all duration-200 font-medium'
+                className='bg-gray-100 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-200 border border-gray-300 transition-all duration-200 font-medium'
                 disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button
                 type='submit'
-                className='bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2.5 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium flex items-center justify-center gap-2'
+                className='bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 border border-blue-600 transition-all duration-200 font-medium flex items-center justify-center gap-2'
                 disabled={
                   isSubmitting ||
                   !formData.title.trim() ||
@@ -868,9 +868,9 @@ const TeacherComplaintDetailModal: React.FC<
 
   return open ? (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'>
-      <div className='bg-white rounded-xl max-w-3xl w-full max-h-[75vh] overflow-hidden shadow-2xl flex flex-col'>
+      <div className='bg-white rounded-xl max-w-3xl w-full max-h-[75vh] overflow-hidden border border-gray-300 flex flex-col'>
         {/* Header */}
-        <div className='bg-gradient-to-r from-purple-50 to-indigo-100 p-6 border-b border-purple-200'>
+        <div className='bg-purple-50 p-6 border-b border-purple-200'>
           <div className='flex justify-between items-start'>
             <div>
               <div className='mb-2 flex items-center gap-2'>
@@ -966,7 +966,7 @@ const TeacherComplaintDetailModal: React.FC<
 
             <button
               onClick={onClose}
-              className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+              className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 border border-gray-200 hover:border-gray-300'
             >
               <XCircle size={20} />
             </button>
@@ -1315,7 +1315,7 @@ const TeacherComplaintDetailModal: React.FC<
                 <>
                   <Button
                     onClick={() => handleStatusUpdate('IN_PROGRESS')}
-                    className='bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 py-1.5 rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 min-w-[120px] justify-center text-sm font-medium'
+                    className='bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 border border-blue-700 transition-all duration-200 flex items-center gap-2 min-w-[120px] justify-center text-sm font-medium'
                     disabled={complaint.status === 'IN_PROGRESS'}
                   >
                     <Clock size={16} />
@@ -1324,7 +1324,7 @@ const TeacherComplaintDetailModal: React.FC<
 
                   <Button
                     onClick={() => handleStatusUpdate('RESOLVED')}
-                    className='bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-3 py-1.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 min-w-[120px] justify-center text-sm font-medium'
+                    className='bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 border border-emerald-700 transition-all duration-200 flex items-center gap-2 min-w-[120px] justify-center text-sm font-medium'
                     disabled={complaint.status === 'RESOLVED'}
                   >
                     <CheckCircle size={16} />
@@ -1333,7 +1333,7 @@ const TeacherComplaintDetailModal: React.FC<
 
                   <Button
                     onClick={() => handleStatusUpdate('CANCELLED')}
-                    className='bg-gradient-to-r from-rose-600 to-rose-700 text-white px-3 py-1.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 min-w-[120px] justify-center text-sm font-medium'
+                    className='bg-rose-600 text-white px-3 py-1.5 rounded-lg hover:bg-rose-700 border border-rose-700 transition-all duration-200 flex items-center gap-2 min-w-[120px] justify-center text-sm font-medium'
                     disabled={complaint.status === 'CANCELLED'}
                   >
                     <XCircle size={16} />
@@ -1345,7 +1345,7 @@ const TeacherComplaintDetailModal: React.FC<
 
             <Button
               onClick={onClose}
-              className='bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-4 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg transition-all duration-200 font-medium'
+              className='bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-200 border border-gray-300 transition-all duration-200 font-medium'
             >
               Close
             </Button>
@@ -1849,7 +1849,7 @@ const ComplaintsAndLeavePage = () => {
                         .map(leaveRequest => (
                           <div
                             key={leaveRequest.id}
-                            className='group bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'
+                            className='group bg-white rounded-2xl p-6 border border-slate-200 hover:border-slate-300'
                           >
                             <div className='flex items-start justify-between mb-4'>
                               <div className='flex-1'>
@@ -1928,7 +1928,7 @@ const ComplaintsAndLeavePage = () => {
                                   onClick={() =>
                                     handleViewLeaveRequest(leaveRequest)
                                   }
-                                  className='w-full sm:w-auto bg-gradient-to-r from-slate-600 to-slate-700 text-white px-4 py-2.5 rounded-lg hover:from-slate-700 hover:to-slate-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
+                                  className='w-full sm:w-auto bg-slate-600 text-white px-4 py-2.5 rounded-lg hover:bg-slate-700 border border-slate-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
                                   <Eye className='h-4 w-4' />
                                   <span>View Details</span>
@@ -1939,7 +1939,7 @@ const ComplaintsAndLeavePage = () => {
                                   onClick={() =>
                                     handleTeacherApprove(leaveRequest.id)
                                   }
-                                  className='w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
+                                  className='w-full sm:w-auto bg-emerald-600 text-white px-4 py-2.5 rounded-lg hover:bg-emerald-700 border border-emerald-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
                                   <CheckCircle className='h-4 w-4' />
                                   <span>Approve as Teacher</span>
@@ -1952,7 +1952,7 @@ const ComplaintsAndLeavePage = () => {
                                     });
                                     setRejectReasonModalOpen(true);
                                   }}
-                                  className='w-full sm:w-auto bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
+                                  className='w-full sm:w-auto bg-rose-600 text-white px-4 py-2.5 rounded-lg hover:bg-rose-700 border border-rose-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
                                   <X className='h-4 w-4' />
                                   <span>Reject Request</span>
@@ -1989,7 +1989,7 @@ const ComplaintsAndLeavePage = () => {
                         .map(leaveRequest => (
                           <div
                             key={leaveRequest.id}
-                            className='group bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'
+                            className='group bg-white rounded-2xl p-6 border border-slate-200 hover:border-slate-300'
                           >
                             <div className='flex items-start justify-between mb-4'>
                               <div className='flex-1'>
@@ -2065,7 +2065,7 @@ const ComplaintsAndLeavePage = () => {
                                   onClick={() =>
                                     handleViewLeaveRequest(leaveRequest)
                                   }
-                                  className='bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-2.5 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
+                                  className='bg-emerald-600 text-white px-4 py-2.5 rounded-lg hover:bg-emerald-700 border border-emerald-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
                                   <Eye className='h-4 w-4' />
                                   <span>View Approved</span>
@@ -2102,7 +2102,7 @@ const ComplaintsAndLeavePage = () => {
                         .map(leaveRequest => (
                           <div
                             key={leaveRequest.id}
-                            className='group bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'
+                            className='group bg-white rounded-2xl p-6 border border-slate-200 hover:border-slate-300'
                           >
                             <div className='flex items-start justify-between mb-4'>
                               <div className='flex-1'>
@@ -2178,7 +2178,7 @@ const ComplaintsAndLeavePage = () => {
                                   onClick={() =>
                                     handleViewLeaveRequest(leaveRequest)
                                   }
-                                  className='bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
+                                  className='bg-rose-600 text-white px-4 py-2.5 rounded-lg hover:bg-rose-700 border border-rose-700 transition-all duration-200 flex items-center justify-center gap-2 font-medium text-sm'
                                 >
                                   <Eye className='h-4 w-4' />
                                   <span>View Rejected</span>
@@ -2203,7 +2203,7 @@ const ComplaintsAndLeavePage = () => {
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6'>
+    <div className='min-h-screen bg-slate-50 p-4 sm:p-6'>
       {/* Create Complaint Modal */}
       <CreateComplaintModal
         open={createComplaintModalOpen}
@@ -2245,9 +2245,9 @@ const ComplaintsAndLeavePage = () => {
       {/* Reject Reason Modal */}
       {rejectReasonModalOpen && leaveRequestToReject && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto py-8'>
-          <div className='bg-white rounded-xl max-w-md w-full mx-4 shadow-xl'>
+          <div className='bg-white rounded-xl max-w-md w-full mx-4 border border-gray-200'>
             {/* Header */}
-            <div className='bg-gradient-to-r from-red-50 to-red-100 p-6 border-b border-red-200'>
+            <div className='bg-red-50 p-6 border-b border-red-200'>
               <div className='flex justify-between items-start'>
                 <div>
                   <h2 className='text-xl font-bold text-gray-800'>
@@ -2262,7 +2262,7 @@ const ComplaintsAndLeavePage = () => {
                     setRejectReasonModalOpen(false);
                     setLeaveRequestToReject(null);
                   }}
-                  className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 shadow-sm hover:shadow-md'
+                  className='text-gray-400 hover:text-gray-600 bg-white rounded-full p-1 border border-gray-200 hover:border-gray-300'
                 >
                   <X size={20} />
                 </button>
@@ -2300,7 +2300,7 @@ const ComplaintsAndLeavePage = () => {
                   setRejectReasonModalOpen(false);
                   setLeaveRequestToReject(null);
                 }}
-                className='bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 px-4 py-2.5 rounded-lg hover:from-gray-200 hover:to-gray-300 shadow-sm hover:shadow-md transition-all duration-200 font-medium'
+                className='bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-200 border border-gray-300 transition-all duration-200 font-medium'
               >
                 Cancel
               </Button>
@@ -2314,7 +2314,7 @@ const ComplaintsAndLeavePage = () => {
                   setRejectReasonModalOpen(false);
                   setLeaveRequestToReject(null);
                 }}
-                className='bg-gradient-to-r from-rose-600 to-rose-700 text-white px-4 py-2.5 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-md hover:shadow-lg transition-all duration-200 font-medium flex items-center justify-center gap-2'
+                className='bg-rose-600 text-white px-4 py-2.5 rounded-lg hover:bg-rose-700 border border-rose-700 transition-all duration-200 font-medium flex items-center justify-center gap-2'
               >
                 <X className='h-4 w-4' />
                 <span>Reject Request</span>
@@ -2328,7 +2328,7 @@ const ComplaintsAndLeavePage = () => {
       <div className='mb-8'>
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
           <div>
-            <h1 className='text-3xl font-bold bg-gradient-to-r from-slate-800 to-blue-600 bg-clip-text text-transparent'>
+            <h1 className='text-3xl font-bold text-slate-800'>
               Teacher Dashboard - Complaints & Leave
             </h1>
             <p className='text-slate-600 mt-2'>
@@ -2338,7 +2338,7 @@ const ComplaintsAndLeavePage = () => {
           <div className='flex flex-col sm:flex-row gap-3'>
             <button
               onClick={() => setCreateComplaintModalOpen(true)}
-              className='w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200'
+              className='w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg border border-blue-700 hover:bg-blue-700 transition-all duration-200'
             >
               <AlertCircle className='h-5 w-5' />
               <span>Create New Complaint</span>
@@ -2349,7 +2349,7 @@ const ComplaintsAndLeavePage = () => {
 
       {/* Stats Cards */}
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
-        <div className='bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl'>
+        <div className='bg-white rounded-2xl p-6 border border-slate-200 hover:border-slate-300'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-slate-600 text-sm font-medium'>
@@ -2373,7 +2373,7 @@ const ComplaintsAndLeavePage = () => {
           </div>
         </div>
 
-        <div className='bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300'>
+        <div className='bg-white rounded-2xl p-6 border border-slate-200 hover:border-slate-300 transition-all duration-300'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-slate-600 text-sm font-medium'>Resolved</p>
@@ -2395,7 +2395,7 @@ const ComplaintsAndLeavePage = () => {
           </div>
         </div>
 
-        <div className='bg-white rounded-2xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300'>
+        <div className='bg-white rounded-2xl p-6 border border-slate-200 hover:border-slate-300 transition-all duration-300'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-slate-600 text-sm font-medium'>
