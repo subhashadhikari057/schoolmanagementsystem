@@ -9,7 +9,7 @@
 import { httpClient } from '../client';
 
 // CSRF token endpoint
-const CSRF_TOKEN_ENDPOINT = 'api/v1/csrf/token';
+const CSRF_TOKEN_ENDPOINT = '/api/v1/csrf/token';
 
 /**
  * In-memory storage for CSRF token

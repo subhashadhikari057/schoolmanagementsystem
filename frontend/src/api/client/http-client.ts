@@ -28,7 +28,11 @@ export interface HttpClientConfig {
 }
 
 const DEFAULT_CONFIG: HttpClientConfig = {
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+  baseURL:
+    (process.env.NEXT_PUBLIC_API_URL as string) ||
+    (typeof window !== 'undefined'
+      ? window.location.origin
+      : 'https://sms.navneetverma.com'),
   timeout: 10000, // 10 seconds
   retries: 3,
   retryDelay: 1000, // 1 second
@@ -176,9 +180,12 @@ export class HttpClient {
     // Build full URL
     const fullUrl = url.startsWith('http')
       ? url
-      : `${this.config.baseURL}/${url}`
-          .replace(/\/+/g, '/')
-          .replace('http:/', 'http://');
+      : url.startsWith('/')
+        ? `${this.config.baseURL}${url}`
+        : `${this.config.baseURL}/${url}`;
+
+    // Clean up any double slashes except after protocol
+    const cleanUrl = fullUrl.replace(/([^:]\/)\/+/g, '$1');
 
     // Debug log for requests in development
     // if (process.env.NODE_ENV === 'development') {
@@ -227,7 +234,7 @@ export class HttpClient {
         // Update request options with new controller
         requestOptions.signal = controller.signal;
 
-        const response = await fetch(fullUrl, requestOptions);
+        const response = await fetch(cleanUrl, requestOptions);
 
         // Debug log for responses in development
         // if (process.env.NODE_ENV === 'development') {
@@ -268,7 +275,7 @@ export class HttpClient {
             console.error('HTTP Error Response:', {
               status: response.status,
               statusText: response.statusText,
-              url: fullUrl,
+              url: cleanUrl,
               data: responseData,
             });
           }
@@ -494,7 +501,7 @@ export class HttpClient {
 
           if (!isExpectedError) {
             console.error('API Request Error:', {
-              url: fullUrl,
+              url: cleanUrl,
               method,
               error: error instanceof Error ? error.message : error,
             });
