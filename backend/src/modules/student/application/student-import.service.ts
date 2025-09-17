@@ -10,9 +10,9 @@ import { AuditService } from '../../../shared/logger/audit.service';
 import { hashPassword } from '../../../shared/auth/hash.util';
 import { generateRandomPassword } from '../../../shared/utils/password.util';
 import {
-  parseCSV,
-  generateStudentImportTemplate,
-} from '../../../shared/utils/csv-parser.util';
+  parseExcel,
+  generateExcelTemplate,
+} from '../../../shared/utils/excel-parser.util';
 import {
   StudentImportRow,
   StudentImportResult,
@@ -29,29 +29,25 @@ export class StudentImportService {
   ) {}
 
   /**
-   * Import students from CSV content
+   * Import students from Excel content
    */
-  async importStudentsFromCSV(
-    csvContent: string,
+  async importStudentsFromExcel(
+    excelBuffer: Buffer,
     createdBy: string,
     options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
   ): Promise<StudentImportResult> {
     try {
-      // Log the raw CSV content for debugging
-      this.logger.log(`Raw CSV content length: ${csvContent.length}`);
-      this.logger.log(
-        `Raw CSV content preview: ${csvContent.substring(0, 200)}...`,
-      );
+      this.logger.log(`Excel file size: ${excelBuffer.length} bytes`);
 
-      // Parse and validate CSV
-      const parseResult = parseCSV<StudentImportRow>(
-        csvContent,
-        StudentImportRowSchema,
+      // Parse and validate Excel
+      const parseResult = await parseExcel<StudentImportRow>(
+        excelBuffer,
+        StudentImportRowSchema as any,
       );
 
       // Log the parsed data for debugging
       this.logger.log(
-        `CSV parsed successfully. Total rows: ${parseResult.data.length}`,
+        `Excel parsed successfully. Total rows: ${parseResult.data.length}`,
       );
       this.logger.log(`Parse result:`, {
         totalRows: parseResult.totalRows,
@@ -75,17 +71,17 @@ export class StudentImportService {
       }
 
       if (parseResult.errors.length > 0) {
-        this.logger.error(`CSV validation errors:`, parseResult.errors);
+        this.logger.error(`Excel validation errors:`, parseResult.errors);
         return {
           success: false,
-          message: `CSV validation failed. ${parseResult.errors.length} rows have errors.`,
+          message: `Excel validation failed. ${parseResult.errors.length} rows have errors.`,
           totalProcessed: parseResult.totalRows,
           successfulImports: 0,
           failedImports: parseResult.totalRows,
           errors: parseResult.errors.map(error => ({
             row: error.row,
-            student: error.line.split(',')[0] || 'Unknown',
-            error: error.error,
+            student: 'Unknown',
+            error: error.message,
           })),
         };
       }
@@ -114,7 +110,7 @@ export class StudentImportService {
         importedStudents: results.importedStudents,
       };
     } catch (error) {
-      this.logger.error('Failed to import students from CSV', error);
+      this.logger.error('Failed to import students from Excel', error);
       throw new BadRequestException(
         `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -124,7 +120,7 @@ export class StudentImportService {
   /**
    * Process student imports
    */
-  private async processStudentImports(
+  async processStudentImports(
     students: StudentImportRow[],
     createdBy: string,
     options: { skipDuplicates?: boolean; updateExisting?: boolean },
@@ -450,6 +446,8 @@ export class StudentImportService {
           academicStatus: 'active',
           feeStatus: 'pending',
           createdById: createdBy,
+          address: studentData.address || '',
+          bloodGroup: studentData.bloodGroup || '',
 
           // Populate parent fields based on relation
           ...(isPrimaryParentFather
@@ -543,22 +541,66 @@ export class StudentImportService {
   }
 
   /**
-   * Get CSV template for student import
+   * Get Excel template for student import
    */
-  async getImportTemplate(): Promise<string> {
-    return generateStudentImportTemplate();
+  async getImportTemplate(): Promise<Buffer> {
+    const headers = [
+      'fullName',
+      'email',
+      'phone',
+      'rollNumber',
+      'classGrade',
+      'classSection',
+      'dateOfBirth',
+      'gender',
+      'address',
+      'bloodGroup',
+      'primaryParentName',
+      'primaryParentPhone',
+      'primaryParentEmail',
+      'primaryParentRelation',
+      'secondaryParentName',
+      'secondaryParentPhone',
+      'secondaryParentEmail',
+      'secondaryParentRelation',
+    ];
+
+    const sampleData = [
+      {
+        fullName: 'ABC Student',
+        email: 'abc.student@example.com',
+        phone: '9999999001',
+        rollNumber: 'TEMPLATE001',
+        classGrade: '1',
+        classSection: 'A',
+        dateOfBirth: '2017-05-15',
+        gender: 'Male',
+        address: '123 ABC Street, Sample City, State 12345',
+        bloodGroup: 'O+',
+        primaryParentName: 'ABC Father',
+        primaryParentPhone: '9999999002',
+        primaryParentEmail: 'abc.father@example.com',
+        primaryParentRelation: 'Father',
+        secondaryParentName: 'ABC Mother',
+        secondaryParentPhone: '9999999003',
+        secondaryParentEmail: 'abc.mother@example.com',
+        secondaryParentRelation: 'Mother',
+      },
+    ];
+
+    return await generateExcelTemplate(headers, sampleData);
   }
 
   /**
-   * Export students to CSV
+   * Export students to Excel
    */
-  async exportStudentsToCSV(
+  async exportStudentsToExcel(
     filters: {
       classId?: string;
       search?: string;
       academicStatus?: string;
     } = {},
-  ): Promise<string> {
+  ): Promise<Buffer> {
     try {
       // Build where clause based on filters
       const whereClause: Record<string, unknown> = {
@@ -635,7 +677,7 @@ export class StudentImportService {
         return a.user.fullName.localeCompare(b.user.fullName);
       });
 
-      // Generate CSV content
+      // Generate Excel content
       const headers = [
         'fullName',
         'email',
@@ -645,6 +687,8 @@ export class StudentImportService {
         'classSection',
         'dateOfBirth',
         'gender',
+        'address',
+        'bloodGroup',
         'primaryParentName',
         'primaryParentPhone',
         'primaryParentEmail',
@@ -655,7 +699,7 @@ export class StudentImportService {
         'secondaryParentRelation',
       ];
 
-      const csvRows = sortedStudents.map(student => {
+      const excelData = sortedStudents.map(student => {
         // Get father information from student schema (Primary Parent)
         const fatherName =
           student.fatherFirstName && student.fatherLastName
@@ -676,29 +720,33 @@ export class StudentImportService {
         const motherEmail = student.motherEmail || '';
         const motherRelation = 'Mother';
 
-        return [
-          student.user.fullName,
-          student.user.email,
-          student.user.phone,
-          student.rollNumber,
-          student.class.grade,
-          student.class.section,
-          student.dob ? student.dob.toISOString().split('T')[0] : '',
-          student.gender,
-          fatherName, // primaryParentName (Father)
-          fatherPhone, // primaryParentPhone (Father)
-          fatherEmail, // primaryParentEmail (Father)
-          fatherRelation, // primaryParentRelation (Father)
-          motherName, // secondaryParentName (Mother)
-          motherPhone, // secondaryParentPhone (Mother)
-          motherEmail, // secondaryParentEmail (Mother)
-          motherRelation, // secondaryParentRelation (Mother)
-        ].join(',');
+        return {
+          fullName: student.user.fullName,
+          email: student.user.email,
+          phone: student.user.phone,
+          rollNumber: student.rollNumber,
+          classGrade: student.class.grade.toString(),
+          classSection: student.class.section,
+          dateOfBirth: student.dob
+            ? student.dob.toISOString().split('T')[0]
+            : '',
+          gender: student.gender,
+          address: student.address || '',
+          bloodGroup: student.bloodGroup || '',
+          primaryParentName: fatherName, // primaryParentName (Father)
+          primaryParentPhone: fatherPhone, // primaryParentPhone (Father)
+          primaryParentEmail: fatherEmail, // primaryParentEmail (Father)
+          primaryParentRelation: fatherRelation, // primaryParentRelation (Father)
+          secondaryParentName: motherName, // secondaryParentName (Mother)
+          secondaryParentPhone: motherPhone, // secondaryParentPhone (Mother)
+          secondaryParentEmail: motherEmail, // secondaryParentEmail (Mother)
+          secondaryParentRelation: motherRelation, // secondaryParentRelation (Mother)
+        };
       });
 
-      return [headers.join(','), ...csvRows].join('\n');
+      return await generateExcelTemplate(headers, excelData);
     } catch (error) {
-      this.logger.error('Failed to export students to CSV', error);
+      this.logger.error('Failed to export students to Excel', error);
       throw new BadRequestException(
         `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

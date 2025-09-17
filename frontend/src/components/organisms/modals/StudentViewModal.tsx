@@ -177,6 +177,48 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
     }
   };
 
+  // Parse full address into components
+  const parseAddress = (fullAddress: string | undefined) => {
+    if (!fullAddress || fullAddress === 'N/A') {
+      return { street: 'N/A', city: 'N/A', state: 'N/A', pinCode: 'N/A' };
+    }
+
+    // Try to parse address like "123 ABC Street, Sample City, State 12345"
+    const parts = fullAddress.split(',').map(part => part.trim());
+
+    if (parts.length >= 3) {
+      const street = parts[0] || 'N/A';
+      const city = parts[1] || 'N/A';
+      const stateAndPin = parts[2] || 'N/A';
+
+      // Try to separate state and pin code
+      const statePinMatch = stateAndPin.match(/^(.+?)\s+(\d+)$/);
+      if (statePinMatch) {
+        return {
+          street,
+          city,
+          state: statePinMatch[1],
+          pinCode: statePinMatch[2],
+        };
+      } else {
+        return {
+          street,
+          city,
+          state: stateAndPin,
+          pinCode: 'N/A',
+        };
+      }
+    }
+
+    // Fallback: return as street if can't parse
+    return {
+      street: fullAddress,
+      city: 'N/A',
+      state: 'N/A',
+      pinCode: 'N/A',
+    };
+  };
+
   return (
     <div
       className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4'
@@ -278,6 +320,10 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
                       <Phone className='h-4 w-4 text-gray-400' />
                       <span>{studentDetails.phone || 'N/A'}</span>
                     </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600 break-words'>
+                      <MapPin className='h-4 w-4 text-gray-400' />
+                      <span>{studentDetails.address || 'N/A'}</span>
+                    </div>
                     <div className='flex items-center gap-2 text-sm text-gray-600'>
                       <Calendar className='h-4 w-4 text-gray-400' />
                       <span>DOB: {formatDate(studentDetails.dateOfBirth)}</span>
@@ -377,41 +423,54 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
                   </div>
                 </div>
 
-                {/* Contact Information */}
+                {/* Address Information */}
                 <div className='bg-blue-50 rounded-lg p-4'>
                   <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center'>
                     <MapPin className='h-4 w-4 mr-2 text-green-600' />
                     Address Information
                   </h4>
                   <div className='space-y-2'>
-                    <div>
-                      <span className='text-xs text-gray-500 block'>
-                        Street
-                      </span>
-                      <span className='text-sm font-medium text-gray-900'>
-                        {studentDetails.street || 'N/A'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className='text-xs text-gray-500 block'>City</span>
-                      <span className='text-sm font-medium text-gray-900'>
-                        {studentDetails.city || 'N/A'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className='text-xs text-gray-500 block'>State</span>
-                      <span className='text-sm font-medium text-gray-900'>
-                        {studentDetails.state || 'N/A'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className='text-xs text-gray-500 block'>
-                        Pin Code
-                      </span>
-                      <span className='text-sm font-medium text-gray-900'>
-                        {studentDetails.pinCode || 'N/A'}
-                      </span>
-                    </div>
+                    {(() => {
+                      const parsedAddress = parseAddress(
+                        studentDetails.address,
+                      );
+                      return (
+                        <>
+                          <div>
+                            <span className='text-xs text-gray-500 block'>
+                              Street
+                            </span>
+                            <span className='text-sm font-medium text-gray-900'>
+                              {parsedAddress.street}
+                            </span>
+                          </div>
+                          <div>
+                            <span className='text-xs text-gray-500 block'>
+                              City
+                            </span>
+                            <span className='text-sm font-medium text-gray-900'>
+                              {parsedAddress.city}
+                            </span>
+                          </div>
+                          <div>
+                            <span className='text-xs text-gray-500 block'>
+                              State
+                            </span>
+                            <span className='text-sm font-medium text-gray-900'>
+                              {parsedAddress.state}
+                            </span>
+                          </div>
+                          <div>
+                            <span className='text-xs text-gray-500 block'>
+                              Pin Code
+                            </span>
+                            <span className='text-sm font-medium text-gray-900'>
+                              {parsedAddress.pinCode}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
