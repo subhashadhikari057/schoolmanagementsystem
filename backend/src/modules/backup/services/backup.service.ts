@@ -405,21 +405,11 @@ export class BackupService {
         clientKey = backupRecord.encryptionKey;
       }
 
-      // Perform restore with memory monitoring
-      try {
-        this.logger.log(`Starting restore operation for backup: ${backupId}`);
-        await this.restoreService.restoreFromBackup(backupRecord.location, {
-          ...options,
-          clientKey,
-        });
-        this.logger.log(`Restore operation completed for backup: ${backupId}`);
-      } catch (restoreError) {
-        this.logger.error(
-          `Restore operation failed for backup: ${backupId}`,
-          restoreError,
-        );
-        throw restoreError;
-      }
+      // Perform restore
+      await this.restoreService.restoreFromBackup(backupRecord.location, {
+        ...options,
+        clientKey,
+      });
 
       // Audit: Restore success
       const duration = Date.now() - startTime;

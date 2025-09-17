@@ -37,7 +37,7 @@ import { createZodDto } from 'nestjs-zod';
 const CreateBackupDtoSchema = z.object({
   type: z.enum(['DATABASE', 'FILES', 'FULL_SYSTEM']),
   clientId: z.string().optional(),
-  encrypt: z.boolean().optional(),
+  encrypt: z.boolean().optional().default(false),
   clientKey: z.string().optional(),
   outputDir: z.string().optional(),
   backupName: z.string().optional(),

@@ -47,31 +47,6 @@ export class RestoreService {
   ) {}
 
   /**
-   * Check if a file appears to be encrypted by examining its content
-   */
-  private async isFileEncrypted(filePath: string): Promise<boolean> {
-    try {
-      // Read first 16 bytes to check for binary/encrypted content
-      const fileHandle = await fs.open(filePath, 'r');
-      const buffer = Buffer.alloc(16);
-      await fileHandle.read(buffer, 0, 16, 0);
-      await fileHandle.close();
-
-      // Check if content looks like encrypted binary data
-      // Encrypted files typically have high entropy and non-printable characters
-      const nonPrintableCount = buffer.filter(
-        byte => byte < 32 && byte !== 9 && byte !== 10 && byte !== 13,
-      ).length;
-      const highEntropyThreshold = 8; // More than half should be non-printable for encrypted content
-
-      return nonPrintableCount > highEntropyThreshold;
-    } catch (_error) {
-      // If we can't read the file, assume it's not encrypted
-      return false;
-    }
-  }
-
-  /**
    * Detect backup type from file path and contents
    */
   async detectBackupType(
@@ -107,33 +82,16 @@ export class RestoreService {
       let inspectionPath = backupFilePath;
       let needsCleanup = false;
 
-      // Check if file appears to be encrypted (either .enc extension or binary content)
-      const isEncryptedFile =
-        backupFilePath.endsWith('.enc') ||
-        (await this.isFileEncrypted(backupFilePath));
-
-      if (isEncryptedFile && !clientKey) {
-        throw new Error(
-          'This backup file is encrypted. Please provide the encryption key to restore.',
-        );
-      }
-
       // Decrypt if needed for inspection
-      if (isEncryptedFile && clientKey) {
+      if (backupFilePath.endsWith('.enc') && clientKey) {
         const tempPath = `${backupFilePath}.temp_inspect`;
-        try {
-          await this.encryptionService.decryptFile(
-            backupFilePath,
-            tempPath,
-            clientKey,
-          );
-          inspectionPath = tempPath;
-          needsCleanup = true;
-        } catch (_decryptError) {
-          throw new Error(
-            'Failed to decrypt backup file. Please check your encryption key.',
-          );
-        }
+        await this.encryptionService.decryptFile(
+          backupFilePath,
+          tempPath,
+          clientKey,
+        );
+        inspectionPath = tempPath;
+        needsCleanup = true;
       }
 
       let detectedType = BackupType.UNKNOWN;
@@ -217,8 +175,6 @@ export class RestoreService {
       return detectedType;
     } catch (error) {
       this.logger.error(`Failed to detect backup type: ${error.message}`);
-
-      // Don't crash the process, return UNKNOWN instead
       return BackupType.UNKNOWN;
     }
   }
@@ -302,19 +258,6 @@ export class RestoreService {
     try {
       this.logger.log(`Starting restore from: ${backupFilePath}`);
 
-      // Check file exists and get size for memory management
-      try {
-        const stats = await fs.stat(backupFilePath);
-        const fileSizeGB = stats.size / (1024 * 1024 * 1024);
-        if (fileSizeGB > 5) {
-          this.logger.warn(
-            `Large backup file detected: ${fileSizeGB.toFixed(2)}GB - restore may take longer`,
-          );
-        }
-      } catch (_statError) {
-        throw new Error(`Backup file not accessible: ${backupFilePath}`);
-      }
-
       // Detect backup type
       const backupType = await this.detectBackupType(
         backupFilePath,
@@ -364,29 +307,7 @@ export class RestoreService {
       this.logger.log('Restore completed successfully');
     } catch (error) {
       this.logger.error(`Restore failed: ${error.message}`);
-
-      // Force garbage collection to free memory after failed restore
-      if (global.gc) {
-        try {
-          global.gc();
-        } catch (_gcError) {
-          // Ignore GC errors
-        }
-      }
-
-      // Re-throw with more specific error message
-      if (
-        error.message.includes('ENOMEM') ||
-        error.message.includes('out of memory')
-      ) {
-        throw new Error(
-          'Restore failed: Insufficient memory. Try with a smaller backup file or restart the server.',
-        );
-      } else if (error.message.includes('ENOSPC')) {
-        throw new Error('Restore failed: Insufficient disk space.');
-      } else {
-        throw new Error(`Restore failed: ${error.message}`);
-      }
+      throw new Error(`Restore failed: ${error.message}`);
     }
   }
 
