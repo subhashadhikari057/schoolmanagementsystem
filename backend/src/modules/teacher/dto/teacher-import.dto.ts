@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Schema for validating teacher import CSV rows
+ * Schema for validating teacher import Excel rows
  */
 export const TeacherImportRowSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
@@ -32,9 +32,21 @@ export const TeacherImportRowSchema = z.object({
     .string()
     .regex(/^\d+(\.\d+)?$/, 'Allowances must be a number')
     .optional(),
+  totalSalary: z
+    .string()
+    .regex(/^\d+(\.\d+)?$/, 'Total salary must be a number')
+    .optional(),
+  // Bank Account Information
   bankName: z.string().optional(),
   bankAccountNumber: z.string().optional(),
   bankBranch: z.string().optional(),
+  // Additional fields
+  citizenshipNumber: z.string().optional(),
+  panNumber: z.string().optional(),
+  bloodGroup: z.string().optional(),
+  maritalStatus: z.string().optional(),
+  address: z.string().optional(),
+  // Assignment fields
   subjects: z.string().optional(), // Comma-separated subject codes
   classes: z.string().optional(), // Comma-separated class sections (e.g., "10-A,11-B")
 });

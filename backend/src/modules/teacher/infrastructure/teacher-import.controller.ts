@@ -111,14 +111,22 @@ export class TeacherImportController {
     FileInterceptor('file', {
       storage: undefined, // Use memory storage to get buffer
       fileFilter: (req, file, cb) => {
-        // Accept CSV files
+        // Accept Excel files
         if (
-          file.mimetype === 'text/csv' ||
-          file.originalname.endsWith('.csv')
+          file.mimetype ===
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+          file.mimetype === 'application/vnd.ms-excel' ||
+          file.originalname.endsWith('.xlsx') ||
+          file.originalname.endsWith('.xls')
         ) {
           cb(null, true);
         } else {
-          cb(new BadRequestException('Only CSV files are supported'), false);
+          cb(
+            new BadRequestException(
+              'Only Excel files (.xlsx, .xls) are supported',
+            ),
+            false,
+          );
         }
       },
       limits: {
@@ -143,9 +151,14 @@ export class TeacherImportController {
       filename: file.filename,
     });
 
-    if (!file.originalname.endsWith('.csv')) {
+    if (
+      !file.originalname.endsWith('.xlsx') &&
+      !file.originalname.endsWith('.xls')
+    ) {
       this.logger.warn(`Invalid file type: ${file.originalname}`);
-      throw new BadRequestException('Only CSV files are supported');
+      throw new BadRequestException(
+        'Only Excel files (.xlsx, .xls) are supported',
+      );
     }
 
     // Check if file has buffer property
@@ -164,11 +177,8 @@ export class TeacherImportController {
     }
 
     this.logger.log(
-      `Processing CSV file: ${file.originalname}, size: ${file.size} bytes`,
+      `Processing Excel file: ${file.originalname}, size: ${file.size} bytes`,
     );
-
-    const csvContent = file.buffer.toString('utf-8');
-    this.logger.log(`CSV content length: ${csvContent.length} characters`);
 
     const options = {
       skipDuplicates: skipDuplicates === 'true',
@@ -177,23 +187,23 @@ export class TeacherImportController {
 
     this.logger.log(`Import options: ${JSON.stringify(options)}`);
 
-    return await this.teacherImportService.importTeachersFromCSV(
-      csvContent,
+    return await this.teacherImportService.importTeachersFromExcel(
+      file.buffer,
       user?.id || 'system',
       options,
     );
   }
 
   /**
-   * Export teachers to CSV
+   * Export teachers to Excel
    */
   @Get('export')
   @RoleAccess.AdminLevel()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Export teachers to CSV' })
+  @ApiOperation({ summary: 'Export teachers to Excel' })
   @ApiResponse({
     status: 200,
-    description: 'CSV file with teacher data',
+    description: 'Excel file with teacher data',
     schema: {
       type: 'string',
       format: 'binary',
@@ -205,42 +215,49 @@ export class TeacherImportController {
     @Query('search') search?: string,
     @Query('designation') designation?: string,
   ) {
-    const csvContent = await this.teacherImportService.exportTeachersToCSV({
+    const excelBuffer = await this.teacherImportService.exportTeachersToExcel({
       department,
       search,
       designation,
     });
 
-    const filename = `teachers_export_${new Date().toISOString().split('T')[0]}.csv`;
+    const filename = `teachers_export_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csvContent);
+    res.send(excelBuffer);
   }
 
   /**
-   * Get CSV template for teacher import
+   * Get Excel template for teacher import
    */
   @Get('import/template')
   @RoleAccess.AdminLevel()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get CSV template for teacher import' })
+  @ApiOperation({ summary: 'Get Excel template for teacher import' })
   @ApiResponse({
     status: 200,
-    description: 'CSV template file',
+    description: 'Excel template file',
     schema: {
       type: 'string',
       format: 'binary',
     },
   })
   async getImportTemplate(@Res() res: Response) {
-    const csvContent = this.teacherImportService.generateImportTemplate();
+    const excelBuffer =
+      await this.teacherImportService.generateImportTemplate();
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader(
       'Content-Disposition',
-      'attachment; filename="teacher_import_template.csv"',
+      'attachment; filename="teacher_import_template.xlsx"',
     );
-    res.send(csvContent);
+    res.send(excelBuffer);
   }
 }
