@@ -941,9 +941,9 @@ export default function CreateTemplateModal({
 
                   <TabsContent
                     value='layout'
-                    className='space-y-4 mt-0 h-full flex flex-col overflow-y-auto'
+                    className='space-y-4 mt-0 h-full max-h-[calc(100vh-300px)] overflow-y-auto'
                   >
-                    <div className='space-y-4 flex-shrink-0'>
+                    <div className='space-y-4 pr-2'>
                       {/* Add Elements Section */}
                       <div className='bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200'>
                         <Label className='text-sm font-semibold text-blue-900 mb-3 block'>
@@ -989,391 +989,665 @@ export default function CreateTemplateModal({
                         </div>
                       </div>
 
-                      {/* Field Management with Inline Editing */}
-                      <div className='space-y-2 flex-1 flex flex-col min-h-0 overflow-hidden'>
-                        <Label className='text-sm font-semibold text-gray-900'>
-                          Field Management
-                        </Label>
-                        <div className='space-y-3 flex-1 overflow-y-auto pr-2 min-h-0 pb-4 max-h-[calc(100vh-320px)]'>
-                          {templateFields.length === 0 ? (
-                            <div className='p-6 text-center text-gray-500 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50/30'>
-                              <Layout className='w-10 h-10 mx-auto mb-3 text-blue-400' />
-                              <p className='text-sm font-medium text-blue-700'>
-                                No fields added yet
-                              </p>
-                              <p className='text-xs text-blue-600'>
-                                Add elements using the buttons above
+                      {/* Enhanced Field Management List */}
+                      <div className='space-y-4'>
+                        <div className='flex items-center justify-between bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 p-4 rounded-xl border border-slate-200 shadow-sm'>
+                          <div className='flex items-center space-x-3'>
+                            <div className='h-10 w-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md'>
+                              <svg
+                                className='w-5 h-5 text-white'
+                                fill='none'
+                                stroke='currentColor'
+                                viewBox='0 0 24 24'
+                              >
+                                <path
+                                  strokeLinecap='round'
+                                  strokeLinejoin='round'
+                                  strokeWidth='2'
+                                  d='M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <Label className='text-base font-bold text-slate-900 block'>
+                                Field Management
+                              </Label>
+                              <p className='text-sm text-slate-600'>
+                                {templateFields.length} element
+                                {templateFields.length !== 1 ? 's' : ''} • Click
+                                to select and edit
                               </p>
                             </div>
-                          ) : (
-                            templateFields.map(field => (
-                              <div key={field.id} className='space-y-0'>
-                                <div
-                                  className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-                                    selectedField === field.id
-                                      ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md'
-                                      : 'border-gray-200 hover:bg-gray-50 hover:border-blue-300'
-                                  }`}
-                                  onClick={() =>
-                                    setSelectedField(
-                                      selectedField === field.id
-                                        ? null
-                                        : field.id,
-                                    )
-                                  }
-                                >
-                                  <div className='flex items-center justify-between mb-2'>
-                                    <span className='text-sm font-semibold truncate text-gray-800'>
-                                      {field.label}
-                                    </span>
-                                    <div className='flex items-center space-x-2'>
-                                      <Badge
-                                        variant='outline'
-                                        className='text-xs bg-blue-100 text-blue-700 border-blue-200'
-                                      >
-                                        {field.fieldType}
-                                      </Badge>
-                                      <Button
-                                        variant='outline'
-                                        size='sm'
-                                        className='h-8 w-8 p-0 border-blue-200 bg-white hover:bg-blue-50 hover:border-blue-300 shadow-sm'
-                                        onClick={e => {
-                                          e.stopPropagation();
-                                          duplicateField(field.id);
-                                        }}
-                                      >
-                                        <Copy className='w-4 h-4 text-blue-600' />
-                                      </Button>
-                                      <Button
-                                        variant='outline'
-                                        size='sm'
-                                        className='h-8 w-8 p-0 border-red-200 bg-white hover:bg-red-50 hover:border-red-300 shadow-sm'
-                                        onClick={e => {
-                                          e.stopPropagation();
-                                          removeField(field.id);
-                                        }}
-                                      >
-                                        <Minus className='w-4 h-4 text-red-600' />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <div className='text-xs text-gray-600 flex items-center space-x-4'>
-                                    <span>
-                                      Position: {field.x}, {field.y}
-                                    </span>
-                                    <span>
-                                      Size: {field.width} × {field.height}
-                                    </span>
-                                  </div>
+                          </div>
+                          {selectedField && (
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => setSelectedField(null)}
+                              className='h-9 px-4 text-sm text-slate-600 hover:text-slate-800 border-slate-300 hover:border-slate-400 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200'
+                            >
+                              <X className='w-4 h-4 mr-2' />
+                              Clear Selection
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className='bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden'>
+                          <div className='max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100'>
+                            {templateFields.length === 0 ? (
+                              <div className='p-8 text-center'>
+                                <div className='w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm'>
+                                  <Layout className='w-8 h-8 text-blue-500' />
                                 </div>
+                                <h4 className='text-base font-semibold text-slate-800 mb-2'>
+                                  No fields added yet
+                                </h4>
+                                <p className='text-sm text-slate-600 max-w-xs mx-auto leading-relaxed'>
+                                  Start building your ID card by adding elements
+                                  using the buttons above
+                                </p>
+                              </div>
+                            ) : (
+                              <div className='divide-y divide-slate-100'>
+                                {templateFields.map((field, index) => {
+                                  const isSelected = selectedField === field.id;
+                                  const getFieldIcon = () => {
+                                    switch (field.fieldType) {
+                                      case TemplateFieldType.TEXT:
+                                        return <Type className='w-4 h-4' />;
+                                      case TemplateFieldType.IMAGE:
+                                        return (
+                                          <ImageIcon className='w-4 h-4' />
+                                        );
+                                      case TemplateFieldType.QR_CODE:
+                                        return <QrCode className='w-4 h-4' />;
+                                      case TemplateFieldType.LOGO:
+                                        return (
+                                          <ImageIcon className='w-4 h-4' />
+                                        );
+                                      default:
+                                        return <Type className='w-4 h-4' />;
+                                    }
+                                  };
 
-                                {/* Inline Edit Dialog - appears right below clicked element */}
-                                {selectedField === field.id && (
-                                  <div className='bg-white border-2 border-blue-300 rounded-lg p-4 shadow-lg animate-in slide-in-from-top-2 duration-200 mt-2 overflow-y-auto max-h-[60vh] flex flex-col min-h-0'>
-                                    <div className='space-y-4'>
+                                  const getFieldColor = () => {
+                                    switch (field.fieldType) {
+                                      case TemplateFieldType.TEXT:
+                                        return 'blue';
+                                      case TemplateFieldType.IMAGE:
+                                        return 'emerald';
+                                      case TemplateFieldType.QR_CODE:
+                                        return 'purple';
+                                      case TemplateFieldType.LOGO:
+                                        return 'orange';
+                                      default:
+                                        return 'blue';
+                                    }
+                                  };
+
+                                  const color = getFieldColor();
+
+                                  return (
+                                    <div
+                                      key={field.id}
+                                      className={`group p-4 cursor-pointer transition-all duration-200 hover:bg-slate-50 ${
+                                        isSelected
+                                          ? 'bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border-l-4 border-l-blue-500'
+                                          : 'bg-white hover:shadow-sm'
+                                      }`}
+                                      onClick={() => setSelectedField(field.id)}
+                                    >
                                       <div className='flex items-center justify-between'>
-                                        <h5 className='font-semibold text-blue-900 flex items-center'>
-                                          <Type className='w-4 h-4 mr-2' />
-                                          Edit: {field.label}
-                                        </h5>
-                                        <Button
-                                          variant='ghost'
-                                          size='sm'
-                                          onClick={() => setSelectedField(null)}
-                                          className='h-8 w-8 p-0'
-                                        >
-                                          <X className='w-4 h-4' />
-                                        </Button>
-                                      </div>
+                                        <div className='flex items-center space-x-4 flex-1 min-w-0'>
+                                          {/* Field Number and Icon */}
+                                          <div className='flex items-center space-x-3'>
+                                            <div
+                                              className={`relative w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm transition-all duration-200 ${
+                                                isSelected
+                                                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white scale-110 shadow-md'
+                                                  : 'bg-gradient-to-br from-slate-100 to-slate-200 text-slate-600 group-hover:from-slate-200 group-hover:to-slate-300'
+                                              }`}
+                                            >
+                                              {index + 1}
+                                              {isSelected && (
+                                                <div className='absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white'></div>
+                                              )}
+                                            </div>
+                                            <div
+                                              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                                                color === 'blue'
+                                                  ? 'bg-blue-100 text-blue-600'
+                                                  : color === 'emerald'
+                                                    ? 'bg-emerald-100 text-emerald-600'
+                                                    : color === 'purple'
+                                                      ? 'bg-purple-100 text-purple-600'
+                                                      : 'bg-orange-100 text-orange-600'
+                                              } ${isSelected ? 'scale-105 shadow-md' : 'group-hover:scale-105'}`}
+                                            >
+                                              {getFieldIcon()}
+                                            </div>
+                                          </div>
 
-                                      {/* Field Properties */}
-                                      <div className='grid grid-cols-2 gap-3'>
+                                          {/* Field Information */}
+                                          <div className='flex-1 min-w-0'>
+                                            <div className='flex items-center space-x-3 mb-2'>
+                                              <h4 className='text-sm font-semibold text-slate-800 truncate'>
+                                                {field.label}
+                                              </h4>
+                                              <Badge
+                                                variant='outline'
+                                                className={`text-xs px-2 py-1 font-medium border transition-all duration-200 ${
+                                                  color === 'blue'
+                                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                    : color === 'emerald'
+                                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                      : color === 'purple'
+                                                        ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                                        : 'bg-orange-50 text-orange-700 border-orange-200'
+                                                } ${isSelected ? 'shadow-sm' : ''}`}
+                                              >
+                                                {field.fieldType.replace(
+                                                  '_',
+                                                  ' ',
+                                                )}
+                                              </Badge>
+                                            </div>
+                                            <div className='flex items-center space-x-4 text-xs text-slate-500'>
+                                              <div className='flex items-center space-x-1'>
+                                                <svg
+                                                  className='w-3 h-3'
+                                                  fill='none'
+                                                  stroke='currentColor'
+                                                  viewBox='0 0 24 24'
+                                                >
+                                                  <path
+                                                    strokeLinecap='round'
+                                                    strokeLinejoin='round'
+                                                    strokeWidth='2'
+                                                    d='M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'
+                                                  />
+                                                  <path
+                                                    strokeLinecap='round'
+                                                    strokeLinejoin='round'
+                                                    strokeWidth='2'
+                                                    d='M15 11a3 3 0 11-6 0 3 3 0 016 0z'
+                                                  />
+                                                </svg>
+                                                <span className='font-medium'>
+                                                  {field.x}, {field.y}
+                                                </span>
+                                              </div>
+                                              <div className='flex items-center space-x-1'>
+                                                <svg
+                                                  className='w-3 h-3'
+                                                  fill='none'
+                                                  stroke='currentColor'
+                                                  viewBox='0 0 24 24'
+                                                >
+                                                  <path
+                                                    strokeLinecap='round'
+                                                    strokeLinejoin='round'
+                                                    strokeWidth='2'
+                                                    d='M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4'
+                                                  />
+                                                </svg>
+                                                <span className='font-medium'>
+                                                  {field.width}×{field.height}
+                                                </span>
+                                              </div>
+                                              {field.fieldType ===
+                                                TemplateFieldType.TEXT &&
+                                                field.dataSource && (
+                                                  <Badge
+                                                    variant='outline'
+                                                    className={`text-xs px-2 py-0.5 font-medium ${
+                                                      field.dataSource ===
+                                                      'static'
+                                                        ? 'bg-green-50 text-green-700 border-green-200'
+                                                        : 'bg-purple-50 text-purple-700 border-purple-200'
+                                                    }`}
+                                                  >
+                                                    {field.dataSource ===
+                                                    'static'
+                                                      ? 'Static'
+                                                      : 'Dynamic'}
+                                                  </Badge>
+                                                )}
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className='flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200'>
+                                          <Button
+                                            variant='outline'
+                                            size='sm'
+                                            className='h-8 w-8 p-0 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200 shadow-sm hover:shadow-md'
+                                            onClick={e => {
+                                              e.stopPropagation();
+                                              duplicateField(field.id);
+                                            }}
+                                            title='Duplicate field'
+                                          >
+                                            <Copy className='w-3.5 h-3.5 text-emerald-600' />
+                                          </Button>
+                                          <Button
+                                            variant='outline'
+                                            size='sm'
+                                            className='h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300 transition-all duration-200 shadow-sm hover:shadow-md'
+                                            onClick={e => {
+                                              e.stopPropagation();
+                                              removeField(field.id);
+                                            }}
+                                            title='Delete field'
+                                          >
+                                            <Minus className='w-3.5 h-3.5 text-red-600' />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Separate Edit Panel - Only shows when a field is selected */}
+                      {selectedField &&
+                        (() => {
+                          const field = templateFields.find(
+                            f => f.id === selectedField,
+                          );
+                          if (!field) return null;
+
+                          return (
+                            <div className='bg-white border-2 border-blue-300 rounded-lg shadow-lg max-h-[60vh] flex flex-col'>
+                              <div className='flex items-center justify-between p-4 border-b border-blue-200 flex-shrink-0'>
+                                <h5 className='font-semibold text-blue-900 flex items-center'>
+                                  <Type className='w-4 h-4 mr-2' />
+                                  Edit Field: {field.label}
+                                </h5>
+                                <Button
+                                  variant='ghost'
+                                  size='sm'
+                                  onClick={() => setSelectedField(null)}
+                                  className='h-8 w-8 p-0'
+                                >
+                                  <X className='w-4 h-4' />
+                                </Button>
+                              </div>
+
+                              <div className='overflow-y-auto flex-1 p-4 min-h-0'>
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                  {/* Left Column - Basic Properties */}
+                                  <div className='space-y-3'>
+                                    <div className='space-y-2'>
+                                      <Label className='text-xs font-medium text-gray-700'>
+                                        Field Label
+                                      </Label>
+                                      <Input
+                                        value={field.label}
+                                        onChange={e =>
+                                          updateField(field.id, {
+                                            label: e.target.value,
+                                          })
+                                        }
+                                        className='h-8 text-sm border-blue-200 focus:border-blue-400'
+                                      />
+                                    </div>
+
+                                    {field.fieldType ===
+                                      TemplateFieldType.TEXT && (
+                                      <div className='space-y-2'>
+                                        <Label className='text-xs font-medium text-gray-700'>
+                                          Data Source
+                                        </Label>
+                                        <Select
+                                          value={field.dataSource || 'static'}
+                                          onValueChange={(value: string) =>
+                                            updateField(field.id, {
+                                              dataSource: value as
+                                                | 'static'
+                                                | 'database',
+                                            })
+                                          }
+                                        >
+                                          <SelectTrigger className='h-8 border-blue-200'>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value='static'>
+                                              Static Text
+                                            </SelectItem>
+                                            <SelectItem value='database'>
+                                              Database Field
+                                            </SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
+
+                                    {field.fieldType ===
+                                      TemplateFieldType.TEXT &&
+                                      field.dataSource === 'static' && (
                                         <div className='space-y-2'>
                                           <Label className='text-xs font-medium text-gray-700'>
-                                            Field Label
+                                            Static Text
                                           </Label>
                                           <Input
-                                            value={field.label}
+                                            value={field.staticText || ''}
                                             onChange={e =>
                                               updateField(field.id, {
-                                                label: e.target.value,
+                                                staticText: e.target.value,
+                                                placeholder: e.target.value,
                                               })
                                             }
+                                            placeholder='Enter static text...'
                                             className='h-8 text-sm border-blue-200 focus:border-blue-400'
                                           />
                                         </div>
+                                      )}
 
-                                        {field.fieldType ===
-                                          TemplateFieldType.TEXT && (
-                                          <div className='space-y-2'>
-                                            <Label className='text-xs font-medium text-gray-700'>
-                                              Data Source
-                                            </Label>
-                                            <Select
-                                              value={
-                                                field.dataSource || 'static'
-                                              }
-                                              onValueChange={(value: string) =>
-                                                updateField(field.id, {
-                                                  dataSource: value as
-                                                    | 'static'
-                                                    | 'database',
-                                                })
-                                              }
-                                            >
-                                              <SelectTrigger className='h-8 border-blue-200'>
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value='static'>
-                                                  Static Text
-                                                </SelectItem>
-                                                <SelectItem value='database'>
-                                                  Database Field
-                                                </SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* Field Type Specific Options */}
-                                      {field.fieldType ===
-                                        TemplateFieldType.TEXT && (
-                                        <div className='space-y-4'>
-                                          {field.dataSource === 'static' ? (
-                                            <div className='space-y-2'>
-                                              <Label className='text-xs font-medium text-gray-700'>
-                                                Static Text
-                                              </Label>
-                                              <Input
-                                                value={field.staticText || ''}
-                                                onChange={e =>
-                                                  updateField(field.id, {
-                                                    staticText: e.target.value,
-                                                    placeholder: e.target.value,
-                                                  })
-                                                }
-                                                placeholder='Enter static text...'
-                                                className='h-8 text-sm border-blue-200 focus:border-blue-400'
-                                              />
-                                            </div>
-                                          ) : (
-                                            <div className='space-y-2'>
-                                              <Label className='text-xs font-medium text-gray-700'>
-                                                Database Field
-                                              </Label>
-                                              <Select
-                                                value={
-                                                  field.databaseField || ''
-                                                }
-                                                onValueChange={value =>
-                                                  updateField(field.id, {
-                                                    databaseField: value,
-                                                    placeholder: value,
-                                                  })
-                                                }
-                                              >
-                                                <SelectTrigger className='h-8 border-blue-200'>
-                                                  <SelectValue placeholder='Select database field...' />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  {getSelectedTemplateType()?.fields.map(
-                                                    dbField => (
-                                                      <SelectItem
-                                                        key={dbField}
-                                                        value={dbField}
-                                                      >
-                                                        {dbField}
-                                                      </SelectItem>
-                                                    ),
-                                                  )}
-                                                </SelectContent>
-                                              </Select>
-                                            </div>
-                                          )}
-
-                                          {/* Typography Controls */}
-                                          <div className='grid grid-cols-2 gap-3'>
-                                            <div className='space-y-2'>
-                                              <Label className='text-xs font-medium text-gray-700'>
-                                                Font Family
-                                              </Label>
-                                              <Select
-                                                value={
-                                                  field.fontFamily || 'Inter'
-                                                }
-                                                onValueChange={value =>
-                                                  updateField(field.id, {
-                                                    fontFamily: value,
-                                                  })
-                                                }
-                                              >
-                                                <SelectTrigger className='h-8 border-blue-200'>
-                                                  <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  {fontFamilies.map(font => (
-                                                    <SelectItem
-                                                      key={font}
-                                                      value={font}
-                                                    >
-                                                      {font}
-                                                    </SelectItem>
-                                                  ))}
-                                                </SelectContent>
-                                              </Select>
-                                            </div>
-                                            <div className='space-y-2'>
-                                              <Label className='text-xs font-medium text-gray-700'>
-                                                Font Size
-                                              </Label>
-                                              <Input
-                                                type='number'
-                                                value={field.fontSize || 12}
-                                                onChange={e =>
-                                                  updateField(field.id, {
-                                                    fontSize: Number(
-                                                      e.target.value,
-                                                    ),
-                                                  })
-                                                }
-                                                className='h-8 text-sm border-blue-200'
-                                              />
-                                            </div>
-                                          </div>
-
-                                          <div className='grid grid-cols-2 gap-3'>
-                                            <div className='space-y-2'>
-                                              <Label className='text-xs font-medium text-gray-700'>
-                                                Font Weight
-                                              </Label>
-                                              <Select
-                                                value={
-                                                  field.fontWeight || 'normal'
-                                                }
-                                                onValueChange={value =>
-                                                  updateField(field.id, {
-                                                    fontWeight: value as
-                                                      | 'normal'
-                                                      | 'bold',
-                                                  })
-                                                }
-                                              >
-                                                <SelectTrigger className='h-8 border-blue-200'>
-                                                  <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  <SelectItem value='normal'>
-                                                    Normal
+                                    {field.fieldType ===
+                                      TemplateFieldType.TEXT &&
+                                      field.dataSource === 'database' && (
+                                        <div className='space-y-2'>
+                                          <Label className='text-xs font-medium text-gray-700'>
+                                            Database Field
+                                          </Label>
+                                          <Select
+                                            value={field.databaseField || ''}
+                                            onValueChange={value =>
+                                              updateField(field.id, {
+                                                databaseField: value,
+                                                placeholder: value,
+                                              })
+                                            }
+                                          >
+                                            <SelectTrigger className='h-8 border-blue-200'>
+                                              <SelectValue placeholder='Select database field...' />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {getSelectedTemplateType()?.fields.map(
+                                                dbField => (
+                                                  <SelectItem
+                                                    key={dbField}
+                                                    value={dbField}
+                                                  >
+                                                    {dbField}
                                                   </SelectItem>
-                                                  <SelectItem value='bold'>
-                                                    Bold
-                                                  </SelectItem>
-                                                </SelectContent>
-                                              </Select>
-                                            </div>
-                                            <div className='space-y-2'>
-                                              <Label className='text-xs font-medium text-gray-700'>
-                                                Text Color
-                                              </Label>
-                                              <div className='flex items-center space-x-2'>
-                                                <Input
-                                                  type='color'
-                                                  value={
-                                                    field.color || '#000000'
-                                                  }
-                                                  onChange={e =>
-                                                    updateField(field.id, {
-                                                      color: e.target.value,
-                                                    })
-                                                  }
-                                                  className='w-8 h-8 p-1 border border-blue-200 rounded'
-                                                />
-                                                <Input
-                                                  value={
-                                                    field.color || '#000000'
-                                                  }
-                                                  onChange={e =>
-                                                    updateField(field.id, {
-                                                      color: e.target.value,
-                                                    })
-                                                  }
-                                                  className='flex-1 h-8 text-sm border-blue-200'
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
-
-                                          <div className='space-y-2'>
-                                            <Label className='text-xs font-medium text-gray-700'>
-                                              Text Alignment
-                                            </Label>
-                                            <div className='flex space-x-1'>
-                                              {[
-                                                {
-                                                  value: TextAlignment.LEFT,
-                                                  icon: AlignLeft,
-                                                },
-                                                {
-                                                  value: TextAlignment.CENTER,
-                                                  icon: AlignCenter,
-                                                },
-                                                {
-                                                  value: TextAlignment.RIGHT,
-                                                  icon: AlignRight,
-                                                },
-                                              ].map(({ value, icon: Icon }) => (
-                                                <Button
-                                                  key={value}
-                                                  variant={
-                                                    field.textAlign === value
-                                                      ? 'default'
-                                                      : 'outline'
-                                                  }
-                                                  size='sm'
-                                                  className='h-8 flex-1 border-blue-200'
-                                                  onClick={() =>
-                                                    updateField(field.id, {
-                                                      textAlign: value,
-                                                    })
-                                                  }
-                                                >
-                                                  <Icon className='w-3 h-3' />
-                                                </Button>
-                                              ))}
-                                            </div>
-                                          </div>
+                                                ),
+                                              )}
+                                            </SelectContent>
+                                          </Select>
                                         </div>
                                       )}
 
-                                      {/* Image Field Specific Options */}
-                                      {(field.fieldType ===
-                                        TemplateFieldType.IMAGE ||
-                                        field.fieldType ===
-                                          TemplateFieldType.LOGO) && (
-                                        <div className='space-y-3'>
-                                          <div className='space-y-2'>
-                                            <Label className='text-xs font-medium text-gray-700'>
-                                              Image Source
-                                            </Label>
-                                            <Select
-                                              value={
-                                                field.databaseField || 'upload'
+                                    {field.fieldType ===
+                                      TemplateFieldType.TEXT && (
+                                      <div className='grid grid-cols-2 gap-2'>
+                                        <div className='space-y-1'>
+                                          <Label className='text-xs font-medium text-gray-700'>
+                                            Font Size
+                                          </Label>
+                                          <Input
+                                            type='number'
+                                            value={field.fontSize || 12}
+                                            onChange={e =>
+                                              updateField(field.id, {
+                                                fontSize: Number(
+                                                  e.target.value,
+                                                ),
+                                              })
+                                            }
+                                            className='h-8 text-sm border-blue-200'
+                                          />
+                                        </div>
+                                        <div className='space-y-1'>
+                                          <Label className='text-xs font-medium text-gray-700'>
+                                            Text Color
+                                          </Label>
+                                          <Input
+                                            type='color'
+                                            value={field.color || '#000000'}
+                                            onChange={e =>
+                                              updateField(field.id, {
+                                                color: e.target.value,
+                                              })
+                                            }
+                                            className='h-8 w-full border-blue-200'
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Right Column - Position & Advanced */}
+                                  <div className='space-y-3'>
+                                    <div className='grid grid-cols-2 gap-2'>
+                                      <div className='space-y-1'>
+                                        <Label className='text-xs font-medium text-gray-700'>
+                                          X Position
+                                        </Label>
+                                        <Input
+                                          type='number'
+                                          value={field.x}
+                                          onChange={e =>
+                                            updateField(field.id, {
+                                              x: Number(e.target.value),
+                                            })
+                                          }
+                                          className='h-8 text-sm border-blue-200'
+                                        />
+                                      </div>
+                                      <div className='space-y-1'>
+                                        <Label className='text-xs font-medium text-gray-700'>
+                                          Y Position
+                                        </Label>
+                                        <Input
+                                          type='number'
+                                          value={field.y}
+                                          onChange={e =>
+                                            updateField(field.id, {
+                                              y: Number(e.target.value),
+                                            })
+                                          }
+                                          className='h-8 text-sm border-blue-200'
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className='grid grid-cols-2 gap-2'>
+                                      <div className='space-y-1'>
+                                        <Label className='text-xs font-medium text-gray-700'>
+                                          Width
+                                        </Label>
+                                        <Input
+                                          type='number'
+                                          value={field.width}
+                                          onChange={e =>
+                                            updateField(field.id, {
+                                              width: Number(e.target.value),
+                                            })
+                                          }
+                                          className='h-8 text-sm border-blue-200'
+                                        />
+                                      </div>
+                                      <div className='space-y-1'>
+                                        <Label className='text-xs font-medium text-gray-700'>
+                                          Height
+                                        </Label>
+                                        <Input
+                                          type='number'
+                                          value={field.height}
+                                          onChange={e =>
+                                            updateField(field.id, {
+                                              height: Number(e.target.value),
+                                            })
+                                          }
+                                          className='h-8 text-sm border-blue-200'
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {field.fieldType ===
+                                      TemplateFieldType.TEXT && (
+                                      <div className='grid grid-cols-2 gap-2'>
+                                        <div className='space-y-1'>
+                                          <Label className='text-xs font-medium text-gray-700'>
+                                            Font Family
+                                          </Label>
+                                          <Select
+                                            value={field.fontFamily || 'Inter'}
+                                            onValueChange={value =>
+                                              updateField(field.id, {
+                                                fontFamily: value,
+                                              })
+                                            }
+                                          >
+                                            <SelectTrigger className='h-8 border-blue-200'>
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {fontFamilies.map(font => (
+                                                <SelectItem
+                                                  key={font}
+                                                  value={font}
+                                                >
+                                                  {font}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className='space-y-1'>
+                                          <Label className='text-xs font-medium text-gray-700'>
+                                            Font Weight
+                                          </Label>
+                                          <Select
+                                            value={field.fontWeight || 'normal'}
+                                            onValueChange={value =>
+                                              updateField(field.id, {
+                                                fontWeight: value as
+                                                  | 'normal'
+                                                  | 'bold',
+                                              })
+                                            }
+                                          >
+                                            <SelectTrigger className='h-8 border-blue-200'>
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value='normal'>
+                                                Normal
+                                              </SelectItem>
+                                              <SelectItem value='bold'>
+                                                Bold
+                                              </SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {field.fieldType ===
+                                      TemplateFieldType.TEXT && (
+                                      <div className='space-y-2'>
+                                        <Label className='text-xs font-medium text-gray-700'>
+                                          Text Alignment
+                                        </Label>
+                                        <div className='flex space-x-1'>
+                                          {[
+                                            {
+                                              value: TextAlignment.LEFT,
+                                              icon: AlignLeft,
+                                            },
+                                            {
+                                              value: TextAlignment.CENTER,
+                                              icon: AlignCenter,
+                                            },
+                                            {
+                                              value: TextAlignment.RIGHT,
+                                              icon: AlignRight,
+                                            },
+                                          ].map(({ value, icon: Icon }) => (
+                                            <Button
+                                              key={value}
+                                              variant={
+                                                field.textAlign === value
+                                                  ? 'default'
+                                                  : 'outline'
                                               }
-                                              onValueChange={value =>
+                                              size='sm'
+                                              className='h-8 flex-1 border-blue-200'
+                                              onClick={() =>
                                                 updateField(field.id, {
-                                                  databaseField:
-                                                    value === 'upload'
-                                                      ? undefined
-                                                      : value,
+                                                  textAlign: value,
                                                 })
                                               }
                                             >
-                                              <SelectTrigger className='h-8 border-blue-200'>
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
+                                              <Icon className='w-3 h-3' />
+                                            </Button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Image & QR Code fields */}
+                                    {(field.fieldType ===
+                                      TemplateFieldType.IMAGE ||
+                                      field.fieldType ===
+                                        TemplateFieldType.LOGO ||
+                                      field.fieldType ===
+                                        TemplateFieldType.QR_CODE) && (
+                                      <div className='space-y-2'>
+                                        <Label className='text-xs font-medium text-gray-700'>
+                                          {field.fieldType ===
+                                          TemplateFieldType.QR_CODE
+                                            ? 'QR Data Source'
+                                            : 'Image Source'}
+                                        </Label>
+                                        <Select
+                                          value={
+                                            field.databaseField ||
+                                            (field.fieldType ===
+                                            TemplateFieldType.QR_CODE
+                                              ? 'studentId'
+                                              : 'upload')
+                                          }
+                                          onValueChange={value =>
+                                            updateField(field.id, {
+                                              databaseField:
+                                                value === 'upload'
+                                                  ? undefined
+                                                  : value,
+                                            })
+                                          }
+                                        >
+                                          <SelectTrigger className='h-8 border-blue-200'>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {field.fieldType ===
+                                            TemplateFieldType.QR_CODE ? (
+                                              <>
+                                                <SelectItem value='studentId'>
+                                                  Student ID
+                                                </SelectItem>
+                                                <SelectItem value='admissionNumber'>
+                                                  Admission Number
+                                                </SelectItem>
+                                                <SelectItem value='employeeId'>
+                                                  Employee ID
+                                                </SelectItem>
+                                                <SelectItem value='rollNumber'>
+                                                  Roll Number
+                                                </SelectItem>
+                                              </>
+                                            ) : (
+                                              <>
                                                 <SelectItem value='upload'>
                                                   Manual Upload
                                                 </SelectItem>
@@ -1397,207 +1671,18 @@ export default function CreateTemplateModal({
                                                     School Logo
                                                   </SelectItem>
                                                 )}
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-
-                                          {(!field.databaseField ||
-                                            field.databaseField ===
-                                              'schoolLogo') && (
-                                            <div className='space-y-2'>
-                                              <Label className='text-xs font-medium text-gray-700'>
-                                                Upload Image
-                                              </Label>
-                                              <div className='border-2 border-dashed border-blue-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors cursor-pointer'>
-                                                <input
-                                                  type='file'
-                                                  accept='image/png,image/jpeg,image/jpg'
-                                                  className='hidden'
-                                                  id={`image-upload-${field.id}`}
-                                                  onChange={e => {
-                                                    const file =
-                                                      e.target.files?.[0];
-                                                    if (file) {
-                                                      const reader =
-                                                        new FileReader();
-                                                      reader.onload = event => {
-                                                        updateField(field.id, {
-                                                          imageUrl: event.target
-                                                            ?.result as string,
-                                                        });
-                                                      };
-                                                      reader.readAsDataURL(
-                                                        file,
-                                                      );
-                                                    }
-                                                  }}
-                                                />
-                                                <label
-                                                  htmlFor={`image-upload-${field.id}`}
-                                                  className='cursor-pointer'
-                                                >
-                                                  <ImageIcon className='w-8 h-8 mx-auto mb-2 text-blue-400' />
-                                                  <p className='text-sm text-blue-600'>
-                                                    Click to upload{' '}
-                                                    {field.fieldType ===
-                                                    TemplateFieldType.LOGO
-                                                      ? 'school logo'
-                                                      : 'image'}
-                                                  </p>
-                                                  <p className='text-xs text-gray-500'>
-                                                    PNG, JPG up to 2MB
-                                                  </p>
-                                                </label>
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-
-                                      {/* QR Code Field Options */}
-                                      {field.fieldType ===
-                                        TemplateFieldType.QR_CODE && (
-                                        <div className='space-y-3'>
-                                          <div className='p-3 bg-blue-50 rounded-lg border border-blue-200'>
-                                            <h6 className='font-medium text-blue-900 mb-2 text-sm'>
-                                              QR Code Configuration
-                                            </h6>
-                                            <p className='text-xs text-blue-700 mb-3'>
-                                              QR codes will be automatically
-                                              generated with
-                                              student/teacher/staff data for
-                                              unique identification.
-                                            </p>
-                                            <div className='space-y-2'>
-                                              <Label className='text-xs font-medium text-gray-700'>
-                                                QR Data Source
-                                              </Label>
-                                              <Select
-                                                value={
-                                                  field.databaseField ||
-                                                  'studentId'
-                                                }
-                                                onValueChange={value =>
-                                                  updateField(field.id, {
-                                                    databaseField: value,
-                                                  })
-                                                }
-                                              >
-                                                <SelectTrigger className='h-8 border-blue-200'>
-                                                  <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  {settings.type ===
-                                                    IDCardTemplateType.STUDENT && (
-                                                    <>
-                                                      <SelectItem value='studentId'>
-                                                        Student ID
-                                                      </SelectItem>
-                                                      <SelectItem value='rollNumber'>
-                                                        Roll Number
-                                                      </SelectItem>
-                                                      <SelectItem value='admissionNumber'>
-                                                        Admission Number
-                                                      </SelectItem>
-                                                    </>
-                                                  )}
-                                                  {settings.type ===
-                                                    IDCardTemplateType.TEACHER && (
-                                                    <>
-                                                      <SelectItem value='employeeId'>
-                                                        Employee ID
-                                                      </SelectItem>
-                                                      <SelectItem value='teacherId'>
-                                                        Teacher ID
-                                                      </SelectItem>
-                                                    </>
-                                                  )}
-                                                  {(settings.type ===
-                                                    IDCardTemplateType.STAFF ||
-                                                    settings.type ===
-                                                      IDCardTemplateType.STAFF_NO_LOGIN) && (
-                                                    <SelectItem value='employeeId'>
-                                                      Employee ID
-                                                    </SelectItem>
-                                                  )}
-                                                </SelectContent>
-                                              </Select>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      )}
-
-                                      {/* Position & Size Controls */}
-                                      <div className='grid grid-cols-4 gap-2'>
-                                        <div className='space-y-1'>
-                                          <Label className='text-xs font-medium text-gray-700'>
-                                            X
-                                          </Label>
-                                          <Input
-                                            type='number'
-                                            value={field.x}
-                                            onChange={e =>
-                                              updateField(field.id, {
-                                                x: Number(e.target.value),
-                                              })
-                                            }
-                                            className='h-8 text-sm border-blue-200'
-                                          />
-                                        </div>
-                                        <div className='space-y-1'>
-                                          <Label className='text-xs font-medium text-gray-700'>
-                                            Y
-                                          </Label>
-                                          <Input
-                                            type='number'
-                                            value={field.y}
-                                            onChange={e =>
-                                              updateField(field.id, {
-                                                y: Number(e.target.value),
-                                              })
-                                            }
-                                            className='h-8 text-sm border-blue-200'
-                                          />
-                                        </div>
-                                        <div className='space-y-1'>
-                                          <Label className='text-xs font-medium text-gray-700'>
-                                            Width
-                                          </Label>
-                                          <Input
-                                            type='number'
-                                            value={field.width}
-                                            onChange={e =>
-                                              updateField(field.id, {
-                                                width: Number(e.target.value),
-                                              })
-                                            }
-                                            className='h-8 text-sm border-blue-200'
-                                          />
-                                        </div>
-                                        <div className='space-y-1'>
-                                          <Label className='text-xs font-medium text-gray-700'>
-                                            Height
-                                          </Label>
-                                          <Input
-                                            type='number'
-                                            value={field.height}
-                                            onChange={e =>
-                                              updateField(field.id, {
-                                                height: Number(e.target.value),
-                                              })
-                                            }
-                                            className='h-8 text-sm border-blue-200'
-                                          />
-                                        </div>
+                                              </>
+                                            )}
+                                          </SelectContent>
+                                        </Select>
                                       </div>
-                                    </div>
+                                    )}
                                   </div>
-                                )}
+                                </div>
                               </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
+                            </div>
+                          );
+                        })()}
                     </div>
                   </TabsContent>
 
