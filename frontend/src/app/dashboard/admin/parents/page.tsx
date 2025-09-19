@@ -27,6 +27,7 @@ import {
 } from '@/api/services/parent.service';
 import ParentViewModal from '@/components/organisms/modals/ParentViewModal';
 import ParentEditModal from '@/components/organisms/modals/ParentEditModal';
+import PasswordGenerationModal from '@/components/organisms/modals/PasswordGenerationModal';
 
 const ParentsPage = () => {
   // State for parents data
@@ -49,6 +50,8 @@ const ParentsPage = () => {
   // Modal states
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPasswordGenerationModalOpen, setIsPasswordGenerationModalOpen] =
+    useState(false);
   const [selectedParent, setSelectedParent] = useState<Parent | null>(null);
 
   // Stats state
@@ -237,6 +240,10 @@ const ParentsPage = () => {
         toast.info(`Toggle status for: ${parent.name}`);
         // TODO: Call status change API
         break;
+      case 'generate-password':
+        setSelectedParent(transformedParent);
+        setIsPasswordGenerationModalOpen(true);
+        break;
       default:
         console.log('Action:', action, 'for parent:', parent.id);
     }
@@ -397,6 +404,19 @@ const ParentsPage = () => {
         onClose={() => setIsEditModalOpen(false)}
         onSuccess={handleEditSuccess}
         parent={selectedParent}
+      />
+
+      {/* Password Generation Modal */}
+      <PasswordGenerationModal
+        isOpen={isPasswordGenerationModalOpen}
+        onClose={() => {
+          setIsPasswordGenerationModalOpen(false);
+          setSelectedParent(null);
+        }}
+        userId={selectedParent?.id?.toString() || ''}
+        userName={selectedParent?.name || ''}
+        userEmail={selectedParent?.email || ''}
+        userType='parent'
       />
     </div>
   );

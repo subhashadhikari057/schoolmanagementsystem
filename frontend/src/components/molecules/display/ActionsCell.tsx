@@ -6,6 +6,7 @@ import {
   ToggleRight,
   Trash2,
   Calendar,
+  Key,
 } from 'lucide-react';
 
 interface ActionsCellProps {
@@ -14,6 +15,7 @@ interface ActionsCellProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onToggleStatus?: () => void;
+  onGeneratePassword?: () => void;
   entityType?:
     | 'student'
     | 'teacher'
@@ -40,6 +42,7 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
   onEdit,
   onDelete,
   onToggleStatus,
+  onGeneratePassword,
   entityType = 'student',
   status = 'Active',
   viewLabel,
@@ -66,6 +69,12 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
       action: 'edit',
       title: 'Edit',
       color: 'text-green-600 hover:text-green-800',
+    },
+    {
+      icon: Key,
+      action: 'generate-password',
+      title: 'Generate Password',
+      color: 'text-yellow-600 hover:text-yellow-800',
     },
     {
       icon: isActive ? ToggleRight : ToggleLeft,
@@ -105,25 +114,40 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
           },
         ];
       case 'teacher':
-        // For teachers: view, edit, toggle-status, delete (NO attendance)
+        // For teachers: view, edit, generate-password, toggle-status, delete (NO attendance)
         return allActions.filter(action =>
-          ['view', 'edit', 'toggle-status', 'delete'].includes(action.action),
+          [
+            'view',
+            'edit',
+            'generate-password',
+            'toggle-status',
+            'delete',
+          ].includes(action.action),
         );
       case 'staff':
-        // For staff: view, edit, delete (no status toggle for now)
+        // For staff: view, edit, delete (no status toggle, no generate-password)
         return allActions.filter(action =>
           ['view', 'edit', 'delete'].includes(action.action),
         );
       case 'student':
-        // For students: view, attendance, edit, toggle-status, delete
+        // For students: view, attendance, edit, generate-password, toggle-status, delete
         return allActions.filter(action =>
-          ['view', 'attendance', 'edit', 'toggle-status', 'delete'].includes(
+          [
+            'view',
+            'attendance',
+            'edit',
+            'generate-password',
+            'toggle-status',
+            'delete',
+          ].includes(action.action),
+        );
+      default:
+        // For parents: view, edit, generate-password, toggle-status (no delete)
+        return allActions.filter(action =>
+          ['view', 'edit', 'generate-password', 'toggle-status'].includes(
             action.action,
           ),
         );
-      default:
-        // For parents: view, edit, toggle-status (no delete)
-        return allActions.filter(action => action.action !== 'delete');
     }
   };
 
@@ -146,6 +170,9 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
               break;
             case 'toggle-status':
               onToggleStatus ? onToggleStatus() : onAction?.(action);
+              break;
+            case 'generate-password':
+              onGeneratePassword ? onGeneratePassword() : onAction?.(action);
               break;
             default:
               onAction?.(action);

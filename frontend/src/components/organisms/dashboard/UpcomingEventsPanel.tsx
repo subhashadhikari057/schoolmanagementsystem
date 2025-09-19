@@ -378,8 +378,6 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
     );
   }
 
-  // Always render 4 slots, fill with placeholders if not enough events
-  const slots = Array.from({ length: 4 }, (_, i) => upcomingEvents[i] || null);
   return (
     <div className={`bg-white rounded-xl sm:p-4 ${className}`}>
       <div className='flex items-center justify-between mb-3'>
@@ -387,135 +385,136 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
           Upcoming Events
         </div>
       </div>
-      <div className='space-y-3'>
-        {slots.map((event, idx) => {
-          if (event) {
-            const dateBadge = formatDateBadge(event.date);
-            return (
-              <div
-                key={event.id}
-                className='flex items-start gap-4 group transition-all duration-200 hover:bg-blue-50/60 rounded-xl p-3 border border-gray-100'
-              >
-                {/* Date Badge */}
-                <div className='flex-shrink-0'>
+
+      {/* Match NotificationPanel height with increased height and overflow */}
+      <div className='space-y-3 max-h-85 overflow-y-auto modal-scrollbar'>
+        {/* Check if we have any events */}
+        {upcomingEvents.length === 0 ? (
+          /* No events found state - fill the full height */
+          <div className='flex items-center justify-center h-96'>
+            <div className='text-center'>
+              <Calendar className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+              <h3 className='text-lg font-medium text-gray-900 mb-2'>
+                No Events Found
+              </h3>
+              <p className='text-gray-500'>
+                No upcoming events scheduled for this month
+              </p>
+            </div>
+          </div>
+        ) : (
+          /* Display events and fill remaining space */
+          <div className='h-96 flex flex-col'>
+            <div className='space-y-3 flex-shrink-0'>
+              {/* Display actual events */}
+              {upcomingEvents.map(event => {
+                const dateBadge = formatDateBadge(event.date);
+                return (
                   <div
-                    className={`text-center text-white rounded-xl p-2 shadow-lg min-w-[60px] ${
-                      event.type === 'holiday'
-                        ? 'bg-gradient-to-b from-red-500 to-red-600'
-                        : 'bg-gradient-to-b from-blue-500 to-blue-600'
-                    }`}
+                    key={event.id}
+                    className='flex items-start gap-4 group transition-all duration-200 hover:bg-blue-50/60 rounded-xl p-3 border border-gray-100'
                   >
-                    <div className='text-xs font-medium opacity-90'>
-                      {dateBadge.month}
-                    </div>
-                    <div className='text-lg font-bold leading-tight'>
-                      {dateBadge.day}
-                    </div>
-                  </div>
-                </div>
-                <div className='flex-1 min-w-0'>
-                  <div className='flex items-start justify-between gap-2'>
-                    <span className='text-base font-semibold text-gray-900 line-clamp-2'>
-                      {event.title}
-                    </span>
-                    {event.type && (
-                      <span
-                        className={`inline-block text-xs px-2 py-1 rounded-full font-semibold flex-shrink-0 shadow-sm ${
+                    {/* Date Badge */}
+                    <div className='flex-shrink-0'>
+                      <div
+                        className={`text-center text-white rounded-xl p-2 shadow-lg min-w-[60px] ${
                           event.type === 'holiday'
-                            ? 'bg-red-100 text-red-800 border border-red-200'
-                            : event.type === 'exam'
-                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                              : event.type === 'emergency_closure'
-                                ? 'bg-orange-100 text-orange-800 border border-orange-200'
-                                : event.type === 'meeting'
-                                  ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                                  : event.type === 'celebration'
-                                    ? 'bg-pink-100 text-pink-800 border border-pink-200'
-                                    : 'bg-green-100 text-green-800 border border-green-200'
+                            ? 'bg-gradient-to-b from-red-500 to-red-600'
+                            : 'bg-gradient-to-b from-blue-500 to-blue-600'
                         }`}
                       >
-                        {event.type.charAt(0).toUpperCase() +
-                          event.type.slice(1).replace('_', ' ')}
-                      </span>
-                    )}
-                  </div>
-                  <div className='flex items-center justify-between mt-1'>
-                    <div className='flex gap-4'>
-                      {event.type === 'holiday' ? null : (
-                        <>
-                          {event.type === 'event' || event.type === 'exam' ? (
+                        <div className='text-xs font-medium opacity-90'>
+                          {dateBadge.month}
+                        </div>
+                        <div className='text-lg font-bold leading-tight'>
+                          {dateBadge.day}
+                        </div>
+                      </div>
+                    </div>
+                    <div className='flex-1 min-w-0'>
+                      <div className='flex items-start justify-between gap-2'>
+                        <span className='text-base font-semibold text-gray-900 line-clamp-2'>
+                          {event.title}
+                        </span>
+                        {event.type && (
+                          <span
+                            className={`inline-block text-xs px-2 py-1 rounded-full font-semibold flex-shrink-0 shadow-sm ${
+                              event.type === 'holiday'
+                                ? 'bg-red-100 text-red-800 border border-red-200'
+                                : event.type === 'exam'
+                                  ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                  : event.type === 'emergency_closure'
+                                    ? 'bg-orange-100 text-orange-800 border border-orange-200'
+                                    : event.type === 'meeting'
+                                      ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                                      : event.type === 'celebration'
+                                        ? 'bg-pink-100 text-pink-800 border border-pink-200'
+                                        : 'bg-green-100 text-green-800 border border-green-200'
+                            }`}
+                          >
+                            {event.type.charAt(0).toUpperCase() +
+                              event.type.slice(1).replace('_', ' ')}
+                          </span>
+                        )}
+                      </div>
+                      <div className='flex items-center justify-between mt-1'>
+                        <div className='flex gap-4'>
+                          {event.type === 'holiday' ? null : (
                             <>
-                              {event.time && (
-                                <div className='flex items-center gap-1 text-xs text-gray-600 font-medium'>
-                                  <Clock className='w-3 h-3 flex-shrink-0' />
-                                  <span>{event.time}</span>
-                                </div>
-                              )}
-                              {event.location && (
-                                <div className='flex items-center gap-1 text-xs text-gray-600 font-medium'>
-                                  <MapPin className='w-3 h-3 flex-shrink-0' />
-                                  <span className='line-clamp-1'>
-                                    {event.location}
-                                  </span>
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              {event.time && (
-                                <div className='text-xs text-gray-600 font-medium'>
-                                  Time: {event.time}
-                                </div>
-                              )}
-                              {event.location && (
-                                <div className='text-xs text-gray-600 font-medium'>
-                                  Location: {event.location}
-                                </div>
+                              {event.type === 'event' ||
+                              event.type === 'exam' ? (
+                                <>
+                                  {event.time && (
+                                    <div className='flex items-center gap-1 text-xs text-gray-600 font-medium'>
+                                      <Clock className='w-3 h-3 flex-shrink-0' />
+                                      <span>{event.time}</span>
+                                    </div>
+                                  )}
+                                  {event.location && (
+                                    <div className='flex items-center gap-1 text-xs text-gray-600 font-medium'>
+                                      <MapPin className='w-3 h-3 flex-shrink-0' />
+                                      <span className='line-clamp-1'>
+                                        {event.location}
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  {event.time && (
+                                    <div className='text-xs text-gray-600 font-medium'>
+                                      Time: {event.time}
+                                    </div>
+                                  )}
+                                  {event.location && (
+                                    <div className='text-xs text-gray-600 font-medium'>
+                                      Location: {event.location}
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </>
                           )}
-                        </>
-                      )}
-                    </div>
-                    {/* Status badge removed as per request */}
-                  </div>
-                </div>
-              </div>
-            );
-          } else {
-            // Placeholder for future events
-            return (
-              <div
-                key={idx}
-                className='flex items-center gap-4 rounded-xl p-3 border border-dashed border-gray-200 bg-gray-50 min-h-[72px]'
-              >
-                <div className='flex-shrink-0'>
-                  <div className='text-center text-gray-300 rounded-xl p-2 min-w-[60px] bg-gray-200'>
-                    <div className='text-xs font-medium opacity-60'>--</div>
-                    <div className='text-lg font-bold leading-tight opacity-60'>
-                      --
-                    </div>
-                  </div>
-                </div>
-                <div className='flex-1 min-w-0'>
-                  <div className='flex items-start justify-between gap-2'>
-                    <span className='text-base font-semibold text-gray-400 line-clamp-2'>
-                      Future Event
-                    </span>
-                  </div>
-                  <div className='flex items-center justify-between mt-1'>
-                    <div className='flex gap-4'>
-                      <div className='text-xs text-gray-400 font-medium'>
-                        TBA
+                        </div>
+                        {/* Status badge removed as per request */}
                       </div>
                     </div>
-                    {/* Status badge removed as per request */}
                   </div>
-                </div>
+                );
+              })}
+            </div>
+
+            {/* Show "no more events" section - center in remaining space */}
+            <div className='flex-grow flex items-center justify-center'>
+              <div className='text-center'>
+                <Calendar className='h-8 w-8 text-gray-300 mx-auto mb-2' />
+                <p className='text-sm text-gray-400'>
+                  No more events this month
+                </p>
               </div>
-            );
-          }
-        })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
