@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import GenericTable, { BaseItem } from '@/components/templates/GenericTable';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
-import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import {
   Users,
   School,
@@ -547,15 +546,30 @@ const ClassesPage = () => {
       icon: <School className='h-4 w-4 mr-2' />,
       content: (
         <>
-          {/* Action Buttons above Search Filter, aligned right side */}
+          {/* Add Classes Button */}
           <div className='flex w-full mb-4'>
             <div className='flex-1'></div>
             <div className='flex-none flex justify-end'>
-              <ActionButtons
-                pageType='classes'
-                onRefresh={loadClasses}
-                onAddNew={() => setIsFormModalOpen(true)}
-              />
+              <button
+                onClick={() => setIsFormModalOpen(true)}
+                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+              >
+                <svg
+                  className='w-4 h-4 mr-2'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                  xmlns='http://www.w3.org/2000/svg'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M12 4v16m8-8H4'
+                  />
+                </svg>
+                Add Classes
+              </button>
             </div>
           </div>
           {/* Search & Filter Component */}

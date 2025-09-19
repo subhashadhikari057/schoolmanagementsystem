@@ -142,11 +142,9 @@ const ActionsCell: React.FC<ActionsCellProps> = ({
           ].includes(action.action),
         );
       default:
-        // For parents: view, edit, generate-password, toggle-status (no delete)
+        // For parents: view, edit, generate-password (no delete, no toggle-status)
         return allActions.filter(action =>
-          ['view', 'edit', 'generate-password', 'toggle-status'].includes(
-            action.action,
-          ),
+          ['view', 'edit', 'generate-password'].includes(action.action),
         );
     }
   };

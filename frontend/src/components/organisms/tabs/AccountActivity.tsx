@@ -381,49 +381,6 @@ export default function AccountActivityComponent() {
           </div>
         </Card>
       </div>
-
-      {/* System Performance & Usage */}
-      <Card className='p-8 rounded-3xl bg-white border border-gray-100 shadow-lg mt-8'>
-        <div className='mb-2 flex items-center gap-2'>
-          <svg
-            width='20'
-            height='20'
-            fill='none'
-            viewBox='0 0 20 20'
-            className='text-gray-500'
-          >
-            <rect
-              x='3'
-              y='5'
-              width='14'
-              height='10'
-              rx='2'
-              stroke='currentColor'
-              strokeWidth='1.5'
-            />
-            <path d='M7 17h6' stroke='currentColor' strokeWidth='1.5' />
-          </svg>
-          <span className='font-semibold text-lg'>
-            System Performance & Usage
-          </span>
-        </div>
-        <Label className='text-sm text-muted-foreground block mb-4'>
-          Your usage patterns and system metrics
-        </Label>
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-          {metrics.map((m, i) => (
-            <div
-              key={i}
-              className='flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-gray-100'
-            >
-              <span className={`text-xl font-bold ${m.color}`}>{m.value}</span>
-              <span className='text-xs text-muted-foreground mt-1'>
-                {m.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

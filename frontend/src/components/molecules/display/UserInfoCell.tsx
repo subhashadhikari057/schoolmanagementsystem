@@ -7,6 +7,7 @@ interface UserInfoCellProps {
   avatar?: string;
   idLabel?: string; // e.g., "STF", "STU", "PAR"
   role?: 'student' | 'teacher' | 'staff' | 'parent' | 'admin';
+  hideId?: boolean; // Optional prop to hide the ID display
 }
 
 const UserInfoCell: React.FC<UserInfoCellProps> = ({
@@ -15,6 +16,7 @@ const UserInfoCell: React.FC<UserInfoCellProps> = ({
   avatar,
   idLabel = '',
   role = 'student',
+  hideId = false,
 }) => {
   const displayId = idLabel ? `${idLabel}${id}` : String(id);
 
@@ -29,7 +31,9 @@ const UserInfoCell: React.FC<UserInfoCellProps> = ({
       />
       <div className='min-w-0 flex-1'>
         <div className='font-medium text-gray-900 truncate'>{name}</div>
-        <div className='text-sm text-gray-500 truncate'>{displayId}</div>
+        {!hideId && (
+          <div className='text-sm text-gray-500 truncate'>{displayId}</div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Bell, Mail, Menu, Search } from 'lucide-react';
+import { Bell, Menu, Search } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { sidebarItems } from '@/constants/sidebaritems';
@@ -235,7 +235,6 @@ export default function Navbar({ onMenuClick, onSearchClick }: NavbarProps) {
 
         {/* Desktop Notifications */}
         <div className='hidden sm:flex items-center gap-3'>
-          <Mail className='text-secondary w-5 h-5' />
           <Bell className='text-secondary w-5 h-5' />
         </div>
         <div className='hidden sm:block w-[1.5px] h-6 bg-border ml-3' />

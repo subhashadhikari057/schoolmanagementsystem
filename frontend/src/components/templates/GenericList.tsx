@@ -37,13 +37,13 @@ export interface ListConfiguration<T = BaseItem> {
   enableSelection?: boolean;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
-  primaryFilter: {
+  primaryFilter?: {
     title: string;
     value?: string;
     onChange?: (value: string) => void;
     options: FilterOption[];
   };
-  secondaryFilter: {
+  secondaryFilter?: {
     title: string;
     value?: string;
     onChange?: (value: string) => void;
@@ -91,10 +91,10 @@ export const GenericList = <T extends BaseItem>({
 }: GenericListProps<T>) => {
   const [searchTerm, setSearchTerm] = useState(config.searchValue || '');
   const [primaryFilter, setPrimaryFilter] = useState(
-    config.primaryFilter.value || 'all',
+    config.primaryFilter?.value || 'all',
   );
   const [secondaryFilter, setSecondaryFilter] = useState(
-    config.secondaryFilter.value || 'all',
+    config.secondaryFilter?.value || 'all',
   );
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,13 +106,13 @@ export const GenericList = <T extends BaseItem>({
 
   const handlePrimaryFilterChange = (value: string) => {
     setPrimaryFilter(value);
-    config.primaryFilter.onChange?.(value);
+    config.primaryFilter?.onChange?.(value);
     onPrimaryFilterChange?.(value);
   };
 
   const handleSecondaryFilterChange = (value: string) => {
     setSecondaryFilter(value);
-    config.secondaryFilter.onChange?.(value);
+    config.secondaryFilter?.onChange?.(value);
     onSecondaryFilterChange?.(value);
   };
 
@@ -124,16 +124,16 @@ export const GenericList = <T extends BaseItem>({
   }, [config.searchValue]);
 
   React.useEffect(() => {
-    if (config.primaryFilter.value !== undefined) {
+    if (config.primaryFilter?.value !== undefined) {
       setPrimaryFilter(config.primaryFilter.value);
     }
-  }, [config.primaryFilter.value]);
+  }, [config.primaryFilter?.value]);
 
   React.useEffect(() => {
-    if (config.secondaryFilter.value !== undefined) {
+    if (config.secondaryFilter?.value !== undefined) {
       setSecondaryFilter(config.secondaryFilter.value);
     }
-  }, [config.secondaryFilter.value]);
+  }, [config.secondaryFilter?.value]);
 
   return (
     <div className='w-full'>
@@ -162,24 +162,28 @@ export const GenericList = <T extends BaseItem>({
 
           {/* Filter Dropdowns */}
           <div className='flex flex-col sm:flex-row gap-2 sm:gap-3'>
-            <Dropdown
-              type='filter'
-              title={config.primaryFilter.title}
-              options={config.primaryFilter.options}
-              selectedValue={primaryFilter}
-              onSelect={handlePrimaryFilterChange}
-              placeholder={config.primaryFilter.title}
-              icon={<Filter size={16} />}
-            />
-            <Dropdown
-              type='filter'
-              title={config.secondaryFilter.title}
-              options={config.secondaryFilter.options}
-              selectedValue={secondaryFilter}
-              onSelect={handleSecondaryFilterChange}
-              placeholder={config.secondaryFilter.title}
-              icon={<Filter size={16} />}
-            />
+            {config.primaryFilter && (
+              <Dropdown
+                type='filter'
+                title={config.primaryFilter.title}
+                options={config.primaryFilter.options}
+                selectedValue={primaryFilter}
+                onSelect={handlePrimaryFilterChange}
+                placeholder={config.primaryFilter.title}
+                icon={<Filter size={16} />}
+              />
+            )}
+            {config.secondaryFilter && (
+              <Dropdown
+                type='filter'
+                title={config.secondaryFilter.title}
+                options={config.secondaryFilter.options}
+                selectedValue={secondaryFilter}
+                onSelect={handleSecondaryFilterChange}
+                placeholder={config.secondaryFilter.title}
+                icon={<Filter size={16} />}
+              />
+            )}
           </div>
         </div>
 
