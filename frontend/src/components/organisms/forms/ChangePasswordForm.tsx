@@ -33,13 +33,17 @@ export function ChangePasswordForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className='space-y-4 sm:space-y-6 w-full max-w-md mx-auto'
+    >
       <LabeledInputField
         {...register('current_password')}
         label='Current Password'
         type='password'
         placeholder='Enter your current password'
         error={errors.current_password?.message}
+        size='md'
       />
       <LabeledInputField
         {...register('new_password')}
@@ -47,6 +51,7 @@ export function ChangePasswordForm() {
         type='password'
         placeholder='Enter your new password'
         error={errors.new_password?.message}
+        size='md'
       />
       <LabeledInputField
         {...register('confirm_password')}
@@ -54,8 +59,15 @@ export function ChangePasswordForm() {
         type='password'
         placeholder='Confirm your new password'
         error={errors.confirm_password?.message}
+        size='md'
       />
-      <Button type='submit' disabled={isSubmitting}>
+      <Button
+        type='submit'
+        disabled={isSubmitting}
+        size='lg'
+        variant='primary'
+        className='w-full'
+      >
         {isSubmitting ? 'Changing...' : 'Change Password'}
       </Button>
     </form>

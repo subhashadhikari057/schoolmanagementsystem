@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 
+type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+
 interface AvatarProps {
   src?: string;
   className?: string;
@@ -9,6 +11,7 @@ interface AvatarProps {
   showInitials?: boolean;
   role?: 'student' | 'teacher' | 'staff' | 'parent' | 'admin';
   context?: string; // For debugging purposes
+  size?: AvatarSize;
 }
 
 export default function Avatar({
@@ -18,9 +21,20 @@ export default function Avatar({
   showInitials = true,
   role = 'student',
   context = 'unknown',
+  size = 'md',
 }: AvatarProps) {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Responsive size classes
+  const sizeClasses: Record<AvatarSize, string> = {
+    xs: 'w-6 h-6 text-xs',
+    sm: 'w-8 h-8 text-sm',
+    md: 'w-10 h-10 text-base sm:w-12 sm:h-12',
+    lg: 'w-12 h-12 text-lg sm:w-16 sm:h-16 sm:text-xl',
+    xl: 'w-16 h-16 text-xl sm:w-20 sm:h-20 sm:text-2xl',
+    '2xl': 'w-20 h-20 text-2xl sm:w-24 sm:h-24 sm:text-3xl',
+  };
 
   // Debug logging
   console.log(`Avatar [${context}]:`, {
@@ -139,11 +153,18 @@ export default function Avatar({
     setImageError(false);
   };
 
+  const baseClasses = `
+    rounded-full flex items-center justify-center
+    transition-all duration-200 ease-in-out
+    ${sizeClasses[size]}
+    ${className}
+  `;
+
   // Show initials if no valid image source, error occurred, or showInitials is true
   if (!shouldShowImage) {
     return (
       <div
-        className={`${className} bg-gradient-to-br ${getRoleGradient(role)} flex items-center justify-center text-white font-semibold text-sm relative overflow-hidden`}
+        className={`${baseClasses} bg-gradient-to-br ${getRoleGradient(role)} text-white font-semibold relative overflow-hidden shadow-md hover:shadow-lg`}
         title={`${name} (${role.charAt(0).toUpperCase() + role.slice(1)})`}
       >
         {getInitials(name)}
@@ -154,12 +175,12 @@ export default function Avatar({
   // Show image with fallback to initials on error
   return (
     <div
-      className={`${className} relative overflow-hidden`}
+      className={`${baseClasses} relative overflow-hidden shadow-md hover:shadow-lg`}
       title={`${name} (${role.charAt(0).toUpperCase() + role.slice(1)})`}
     >
       {isLoading && (
         <div
-          className={`absolute inset-0 bg-gradient-to-br ${getRoleGradient(role)} flex items-center justify-center text-white font-semibold text-sm`}
+          className={`absolute inset-0 bg-gradient-to-br ${getRoleGradient(role)} flex items-center justify-center text-white font-semibold`}
         >
           <div className='animate-pulse'>{getInitials(name)}</div>
         </div>
