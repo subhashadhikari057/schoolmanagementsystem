@@ -44,7 +44,7 @@ export default function Tabs({
                   className={`w-full min-w-max px-8 sm:px-10 py-3 rounded-full font-medium transition-colors duration-200 text-center ${
                     selected
                       ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                      : 'bg-white !text-black hover:bg-gray-100'
                   }`}
                 />
               )}

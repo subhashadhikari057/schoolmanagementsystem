@@ -332,10 +332,10 @@ export default function AttendancePage() {
   // Place tabItems after all renderTab functions
 
   const renderDailyTab = () => (
-    <div className='space-y-6'>
+    <div className='space-y-4 sm:space-y-6'>
       <Card className='bg-white shadow-sm border-0 rounded-xl'>
-        <div className='p-6 border-b border-gray-200'>
-          <div className='flex items-center justify-between'>
+        <div className='p-4 sm:p-6 border-b border-gray-200'>
+          <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
             <div>
               <SectionTitle
                 text='Class-wise Attendance'
@@ -377,9 +377,9 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        <div className='p-6'>
+        <div className='p-4 sm:p-6'>
           {isLoading ? (
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
               {Array.from({ length: 8 }).map((_, index) => (
                 <Card
                   key={index}
@@ -500,12 +500,12 @@ export default function AttendancePage() {
   );
 
   const renderStaffTab = () => (
-    <div className='space-y-6'>
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+    <div className='space-y-4 sm:space-y-6'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6'>
         {/* Teachers Section */}
         <Card className='bg-white shadow-sm border-0 rounded-xl'>
-          <div className='p-6 border-b border-gray-200'>
-            <div className='flex items-center justify-between'>
+          <div className='p-4 sm:p-6 border-b border-gray-200'>
+            <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
               <div className='flex items-center space-x-3'>
                 <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
                   <GraduationCap className='w-5 h-5 text-blue-600' />
@@ -531,7 +531,7 @@ export default function AttendancePage() {
             </div>
           </div>
 
-          <div className='p-6'>
+          <div className='p-4 sm:p-6'>
             {isLoadingTeachers ? (
               <div className='flex items-center justify-center py-8'>
                 <div className='text-center'>
@@ -975,9 +975,9 @@ export default function AttendancePage() {
   ];
 
   return (
-    <div className='p-6 space-y-6 w-full'>
+    <div className='p-3 sm:p-6 space-y-6 w-full'>
       {/* Header with Working Days Counter */}
-      <div className='flex items-center justify-between'>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
         <div>
           <SectionTitle
             text='Attendance Management'
@@ -998,7 +998,7 @@ export default function AttendancePage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6'>
         {stats.map((stat, index) => (
           <Card
             key={index}
