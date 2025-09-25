@@ -2,9 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import GenericList from '@/components/templates/GenericList';
-import ParentSearchFilter, {
-  ParentFilters,
-} from '@/components/molecules/filters/ParentSearchFilter';
 import {
   getListConfig,
   Parent,
@@ -27,18 +24,13 @@ import {
 } from '@/api/services/parent.service';
 import ParentViewModal from '@/components/organisms/modals/ParentViewModal';
 import ParentEditModal from '@/components/organisms/modals/ParentEditModal';
+import PasswordGenerationModal from '@/components/organisms/modals/PasswordGenerationModal';
 
 const ParentsPage = () => {
   // State for parents data
   const [parents, setParents] = useState<Parent[]>([]);
-  const [filteredParents, setFilteredParents] = useState<Parent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<ParentFilters>({
-    search: '',
-    occupation: '',
-    status: '',
-  });
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,6 +41,8 @@ const ParentsPage = () => {
   // Modal states
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPasswordGenerationModalOpen, setIsPasswordGenerationModalOpen] =
+    useState(false);
   const [selectedParent, setSelectedParent] = useState<Parent | null>(null);
 
   // Stats state
@@ -167,41 +161,7 @@ const ParentsPage = () => {
   useEffect(() => {
     fetchParents(currentPage);
   }, [currentPage, fetchParents]);
-
-  // Filter parents when filters or parents change
-  useEffect(() => {
-    let filtered = parents;
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        p =>
-          p.name.toLowerCase().includes(searchLower) ||
-          p.email?.toLowerCase().includes(searchLower) ||
-          p.phone?.toLowerCase().includes(searchLower),
-      );
-    }
-    if (filters.occupation) {
-      filtered = filtered.filter(p => p.occupation === filters.occupation);
-    }
-    if (filters.status) {
-      filtered = filtered.filter(p => p.accountStatus === filters.status);
-    }
-    setFilteredParents(filtered);
-  }, [filters, parents]);
   // Occupation and status options for filter
-  const occupationOptions = Array.from(
-    new Set(
-      parents
-        .map(p => p.occupation)
-        .filter((o): o is string => typeof o === 'string' && o.length > 0),
-    ),
-  ).map(o => ({ value: o, label: o }));
-  const statusOptions = [
-    { value: 'Active', label: 'Active' },
-    { value: 'Inactive', label: 'Inactive' },
-    { value: 'Pending', label: 'Pending' },
-  ];
-
   // Handle page changes
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -233,9 +193,13 @@ const ParentsPage = () => {
           handleDeleteParent(parent);
         }
         break;
-      case 'status':
-        toast.info(`Toggle status for: ${parent.name}`);
-        // TODO: Call status change API
+      // case 'status':
+      //   toast.info(`Toggle status for: ${parent.name}`);
+      //   // TODO: Call status change API
+      //   break;
+      case 'generate-password':
+        setSelectedParent(transformedParent);
+        setIsPasswordGenerationModalOpen(true);
         break;
       default:
         console.log('Action:', action, 'for parent:', parent.id);
@@ -361,18 +325,10 @@ const ParentsPage = () => {
       {/* Main Content */}
       <div className='px-1 sm:px-2 lg:px-4 mt-4 sm:mt-6 lg:mt-8 mb-6 sm:mb-8 lg:mb-10'>
         <div className='w-full'>
-          {/* Parent Search Bar & Filters */}
-          <ParentSearchFilter
-            onFilterChange={setFilters}
-            occupations={occupationOptions}
-            statuses={statusOptions}
-            initialFilters={filters}
-          />
-          <div className='mt-4'></div>
-          {/* Parent List - Using Filtered Data */}
+          {/* Parent List */}
           <GenericList<Parent>
             config={getListConfig('parents')}
-            data={filteredParents}
+            data={parents}
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={totalItems}
@@ -397,6 +353,19 @@ const ParentsPage = () => {
         onClose={() => setIsEditModalOpen(false)}
         onSuccess={handleEditSuccess}
         parent={selectedParent}
+      />
+
+      {/* Password Generation Modal */}
+      <PasswordGenerationModal
+        isOpen={isPasswordGenerationModalOpen}
+        onClose={() => {
+          setIsPasswordGenerationModalOpen(false);
+          setSelectedParent(null);
+        }}
+        userId={selectedParent?.id?.toString() || ''}
+        userName={selectedParent?.name || ''}
+        userEmail={selectedParent?.email || ''}
+        userType='parent'
       />
     </div>
   );

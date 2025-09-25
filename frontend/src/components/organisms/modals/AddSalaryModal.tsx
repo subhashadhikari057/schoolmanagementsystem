@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { TeacherService } from '@/api/services/teacher.service';
 import { StaffService } from '@/api/services/staff.service';
 import { ad2bs, bs2ad } from 'hamro-nepali-patro';
+import { generateTempEmployeeId } from '@/utils/employeeIdUtils';
 
 interface AddSalaryModalProps {
   isOpen: boolean;
@@ -146,8 +147,7 @@ const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
 
           return {
             id: teacher.id,
-            employeeId:
-              teacher.employeeId || teacher.teacherId || `TCH${teacher.id}`,
+            employeeId: teacher.employeeId || generateTempEmployeeId('teacher'),
             name: teacherName,
             role: teacher.designation || 'Teacher',
             department: teacher.department || teacher.subject || 'Academic',
@@ -186,9 +186,7 @@ const AddSalaryModal: React.FC<AddSalaryModalProps> = ({
             return {
               id: staffMember.id,
               employeeId:
-                staffMember.employeeId ||
-                staffMember.staffId ||
-                `STF${staffMember.id}`,
+                staffMember.employeeId || generateTempEmployeeId('staff'),
               name: staffName,
               role:
                 staffMember.designation ||
@@ -745,50 +743,26 @@ const SalaryAdjustmentStep: React.FC<SalaryAdjustmentStepProps> = ({
               className='w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
             >
               <option value='flat'>Flat (±Allowance)</option>
-              <option value='percent'>Percent</option>
             </select>
           </div>
 
-          {/* Input Based on Method */}
-          {adjustment.method === 'percent' ? (
-            <div className='space-y-2'>
-              <label className='text-sm font-medium text-gray-700'>
-                Percentage (%)
-              </label>
-              <input
-                type='number'
-                min='0'
-                max='100'
-                step='0.1'
-                value={adjustment.percentage || ''}
-                onChange={e =>
-                  onAdjustmentChange(
-                    'percentage',
-                    parseFloat(e.target.value) || 0,
-                  )
-                }
-                className='w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='Enter percentage (e.g., 10.5)'
-              />
-            </div>
-          ) : (
-            <div className='space-y-2'>
-              <label className='text-sm font-medium text-gray-700'>
-                Amount (NPR)
-              </label>
-              <input
-                type='number'
-                min='0'
-                step='100'
-                value={adjustment.amount || ''}
-                onChange={e =>
-                  onAdjustmentChange('amount', parseFloat(e.target.value) || 0)
-                }
-                className='w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='Enter amount in NPR'
-              />
-            </div>
-          )}
+          {/* Amount Input */}
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-gray-700'>
+              Amount (NPR)
+            </label>
+            <input
+              type='number'
+              min='0'
+              step='100'
+              value={adjustment.amount || ''}
+              onChange={e =>
+                onAdjustmentChange('amount', parseFloat(e.target.value) || 0)
+              }
+              className='w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+              placeholder='Enter amount in NPR'
+            />
+          </div>
 
           {/* Effective Date */}
           <div className='space-y-2'>

@@ -276,58 +276,53 @@ export default function AccountActivityComponent() {
 
   return (
     <div className='w-full max-w-full mx-auto'>
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
+      <div className='grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8'>
         {/* Recent Activity */}
-        <Card
-          className='p-8 rounded-3xl bg-white border border-gray-100 shadow-lg col-span-2 flex flex-col'
-          style={{ minHeight: 340, maxHeight: 340 }}
-        >
-          <div className='mb-4 flex items-center gap-3'>
+        <Card className='p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl bg-white border border-gray-100 shadow-lg xl:col-span-2 flex flex-col min-h-[300px] sm:min-h-[340px]'>
+          <div className='mb-4 flex items-center gap-2 sm:gap-3'>
             <svg
-              width='28'
-              height='28'
+              width='24'
+              height='24'
+              className='sm:w-7 sm:h-7'
               fill='none'
               viewBox='0 0 20 20'
-              className='text-blue-500'
             >
               <path
                 d='M10 2v16M2 10h16'
                 stroke='currentColor'
                 strokeWidth='1.5'
                 strokeLinecap='round'
+                className='text-blue-500'
               />
             </svg>
-            <span className='font-bold text-2xl tracking-tight'>
+            <span className='font-bold text-xl sm:text-2xl tracking-tight'>
               Recent Activity
             </span>
           </div>
-          <Label className='text-base text-gray-400 mb-4 block'>
+          <Label className='text-sm sm:text-base text-gray-400 mb-4 block'>
             Your latest actions and system events
           </Label>
-          <div
-            className='flex-1 overflow-y-auto space-y-4 pr-2'
-            style={{ maxHeight: 232, minHeight: 232 }}
-          >
+          <div className='flex-1 overflow-y-auto space-y-3 sm:space-y-4 pr-1 sm:pr-2'>
             {activities.map((item, i) => (
               <div
                 key={i}
-                className='flex items-center justify-between py-3 px-5 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-blue-50 transition-colors shadow-sm group'
+                className='flex items-start sm:items-center justify-between py-2 sm:py-3 px-3 sm:px-5 rounded-xl sm:rounded-2xl border border-gray-100 bg-gray-50 hover:bg-blue-50 transition-colors shadow-sm group'
               >
-                <div className='flex items-center gap-4'>
-                  <span className='rounded-full p-3 bg-white shadow group-hover:bg-blue-100 transition-colors'>
+                <div className='flex items-start sm:items-center gap-3 sm:gap-4 flex-1 min-w-0'>
+                  <span className='rounded-full p-2 sm:p-3 bg-white shadow group-hover:bg-blue-100 transition-colors flex-shrink-0'>
                     {item.icon}
                   </span>
-                  <div>
-                    <div className='font-bold text-lg text-gray-800 group-hover:text-blue-700 transition-colors'>
+                  <div className='min-w-0 flex-1'>
+                    <div className='font-bold text-base sm:text-lg text-gray-800 group-hover:text-blue-700 transition-colors truncate'>
                       {item.title}
                     </div>
-                    <div className='text-sm text-gray-500 mt-1 group-hover:text-gray-700 transition-colors'>
+                    <div className='text-xs sm:text-sm text-gray-500 mt-1 group-hover:text-gray-700 transition-colors line-clamp-2 sm:line-clamp-1'>
                       {item.desc}
                     </div>
                   </div>
                 </div>
                 <span
-                  className={`ml-4 px-4 py-1 rounded-full text-sm font-semibold shadow-sm ${item.badgeClass} group-hover:scale-105 transition-transform`}
+                  className={`ml-2 sm:ml-4 px-2 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-sm ${item.badgeClass} group-hover:scale-105 transition-transform flex-shrink-0`}
                 >
                   {item.badge}
                 </span>
@@ -337,30 +332,40 @@ export default function AccountActivityComponent() {
         </Card>
 
         {/* Summary Card */}
-        <Card className='p-8 rounded-3xl bg-white border border-gray-100 shadow-lg flex flex-col items-center justify-center min-h-[220px] max-h-[340px] max-w-[340px] mx-auto'>
+        <Card className='p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl bg-white border border-gray-100 shadow-lg flex flex-col items-center justify-center min-h-[280px] sm:min-h-[220px] xl:min-h-[340px] w-full xl:max-w-[340px] xl:mx-auto'>
           <div className='flex flex-col items-center justify-center w-full'>
-            <div className='flex items-center gap-3 mb-3'>
+            <div className='flex items-center gap-2 sm:gap-3 mb-3'>
               <svg
-                width='28'
-                height='28'
+                width='24'
+                height='24'
+                className='sm:w-7 sm:h-7'
                 fill='none'
                 viewBox='0 0 20 20'
-                className='text-blue-500'
               >
                 <path
                   d='M3 17V7a2 2 0 012-2h10a2 2 0 012 2v10'
                   stroke='currentColor'
                   strokeWidth='1.5'
+                  className='text-blue-500'
                 />
-                <path d='M7 3h6' stroke='currentColor' strokeWidth='1.5' />
+                <path
+                  d='M7 3h6'
+                  stroke='currentColor'
+                  strokeWidth='1.5'
+                  className='text-blue-500'
+                />
               </svg>
-              <span className='font-bold text-2xl tracking-tight'>Summary</span>
+              <span className='font-bold text-xl sm:text-2xl tracking-tight'>
+                Summary
+              </span>
             </div>
-            <div className='text-5xl font-extrabold text-blue-600 mb-2 tracking-tight'>
+            <div className='text-4xl sm:text-5xl font-extrabold text-blue-600 mb-2 tracking-tight'>
               {summary.total}
             </div>
-            <div className='text-lg text-gray-400 mb-6'>Today's Actions</div>
-            <div className='grid grid-cols-2 gap-x-10 gap-y-3 text-lg w-full mt-2'>
+            <div className='text-base sm:text-lg text-gray-400 mb-4 sm:mb-6'>
+              Today's Actions
+            </div>
+            <div className='grid grid-cols-2 gap-x-6 sm:gap-x-10 gap-y-2 sm:gap-y-3 text-sm sm:text-lg w-full max-w-xs sm:max-w-none'>
               <div className='flex justify-between'>
                 <span>Logins</span>
                 <span className='font-bold'>{summary.logins}</span>
@@ -381,49 +386,6 @@ export default function AccountActivityComponent() {
           </div>
         </Card>
       </div>
-
-      {/* System Performance & Usage */}
-      <Card className='p-8 rounded-3xl bg-white border border-gray-100 shadow-lg mt-8'>
-        <div className='mb-2 flex items-center gap-2'>
-          <svg
-            width='20'
-            height='20'
-            fill='none'
-            viewBox='0 0 20 20'
-            className='text-gray-500'
-          >
-            <rect
-              x='3'
-              y='5'
-              width='14'
-              height='10'
-              rx='2'
-              stroke='currentColor'
-              strokeWidth='1.5'
-            />
-            <path d='M7 17h6' stroke='currentColor' strokeWidth='1.5' />
-          </svg>
-          <span className='font-semibold text-lg'>
-            System Performance & Usage
-          </span>
-        </div>
-        <Label className='text-sm text-muted-foreground block mb-4'>
-          Your usage patterns and system metrics
-        </Label>
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-          {metrics.map((m, i) => (
-            <div
-              key={i}
-              className='flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-gray-100'
-            >
-              <span className={`text-xl font-bold ${m.color}`}>{m.value}</span>
-              <span className='text-xs text-muted-foreground mt-1'>
-                {m.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

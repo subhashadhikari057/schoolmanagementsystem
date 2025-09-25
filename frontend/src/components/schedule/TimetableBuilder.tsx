@@ -1241,10 +1241,10 @@ export function TimetableBuilder() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className='space-y-6'>
+      <div className='space-y-4 sm:space-y-6 px-2 sm:px-0'>
         {/* Header with Actions */}
-        <div className='bg-white rounded-lg border border-gray-200 p-6'>
-          <div className='flex items-center justify-between'>
+        <div className='bg-white rounded-lg border border-gray-200 p-3 sm:p-6'>
+          <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
             <div>
               <h1 className='text-2xl font-bold text-gray-900'>
                 Timetable Builder
@@ -1254,7 +1254,7 @@ export function TimetableBuilder() {
               </p>
             </div>
 
-            <div className='flex items-center space-x-3'>
+            <div className='flex flex-wrap items-center gap-2 sm:space-x-3'>
               {/* Edit Mode Toggle */}
               <button
                 onClick={handleToggleEditMode}
@@ -1437,22 +1437,24 @@ export function TimetableBuilder() {
         </div>
 
         {/* Main Content Grid */}
-        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'>
           {/* Subject Library - Left Sidebar */}
-          <div className='lg:col-span-1'>
+          <div className='md:col-span-1 lg:col-span-1'>
             <SubjectLibrary />
           </div>
 
           {/* Timetable Grid - Main Content */}
-          <div className='lg:col-span-2'>
-            <TimetableGrid />
+          <div className='md:col-span-1 lg:col-span-2'>
+            <div className='overflow-x-auto'>
+              <TimetableGrid />
+            </div>
           </div>
         </div>
 
         {/* Status Bar */}
-        <div className='bg-white rounded-lg border border-gray-200 p-4'>
-          <div className='flex items-center justify-between text-sm text-gray-600'>
-            <div className='flex items-center space-x-6'>
+        <div className='bg-white rounded-lg border border-gray-200 p-3 sm:p-4'>
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-600'>
+            <div className='flex flex-wrap items-center gap-2 sm:space-x-6'>
               <span>
                 <strong>{timetableSlots.length}</strong> assignments
               </span>

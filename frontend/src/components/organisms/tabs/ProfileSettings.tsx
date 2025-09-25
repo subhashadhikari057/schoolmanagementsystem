@@ -1171,37 +1171,6 @@ const ProfileSettings = forwardRef<ProfileSettingsHandle, ProfileSettingsProps>(
                 })()}
               </div>
             </Card>
-
-            <Card className='p-6 bg-white rounded-xl border border-gray-200'>
-              <div className='font-semibold text-base mb-1'>Actions</div>
-              <div className='text-sm text-muted-foreground mb-4'>
-                Profile management options
-              </div>
-              <div className='flex flex-col gap-3'>
-                <ReusableButton
-                  label={editing ? 'Cancel' : 'Edit Profile'}
-                  onClick={editing ? handleCancel : handleEdit}
-                  className={`w-full py-2 rounded-lg font-semibold ${editing ? 'border border-gray-300' : 'bg-blue-500 text-white'}`}
-                />
-                <ReusableButton
-                  label='Export Profile'
-                  onClick={() => {}}
-                  className='w-full py-2 rounded-lg border border-gray-300 font-semibold'
-                />
-                <ReusableButton
-                  label='Upload Document'
-                  onClick={() => {}}
-                  className='w-full py-2 rounded-lg border border-gray-300 font-semibold'
-                />
-                {editing && (
-                  <ReusableButton
-                    label={saving ? 'Saving...' : 'Save Changes'}
-                    onClick={handleSave}
-                    className='w-full py-2 rounded-lg bg-blue-500 text-white font-semibold opacity-80'
-                  />
-                )}
-              </div>
-            </Card>
           </div>
         </div>
       </div>

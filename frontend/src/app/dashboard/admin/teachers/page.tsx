@@ -24,6 +24,7 @@ import TeacherSearchFilter, {
 import TeacherViewModal from '@/components/organisms/modals/TeacherViewModal';
 import TeacherEditModal from '@/components/organisms/modals/TeacherEditModal';
 import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
+import PasswordGenerationModal from '@/components/organisms/modals/PasswordGenerationModal';
 
 // Minimal mock data for dev mode
 const mockTeachers = [
@@ -80,6 +81,8 @@ const TeachersPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [passwordGenerationModalOpen, setPasswordGenerationModalOpen] =
+    useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -438,6 +441,13 @@ const TeachersPage = () => {
       return;
     }
 
+    // Generate password action
+    if (action === 'generate-password') {
+      setSelectedTeacher(teacher);
+      setPasswordGenerationModalOpen(true);
+      return;
+    }
+
     // Default case
     console.log('Unhandled action:', action, 'for teacher:', teacher.id);
   };
@@ -638,6 +648,19 @@ const TeachersPage = () => {
         message='Are you sure you want to delete this teacher?'
         itemName={selectedTeacher?.name || ''}
         isLoading={isDeleting}
+      />
+
+      {/* Password Generation Modal */}
+      <PasswordGenerationModal
+        isOpen={passwordGenerationModalOpen}
+        onClose={() => {
+          setPasswordGenerationModalOpen(false);
+          setSelectedTeacher(null);
+        }}
+        userId={selectedTeacher?.id?.toString() || ''}
+        userName={selectedTeacher?.name || ''}
+        userEmail={selectedTeacher?.email || ''}
+        userType='teacher'
       />
     </div>
   );

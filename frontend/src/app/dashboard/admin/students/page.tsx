@@ -19,6 +19,7 @@ import StudentViewModal from '@/components/organisms/modals/StudentViewModal';
 import StudentEditModal from '@/components/organisms/modals/StudentEditModal';
 import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
 import StudentAttendanceViewModal from '@/components/organisms/modals/StudentAttendanceViewModal';
+import PasswordGenerationModal from '@/components/organisms/modals/PasswordGenerationModal';
 
 const StudentsPage = () => {
   // State for students data
@@ -53,6 +54,8 @@ const StudentsPage = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [passwordGenerationModalOpen, setPasswordGenerationModalOpen] =
+    useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -436,6 +439,13 @@ const StudentsPage = () => {
       return;
     }
 
+    // Generate password action
+    if (action === 'generate-password') {
+      setSelectedStudent(student);
+      setPasswordGenerationModalOpen(true);
+      return;
+    }
+
     console.log('Unknown action:', action);
   };
 
@@ -608,6 +618,19 @@ const StudentsPage = () => {
         title='Delete Student'
         message={`Are you sure you want to delete ${selectedStudent?.name || 'this student'}?`}
         isLoading={isDeleting}
+      />
+
+      {/* Password Generation Modal */}
+      <PasswordGenerationModal
+        isOpen={passwordGenerationModalOpen}
+        onClose={() => {
+          setPasswordGenerationModalOpen(false);
+          setSelectedStudent(null);
+        }}
+        userId={selectedStudent?.id || ''}
+        userName={selectedStudent?.name || ''}
+        userEmail={selectedStudent?.email || ''}
+        userType='student'
       />
     </div>
   );

@@ -406,7 +406,7 @@ export default function TimeslotManager() {
 
   return (
     <div className='bg-white rounded-lg shadow'>
-      <div className='p-6'>
+      <div className='p-4 sm:p-6'>
         {selectedClassId ? (
           <div className='bg-blue-50 border border-blue-200 rounded-md p-3 mb-4'>
             <h3 className='text-md font-medium text-blue-800'>
@@ -424,7 +424,7 @@ export default function TimeslotManager() {
             </h3>
           </div>
         )}
-        <div className='flex items-center justify-between mb-6'>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2'>
           <h2 className='text-xl font-semibold text-gray-800 flex items-center'>
             <Clock className='w-5 h-5 mr-2' />
             Timeslot Manager
@@ -467,7 +467,7 @@ export default function TimeslotManager() {
 
         {/* Day tabs */}
         <div className='border-b border-gray-200 mb-6'>
-          <nav className='-mb-px flex space-x-6'>
+          <nav className='-mb-px flex flex-wrap gap-2 sm:space-x-6'>
             {days.map(day => {
               const normalizedDay =
                 day.charAt(0).toUpperCase() + day.slice(1).toLowerCase();
@@ -635,7 +635,7 @@ export default function TimeslotManager() {
               </p>
             </div>
           ) : (
-            <div className='overflow-hidden rounded-lg border border-gray-200'>
+            <div className='overflow-x-auto rounded-lg border border-gray-200'>
               <table className='min-w-full divide-y divide-gray-200'>
                 <thead className='bg-gray-50'>
                   <tr>

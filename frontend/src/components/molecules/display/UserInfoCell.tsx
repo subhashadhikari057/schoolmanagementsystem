@@ -7,6 +7,7 @@ interface UserInfoCellProps {
   avatar?: string;
   idLabel?: string; // e.g., "STF", "STU", "PAR"
   role?: 'student' | 'teacher' | 'staff' | 'parent' | 'admin';
+  hideId?: boolean; // Optional prop to hide the ID display
 }
 
 const UserInfoCell: React.FC<UserInfoCellProps> = ({
@@ -15,21 +16,29 @@ const UserInfoCell: React.FC<UserInfoCellProps> = ({
   avatar,
   idLabel = '',
   role = 'student',
+  hideId = false,
 }) => {
   const displayId = idLabel ? `${idLabel}${id}` : String(id);
 
   return (
-    <div className='flex items-center gap-3'>
+    <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
       <Avatar
         src={avatar}
         name={name}
-        className='w-10 h-10 rounded-full flex-shrink-0'
+        className='flex-shrink-0'
+        size='md'
         role={role}
         context='list-table'
       />
       <div className='min-w-0 flex-1'>
-        <div className='font-medium text-gray-900 truncate'>{name}</div>
-        <div className='text-sm text-gray-500 truncate'>{displayId}</div>
+        <div className='font-medium text-gray-900 truncate text-sm sm:text-base leading-tight'>
+          {name}
+        </div>
+        {!hideId && (
+          <div className='text-xs sm:text-sm text-gray-500 truncate'>
+            {displayId}
+          </div>
+        )}
       </div>
     </div>
   );

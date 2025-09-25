@@ -162,11 +162,9 @@ export default function AdminDashboard() {
               {/* Mobile: Single column layout */}
               <div className='block lg:hidden space-y-4'>
                 <AttendanceOverview />
-                <FeeCollectionChart />
                 {showAllCharts && (
                   <>
                     <ExamPerformanceChart />
-                    <ExpensesBreakdownChart />
                   </>
                 )}
 
@@ -184,9 +182,7 @@ export default function AdminDashboard() {
               {/* Desktop: 2x2 Grid */}
               <div className='hidden lg:grid lg:grid-cols-2 lg:gap-6'>
                 <AttendanceOverview />
-                <FeeCollectionChart />
                 <ExamPerformanceChart />
-                <ExpensesBreakdownChart />
               </div>
             </div>
           )}
