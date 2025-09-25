@@ -12,6 +12,7 @@ import { CreateLeaveRequestDto, UpdateLeaveRequestDto } from '../dto';
 import { LeaveRequestStatus } from '../enums/leave-request-status.enum';
 import { LeaveRequestType } from '../enums/leave-request-type.enum';
 import { CreateTeacherLeaveRequestDto } from '../dto/create-teacher-leave-request.dto';
+import { CreateTeacherLeaveRequestByAdminDto } from '../dto/create-teacher-leave-request-by-admin.dto';
 import { TeacherLeaveRequestStatus } from '../enums/teacher-leave-request-status.enum';
 import { AdminLeaveRequestActionDto } from '../dto/admin-leave-request-action.dto';
 import { TeacherLeaveUsageService } from './teacher-leave-usage.service';
@@ -1920,5 +1921,243 @@ export class LeaveRequestService {
     });
 
     return updatedTeacherLeaveRequest;
+  }
+
+  /**
+   * Create teacher leave request by admin
+   * Admin can create leave requests on behalf of teachers
+   * The request is automatically approved and leave balance is deducted
+   */
+  async createTeacherLeaveRequestByAdmin(
+    createDto: CreateTeacherLeaveRequestByAdminDto,
+    adminId: string,
+    userRole: UserRole,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    // Only admins can create leave requests for teachers
+    if (userRole !== UserRole.SUPER_ADMIN && userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Only admins can create leave requests for teachers',
+      );
+    }
+
+    // Validate teacher exists
+    const teacher = await this.prisma.teacher.findFirst({
+      where: { id: createDto.teacherId, deletedAt: null },
+      include: {
+        user: {
+          select: {
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    // Validate leave type exists
+    const leaveType = await this.prisma.leaveType.findFirst({
+      where: { id: createDto.leaveTypeId, deletedAt: null },
+    });
+
+    if (!leaveType) {
+      throw new NotFoundException('Leave type not found');
+    }
+
+    // Validate date format and logic
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (
+      !datePattern.test(createDto.startDate) ||
+      !datePattern.test(createDto.endDate)
+    ) {
+      throw new BadRequestException('Invalid date format. Expected YYYY-MM-DD');
+    }
+
+    // Calculate days using the same method as frontend
+    const calculatedDays = this.calculateLeaveDays(
+      createDto.startDate,
+      createDto.endDate,
+    );
+
+    // Parse dates for validation
+    const startDate = new Date(createDto.startDate + 'T00:00:00.000Z');
+    const endDate = new Date(createDto.endDate + 'T00:00:00.000Z');
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    // Validate date logic
+    if (startDate < today) {
+      throw new BadRequestException('Start date cannot be in the past');
+    }
+
+    if (startDate > endDate) {
+      throw new BadRequestException('Start date cannot be after end date');
+    }
+
+    if (calculatedDays <= 0) {
+      throw new BadRequestException(
+        'Invalid date range. End date must be after or equal to start date',
+      );
+    }
+
+    // Validate that frontend calculated days match backend calculation
+    if (calculatedDays !== createDto.days) {
+      throw new BadRequestException(
+        `Days calculation mismatch. Expected: ${calculatedDays}, received: ${createDto.days}. Please refresh the form and try again.`,
+      );
+    }
+
+    // Check leave balance availability
+    const currentUsage = await this.leaveUsageService.getCurrentUsage(
+      createDto.teacherId,
+      createDto.leaveTypeId,
+    );
+
+    const availableDays = leaveType.maxDays - currentUsage.totalUsage;
+    if (createDto.days > availableDays) {
+      throw new BadRequestException(
+        `Insufficient leave balance. Available: ${availableDays} days, Requested: ${createDto.days} days`,
+      );
+    }
+
+    // Create the leave request with auto-approval
+    const teacherLeaveRequest = await this.prisma.$transaction(async tx => {
+      // Create the leave request
+      const leaveRequest = await tx.teacherLeaveRequest.create({
+        data: {
+          title: createDto.title,
+          description: createDto.description
+            ? `${createDto.description}\n\nAdmin Creation Reason: ${createDto.adminCreationReason}`
+            : `Admin Creation Reason: ${createDto.adminCreationReason}`,
+          leaveTypeId: createDto.leaveTypeId,
+          status: TeacherLeaveRequestStatus.APPROVED, // Auto-approved
+          startDate: new Date(createDto.startDate + 'T00:00:00.000Z'),
+          endDate: new Date(createDto.endDate + 'T00:00:00.000Z'),
+          days: calculatedDays,
+          teacherId: createDto.teacherId,
+          adminId: adminId,
+          approvedAt: new Date(),
+          createdById: adminId, // Admin is the creator
+        },
+        include: {
+          leaveType: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isPaid: true,
+              maxDays: true,
+            },
+          },
+          teacher: {
+            include: {
+              user: {
+                select: {
+                  fullName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          admin: {
+            select: {
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      // Update leave usage immediately since it's auto-approved
+      await this.leaveUsageService.updateUsageOnApproval(
+        createDto.teacherId,
+        createDto.leaveTypeId,
+        calculatedDays,
+        leaveRequest.id,
+        adminId,
+        ipAddress,
+        userAgent,
+      );
+
+      return leaveRequest;
+    });
+
+    // Process attachments if any
+    if (createDto.attachments && createDto.attachments.length > 0) {
+      try {
+        // Import the attachment service dynamically to avoid circular dependencies
+        const { LeaveRequestAttachmentService } = await import(
+          './leave-request-attachment.service'
+        );
+        const attachmentService = new LeaveRequestAttachmentService(
+          this.prisma,
+          this.auditService,
+        );
+
+        await attachmentService.uploadTeacherLeaveRequestAttachments(
+          teacherLeaveRequest.id,
+          createDto.attachments,
+          adminId,
+          userRole,
+          ipAddress,
+          userAgent,
+        );
+      } catch (attachmentError) {
+        console.error(
+          'Error uploading teacher leave request attachments:',
+          attachmentError,
+        );
+        // Don't fail the leave request creation if attachments fail
+        // The leave request is still created successfully
+      }
+    }
+
+    // Log the action
+    await this.auditService.log({
+      userId: adminId,
+      action: 'ADMIN_CREATED_TEACHER_LEAVE_REQUEST',
+      module: 'TEACHER_LEAVE_REQUEST',
+      details: {
+        teacherLeaveRequestId: teacherLeaveRequest.id,
+        teacherId: createDto.teacherId,
+        days: calculatedDays,
+        adminCreationReason: createDto.adminCreationReason,
+        leaveTypeId: createDto.leaveTypeId,
+        autoApproved: true,
+      },
+      ipAddress,
+      userAgent,
+    });
+
+    return teacherLeaveRequest;
+  }
+
+  /**
+   * Helper method to check if a leave request was created by admin
+   * Admin-created leaves have createdById = adminId (both are admin's ID)
+   */
+  isAdminCreatedLeaveRequest(leaveRequest: any): boolean {
+    return (
+      leaveRequest.createdById === leaveRequest.adminId &&
+      leaveRequest.status === TeacherLeaveRequestStatus.APPROVED &&
+      leaveRequest.approvedAt !== null
+    );
+  }
+
+  /**
+   * Get admin creation reason from description field
+   */
+  getAdminCreationReason(leaveRequest: any): string | null {
+    if (!this.isAdminCreatedLeaveRequest(leaveRequest)) {
+      return null;
+    }
+
+    const description = leaveRequest.description || '';
+    const reasonMatch = description.match(/Admin Creation Reason: (.+)/);
+    return reasonMatch ? reasonMatch[1] : null;
   }
 }

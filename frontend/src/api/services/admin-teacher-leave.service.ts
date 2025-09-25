@@ -64,6 +64,36 @@ export interface TeacherLeaveStatistics {
   cancelledRequests: number;
 }
 
+export interface CreateTeacherLeaveRequestByAdminDto {
+  teacherId: string;
+  title: string;
+  description?: string;
+  leaveTypeId: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  adminCreationReason: string;
+  attachments?: File[];
+}
+
+export interface Teacher {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  employeeId?: string;
+  designation?: string;
+  department?: string;
+}
+
+export interface LeaveType {
+  id: string;
+  name: string;
+  description?: string;
+  isPaid: boolean;
+  maxDays: number;
+}
+
 // Admin Teacher Leave Service
 export class AdminTeacherLeaveService {
   private httpClient: HttpClient;
@@ -132,6 +162,106 @@ export class AdminTeacherLeaveService {
         'Error performing admin action on teacher leave request:',
         error,
       );
+      throw error;
+    }
+  }
+
+  /**
+   * Create teacher leave request by admin
+   */
+  async createTeacherLeaveRequestByAdmin(
+    data: CreateTeacherLeaveRequestByAdminDto,
+  ): Promise<{
+    message: string;
+    teacherLeaveRequest: AdminTeacherLeaveRequest;
+  }> {
+    try {
+      const response = await this.httpClient.post<{
+        message: string;
+        teacherLeaveRequest: AdminTeacherLeaveRequest;
+      }>('api/v1/leave-requests/teacher/admin-create', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating teacher leave request by admin:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all teachers for admin to select from
+   */
+  async getAllTeachers(): Promise<{ teachers: Teacher[] }> {
+    try {
+      const response = await this.httpClient.get<Teacher[]>('api/v1/teachers');
+      return { teachers: response.data };
+    } catch (error) {
+      console.error('Error fetching teachers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all leave types
+   */
+  async getAllLeaveTypes(): Promise<{ leaveTypes: LeaveType[] }> {
+    try {
+      const response =
+        await this.httpClient.get<LeaveType[]>('api/v1/leave-types');
+      return { leaveTypes: response.data };
+    } catch (error) {
+      console.error('Error fetching leave types:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get teacher's leave usage for a specific leave type
+   */
+  async getTeacherLeaveUsage(
+    teacherId: string,
+    leaveTypeId: string,
+  ): Promise<{
+    totalUsage: number;
+    yearlyUsage: number;
+    monthlyUsage: number;
+  }> {
+    try {
+      const response = await this.httpClient.get<{
+        usage: {
+          teacherId: string;
+          usageData: Array<{
+            leaveType: {
+              id: string;
+              name: string;
+              description?: string;
+              isPaid: boolean;
+              maxDays: number;
+            };
+            usage: {
+              totalUsage: number;
+              yearlyUsage: number;
+              monthlyUsage: number;
+            };
+          }>;
+        };
+      }>(`api/v1/leave-usage/teacher/${teacherId}`);
+
+      // Find the specific leave type usage
+      const leaveTypeUsage = response.data.usage.usageData.find(
+        item => item.leaveType.id === leaveTypeId,
+      );
+
+      if (!leaveTypeUsage) {
+        return {
+          totalUsage: 0,
+          yearlyUsage: 0,
+          monthlyUsage: 0,
+        };
+      }
+
+      return leaveTypeUsage.usage;
+    } catch (error) {
+      console.error('Error fetching teacher leave usage:', error);
       throw error;
     }
   }

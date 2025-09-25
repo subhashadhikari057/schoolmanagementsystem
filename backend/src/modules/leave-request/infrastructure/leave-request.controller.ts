@@ -28,6 +28,7 @@ import {
 } from '../../../shared/utils/file-upload.util';
 import {
   CreateTeacherLeaveRequestDto,
+  CreateTeacherLeaveRequestByAdminDto,
   AdminLeaveRequestActionDto,
 } from '../dto';
 
@@ -265,6 +266,49 @@ export class LeaveRequestController {
         req.headers['user-agent'],
       );
     return { message: 'Teacher leave request cancelled', teacherLeaveRequest };
+  }
+
+  @Post('teacher/admin-create')
+  @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @UseInterceptors(
+    FilesInterceptor(
+      'attachments',
+      10,
+      createMulterConfig(
+        UPLOAD_PATHS.TEACHER_LEAVE_REQUEST_ATTACHMENTS,
+        'document',
+      ),
+    ),
+  )
+  async createTeacherLeaveRequestByAdmin(
+    @Body()
+    createTeacherLeaveRequestByAdminDto: CreateTeacherLeaveRequestByAdminDto,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    // Add uploaded files to the DTO
+    if (files && files.length > 0) {
+      createTeacherLeaveRequestByAdminDto.attachments = files;
+    }
+
+    const teacherLeaveRequest =
+      await this.leaveRequestService.createTeacherLeaveRequestByAdmin(
+        createTeacherLeaveRequestByAdminDto,
+        user.id,
+        userRole,
+        req.ip,
+        req.headers['user-agent'],
+      );
+    return {
+      message: 'Teacher leave request created by admin successfully',
+      teacherLeaveRequest,
+    };
   }
 
   // =====================

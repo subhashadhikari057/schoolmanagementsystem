@@ -26,6 +26,9 @@ import {
   AdminTeacherLeaveRequest,
   TeacherLeaveStatistics,
   AdminActionDto,
+  CreateTeacherLeaveRequestByAdminDto,
+  Teacher,
+  LeaveType,
 } from '@/api/services/admin-teacher-leave.service';
 import { toast } from 'sonner';
 
@@ -59,6 +62,36 @@ export default function TeacherLeaveManagementPage() {
   );
   const [rejectionReason, setRejectionReason] = useState('');
 
+  // Create leave modal states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [selectedLeaveType, setSelectedLeaveType] = useState<LeaveType | null>(
+    null,
+  );
+  const [teacherLeaveUsage, setTeacherLeaveUsage] = useState<{
+    totalUsage: number;
+    yearlyUsage: number;
+    monthlyUsage: number;
+  } | null>(null);
+  const [createFormData, setCreateFormData] = useState<{
+    title: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    days: number;
+    adminCreationReason: string;
+  }>({
+    title: '',
+    description: '',
+    startDate: '',
+    endDate: '',
+    days: 0,
+    adminCreationReason: '',
+  });
+  const [createLoading, setCreateLoading] = useState(false);
+
   // Main page loading effect
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -78,6 +111,31 @@ export default function TeacherLeaveManagementPage() {
   useEffect(() => {
     filterRequests();
   }, [leaveRequests, statusFilter, searchTerm, dateFilter]);
+
+  // Load teachers and leave types when create modal opens
+  useEffect(() => {
+    if (isCreateModalOpen) {
+      loadTeachersAndLeaveTypes();
+    }
+  }, [isCreateModalOpen]);
+
+  // Load teacher leave usage when teacher and leave type are selected
+  useEffect(() => {
+    if (selectedTeacher && selectedLeaveType) {
+      loadTeacherLeaveUsage(selectedTeacher.id, selectedLeaveType.id);
+    }
+  }, [selectedTeacher, selectedLeaveType]);
+
+  // Calculate days when dates change
+  useEffect(() => {
+    if (createFormData.startDate && createFormData.endDate) {
+      const days = calculateDays(
+        createFormData.startDate,
+        createFormData.endDate,
+      );
+      setCreateFormData(prev => ({ ...prev, days }));
+    }
+  }, [createFormData.startDate, createFormData.endDate]);
 
   const loadLeaveData = async () => {
     setLoading(true);
@@ -99,6 +157,132 @@ export default function TeacherLeaveManagementPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadTeachersAndLeaveTypes = async () => {
+    try {
+      const [teachersResponse, leaveTypesResponse] = await Promise.all([
+        adminTeacherLeaveService.getAllTeachers(),
+        adminTeacherLeaveService.getAllLeaveTypes(),
+      ]);
+      setTeachers(teachersResponse.teachers || []);
+      setLeaveTypes(leaveTypesResponse.leaveTypes || []);
+    } catch (error) {
+      console.error('Failed to load teachers and leave types:', error);
+      toast.error('Failed to load teachers and leave types');
+    }
+  };
+
+  const loadTeacherLeaveUsage = async (
+    teacherId: string,
+    leaveTypeId: string,
+  ) => {
+    try {
+      const usage = await adminTeacherLeaveService.getTeacherLeaveUsage(
+        teacherId,
+        leaveTypeId,
+      );
+      setTeacherLeaveUsage(usage);
+    } catch (error) {
+      console.error('Failed to load teacher leave usage:', error);
+      setTeacherLeaveUsage(null);
+    }
+  };
+
+  const calculateDays = (startDate: string, endDate: string): number => {
+    if (!startDate || !endDate) return 0;
+
+    // Parse dates consistently - expect YYYY-MM-DD format
+    const startDateMatch = startDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const endDateMatch = endDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+    if (!startDateMatch || !endDateMatch) {
+      return 0;
+    }
+
+    const [, startYear, startMonth, startDay] = startDateMatch.map(Number);
+    const [, endYear, endMonth, endDay] = endDateMatch.map(Number);
+
+    // Create dates in local timezone to avoid UTC issues (matching backend)
+    const start = new Date(startYear, startMonth - 1, startDay);
+    const end = new Date(endYear, endMonth - 1, endDay);
+
+    // Validate date objects
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return 0;
+    }
+
+    // Calculate difference in milliseconds and convert to days (matching backend)
+    const timeDiff = end.getTime() - start.getTime();
+    const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24)) + 1; // +1 for inclusive
+
+    return daysDiff > 0 ? daysDiff : 0;
+  };
+
+  const handleCreateLeave = async () => {
+    if (!selectedTeacher || !selectedLeaveType) {
+      toast.error('Please select a teacher and leave type');
+      return;
+    }
+
+    if (!createFormData.title.trim()) {
+      toast.error('Please enter a title');
+      return;
+    }
+
+    if (!createFormData.adminCreationReason.trim()) {
+      toast.error('Please provide a reason for creating this leave');
+      return;
+    }
+
+    if (createFormData.days <= 0) {
+      toast.error('Please select valid dates');
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const createData: CreateTeacherLeaveRequestByAdminDto = {
+        teacherId: selectedTeacher.id,
+        title: createFormData.title,
+        description: createFormData.description?.trim() || undefined,
+        leaveTypeId: selectedLeaveType.id,
+        startDate: createFormData.startDate,
+        endDate: createFormData.endDate,
+        days: createFormData.days,
+        adminCreationReason: createFormData.adminCreationReason,
+      };
+
+      await adminTeacherLeaveService.createTeacherLeaveRequestByAdmin(
+        createData,
+      );
+
+      toast.success('Leave request created successfully');
+      setIsCreateModalOpen(false);
+      resetCreateForm();
+      await loadLeaveData();
+    } catch (error: any) {
+      console.error('Failed to create leave request:', error);
+      const errorMessage =
+        error?.response?.data?.message || 'Failed to create leave request';
+      toast.error(errorMessage);
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const resetCreateForm = () => {
+    setSelectedTeacher(null);
+    setSelectedLeaveType(null);
+    setTeacherLeaveUsage(null);
+    setCreateFormData({
+      title: '',
+      description: '',
+      startDate: '',
+      endDate: '',
+      days: 0,
+      adminCreationReason: '',
+    });
   };
 
   const filterRequests = () => {
@@ -244,6 +428,15 @@ export default function TeacherLeaveManagementPage() {
             <Label className='text-xs sm:text-sm lg:text-base text-gray-600 mt-1'>
               Review and manage teacher leave requests
             </Label>
+          </div>
+          <div className='flex gap-2'>
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              className='px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-all duration-200 text-sm font-medium flex items-center gap-2 hover:shadow-sm'
+            >
+              <Users className='w-4 h-4' />
+              Create Leave for Teacher
+            </Button>
           </div>
         </div>
       </div>
@@ -830,6 +1023,243 @@ export default function TeacherLeaveManagementPage() {
                     {actionType === 'APPROVE'
                       ? 'Approve Request'
                       : 'Reject Request'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Leave for Teacher Modal */}
+      {isCreateModalOpen && (
+        <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-xl w-full max-w-4xl shadow-2xl animate-in fade-in duration-300 max-h-[90vh] overflow-y-auto'>
+            <div className='p-6 border-b border-gray-200'>
+              <h2 className='text-xl font-bold text-gray-800 mb-2'>
+                Create Leave for Teacher
+              </h2>
+              <p className='text-gray-600'>
+                Create a leave request on behalf of a teacher
+              </p>
+            </div>
+
+            <div className='p-6'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                {/* Teacher Selection */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Select Teacher <span className='text-red-500'>*</span>
+                  </label>
+                  <Dropdown
+                    type='filter'
+                    title='Choose Teacher'
+                    options={teachers.map(teacher => ({
+                      value: teacher.id,
+                      label: `${teacher.fullName} (${teacher.email})`,
+                    }))}
+                    selectedValue={selectedTeacher?.id || ''}
+                    onSelect={teacherId => {
+                      const teacher = teachers.find(t => t.id === teacherId);
+                      setSelectedTeacher(teacher || null);
+                    }}
+                    placeholder='Select a teacher'
+                    className='w-full'
+                  />
+                </div>
+
+                {/* Leave Type Selection */}
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Leave Type <span className='text-red-500'>*</span>
+                  </label>
+                  <Dropdown
+                    type='filter'
+                    title='Choose Leave Type'
+                    options={leaveTypes.map(leaveType => ({
+                      value: leaveType.id,
+                      label: `${leaveType.name} (Max: ${leaveType.maxDays} days)`,
+                    }))}
+                    selectedValue={selectedLeaveType?.id || ''}
+                    onSelect={leaveTypeId => {
+                      const leaveType = leaveTypes.find(
+                        lt => lt.id === leaveTypeId,
+                      );
+                      setSelectedLeaveType(leaveType || null);
+                    }}
+                    placeholder='Select leave type'
+                    className='w-full'
+                  />
+                </div>
+              </div>
+
+              {/* Leave Balance Display */}
+              {selectedTeacher && selectedLeaveType && teacherLeaveUsage && (
+                <div className='mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
+                  <h3 className='font-medium text-blue-900 mb-2'>
+                    Leave Balance
+                  </h3>
+                  <div className='grid grid-cols-3 gap-4 text-sm'>
+                    <div>
+                      <span className='text-blue-700'>Total Entitlement:</span>
+                      <p className='font-semibold text-blue-900'>
+                        {selectedLeaveType.maxDays} days
+                      </p>
+                    </div>
+                    <div>
+                      <span className='text-blue-700'>Already Used:</span>
+                      <p className='font-semibold text-blue-900'>
+                        {teacherLeaveUsage.totalUsage} days
+                      </p>
+                    </div>
+                    <div>
+                      <span className='text-blue-700'>Available:</span>
+                      <p className='font-semibold text-blue-900'>
+                        {selectedLeaveType.maxDays -
+                          teacherLeaveUsage.totalUsage}{' '}
+                        days
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Leave Details */}
+              <div className='mt-6 space-y-4'>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Title <span className='text-red-500'>*</span>
+                  </label>
+                  <input
+                    type='text'
+                    value={createFormData.title}
+                    onChange={e =>
+                      setCreateFormData(prev => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
+                    }
+                    placeholder='Enter leave title'
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  />
+                </div>
+
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Description
+                  </label>
+                  <textarea
+                    value={createFormData.description}
+                    onChange={e =>
+                      setCreateFormData(prev => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder='Enter leave description (optional)'
+                    rows={3}
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  />
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Start Date <span className='text-red-500'>*</span>
+                    </label>
+                    <input
+                      type='date'
+                      value={createFormData.startDate}
+                      onChange={e =>
+                        setCreateFormData(prev => ({
+                          ...prev,
+                          startDate: e.target.value,
+                        }))
+                      }
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      End Date <span className='text-red-500'>*</span>
+                    </label>
+                    <input
+                      type='date'
+                      value={createFormData.endDate}
+                      onChange={e =>
+                        setCreateFormData(prev => ({
+                          ...prev,
+                          endDate: e.target.value,
+                        }))
+                      }
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Duration
+                    </label>
+                    <div className='w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700'>
+                      {createFormData.days} day
+                      {createFormData.days !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Admin Creation Reason{' '}
+                    <span className='text-red-500'>*</span>
+                  </label>
+                  <textarea
+                    value={createFormData.adminCreationReason}
+                    onChange={e =>
+                      setCreateFormData(prev => ({
+                        ...prev,
+                        adminCreationReason: e.target.value,
+                      }))
+                    }
+                    placeholder='Why are you creating this leave request?'
+                    rows={3}
+                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className='p-6 border-t border-gray-200 flex justify-end gap-3'>
+              <Button
+                onClick={() => {
+                  setIsCreateModalOpen(false);
+                  resetCreateForm();
+                }}
+                disabled={createLoading}
+                className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-all duration-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateLeave}
+                disabled={
+                  createLoading ||
+                  !selectedTeacher ||
+                  !selectedLeaveType ||
+                  createFormData.days <= 0
+                }
+                className='px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-all duration-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:shadow-sm'
+              >
+                {createLoading ? (
+                  <>
+                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Users className='h-4 w-4' />
+                    Create Leave
                   </>
                 )}
               </Button>
