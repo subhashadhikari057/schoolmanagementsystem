@@ -2,18 +2,7 @@
 
 import React, { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import {
-  HardDrive,
-  Edit2,
-  Save,
-  X,
-  BarChart3,
-  Download,
-  Upload,
-  Calendar,
-  Settings,
-  ArrowLeft,
-} from 'lucide-react';
+import { HardDrive, Edit2, ArrowLeft } from 'lucide-react';
 import GenericTabs from '@/components/organisms/tabs/GenericTabs';
 import BackupOverviewTab from '@/components/organisms/settings/BackupOverviewTab';
 import ManualBackupTab from '@/components/organisms/settings/ManualBackupTab';
@@ -21,11 +10,18 @@ import RestoreTab from '@/components/organisms/settings/RestoreTab';
 import BackupScheduleTab from '@/components/organisms/settings/BackupScheduleTab';
 import BackupSettingsTab from '@/components/organisms/settings/BackupSettingsTab';
 import ReusableButton from '@/components/atoms/form-controls/Button';
-import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import SettingsNavigation from '@/components/molecules/SettingsNavigation';
+import ConfirmationModal from '@/components/molecules/modals/ConfirmationModal';
+import { backupSettingsService } from '@/api/services/backup-settings.service';
+import { useBackupContext } from '@/context/BackupContext';
 
 export default function BackupRecoveryPage() {
+  const { toast } = useBackupContext();
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const [key, setKey] = useState(0); // Force re-render of tabs
+  const [resetModal, setResetModal] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const searchParams = useSearchParams();
   const isEmbedded = searchParams.get('embedded') === 'true';
 
@@ -34,73 +30,101 @@ export default function BackupRecoveryPage() {
     { label: 'Backup & Recovery' },
   ];
 
-  // Custom backup stats with the specific design
-  const backupStats = [
-    {
-      label: 'Last Backup Size',
-      value: '2.4 GB',
-      icon: HardDrive,
-      iconBg: 'bg-blue-600',
-    },
-    {
-      label: 'Storage Used',
-      value: '75 GB',
-      icon: BarChart3,
-      iconBg: 'bg-green-600',
-    },
-    {
-      label: 'Last Backup',
-      value: '2 hrs ago',
-      icon: Calendar,
-      iconBg: 'bg-purple-600',
-    },
-    {
-      label: 'Backup Service',
-      value: 'Running',
-      icon: Settings,
-      iconBg: 'bg-red-600',
-    },
-  ];
-
-  // Tab configuration for GenericTabs
-  const tabs = [
-    {
-      name: 'Overview',
-      content: <BackupOverviewTab isEditing={isEditing} />,
-    },
-    {
-      name: 'Manual Backup',
-      content: <ManualBackupTab isEditing={isEditing} />,
-    },
-    {
-      name: 'Restore',
-      content: <RestoreTab isEditing={isEditing} />,
-    },
-    {
-      name: 'Schedule',
-      content: <BackupScheduleTab isEditing={isEditing} />,
-    },
-    {
-      name: 'Settings',
-      content: <BackupSettingsTab isEditing={isEditing} />,
-    },
-  ];
-
   const handleEdit = () => {
     setIsEditing(true);
   };
 
   const handleSave = () => {
-    // Here you would typically save the data
-    console.log('Saving backup changes...');
+    // This will be called by the Settings tab after successful save
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    // Here you would typically reset any unsaved changes
-    console.log('Cancelling backup changes...');
     setIsEditing(false);
+    setKey(prev => prev + 1); // Force re-render to reset any unsaved changes
   };
+
+  const handleTabChange = (tabIndex: number) => {
+    setActiveTab(tabIndex);
+    // If switching away from Settings tab, exit edit mode
+    if (tabIndex !== 4) {
+      setIsEditing(false);
+    }
+  };
+
+  const handleNavigateToManualBackup = () => {
+    setActiveTab(1); // Navigate to Manual Backup tab (index 1)
+    setKey(prev => prev + 1); // Force re-render
+  };
+
+  const handleResetToDefaults = () => {
+    setResetModal(true);
+  };
+
+  const confirmReset = async () => {
+    try {
+      setResetting(true);
+      const response = await backupSettingsService.resetToDefaults();
+
+      if (response.success) {
+        toast.success(
+          'Settings Reset',
+          'Backup settings have been reset to defaults successfully.',
+        );
+        setResetModal(false);
+        // Force re-render to reload default settings
+        setKey(prev => prev + 1);
+      } else {
+        toast.error(
+          'Reset Failed',
+          response.error || 'Failed to reset settings',
+        );
+      }
+    } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : 'Failed to reset settings';
+      toast.error('Reset Error', errorMsg);
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  // Tab configuration for GenericTabs
+  const tabs = [
+    {
+      name: 'Overview',
+      content: (
+        <BackupOverviewTab
+          onNavigateToManualBackup={handleNavigateToManualBackup}
+        />
+      ),
+    },
+    {
+      name: 'Manual Backup',
+      content: <ManualBackupTab key={`manual-${key}`} />,
+    },
+    {
+      name: 'Restore',
+      content: <RestoreTab key={`restore-${key}`} />,
+    },
+    {
+      name: 'Schedule',
+      content: <BackupScheduleTab key={`schedule-${key}`} />,
+    },
+    {
+      name: 'Settings',
+      content: (
+        <BackupSettingsTab
+          isEditing={isEditing}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      ),
+    },
+  ];
+
+  // Only show edit controls for Settings tab (index 4)
+  const showEditControls = activeTab === 4;
 
   return (
     <div className='min-h-screen'>
@@ -114,74 +138,26 @@ export default function BackupRecoveryPage() {
         />
       )}
 
-      {/* Stats - only show if not embedded */}
-      {!isEmbedded && (
-        <div className='px-3 sm:px-4 lg:px-6 mt-3 sm:mt-4 lg:mt-6'>
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-            {backupStats.map((stat, index) => {
-              const IconComponent = stat.icon;
-              return (
-                <div
-                  key={index}
-                  className='bg-white rounded-xl p-4 shadow-sm border border-gray-100'
-                >
-                  <div className='flex items-center justify-between'>
-                    <div>
-                      <p className='text-sm text-gray-500 mb-1'>{stat.label}</p>
-                      <p className='text-2xl font-bold text-gray-900'>
-                        {stat.value}
-                      </p>
-                    </div>
-                    <div
-                      className={`w-12 h-12 rounded-lg ${stat.iconBg} flex items-center justify-center`}
-                    >
-                      <IconComponent className='w-6 h-6 text-white' />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Action Buttons - show in normal page view */}
-      {!isEmbedded && (
+      {/* Action Buttons - show only Edit button for Settings tab */}
+      {!isEmbedded && showEditControls && (
         <div className='px-4 sm:px-6 lg:px-8 mt-6 mb-6'>
           <div className='flex justify-end'>
-            <div className='flex space-x-3'>
-              {!isEditing ? (
+            <div className='flex flex-wrap items-center gap-3'>
+              {!isEditing && (
                 <>
-                  <ReusableButton
-                    onClick={() => {}}
-                    className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
-                  >
-                    <HardDrive className='h-4 w-4' />
-                    Reset to Defaults
-                  </ReusableButton>
                   <ReusableButton
                     onClick={handleEdit}
-                    className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
+                    className='text-sm px-5 py-2.5 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow font-medium'
                   >
-                    <Edit2 className='h-4 w-4' />
-                    Edit Settings
-                  </ReusableButton>
-                </>
-              ) : (
-                <>
-                  <ReusableButton
-                    onClick={handleCancel}
-                    className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
-                  >
-                    <X className='h-4 w-4' />
-                    Cancel
+                    <Edit2 className='h-4 w-4 flex-shrink-0' />
+                    <span className='whitespace-nowrap'>Edit Settings</span>
                   </ReusableButton>
                   <ReusableButton
-                    onClick={handleSave}
-                    className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
+                    onClick={handleResetToDefaults}
+                    className='text-sm px-5 py-2.5 bg-gray-600 text-white hover:bg-gray-700 rounded-lg transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow font-medium'
                   >
-                    <Save className='h-4 w-4' />
-                    Save Changes
+                    <HardDrive className='h-4 w-4 flex-shrink-0' />
+                    <span className='whitespace-nowrap'>Reset to Defaults</span>
                   </ReusableButton>
                 </>
               )}
@@ -190,53 +166,34 @@ export default function BackupRecoveryPage() {
         </div>
       )}
 
-      {/* Back Button for Embedded View */}
+      {/* Back Button for Embedded View - show edit controls only for Settings tab */}
       {isEmbedded && (
         <div className='px-4 sm:px-6 lg:px-8 pt-6 mb-6'>
-          <div className='flex justify-between items-center'>
+          <div className='flex flex-wrap justify-between items-center gap-4'>
             <button
               onClick={() => window.history.back()}
               className='flex items-center justify-center w-10 h-10 rounded-full bg-white hover:bg-gray-50 transition-all duration-200 group border border-gray-200 shadow-md hover:shadow-lg'
             >
               <ArrowLeft className='h-4 w-4 text-gray-600 group-hover:text-gray-800 transition-colors duration-200' />
             </button>
-            <div className='flex space-x-3'>
-              {!isEditing ? (
-                <>
-                  <ReusableButton
-                    onClick={() => {}}
-                    className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
-                  >
-                    <HardDrive className='h-4 w-4' />
-                    Reset to Defaults
-                  </ReusableButton>
-                  <ReusableButton
-                    onClick={handleEdit}
-                    className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
-                  >
-                    <Edit2 className='h-4 w-4' />
-                    Edit Settings
-                  </ReusableButton>
-                </>
-              ) : (
-                <>
-                  <ReusableButton
-                    onClick={handleCancel}
-                    className='text-sm px-4 py-2 bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
-                  >
-                    <X className='h-4 w-4' />
-                    Cancel
-                  </ReusableButton>
-                  <ReusableButton
-                    onClick={handleSave}
-                    className='text-sm px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md'
-                  >
-                    <Save className='h-4 w-4' />
-                    Save Changes
-                  </ReusableButton>
-                </>
-              )}
-            </div>
+            {showEditControls && !isEditing && (
+              <div className='flex flex-wrap items-center gap-3'>
+                <ReusableButton
+                  onClick={handleEdit}
+                  className='text-sm px-5 py-2.5 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow font-medium'
+                >
+                  <Edit2 className='h-4 w-4 flex-shrink-0' />
+                  <span className='whitespace-nowrap'>Edit Settings</span>
+                </ReusableButton>
+                <ReusableButton
+                  onClick={handleResetToDefaults}
+                  className='text-sm px-5 py-2.5 bg-gray-600 text-white hover:bg-gray-700 rounded-lg transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow font-medium'
+                >
+                  <HardDrive className='h-4 w-4 flex-shrink-0' />
+                  <span className='whitespace-nowrap'>Reset to Defaults</span>
+                </ReusableButton>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -244,9 +201,32 @@ export default function BackupRecoveryPage() {
       {/* Main Content with GenericTabs */}
       <div className='px-4 sm:px-6 lg:px-8 pb-8'>
         <div className='bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden'>
-          <GenericTabs tabs={tabs} defaultIndex={0} />
+          <GenericTabs
+            tabs={tabs}
+            defaultIndex={0}
+            selectedIndex={activeTab}
+            onChange={handleTabChange}
+          />
         </div>
       </div>
+
+      {/* Reset to Defaults Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={resetModal}
+        onClose={() => setResetModal(false)}
+        onConfirm={confirmReset}
+        title='Reset to Defaults'
+        message='Are you sure you want to reset all backup settings to their default values?'
+        details={[
+          'All encryption settings will be reset',
+          'All offsite backup configurations will be cleared',
+          'Custom backup locations will be reset',
+          'This action cannot be undone',
+        ]}
+        type='warning'
+        confirmText='Reset Settings'
+        isLoading={resetting}
+      />
     </div>
   );
 }

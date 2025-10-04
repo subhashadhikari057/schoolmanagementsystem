@@ -2382,3 +2382,46 @@ model BackupNotification {
   @@index([createdAt])
   @@map("backup_notifications")
 }
+
+model BackupSettings {
+  id                        String    @id @default(uuid())
+  
+  // Encryption settings
+  enableEncryption          Boolean   @default(false)
+  clientEncryptionKey       String?
+  keyRotationEnabled        Boolean   @default(false)
+  keyRotationDays           Int       @default(90)
+  keyCreatedAt              DateTime?
+  keyUpdatedAt              DateTime?
+  
+  // Offsite settings
+  enableOffsiteBackup       Boolean   @default(false)
+  offsiteProvider           String    @default("ssh")
+  remoteHost                String?
+  username                  String?
+  remotePath                String    @default("/backups")
+  sshKeyPath                String?
+  sshConfig                 Json?     @default("{}")
+  encryptInTransit          Boolean   @default(true)
+  syncFrequency             String    @default("immediate")
+  backupLocation            String    @default("both")
+  lastSync                  DateTime?
+  connectionStatus          String    @default("disconnected")
+  
+  // Advanced settings
+  compressionLevel          String    @default("medium")
+  parallelOperations        Int       @default(1)
+  backupNotifications       String[]  @default([])
+  enableProgressTracking    Boolean   @default(true)
+  enablePreRestoreSnapshot  Boolean   @default(true)
+  maxRetryAttempts          Int       @default(3)
+  backupTimeout             Int       @default(3600)
+  
+  // Metadata
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  updatedBy                 String?
+  version                   String    @default("1.0.0")
+  
+  @@map("backup_settings")
+}

@@ -13,6 +13,7 @@ import {
   UseInterceptors,
   HttpException,
   Res,
+  Logger,
 } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -82,6 +83,8 @@ class CleanupBackupsDto extends createZodDto(CleanupBackupsDtoSchema) {}
 @Controller('api/v1/backup')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BackupController {
+  private readonly logger = new Logger(BackupController.name);
+
   constructor(
     private readonly backupService: BackupService,
     private readonly restoreService: RestoreService,
@@ -117,6 +120,7 @@ export class BackupController {
         message: 'Backup created successfully',
         data: {
           backupId: backup.backupId,
+          operationId: backup.metadata?.operationId, // Include operationId for SSE tracking
           type: backup.type,
           size: backup.size.toString(), // Convert BigInt to string for JSON
           location: backup.location,
@@ -151,26 +155,41 @@ export class BackupController {
   ) {
     try {
       if (restoreDto.backupId) {
-        // Restore from metadata with enhanced safety features
-        await this.backupService.restoreFromBackup(restoreDto.backupId, {
-          clientKey: restoreDto.clientKey,
-          targetDir: restoreDto.targetDir,
-          overwrite: restoreDto.overwrite,
-          restoreDatabase: restoreDto.restoreDatabase,
-          restoreFiles: restoreDto.restoreFiles,
-          restoreConfig: restoreDto.restoreConfig,
-          dropExisting: restoreDto.dropExisting,
-          enablePreRestoreSnapshot: true, // Always enable pre-restore snapshots for safety
-          userId: user.id,
-        });
+        // Generate operationId for progress tracking
+        const operationId = `restore_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Start restore in background (non-blocking)
+        this.backupService
+          .restoreFromBackup(
+            restoreDto.backupId,
+            {
+              clientKey: restoreDto.clientKey,
+              targetDir: restoreDto.targetDir,
+              overwrite: restoreDto.overwrite,
+              restoreDatabase: restoreDto.restoreDatabase,
+              restoreFiles: restoreDto.restoreFiles,
+              restoreConfig: restoreDto.restoreConfig,
+              dropExisting: restoreDto.dropExisting,
+              enablePreRestoreSnapshot: true, // Always enable pre-restore snapshots for safety
+              userId: user.id,
+            },
+            operationId, // Pass operationId for SSE progress tracking
+          )
+          .catch(error => {
+            // Log error but don't block response
+            this.logger.error('Restore failed:', error);
+          });
+
+        return {
+          success: true,
+          message: 'Restore initiated successfully',
+          data: {
+            operationId, // Return operationId for progress tracking
+          },
+        };
       } else {
         throw new Error('Either backupId or backup file must be provided');
       }
-
-      return {
-        success: true,
-        message: 'Restore completed successfully',
-      };
     } catch (error) {
       return {
         success: false,
@@ -250,12 +269,22 @@ export class BackupController {
           restoreDto.dropExisting === true,
       };
 
+      // Generate operationId for progress tracking
+      const operationId = `restore_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
       // Use the uploaded file path for restore
-      await this.restoreService.restoreFromBackup(tempFilePath, options);
+      const result = await this.restoreService.restoreFromBackup(
+        tempFilePath,
+        options,
+        operationId,
+      );
 
       return {
         success: true,
-        message: 'Restore completed successfully',
+        message: 'Restore initiated successfully',
+        data: {
+          operationId: result.operationId, // Return operationId for progress tracking
+        },
       };
     } catch (error) {
       return {

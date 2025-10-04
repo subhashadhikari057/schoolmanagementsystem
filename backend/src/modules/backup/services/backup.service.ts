@@ -8,9 +8,12 @@ import { FullSystemBackupService } from './full-system-backup.service';
 import { RestoreService } from './restore.service';
 import { EncryptionService } from './encryption.service';
 import { BackupSettingsService } from './backup-settings.service';
+import { OffsiteBackupService } from './offsite-backup.service';
+import { ProgressTrackingService } from './progress-tracking.service';
 import { EnhancedAuditService } from '../../../shared/logger/enhanced-audit.service';
 import { AuditAction, AuditModule } from '@sms/shared-types';
 import * as fs from 'fs/promises';
+import * as path from 'path';
 
 export interface CreateBackupOptions {
   type: 'DATABASE' | 'FILES' | 'FULL_SYSTEM';
@@ -58,6 +61,8 @@ export class BackupService {
     private readonly encryptionService: EncryptionService,
     private readonly auditService: EnhancedAuditService,
     private readonly backupSettingsService: BackupSettingsService,
+    private readonly offsiteBackupService: OffsiteBackupService,
+    private readonly progressTrackingService: ProgressTrackingService,
   ) {}
 
   /**
@@ -70,8 +75,19 @@ export class BackupService {
     let backupRecord: BackupMetadata | null = null;
     const startTime = Date.now();
 
+    // Generate operation ID for progress tracking
+    const operationId = `backup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create progress tracker
+    this.progressTrackingService.createProgressTracker(operationId, 'backup');
+
     try {
-      this.logger.log(`Creating ${options.type} backup`);
+      this.logger.log(
+        `Creating ${options.type} backup (operationId: ${operationId})`,
+      );
+
+      // Emit initial progress
+      this.progressTrackingService.initiateBackup(operationId, options.type);
 
       // Check backup settings for encryption configuration (unless this is a pre-restore snapshot)
       let shouldEncrypt = options.encrypt || false;
@@ -146,6 +162,7 @@ export class BackupService {
               encrypt: shouldEncrypt,
               clientKey: undefined, // Don't store the actual key in metadata
             },
+            operationId, // Store operationId for SSE tracking
           },
           createdById,
         },
@@ -156,16 +173,23 @@ export class BackupService {
 
       switch (options.type) {
         case 'DATABASE':
+          // Emit database dump progress
+          this.progressTrackingService.startDatabaseDump(operationId);
+
           result = await this.databaseBackupService.createBackup({
             clientId: options.clientId,
             encrypt: shouldEncrypt,
             clientKey,
             outputDir: options.outputDir,
             backupName: options.backupName,
+            operationId, // Pass operationId for granular progress tracking
           });
           break;
 
         case 'FILES':
+          // Emit file collection progress
+          this.progressTrackingService.startFileCollection(operationId);
+
           result = await this.filesBackupService.createBackup({
             clientId: options.clientId,
             encrypt: shouldEncrypt,
@@ -174,10 +198,14 @@ export class BackupService {
             backupName: options.backupName,
             includePaths: options.includePaths,
             excludePaths: options.excludePaths,
+            operationId, // Pass operationId for granular progress tracking
           });
           break;
 
         case 'FULL_SYSTEM':
+          // Emit database dump progress for full system
+          this.progressTrackingService.startDatabaseDump(operationId);
+
           result = await this.fullSystemBackupService.createBackup({
             clientId: options.clientId,
             encrypt: shouldEncrypt,
@@ -186,11 +214,20 @@ export class BackupService {
             backupName: options.backupName,
             includePaths: options.includePaths,
             excludePaths: options.excludePaths,
+            operationId, // Pass operationId for granular progress tracking
           });
+
+          // Emit compression progress (full system includes compression)
+          this.progressTrackingService.startCompression(operationId);
           break;
 
         default:
           throw new Error(`Unsupported backup type: ${options.type}`);
+      }
+
+      // Emit encryption progress if backup was encrypted
+      if (result.encrypted) {
+        this.progressTrackingService.startEncryption(operationId);
       }
 
       // Update metadata record with results
@@ -210,6 +247,107 @@ export class BackupService {
         },
       });
 
+      // Handle offsite backup transfer if enabled
+      try {
+        const backupSettings = await this.backupSettingsService.getSettings();
+        if (backupSettings.offsite.enableOffsiteBackup) {
+          this.logger.log('Starting offsite backup transfer...');
+
+          // Emit offsite transfer progress
+          this.progressTrackingService.startOffsiteTransfer(
+            operationId,
+            backupSettings.offsite.remoteHost || 'remote server',
+          );
+
+          // Determine if we should delete local file based on backup location preference
+          const backupLocation =
+            backupSettings.offsite.backupLocation || 'both';
+          const deleteLocalAfterTransfer = backupLocation === 'offsite'; // Only delete if offsite-only
+
+          const offsiteResult = await this.offsiteBackupService.transferBackup({
+            localFilePath: result.location,
+            remoteFileName: path.basename(result.location),
+            deleteLocalAfterTransfer,
+            operationId, // Pass operationId for granular progress tracking
+          });
+
+          if (offsiteResult.success) {
+            this.logger.log(
+              `Offsite transfer completed: ${offsiteResult.remotePath}`,
+            );
+
+            // Update backup metadata with offsite info
+            await this.prisma.backupMetadata.update({
+              where: { id: backupRecord.id },
+              data: {
+                metadata: {
+                  ...backupRecord.metadata,
+                  offsite: {
+                    transferred: true,
+                    remotePath: offsiteResult.remotePath,
+                    transferTime: offsiteResult.transferTime,
+                    localFileDeleted: offsiteResult.localFileDeleted,
+                    backupLocation,
+                  },
+                },
+              },
+            });
+
+            // If offsite-only and local file was deleted, update the location in metadata
+            if (
+              backupLocation === 'offsite' &&
+              offsiteResult.localFileDeleted
+            ) {
+              await this.prisma.backupMetadata.update({
+                where: { id: backupRecord.id },
+                data: {
+                  location: offsiteResult.remotePath || result.location,
+                  metadata: {
+                    ...backupRecord.metadata,
+                    originalLocation: result.location,
+                    currentLocation: 'offsite',
+                  },
+                },
+              });
+            }
+          } else {
+            this.logger.warn(`Offsite transfer failed: ${offsiteResult.error}`);
+
+            // Update backup metadata with offsite error
+            await this.prisma.backupMetadata.update({
+              where: { id: backupRecord.id },
+              data: {
+                metadata: {
+                  ...backupRecord.metadata,
+                  offsite: {
+                    transferred: false,
+                    error: offsiteResult.error,
+                    transferTime: offsiteResult.transferTime,
+                    backupLocation,
+                  },
+                },
+              },
+            });
+          }
+        } else {
+          this.logger.log('Offsite backup is disabled, skipping transfer');
+        }
+      } catch (offsiteError) {
+        this.logger.error('Offsite backup transfer error:', offsiteError);
+        // Don't fail the entire backup if offsite transfer fails
+        // Just log the error and continue
+      }
+
+      // Emit completion progress
+      this.progressTrackingService.completeBackup(
+        operationId,
+        Number(backupRecord.size),
+        backupRecord.location,
+      );
+
+      // Complete progress tracker
+      this.progressTrackingService.completeProgressTracker(operationId);
+
       // Audit: Backup success
       const duration = Date.now() - startTime;
       await this.auditService.auditUserAction(
@@ -227,6 +365,7 @@ export class BackupService {
           status: 'completed',
           timestamp: new Date().toISOString(),
           success: true,
+          operationId, // Include operationId in audit
         },
       );
 
@@ -236,6 +375,12 @@ export class BackupService {
       return backupRecord!;
     } catch (error) {
       this.logger.error(`Backup creation failed:`, error);
+
+      // Emit failure progress
+      this.progressTrackingService.failBackup(operationId, error.message);
+
+      // Complete progress tracker
+      this.progressTrackingService.completeProgressTracker(operationId);
 
       // Audit: Backup failure
       const duration = Date.now() - startTime;
@@ -253,6 +398,7 @@ export class BackupService {
           timestamp: new Date().toISOString(),
           success: false,
           error: error.message,
+          operationId, // Include operationId in audit
         },
       );
 
@@ -290,6 +436,7 @@ export class BackupService {
       enablePreRestoreSnapshot?: boolean;
       userId?: string;
     } = {},
+    operationId?: string,
   ): Promise<void> {
     const startTime = Date.now();
     let preRestoreSnapshotId: string | null = null;
@@ -809,51 +956,85 @@ export class BackupService {
 
       const used = breakdown.database + breakdown.files + breakdown.fullSystem;
 
-      // Try to get disk space (fallback to estimated values if fails)
-      let total = used * 10; // Default: assume we're using 10% of available space
-      let free = total - used;
+      // Get real disk space using systeminformation
+      let total = 0;
+      let free = 0;
 
       try {
-        // Try to use systeminformation if available
-        const si = await import('systeminformation').catch(() => null);
-        if (si) {
-          const diskData = await si.fsSize();
-          // Find the disk that contains our backup directory
-          const targetDisk = diskData.find(
+        const si = await import('systeminformation');
+        const diskData = await si.fsSize();
+
+        this.logger.debug(`Found ${diskData.length} disks`);
+
+        // Resolve absolute backup directory path
+        const absoluteBackupDir = path.resolve(backupDir);
+        this.logger.debug(`Backup directory: ${absoluteBackupDir}`);
+
+        // Find the disk that contains our backup directory
+        let targetDisk = diskData.find(disk => {
+          const normalizedMount = disk.mount.toLowerCase();
+          const normalizedBackupDir = absoluteBackupDir.toLowerCase();
+
+          // On Windows, check if the drive letter matches
+          if (process.platform === 'win32') {
+            const backupDrive = normalizedBackupDir.charAt(0);
+            const mountDrive = normalizedMount.charAt(0);
+            this.logger.debug(
+              `Checking disk ${disk.mount}: backup drive ${backupDrive}, mount drive ${mountDrive}`,
+            );
+            return backupDrive === mountDrive;
+          }
+
+          // On Unix, check if path starts with mount point
+          return normalizedBackupDir.startsWith(normalizedMount);
+        });
+
+        // Fallback: find root or primary disk
+        if (!targetDisk) {
+          this.logger.debug(
+            'Target disk not found by path matching, trying fallbacks',
+          );
+          targetDisk = diskData.find(
             disk =>
-              backupDir.startsWith(disk.mount) ||
               disk.mount === '/' ||
               disk.mount === 'C:\\' ||
-              disk.mount.includes(':'),
+              disk.mount === 'C:' ||
+              disk.mount.toLowerCase().startsWith('c:') ||
+              disk.mount.length <= 3,
           );
+        }
 
-          if (targetDisk) {
-            total = targetDisk.size;
-            free = targetDisk.available;
-            this.logger.log(
-              `Using systeminformation: ${targetDisk.mount} - ${(total / 1e9).toFixed(2)} GB total`,
-            );
-          } else {
-            throw new Error('Could not find target disk');
-          }
+        // Final fallback: use first disk with largest available space
+        if (!targetDisk && diskData.length > 0) {
+          this.logger.debug('Using first disk with largest available space');
+          targetDisk = diskData.reduce((prev, current) =>
+            current.available > prev.available ? current : prev,
+          );
+        }
+
+        if (targetDisk) {
+          total = targetDisk.size;
+          free = targetDisk.available;
+          this.logger.log(
+            `Disk usage for ${targetDisk.mount}: Used ${(used / 1e9).toFixed(2)} GB, Total ${(total / 1e9).toFixed(2)} GB, Free ${(free / 1e9).toFixed(2)} GB (${((used / total) * 100).toFixed(1)}% used)`,
+          );
         } else {
-          // Fallback to df command for Unix/Linux systems
-          const { exec: execSync } = await import('child_process');
-          const { promisify } = await import('util');
-          const exec = promisify(execSync);
-
-          const { stdout } = await exec(`df -B1 "${backupDir}" | tail -1`);
-          const parts = stdout.trim().split(/\s+/);
-          if (parts.length >= 4) {
-            total = parseInt(parts[1]) || total;
-            free = parseInt(parts[3]) || free;
-            this.logger.log('Using df command for disk space');
-          }
+          this.logger.error('No disk found after all fallbacks');
+          throw new Error('No disk found');
         }
       } catch (error) {
-        this.logger.warn(
-          `Could not get actual disk space: ${error.message}, using estimates`,
+        this.logger.error(
+          `Failed to get disk space: ${error.message}`,
+          error.stack,
         );
+        // If systeminformation fails, return used space with warning
+        return {
+          total: 0,
+          used,
+          free: 0,
+          breakdown,
+          percentUsed: 0,
+        };
       }
 
       const percentUsed = total > 0 ? Math.round((used / total) * 100) : 0;
@@ -925,30 +1106,96 @@ export class BackupService {
     provider?: string;
   }> {
     try {
-      // This is a placeholder implementation
-      // In a real system, this would check actual offsite storage (S3, rsync, etc.)
+      // Get backup settings to check offsite configuration
+      const settings = await this.backupSettingsService.getSettings();
 
-      // Mock implementation for demonstration
-      const mockConnected = true;
-      const mockLastSync = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours ago
+      if (!settings.offsite.enableOffsiteBackup) {
+        return {
+          connected: false,
+          syncedBackups: 0,
+          pendingSync: 0,
+          errors: ['Offsite backup is disabled'],
+          provider: 'None',
+        };
+      }
 
-      // Count completed backups as "synced" for demo
-      const syncedBackups = await this.prisma.backupMetadata.count({
-        where: { status: 'COMPLETED' },
+      // Count backups that were successfully transferred offsite
+      const backupsWithOffsite = await this.prisma.backupMetadata.findMany({
+        where: {
+          status: 'COMPLETED',
+          metadata: {
+            path: ['offsite', 'transferred'],
+            equals: true,
+          },
+        },
+        select: {
+          metadata: true,
+          completedAt: true,
+        },
       });
 
-      // Count in-progress backups as "pending sync"
-      const pendingSync = await this.prisma.backupMetadata.count({
-        where: { status: 'IN_PROGRESS' },
+      const syncedBackups = backupsWithOffsite.length;
+
+      // Get last sync time from most recent offsite transfer
+      const lastSyncBackup = backupsWithOffsite.sort(
+        (a, b) =>
+          (b.completedAt?.getTime() || 0) - (a.completedAt?.getTime() || 0),
+      )[0];
+      const lastSync = lastSyncBackup?.completedAt || undefined;
+
+      // Count backups that need offsite transfer (completed but not transferred)
+      const allCompleted = await this.prisma.backupMetadata.count({
+        where: {
+          status: 'COMPLETED',
+        },
       });
+
+      const pendingSync = allCompleted - syncedBackups;
+
+      // Get connection status from settings
+      const connected = settings.offsite.connectionStatus === 'connected';
+
+      // Get error messages from failed transfers
+      const failedTransfers = await this.prisma.backupMetadata.findMany({
+        where: {
+          status: 'COMPLETED',
+        },
+        select: {
+          metadata: true,
+        },
+        take: 100,
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
+
+      const errors: string[] = [];
+      for (const backup of failedTransfers) {
+        if (
+          backup.metadata &&
+          typeof backup.metadata === 'object' &&
+          'offsite' in backup.metadata
+        ) {
+          const offsite = (backup.metadata as any).offsite;
+          if (
+            offsite &&
+            typeof offsite === 'object' &&
+            'error' in offsite &&
+            offsite.error
+          ) {
+            errors.push(offsite.error as string);
+            if (errors.length >= 5) break;
+          }
+        }
+      }
 
       return {
-        connected: mockConnected,
-        lastSync: mockLastSync,
+        connected,
+        lastSync,
         syncedBackups,
         pendingSync,
-        errors: [],
-        provider: 'Local Storage', // Would be 'AWS S3', 'Google Cloud', etc. in real implementation
+        errors,
+        provider: settings.offsite.provider || 'SSH',
       };
     } catch (error) {
       this.logger.error('Failed to get offsite status:', error);
@@ -970,33 +1217,32 @@ export class BackupService {
     responseTime?: number;
     lastTested: string;
   }> {
+    const startTime = Date.now();
+
     try {
-      const startTime = Date.now();
-
-      // Mock connection test - in real implementation this would:
-      // - Test S3 connection with a small object upload/download
-      // - Test rsync connection with a dry-run
-      // - Test FTP/SFTP connection with a simple command
-
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Use the actual offsite backup service to test connection
+      const testResult = await this.offsiteBackupService.testConnection();
 
       const responseTime = Date.now() - startTime;
-      const connected = true; // Mock success
 
       return {
-        connected,
-        message: connected
-          ? 'Offsite connection successful'
-          : 'Offsite connection failed',
+        connected: testResult.connected,
+        message:
+          testResult.message ||
+          (testResult.connected
+            ? 'Offsite connection successful'
+            : 'Offsite connection failed'),
         responseTime,
         lastTested: new Date().toISOString(),
       };
     } catch (error) {
       this.logger.error('Failed to test offsite connection:', error);
+      const responseTime = Date.now() - startTime;
+
       return {
         connected: false,
         message: `Connection test failed: ${error.message}`,
+        responseTime,
         lastTested: new Date().toISOString(),
       };
     }

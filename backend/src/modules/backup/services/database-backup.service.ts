@@ -7,6 +7,7 @@ import * as zlib from 'zlib';
 import { pipeline } from 'stream/promises';
 import { createReadStream, createWriteStream } from 'fs';
 import { EncryptionService } from './encryption.service';
+import { ProgressTrackingService } from './progress-tracking.service';
 
 const execAsync = promisify(exec);
 
@@ -16,6 +17,7 @@ export interface DatabaseBackupOptions {
   clientKey?: string;
   outputDir?: string;
   backupName?: string;
+  operationId?: string; // For progress tracking
 }
 
 export interface DatabaseBackupResult {
@@ -31,7 +33,10 @@ export class DatabaseBackupService {
   private readonly logger = new Logger(DatabaseBackupService.name);
   private readonly backupDir: string;
 
-  constructor(private readonly encryptionService: EncryptionService) {
+  constructor(
+    private readonly encryptionService: EncryptionService,
+    private readonly progressTrackingService: ProgressTrackingService,
+  ) {
     this.backupDir = path.join(process.cwd(), 'backups', 'database');
     this.ensureBackupDirectory();
   }
@@ -52,9 +57,21 @@ export class DatabaseBackupService {
   ): Promise<DatabaseBackupResult> {
     const backupId = `db_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const timestamp = new Date();
+    const operationId = options.operationId;
 
     try {
       this.logger.log(`Starting database backup: ${backupId}`);
+
+      // Emit progress: Starting dump
+      if (operationId) {
+        this.progressTrackingService.updateProgress(
+          operationId,
+          'backup',
+          'dumping_database' as any,
+          15,
+          'Connecting to database...',
+        );
+      }
 
       // Get database connection details from environment
       const databaseUrl = process.env.DATABASE_URL;
@@ -110,6 +127,17 @@ export class DatabaseBackupService {
 
       this.logger.log(`Executing pg_dump command for database: ${dbName}`);
 
+      // Emit progress: Dumping database
+      if (operationId) {
+        this.progressTrackingService.updateProgress(
+          operationId,
+          'backup',
+          'dumping_database' as any,
+          25,
+          `Dumping database: ${dbName}...`,
+        );
+      }
+
       // Execute pg_dump
       const { stderr } = await execAsync(pgDumpCmd, {
         env,
@@ -122,6 +150,17 @@ export class DatabaseBackupService {
 
       this.logger.log('Database dump completed, compressing...');
 
+      // Emit progress: Compressing
+      if (operationId) {
+        this.progressTrackingService.updateProgress(
+          operationId,
+          'backup',
+          'compressing' as any,
+          40,
+          'Compressing database dump...',
+        );
+      }
+
       // Compress the SQL file
       await pipeline(
         createReadStream(sqlFilePath),
@@ -132,11 +171,33 @@ export class DatabaseBackupService {
       // Remove uncompressed SQL file
       await fs.unlink(sqlFilePath);
 
+      // Emit progress: Compression complete
+      if (operationId) {
+        this.progressTrackingService.updateProgress(
+          operationId,
+          'backup',
+          'compressing' as any,
+          55,
+          'Database dump compressed successfully',
+        );
+      }
+
       let finalPath = gzFilePath;
       let encrypted = false;
 
       // Encrypt if requested
       if (options.encrypt && options.clientKey) {
+        // Emit progress: Encrypting
+        if (operationId) {
+          this.progressTrackingService.updateProgress(
+            operationId,
+            'backup',
+            'encrypting' as any,
+            65,
+            'Encrypting database backup...',
+          );
+        }
+
         const encryptedPath = `${gzFilePath}.enc`;
         await this.encryptionService.encryptFile(
           gzFilePath,

@@ -7,6 +7,7 @@ import { DatabaseBackupService } from './database-backup.service';
 import { FilesBackupService } from './files-backup.service';
 import { FullSystemBackupService } from './full-system-backup.service';
 import { EncryptionService } from './encryption.service';
+import { ProgressTrackingService } from './progress-tracking.service';
 
 const execAsync = promisify(exec);
 
@@ -44,6 +45,7 @@ export class RestoreService {
     private readonly filesBackupService: FilesBackupService,
     private readonly fullSystemBackupService: FullSystemBackupService,
     private readonly encryptionService: EncryptionService,
+    private readonly progressTrackingService: ProgressTrackingService,
   ) {}
 
   /**
@@ -298,9 +300,23 @@ export class RestoreService {
   async restoreFromBackup(
     backupFilePath: string,
     options: RestoreOptions = {},
-  ): Promise<void> {
+    operationId?: string,
+  ): Promise<{ operationId: string }> {
+    // Generate operation ID for progress tracking if not provided
+    if (!operationId) {
+      operationId = `restore_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    // Create progress tracker
+    this.progressTrackingService.createProgressTracker(operationId, 'restore');
+
     try {
-      this.logger.log(`Starting restore from: ${backupFilePath}`);
+      this.logger.log(
+        `Starting restore from: ${backupFilePath} (operationId: ${operationId})`,
+      );
+
+      // Emit initial progress
+      this.progressTrackingService.initiateRestore(operationId, backupFilePath);
 
       // Check file exists and get size for memory management
       try {
@@ -314,6 +330,9 @@ export class RestoreService {
       } catch (_statError) {
         throw new Error(`Backup file not accessible: ${backupFilePath}`);
       }
+
+      // Emit validation progress
+      this.progressTrackingService.startValidation(operationId);
 
       // Detect backup type
       const backupType = await this.detectBackupType(
@@ -329,9 +348,17 @@ export class RestoreService {
 
       this.logger.log(`Backup type detected: ${backupType}`);
 
+      // Check if file is encrypted and needs decryption
+      const isEncrypted = await this.isFileEncrypted(backupFilePath);
+      if (isEncrypted && options.clientKey) {
+        this.progressTrackingService.startDecryption(operationId);
+      }
+
       // Route to appropriate restore service
       switch (backupType) {
         case BackupType.DATABASE:
+          this.progressTrackingService.startDatabaseRestore(operationId);
+
           await this.databaseBackupService.restoreFromBackup(backupFilePath, {
             clientKey: options.clientKey,
             dropExisting: options.dropExisting,
@@ -339,6 +366,8 @@ export class RestoreService {
           break;
 
         case BackupType.FILES:
+          this.progressTrackingService.startFileRestore(operationId);
+
           await this.filesBackupService.restoreFromBackup(backupFilePath, {
             clientKey: options.clientKey,
             targetDir: options.targetDir,
@@ -347,6 +376,10 @@ export class RestoreService {
           break;
 
         case BackupType.FULL_SYSTEM:
+          // Full system has both database and files
+          this.progressTrackingService.startUncompressing(operationId);
+          this.progressTrackingService.startDatabaseRestore(operationId);
+
           await this.fullSystemBackupService.restoreFromBackup(backupFilePath, {
             clientKey: options.clientKey,
             targetDir: options.targetDir,
@@ -355,15 +388,31 @@ export class RestoreService {
             restoreConfig: options.restoreConfig,
             overwrite: options.overwrite,
           });
+
+          this.progressTrackingService.startFileRestore(operationId);
           break;
 
         default:
           throw new Error(`Unsupported backup type: ${backupType}`);
       }
 
+      // Emit completion progress
+      this.progressTrackingService.completeRestore(operationId);
+
+      // Complete progress tracker
+      this.progressTrackingService.completeProgressTracker(operationId);
+
       this.logger.log('Restore completed successfully');
+
+      return { operationId };
     } catch (error) {
       this.logger.error(`Restore failed: ${error.message}`);
+
+      // Emit failure progress
+      this.progressTrackingService.failRestore(operationId!, error.message);
+
+      // Complete progress tracker
+      this.progressTrackingService.completeProgressTracker(operationId!);
 
       // Force garbage collection to free memory after failed restore
       if (global.gc) {

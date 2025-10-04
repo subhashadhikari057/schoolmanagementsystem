@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { EncryptionService } from './encryption.service';
+import { ProgressTrackingService } from './progress-tracking.service';
 
 const execAsync = promisify(exec);
 
@@ -15,6 +16,7 @@ export interface FilesBackupOptions {
   backupName?: string;
   includePaths?: string[];
   excludePaths?: string[];
+  operationId?: string; // For progress tracking
 }
 
 export interface FilesBackupResult {
@@ -32,7 +34,10 @@ export class FilesBackupService {
   private readonly backupDir: string;
   private readonly defaultIncludePaths = ['uploads', 'config', 'logs', '.env'];
 
-  constructor(private readonly encryptionService: EncryptionService) {
+  constructor(
+    private readonly encryptionService: EncryptionService,
+    private readonly progressTrackingService: ProgressTrackingService,
+  ) {
     this.backupDir = path.join(process.cwd(), 'backups', 'files');
     this.ensureBackupDirectory();
   }
@@ -53,9 +58,21 @@ export class FilesBackupService {
   ): Promise<FilesBackupResult> {
     const backupId = `files_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const timestamp = new Date();
+    const operationId = options.operationId;
 
     try {
       this.logger.log(`Starting files backup: ${backupId}`);
+
+      // Emit progress: Collecting files
+      if (operationId) {
+        this.progressTrackingService.updateProgress(
+          operationId,
+          'backup',
+          'collecting_files' as any,
+          25,
+          'Scanning directories...',
+        );
+      }
 
       // Determine paths to include
       const includePaths = options.includePaths || this.defaultIncludePaths;
@@ -86,6 +103,18 @@ export class FilesBackupService {
         throw new Error('No valid paths found to backup');
       }
 
+      // Emit progress: Collecting files
+      if (operationId) {
+        this.progressTrackingService.updateProgress(
+          operationId,
+          'backup',
+          'collecting_files' as any,
+          35,
+          `Collecting files from ${validIncludePaths.length} directories...`,
+          { totalPaths: validIncludePaths.length },
+        );
+      }
+
       // Create backup file paths
       const outputDir = options.outputDir || this.backupDir;
       const backupName = options.backupName || `${backupId}.tar.gz`;
@@ -112,6 +141,17 @@ export class FilesBackupService {
 
       this.logger.log(`Executing tar command: ${tarCmd}`);
 
+      // Emit progress: Compressing
+      if (operationId) {
+        this.progressTrackingService.updateProgress(
+          operationId,
+          'backup',
+          'compressing' as any,
+          45,
+          'Compressing files...',
+        );
+      }
+
       // Execute tar command
       const { stdout, stderr } = await execAsync(tarCmd, {
         maxBuffer: 1024 * 1024 * 100, // 100MB buffer
@@ -124,11 +164,33 @@ export class FilesBackupService {
 
       this.logger.log('Files backup completed');
 
+      // Emit progress: Compression complete
+      if (operationId) {
+        this.progressTrackingService.updateProgress(
+          operationId,
+          'backup',
+          'compressing' as any,
+          60,
+          'Files compressed successfully',
+        );
+      }
+
       let finalPath = tarFilePath;
       let encrypted = false;
 
       // Encrypt if requested
       if (options.encrypt && options.clientKey) {
+        // Emit progress: Encrypting
+        if (operationId) {
+          this.progressTrackingService.updateProgress(
+            operationId,
+            'backup',
+            'encrypting' as any,
+            70,
+            'Encrypting files backup...',
+          );
+        }
+
         const encryptedPath = `${tarFilePath}.enc`;
         await this.encryptionService.encryptFile(
           tarFilePath,

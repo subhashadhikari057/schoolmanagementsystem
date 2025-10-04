@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import { AnalyticsOverviewProvider } from '@/context/AnalyticsOverviewContext';
 import AuthProvider from '@/context/AuthProvider';
 import CsrfProvider from '@/context/CsrfProvider';
+import { BackupProvider } from '@/context/BackupContext';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--font-plus-jakarta-sans',
@@ -29,7 +30,9 @@ export default function RootLayout({
       <body className={`${plusJakartaSans.variable} antialiased`}>
         <AuthProvider>
           <CsrfProvider>
-            <AnalyticsOverviewProvider>{children}</AnalyticsOverviewProvider>
+            <BackupProvider>
+              <AnalyticsOverviewProvider>{children}</AnalyticsOverviewProvider>
+            </BackupProvider>
           </CsrfProvider>
         </AuthProvider>
         <Toaster

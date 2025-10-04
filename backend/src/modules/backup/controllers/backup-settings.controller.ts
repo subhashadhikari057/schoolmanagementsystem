@@ -109,6 +109,12 @@ export class BackupSettingsController {
   async getSettings(): Promise<ApiResponse> {
     try {
       const settings = await this.settingsService.getSettings();
+      console.log('🔍 CONTROLLER RESPONSE:', {
+        success: true,
+        enableEncryption: settings.encryption.enableEncryption,
+        keyExists: !!settings.encryption.clientEncryptionKey,
+        offsiteEnabled: settings.offsite.enableOffsiteBackup,
+      });
       return {
         success: true,
         data: settings,
@@ -234,12 +240,51 @@ export class BackupSettingsController {
     status: HttpStatus.OK,
     description: 'Connection test completed',
   })
-  async testOffsiteConnection(): Promise<ApiResponse> {
+  async testOffsiteConnection(
+    @Body() offsiteSettings?: any,
+  ): Promise<ApiResponse> {
     try {
-      const testResult = await this.settingsService.testOffsiteConnection();
+      const testResult =
+        await this.settingsService.testOffsiteConnection(offsiteSettings);
       return {
         success: true,
         data: testResult,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Post('offsite/create-folder')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Create backup folder on remote server' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Remote folder created successfully',
+  })
+  async createRemoteFolder(
+    @Body()
+    config: {
+      remoteHost: string;
+      username: string;
+      password: string;
+      remotePath: string;
+    },
+  ): Promise<ApiResponse> {
+    try {
+      const result = await this.settingsService.createRemoteFolder(
+        config.remoteHost,
+        config.username,
+        config.password,
+        config.remotePath,
+      );
+      return {
+        success: result.success,
+        data: result,
+        message: result.message,
       };
     } catch (error: any) {
       return {
