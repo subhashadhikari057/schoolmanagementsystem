@@ -33,7 +33,7 @@ export default function TemplatesGrid({
           className='bg-white border border-blue-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 transition-all duration-200'
         >
           {/* Template Preview */}
-          <div className='w-full h-32 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg mb-3 flex items-center justify-center border-2 border-blue-200'>
+          <div className='w-full h-40 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg mb-3 flex items-center justify-center border-2 border-blue-200'>
             <TemplatePreview template={template} />
           </div>
 

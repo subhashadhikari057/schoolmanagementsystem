@@ -28,6 +28,7 @@ interface TemplateSelectionProps {
     person: Person,
     template: IDCardTemplate,
     expiryDate: string,
+    result: any,
   ) => void;
 }
 
@@ -120,14 +121,19 @@ export default function TemplateSelection({
         expiryDate,
       });
 
-      // Call the parent callback with the result
-      await onGenerate(selectedPerson, selectedTemplate, expiryDate);
-
-      // Show success message or handle the result
       console.log('ID card generated successfully:', result);
+
+      // Call the parent callback with the result
+      await onGenerate(selectedPerson, selectedTemplate, expiryDate, result);
     } catch (error) {
       console.error('Error generating ID card:', error);
-      // You might want to show an error message to the user here
+
+      // Show error message to user
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to generate ID card. Please try again.';
+      alert(errorMessage);
     } finally {
       setIsGenerating(false);
     }

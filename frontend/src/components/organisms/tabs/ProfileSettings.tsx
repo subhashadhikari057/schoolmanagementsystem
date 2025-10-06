@@ -98,25 +98,23 @@ const ProfileSettings = forwardRef<ProfileSettingsHandle, ProfileSettingsProps>(
           }
           case 'staff':
             // Staff service doesn't have getCurrentStaff, so we'll handle this differently
-            console.log('Staff profile photo fetching not yet implemented');
-            return;
+            break;
           case 'parent':
             // Parent service doesn't have getCurrentParent, so we'll handle this differently
-            console.log('Parent profile photo fetching not yet implemented');
-            return;
+            break;
           case 'superadmin':
           case 'admin':
           case 'accountant':
           default:
-            // For admin roles, we might not have profile photos yet
-            return;
+            // For admin roles, profile photos might not be implemented yet
+            // But don't return early - let the component continue with fallback
+            break;
         }
 
         if (profileData?.profilePhotoUrl) {
           setProfilePhotoUrl(profileData.profilePhotoUrl);
         }
       } catch (error) {
-        console.log('Could not fetch profile photo:', error);
         // Silently fail - user will see initials instead
       }
     };

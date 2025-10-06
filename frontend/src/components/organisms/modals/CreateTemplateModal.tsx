@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import QRCode from 'qrcode';
+import { Rnd } from 'react-rnd';
 import {
   Dialog,
   DialogContent,
@@ -84,7 +85,7 @@ export default function CreateTemplateModal({
 }: CreateTemplateModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState('basic');
+  const [activeTab, setActiveTab] = useState('quickstart');
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(true);
 
@@ -92,6 +93,31 @@ export default function CreateTemplateModal({
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
   const [showValidation, setShowValidation] = useState(false);
+
+  // Drag and drop state
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedField, setDraggedField] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [showSnapGuides, setShowSnapGuides] = useState(false);
+  const [snapGuides, setSnapGuides] = useState<{
+    vertical: number[];
+    horizontal: number[];
+  }>({ vertical: [], horizontal: [] });
+
+  // Resize state
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState<string | null>(null);
+  const [resizeStart, setResizeStart] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
+
+  // Smooth dragging with momentum
+  const dragVelocity = useRef({ x: 0, y: 0 });
+  const lastDragPosition = useRef({ x: 0, y: 0, time: 0 });
+  const momentumAnimation = useRef<number | null>(null);
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -122,6 +148,9 @@ export default function CreateTemplateModal({
   // Initialize form with edit data
   React.useEffect(() => {
     if (editTemplate && isOpen) {
+      // Switch to Basic tab when editing
+      setActiveTab('basic');
+
       // Populate settings
       setSettings({
         name: editTemplate.name,
@@ -161,6 +190,9 @@ export default function CreateTemplateModal({
         setTemplateFields(componentFields);
       }
     } else if (!editTemplate && isOpen) {
+      // Switch to Quick Start tab for new templates
+      setActiveTab('quickstart');
+
       // Reset form for create mode
       setSettings({
         name: '',
@@ -270,6 +302,345 @@ export default function CreateTemplateModal({
     },
   ];
 
+  // Sample pre-designed templates
+  const sampleTemplates = [
+    {
+      id: 'student-basic',
+      name: 'Student ID - Basic Layout',
+      type: IDCardTemplateType.STUDENT,
+      description:
+        'Clean student ID card with photo, name, and essential details',
+      thumbnail: '👤',
+      fields: [
+        {
+          id: 'photo',
+          fieldType: TemplateFieldType.IMAGE,
+          label: 'Student Photo',
+          databaseField: 'photo',
+          x: 5,
+          y: 5,
+          width: 23,
+          height: 30,
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'schoolName',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'School Name',
+          databaseField: 'schoolName',
+          placeholder: 'ABC High School',
+          x: 32,
+          y: 5,
+          width: 48,
+          height: 8,
+          fontSize: 11,
+          fontWeight: 'bold',
+          textAlign: TextAlignment.CENTER,
+          color: '#1e40af',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'fullName',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'Full Name',
+          databaseField: 'fullName',
+          placeholder: 'John Doe',
+          x: 32,
+          y: 15,
+          width: 48,
+          height: 7,
+          fontSize: 10,
+          fontWeight: 'semibold',
+          textAlign: TextAlignment.CENTER,
+          color: '#000000',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'studentId',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'Student ID',
+          databaseField: 'studentId',
+          placeholder: 'STU-2025-001',
+          x: 32,
+          y: 24,
+          width: 48,
+          height: 6,
+          fontSize: 8,
+          textAlign: TextAlignment.CENTER,
+          color: '#6b7280',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'class',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'Class',
+          databaseField: 'class',
+          placeholder: 'Class: 10-A',
+          x: 32,
+          y: 32,
+          width: 23,
+          height: 5,
+          fontSize: 8,
+          textAlign: TextAlignment.LEFT,
+          color: '#374151',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'section',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'Section',
+          databaseField: 'section',
+          placeholder: 'Sec: A',
+          x: 57,
+          y: 32,
+          width: 23,
+          height: 5,
+          fontSize: 8,
+          textAlign: TextAlignment.LEFT,
+          color: '#374151',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'qrCode',
+          fieldType: TemplateFieldType.QR_CODE,
+          label: 'QR Code',
+          databaseField: 'studentId',
+          x: 5,
+          y: 37,
+          width: 18,
+          height: 18,
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+      ],
+    },
+    {
+      id: 'teacher-professional',
+      name: 'Teacher ID - Professional',
+      type: IDCardTemplateType.TEACHER,
+      description:
+        'Professional teacher ID with photo, designation, and department',
+      thumbnail: '👨‍🏫',
+      fields: [
+        {
+          id: 'schoolLogo',
+          fieldType: TemplateFieldType.IMAGE,
+          label: 'School Logo',
+          databaseField: 'schoolLogo',
+          x: 5,
+          y: 3,
+          width: 12,
+          height: 12,
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'schoolName',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'School Name',
+          databaseField: 'schoolName',
+          placeholder: 'ABC School',
+          x: 20,
+          y: 5,
+          width: 60,
+          height: 8,
+          fontSize: 10,
+          fontWeight: 'bold',
+          textAlign: TextAlignment.LEFT,
+          color: '#16a34a',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'photo',
+          fieldType: TemplateFieldType.IMAGE,
+          label: 'Teacher Photo',
+          databaseField: 'photo',
+          x: 5,
+          y: 18,
+          width: 22,
+          height: 28,
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'fullName',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'Full Name',
+          databaseField: 'fullName',
+          placeholder: 'Prof. Jane Smith',
+          x: 30,
+          y: 18,
+          width: 50,
+          height: 7,
+          fontSize: 11,
+          fontWeight: 'bold',
+          textAlign: TextAlignment.LEFT,
+          color: '#000000',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'designation',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'Designation',
+          databaseField: 'designation',
+          placeholder: 'Senior Teacher',
+          x: 30,
+          y: 27,
+          width: 50,
+          height: 6,
+          fontSize: 9,
+          textAlign: TextAlignment.LEFT,
+          color: '#16a34a',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'department',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'Department',
+          databaseField: 'department',
+          placeholder: 'Mathematics Dept.',
+          x: 30,
+          y: 35,
+          width: 50,
+          height: 5,
+          fontSize: 8,
+          textAlign: TextAlignment.LEFT,
+          color: '#6b7280',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'employeeId',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'Employee ID',
+          databaseField: 'employeeId',
+          placeholder: 'EMP-T-042',
+          x: 30,
+          y: 42,
+          width: 30,
+          height: 5,
+          fontSize: 8,
+          fontWeight: 'semibold',
+          textAlign: TextAlignment.LEFT,
+          color: '#374151',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'qrCode',
+          fieldType: TemplateFieldType.QR_CODE,
+          label: 'QR Code',
+          databaseField: 'employeeId',
+          x: 63,
+          y: 35,
+          width: 15,
+          height: 15,
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+      ],
+    },
+    {
+      id: 'staff-compact',
+      name: 'Staff ID - Compact',
+      type: IDCardTemplateType.STAFF,
+      description: 'Compact staff ID card with photo and key information',
+      thumbnail: '👷',
+      fields: [
+        {
+          id: 'schoolName',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'School Name',
+          databaseField: 'schoolName',
+          placeholder: 'ABC School System',
+          x: 5,
+          y: 3,
+          width: 75,
+          height: 8,
+          fontSize: 11,
+          fontWeight: 'bold',
+          textAlign: TextAlignment.CENTER,
+          color: '#7c3aed',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'photo',
+          fieldType: TemplateFieldType.IMAGE,
+          label: 'Staff Photo',
+          databaseField: 'photo',
+          x: 29,
+          y: 13,
+          width: 27,
+          height: 25,
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'fullName',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'Full Name',
+          databaseField: 'fullName',
+          placeholder: 'Robert Johnson',
+          x: 5,
+          y: 40,
+          width: 75,
+          height: 6,
+          fontSize: 10,
+          fontWeight: 'bold',
+          textAlign: TextAlignment.CENTER,
+          color: '#000000',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'designation',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'Designation',
+          databaseField: 'designation',
+          placeholder: 'Admin Officer',
+          x: 5,
+          y: 48,
+          width: 75,
+          height: 5,
+          fontSize: 8,
+          textAlign: TextAlignment.CENTER,
+          color: '#7c3aed',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+      ],
+    },
+  ];
+
   const predefinedDimensions = CARD_DIMENSIONS;
 
   const fontFamilies = [
@@ -307,6 +678,29 @@ export default function CreateTemplateModal({
     settings.orientation,
     zoomLevel,
   ]);
+
+  const loadSampleTemplate = useCallback((sampleId: string) => {
+    const sample = sampleTemplates.find(s => s.id === sampleId);
+    if (!sample) return;
+
+    // Update settings
+    setSettings(prev => ({
+      ...prev,
+      name: sample.name,
+      type: sample.type,
+    }));
+
+    // Load sample fields
+    const newFields: ComponentTemplateField[] = sample.fields.map(f => ({
+      ...f,
+      fontFamily: 'Inter',
+      required: false,
+      visible: true,
+    }));
+
+    setTemplateFields(newFields);
+    setSelectedField(null);
+  }, []);
 
   const addField = useCallback(
     (fieldType: TemplateFieldType) => {
@@ -384,6 +778,380 @@ export default function CreateTemplateModal({
     }
   };
 
+  // Drag and Drop Handlers
+  const handleFieldMouseDown = useCallback(
+    (e: React.MouseEvent, fieldId: string) => {
+      // Only drag if not clicking on the field for selection
+      if (e.button !== 0) return; // Only left click
+
+      const field = templateFields.find(f => f.id === fieldId);
+      if (!field || field.locked) return;
+
+      setIsDragging(true);
+      setDraggedField(fieldId);
+      setSelectedField(fieldId);
+
+      // Calculate offset from mouse to field's top-left corner
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const canvasDims = canvasDimensions;
+
+        const fieldXPercent = (field.x / canvasDims.realWidth) * 100;
+        const fieldYPercent = (field.y / canvasDims.realHeight) * 100;
+
+        const fieldLeft = (fieldXPercent / 100) * rect.width;
+        const fieldTop = (fieldYPercent / 100) * rect.height;
+
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        setDragOffset({
+          x: mouseX - fieldLeft,
+          y: mouseY - fieldTop,
+        });
+
+        // Initialize drag position for momentum tracking
+        lastDragPosition.current = { x: field.x, y: field.y, time: Date.now() };
+        dragVelocity.current = { x: 0, y: 0 };
+
+        // Cancel any ongoing momentum animation
+        if (momentumAnimation.current) {
+          cancelAnimationFrame(momentumAnimation.current);
+          momentumAnimation.current = null;
+        }
+      }
+
+      e.stopPropagation();
+      e.preventDefault();
+    },
+    [templateFields, canvasDimensions],
+  );
+
+  const handleCanvasMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      // Handle resizing
+      if (isResizing && draggedField && resizeHandle) {
+        const rect = canvas.getBoundingClientRect();
+        const canvasDims = canvasDimensions;
+
+        const deltaX = e.clientX - resizeStart.x;
+        const deltaY = e.clientY - resizeStart.y;
+
+        // Convert pixel delta to mm
+        const deltaXmm = (deltaX / rect.width) * canvasDims.realWidth;
+        const deltaYmm = (deltaY / rect.height) * canvasDims.realHeight;
+
+        const field = templateFields.find(f => f.id === draggedField);
+        if (!field) return;
+
+        let newWidth = resizeStart.width;
+        let newHeight = resizeStart.height;
+        let newX = field.x;
+        let newY = field.y;
+
+        // Minimum size constraints
+        const minWidth = 10;
+        const minHeight = 5;
+
+        // Handle different resize directions
+        switch (resizeHandle) {
+          case 'se': // bottom-right
+            newWidth = Math.max(minWidth, resizeStart.width + deltaXmm);
+            newHeight = Math.max(minHeight, resizeStart.height + deltaYmm);
+            break;
+          case 'sw': // bottom-left
+            newWidth = Math.max(minWidth, resizeStart.width - deltaXmm);
+            newHeight = Math.max(minHeight, resizeStart.height + deltaYmm);
+            newX = field.x + (resizeStart.width - newWidth);
+            break;
+          case 'ne': // top-right
+            newWidth = Math.max(minWidth, resizeStart.width + deltaXmm);
+            newHeight = Math.max(minHeight, resizeStart.height - deltaYmm);
+            newY = field.y + (resizeStart.height - newHeight);
+            break;
+          case 'nw': // top-left
+            newWidth = Math.max(minWidth, resizeStart.width - deltaXmm);
+            newHeight = Math.max(minHeight, resizeStart.height - deltaYmm);
+            newX = field.x + (resizeStart.width - newWidth);
+            newY = field.y + (resizeStart.height - newHeight);
+            break;
+          case 'e': // right
+            newWidth = Math.max(minWidth, resizeStart.width + deltaXmm);
+            break;
+          case 'w': // left
+            newWidth = Math.max(minWidth, resizeStart.width - deltaXmm);
+            newX = field.x + (resizeStart.width - newWidth);
+            break;
+          case 's': // bottom
+            newHeight = Math.max(minHeight, resizeStart.height + deltaYmm);
+            break;
+          case 'n': // top
+            newHeight = Math.max(minHeight, resizeStart.height - deltaYmm);
+            newY = field.y + (resizeStart.height - newHeight);
+            break;
+        }
+
+        // Snap to grid if enabled
+        const snapSize = 5;
+        if (showGrid) {
+          newWidth = Math.round(newWidth / snapSize) * snapSize;
+          newHeight = Math.round(newHeight / snapSize) * snapSize;
+          newX = Math.round(newX / snapSize) * snapSize;
+          newY = Math.round(newY / snapSize) * snapSize;
+        }
+
+        // Constrain to canvas boundaries
+        newX = Math.max(0, Math.min(newX, canvasDims.realWidth - newWidth));
+        newY = Math.max(0, Math.min(newY, canvasDims.realHeight - newHeight));
+        newWidth = Math.min(newWidth, canvasDims.realWidth - newX);
+        newHeight = Math.min(newHeight, canvasDims.realHeight - newY);
+
+        // Update field
+        updateField(draggedField, {
+          x: newX,
+          y: newY,
+          width: newWidth,
+          height: newHeight,
+        });
+        return;
+      }
+
+      // Handle dragging
+      if (!isDragging || !draggedField) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const canvasDims = canvasDimensions;
+
+      // Calculate mouse position relative to canvas
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Calculate new field position accounting for drag offset
+      const fieldLeft = mouseX - dragOffset.x;
+      const fieldTop = mouseY - dragOffset.y;
+
+      // Convert pixel position to actual dimensions
+      let newX = (fieldLeft / rect.width) * canvasDims.realWidth;
+      let newY = (fieldTop / rect.height) * canvasDims.realHeight;
+
+      // Track velocity for momentum
+      const currentTime = Date.now();
+      const deltaTime = currentTime - lastDragPosition.current.time;
+      if (deltaTime > 0) {
+        dragVelocity.current = {
+          x: (newX - lastDragPosition.current.x) / deltaTime,
+          y: (newY - lastDragPosition.current.y) / deltaTime,
+        };
+      }
+      lastDragPosition.current = { x: newX, y: newY, time: currentTime };
+
+      // Snap to grid if enabled (5mm grid)
+      const snapSize = 5;
+      if (showGrid) {
+        newX = Math.round(newX / snapSize) * snapSize;
+        newY = Math.round(newY / snapSize) * snapSize;
+      }
+
+      // Constrain to canvas boundaries
+      const field = templateFields.find(f => f.id === draggedField);
+      if (field) {
+        newX = Math.max(0, Math.min(newX, canvasDims.realWidth - field.width));
+        newY = Math.max(
+          0,
+          Math.min(newY, canvasDims.realHeight - field.height),
+        );
+
+        // Check for alignment with other fields (snap guides)
+        const threshold = 3; // mm
+        const guides = { vertical: [] as number[], horizontal: [] as number[] };
+
+        templateFields.forEach(otherField => {
+          if (otherField.id !== draggedField) {
+            // Check vertical alignment (X positions)
+            if (Math.abs(newX - otherField.x) < threshold) {
+              newX = otherField.x;
+              guides.vertical.push(otherField.x);
+            }
+            if (
+              Math.abs(newX + field.width - (otherField.x + otherField.width)) <
+              threshold
+            ) {
+              newX = otherField.x + otherField.width - field.width;
+              guides.vertical.push(otherField.x + otherField.width);
+            }
+
+            // Check horizontal alignment (Y positions)
+            if (Math.abs(newY - otherField.y) < threshold) {
+              newY = otherField.y;
+              guides.horizontal.push(otherField.y);
+            }
+            if (
+              Math.abs(
+                newY + field.height - (otherField.y + otherField.height),
+              ) < threshold
+            ) {
+              newY = otherField.y + otherField.height - field.height;
+              guides.horizontal.push(otherField.y + otherField.height);
+            }
+          }
+        });
+
+        setSnapGuides(guides);
+        setShowSnapGuides(
+          guides.vertical.length > 0 || guides.horizontal.length > 0,
+        );
+      }
+
+      // Update field position
+      updateField(draggedField, { x: newX, y: newY });
+    },
+    [
+      isDragging,
+      isResizing,
+      draggedField,
+      resizeHandle,
+      resizeStart,
+      dragOffset,
+      showGrid,
+      templateFields,
+      updateField,
+      canvasDimensions,
+    ],
+  );
+
+  const handleCanvasMouseUp = useCallback(() => {
+    // Apply momentum if velocity is significant
+    if (
+      draggedField &&
+      (Math.abs(dragVelocity.current.x) > 0.05 ||
+        Math.abs(dragVelocity.current.y) > 0.05)
+    ) {
+      const field = templateFields.find(f => f.id === draggedField);
+      const canvasDims = canvasDimensions;
+
+      if (field) {
+        let velocityX = dragVelocity.current.x;
+        let velocityY = dragVelocity.current.y;
+        let currentX = field.x;
+        let currentY = field.y;
+
+        const animateMomentum = () => {
+          // Apply friction (deceleration)
+          const friction = 0.92;
+          velocityX *= friction;
+          velocityY *= friction;
+
+          // Update position
+          currentX += velocityX * 16; // Approximate 60fps (16ms per frame)
+          currentY += velocityY * 16;
+
+          // Constrain to boundaries
+          currentX = Math.max(
+            0,
+            Math.min(currentX, canvasDims.realWidth - field.width),
+          );
+          currentY = Math.max(
+            0,
+            Math.min(currentY, canvasDims.realHeight - field.height),
+          );
+
+          // Stop if velocity is very small or hit boundary
+          if (Math.abs(velocityX) < 0.01 && Math.abs(velocityY) < 0.01) {
+            // Snap to grid if enabled
+            if (showGrid) {
+              const snapSize = 5;
+              currentX = Math.round(currentX / snapSize) * snapSize;
+              currentY = Math.round(currentY / snapSize) * snapSize;
+            }
+            updateField(draggedField, { x: currentX, y: currentY });
+            if (momentumAnimation.current) {
+              cancelAnimationFrame(momentumAnimation.current);
+              momentumAnimation.current = null;
+            }
+            return;
+          }
+
+          updateField(draggedField, { x: currentX, y: currentY });
+          momentumAnimation.current = requestAnimationFrame(animateMomentum);
+        };
+
+        momentumAnimation.current = requestAnimationFrame(animateMomentum);
+      }
+    }
+
+    setIsDragging(false);
+    setDraggedField(null);
+    setShowSnapGuides(false);
+    setSnapGuides({ vertical: [], horizontal: [] });
+    dragVelocity.current = { x: 0, y: 0 };
+    lastDragPosition.current = { x: 0, y: 0, time: 0 };
+  }, [draggedField, showGrid, templateFields, updateField]);
+
+  // Add global mouse up listener when dragging
+  React.useEffect(() => {
+    if (isDragging) {
+      const handleGlobalMouseUp = () => {
+        setIsDragging(false);
+        setDraggedField(null);
+        setShowSnapGuides(false);
+        setSnapGuides({ vertical: [], horizontal: [] });
+      };
+
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+      return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+    }
+  }, [isDragging]);
+
+  // Resize Handlers
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent, fieldId: string, handle: string) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const field = templateFields.find(f => f.id === fieldId);
+      if (!field || field.locked) return;
+
+      setIsResizing(true);
+      setResizeHandle(handle);
+      setDraggedField(fieldId);
+      setSelectedField(fieldId);
+
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        setResizeStart({
+          x: e.clientX,
+          y: e.clientY,
+          width: field.width,
+          height: field.height,
+        });
+      }
+    },
+    [templateFields],
+  );
+
+  const handleResizeMouseUp = useCallback(() => {
+    setIsResizing(false);
+    setResizeHandle(null);
+  }, []);
+
+  // Add global mouse up listener when resizing
+  React.useEffect(() => {
+    if (isResizing) {
+      const handleGlobalMouseUp = () => {
+        setIsResizing(false);
+        setResizeHandle(null);
+      };
+
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+      return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+    }
+  }, [isResizing]);
+
   const getSelectedTemplateType = () => {
     return templateTypes.find(t => t.value === settings.type);
   };
@@ -422,43 +1190,6 @@ export default function CreateTemplateModal({
     (field: ComponentTemplateField) => {
       const canvas = canvasDimensions;
       const isSelected = selectedField === field.id;
-      const style: React.CSSProperties = {
-        position: 'absolute',
-        left: `${(field.x / canvas.realWidth) * 100}%`,
-        top: `${(field.y / canvas.realHeight) * 100}%`,
-        width: `${(field.width / canvas.realWidth) * 100}%`,
-        height: `${(field.height / canvas.realHeight) * 100}%`,
-        border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-        borderRadius: '3px',
-        backgroundColor:
-          field.fieldType === TemplateFieldType.TEXT
-            ? 'transparent'
-            : '#f8fafc',
-        opacity: (field.opacity || 100) / 100,
-        zIndex: isSelected ? 999 : field.zIndex || 1,
-        cursor: 'pointer',
-        fontSize: field.fontSize
-          ? `${field.fontSize * (zoomLevel / 100)}px`
-          : undefined,
-        fontFamily: field.fontFamily,
-        fontWeight: field.fontWeight,
-        textAlign: field.textAlign?.toLowerCase() as
-          | 'left'
-          | 'center'
-          | 'right',
-        color: field.color,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent:
-          field.textAlign === 'CENTER'
-            ? 'center'
-            : field.textAlign === 'RIGHT'
-              ? 'flex-end'
-              : 'flex-start',
-        padding: field.fieldType === TemplateFieldType.TEXT ? '2px 4px' : '4px',
-        transition: 'all 0.2s ease-in-out',
-        boxShadow: isSelected ? '0 0 0 3px rgba(59, 130, 246, 0.1)' : 'none',
-      };
 
       const content = () => {
         switch (field.fieldType) {
@@ -480,6 +1211,12 @@ export default function CreateTemplateModal({
                         ? 'flex-end'
                         : 'flex-start',
                   overflow: 'hidden',
+                  fontSize: field.fontSize
+                    ? `${field.fontSize * (zoomLevel / 100)}px`
+                    : undefined,
+                  fontFamily: field.fontFamily,
+                  fontWeight: field.fontWeight,
+                  color: field.color,
                 }}
               >
                 <span className='truncate'>{displayText}</span>
@@ -562,35 +1299,134 @@ export default function CreateTemplateModal({
         }
       };
 
+      // Convert mm to pixels based on canvas size
+      const canvasElement = canvasRef.current;
+      if (!canvasElement) return null;
+
+      const canvasRect = canvasElement.getBoundingClientRect();
+      const xPixels = (field.x / canvas.realWidth) * canvasRect.width;
+      const yPixels = (field.y / canvas.realHeight) * canvasRect.height;
+      const widthPixels = (field.width / canvas.realWidth) * canvasRect.width;
+      const heightPixels =
+        (field.height / canvas.realHeight) * canvasRect.height;
+
       return (
-        <div
+        <Rnd
           key={field.id}
-          style={style}
-          onClick={e => {
+          position={{
+            x: xPixels,
+            y: yPixels,
+          }}
+          size={{
+            width: widthPixels,
+            height: heightPixels,
+          }}
+          onDragStop={(e, d) => {
+            // Convert pixels back to mm
+            const newX = (d.x / canvasRect.width) * canvas.realWidth;
+            const newY = (d.y / canvasRect.height) * canvas.realHeight;
+
+            // Snap to grid if enabled
+            const snapSize = 5;
+            const finalX = showGrid
+              ? Math.round(newX / snapSize) * snapSize
+              : newX;
+            const finalY = showGrid
+              ? Math.round(newY / snapSize) * snapSize
+              : newY;
+
+            updateField(field.id, { x: finalX, y: finalY });
+          }}
+          onResizeStop={(e, direction, ref, delta, position) => {
+            // Get new dimensions from the resized element
+            const rect = ref.getBoundingClientRect();
+            const canvasRect = canvasRef.current?.getBoundingClientRect();
+
+            if (canvasRect) {
+              const newWidth =
+                (rect.width / canvasRect.width) * canvas.realWidth;
+              const newHeight =
+                (rect.height / canvasRect.height) * canvas.realHeight;
+              const newX = (position.x / canvasRect.width) * canvas.realWidth;
+              const newY = (position.y / canvasRect.height) * canvas.realHeight;
+
+              // Snap to grid if enabled
+              const snapSize = 5;
+              const finalWidth = showGrid
+                ? Math.round(newWidth / snapSize) * snapSize
+                : newWidth;
+              const finalHeight = showGrid
+                ? Math.round(newHeight / snapSize) * snapSize
+                : newHeight;
+              const finalX = showGrid
+                ? Math.round(newX / snapSize) * snapSize
+                : newX;
+              const finalY = showGrid
+                ? Math.round(newY / snapSize) * snapSize
+                : newY;
+
+              updateField(field.id, {
+                x: finalX,
+                y: finalY,
+                width: Math.max(10, finalWidth), // Min 10mm
+                height: Math.max(5, finalHeight), // Min 5mm
+              });
+            }
+          }}
+          onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
             setSelectedField(field.id);
           }}
-          className={`select-none transition-all duration-200 ${isSelected ? 'transform hover:scale-105' : 'hover:shadow-md'}`}
+          bounds='parent'
+          enableResizing={isSelected && !field.locked}
+          disableDragging={field.locked}
+          dragGrid={showGrid ? [5, 5] : [1, 1]}
+          resizeGrid={showGrid ? [5, 5] : [1, 1]}
+          style={{
+            border: isSelected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+            borderRadius: '3px',
+            backgroundColor:
+              field.fieldType === TemplateFieldType.TEXT
+                ? 'transparent'
+                : '#f8fafc',
+            opacity: (field.opacity || 100) / 100,
+            zIndex: isSelected ? 999 : field.zIndex || 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent:
+              field.textAlign === 'CENTER'
+                ? 'center'
+                : field.textAlign === 'RIGHT'
+                  ? 'flex-end'
+                  : 'flex-start',
+            padding:
+              field.fieldType === TemplateFieldType.TEXT ? '2px 4px' : '4px',
+            boxShadow: isSelected
+              ? '0 0 0 3px rgba(59, 130, 246, 0.1)'
+              : 'none',
+            userSelect: 'none',
+            cursor: field.locked ? 'not-allowed' : 'move',
+          }}
+          className={`select-none ${field.locked ? 'pointer-events-none' : ''}`}
         >
           {content()}
-          {isSelected && (
-            <>
-              {/* Selection handles */}
-              <div className='absolute -top-2 -left-2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md'></div>
-              <div className='absolute -top-2 -right-2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md'></div>
-              <div className='absolute -bottom-2 -left-2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md'></div>
-              <div className='absolute -bottom-2 -right-2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md'></div>
-
-              {/* Field label overlay */}
-              <div className='absolute -top-8 left-0 bg-blue-500 text-white text-xs px-2 py-1 rounded shadow-md whitespace-nowrap'>
-                {field.label}
-              </div>
-            </>
+          {isSelected && !field.locked && (
+            <div className='absolute -top-7 left-0 bg-blue-500 text-white text-xs px-2 py-0.5 rounded shadow-md whitespace-nowrap z-[1001] pointer-events-none'>
+              {field.label} ({Math.round(field.width)}×
+              {Math.round(field.height)}mm)
+            </div>
           )}
-        </div>
+        </Rnd>
       );
     },
-    [canvasDimensions, selectedField, zoomLevel, qrDataUrls],
+    [
+      canvasDimensions,
+      selectedField,
+      zoomLevel,
+      qrDataUrls,
+      showGrid,
+      updateField,
+    ],
   );
 
   const handleSubmit = async () => {
@@ -746,7 +1582,11 @@ export default function CreateTemplateModal({
               onValueChange={setActiveTab}
               className='flex-1 flex flex-col'
             >
-              <TabsList className='grid w-full grid-cols-4 m-3 bg-blue-100 flex-shrink-0 rounded-lg'>
+              <TabsList className='grid w-full grid-cols-5 m-3 bg-blue-100 flex-shrink-0 rounded-lg'>
+                <TabsTrigger value='quickstart' className='text-xs'>
+                  <CreditCard className='w-3 h-3 mr-1' />
+                  Quick Start
+                </TabsTrigger>
                 <TabsTrigger value='basic' className='text-xs'>
                   <FileText className='w-3 h-3 mr-1' />
                   Basic
@@ -767,6 +1607,100 @@ export default function CreateTemplateModal({
 
               <div className='flex-1 flex flex-col'>
                 <div className='flex-1 overflow-y-auto p-4'>
+                  {/* Quick Start Tab */}
+                  <TabsContent
+                    value='quickstart'
+                    className='space-y-4 mt-0 h-full overflow-y-auto max-h-[calc(100vh-300px)]'
+                  >
+                    <div className='space-y-4'>
+                      <div className='text-center space-y-2'>
+                        <div className='inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 mb-2'>
+                          <CreditCard className='w-6 h-6 text-white' />
+                        </div>
+                        <h3 className='text-lg font-semibold text-gray-900'>
+                          Start with a Template
+                        </h3>
+                        <p className='text-sm text-gray-600 max-w-md mx-auto'>
+                          Choose from our professionally designed templates and
+                          customize them to match your needs
+                        </p>
+                      </div>
+
+                      <div className='grid grid-cols-1 md:grid-cols-3 gap-4 pt-4'>
+                        {sampleTemplates.map(sample => (
+                          <div
+                            key={sample.id}
+                            onClick={() => loadSampleTemplate(sample.id)}
+                            className='group cursor-pointer bg-white border-2 border-blue-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-xl transition-all duration-300 hover:scale-105'
+                          >
+                            <div className='text-center space-y-3'>
+                              <div className='text-5xl mb-2 transform group-hover:scale-110 transition-transform'>
+                                {sample.thumbnail}
+                              </div>
+                              <div>
+                                <h4 className='font-semibold text-gray-900 mb-1'>
+                                  {sample.name}
+                                </h4>
+                                <p className='text-xs text-gray-600 line-clamp-2'>
+                                  {sample.description}
+                                </p>
+                              </div>
+                              <div className='flex items-center justify-center space-x-2 pt-2'>
+                                <span
+                                  className={`px-2 py-1 text-xs rounded-full ${
+                                    sample.type === IDCardTemplateType.STUDENT
+                                      ? 'bg-blue-100 text-blue-700'
+                                      : sample.type ===
+                                          IDCardTemplateType.TEACHER
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-purple-100 text-purple-700'
+                                  }`}
+                                >
+                                  {sample.type.toLowerCase()}
+                                </span>
+                                <span className='px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700'>
+                                  {sample.fields.length} fields
+                                </span>
+                              </div>
+                              <div className='pt-2 border-t border-gray-200'>
+                                <div className='text-xs text-blue-600 font-medium group-hover:text-blue-700'>
+                                  Click to use this template →
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className='mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
+                        <div className='flex items-start space-x-3'>
+                          <div className='flex-shrink-0'>
+                            <div className='w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center'>
+                              <span className='text-blue-600 text-lg'>💡</span>
+                            </div>
+                          </div>
+                          <div className='flex-1'>
+                            <h5 className='text-sm font-semibold text-blue-900 mb-1'>
+                              Pro Tip
+                            </h5>
+                            <p className='text-xs text-blue-700'>
+                              After selecting a template, you can customize it
+                              completely using the Layout and Design tabs. All
+                              fields are draggable and resizable!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className='text-center pt-2'>
+                        <p className='text-xs text-gray-500'>
+                          Or start from scratch using the{' '}
+                          <span className='font-semibold'>Basic</span> tab
+                        </p>
+                      </div>
+                    </div>
+                  </TabsContent>
+
                   <TabsContent
                     value='basic'
                     className='space-y-4 mt-0 h-full overflow-y-auto max-h-[calc(100vh-300px)]'
@@ -2036,6 +2970,14 @@ export default function CreateTemplateModal({
                     : settings.dimensions}{' '}
                   mm
                 </Badge>
+                {templateFields.length > 0 && (
+                  <Badge
+                    variant='outline'
+                    className='bg-green-50 text-green-700 border-green-200 text-xs'
+                  >
+                    ✋ Drag to reposition
+                  </Badge>
+                )}
               </div>
               <div className='flex items-center space-x-2'>
                 <Badge
@@ -2109,9 +3051,37 @@ export default function CreateTemplateModal({
                       ? `linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px)`
                       : 'none',
                     backgroundSize: showGrid ? '20px 20px' : 'auto',
+                    cursor: isDragging ? 'grabbing' : 'default',
                   }}
                   onClick={() => setSelectedField(null)}
+                  onMouseMove={handleCanvasMouseMove}
+                  onMouseUp={handleCanvasMouseUp}
+                  onMouseLeave={handleCanvasMouseUp}
                 >
+                  {/* Snap guides */}
+                  {showSnapGuides && (
+                    <>
+                      {snapGuides.vertical.map((x, i) => (
+                        <div
+                          key={`v-${i}`}
+                          className='absolute top-0 bottom-0 w-px bg-blue-400 pointer-events-none z-[1000]'
+                          style={{
+                            left: `${(x / canvasDimensions.realWidth) * 100}%`,
+                          }}
+                        />
+                      ))}
+                      {snapGuides.horizontal.map((y, i) => (
+                        <div
+                          key={`h-${i}`}
+                          className='absolute left-0 right-0 h-px bg-blue-400 pointer-events-none z-[1000]'
+                          style={{
+                            top: `${(y / canvasDimensions.realHeight) * 100}%`,
+                          }}
+                        />
+                      ))}
+                    </>
+                  )}
+
                   <div className='relative w-full h-full'>
                     {templateFields.length === 0 ? (
                       <div className='absolute inset-0 flex items-center justify-center'>

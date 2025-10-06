@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { IDCardTemplate, TemplateFieldType } from '@/types/template.types';
-import { Type, ImageIcon, QrCode } from 'lucide-react';
+import { Type, ImageIcon } from 'lucide-react';
 
 interface TemplatePreviewProps {
   template: IDCardTemplate;
@@ -27,8 +27,8 @@ export default function TemplatePreview({
   const previewWidth = isHorizontal ? width : height;
   const previewHeight = isHorizontal ? height : width;
 
-  // Scale to fit preview area (max 128px width)
-  const scale = Math.min(128 / previewWidth, 80 / previewHeight);
+  // Scale to fit preview area (max 200px width for better visibility)
+  const scale = Math.min(200 / previewWidth, 120 / previewHeight);
   const scaledWidth = previewWidth * scale;
   const scaledHeight = previewHeight * scale;
 
@@ -52,57 +52,87 @@ export default function TemplatePreview({
             top: `${(field.y / previewHeight) * 100}%`,
             width: `${(field.width / previewWidth) * 100}%`,
             height: `${(field.height / previewHeight) * 100}%`,
-            fontSize: `${Math.max(6, (field.fontSize || 12) * scale * 0.8)}px`,
-            color: field.color || '#000000',
           };
 
           switch (field.fieldType) {
-            case TemplateFieldType.TEXT:
+            case TemplateFieldType.TEXT: {
+              // Calculate appropriate font size based on field height
+              const baseFontSize = Math.max(
+                4,
+                Math.min(8, field.height * scale * 0.15),
+              );
+              const textStyle = {
+                ...fieldStyle,
+                fontSize: `${baseFontSize}px`,
+                lineHeight: '1.2',
+                color: field.color || '#000000',
+                fontWeight:
+                  field.fontWeight === 'bold'
+                    ? 'bold'
+                    : field.fontWeight === 'semibold'
+                      ? '600'
+                      : 'normal',
+                textAlign: field.textAlign?.toLowerCase() as
+                  | 'left'
+                  | 'center'
+                  | 'right'
+                  | undefined,
+              };
+
               return (
                 <div
                   key={index}
-                  style={fieldStyle}
-                  className='flex items-center justify-start overflow-hidden'
+                  style={textStyle}
+                  className='flex items-center px-0.5 overflow-hidden'
                 >
-                  <span className='truncate text-xs opacity-75'>
-                    {field.label}
+                  <span
+                    className='truncate w-full'
+                    style={{ fontSize: `${baseFontSize}px` }}
+                  >
+                    {field.placeholder || field.label || 'Text'}
                   </span>
                 </div>
               );
+            }
 
             case TemplateFieldType.IMAGE:
-            case TemplateFieldType.LOGO:
+            case TemplateFieldType.LOGO: {
               return (
                 <div
                   key={index}
                   style={fieldStyle}
-                  className='flex items-center justify-center bg-gray-100 border border-gray-300 rounded-sm'
+                  className='flex items-center justify-center bg-gray-100/80 border border-gray-300 rounded-sm'
                 >
-                  <ImageIcon className='w-2 h-2 text-gray-400' />
+                  <ImageIcon className='w-3 h-3 text-gray-400' />
                 </div>
               );
+            }
 
-            case TemplateFieldType.QR_CODE:
+            case TemplateFieldType.QR_CODE: {
               return (
                 <div
                   key={index}
                   style={fieldStyle}
-                  className='flex items-center justify-center bg-white border border-gray-300 rounded-sm'
+                  className='flex items-center justify-center bg-white border border-gray-400 rounded-sm p-0.5'
                 >
-                  <QrCode className='w-2 h-2 text-gray-600' />
+                  <div className='w-full h-full grid grid-cols-3 grid-rows-3 gap-[1px]'>
+                    {[...Array(9)].map((_, i) => (
+                      <div key={i} className='bg-gray-800 rounded-[0.5px]' />
+                    ))}
+                  </div>
                 </div>
               );
+            }
 
-            default:
+            default: {
               return (
                 <div
                   key={index}
                   style={fieldStyle}
-                  className='bg-gray-200 border border-gray-300 rounded-sm flex items-center justify-center'
-                >
-                  <Type className='w-2 h-2 text-gray-500' />
-                </div>
+                  className='bg-gray-200/50 border border-gray-300 rounded-sm'
+                />
               );
+            }
           }
         })}
 

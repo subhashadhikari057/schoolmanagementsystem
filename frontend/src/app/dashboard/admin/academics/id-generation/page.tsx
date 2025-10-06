@@ -150,20 +150,23 @@ const IDCardGenerationPage = () => {
     person: Person,
     template: IDCardTemplate,
     expiryDate: string,
+    result: any, // The API result containing PDF URL, QR code, etc.
   ) => {
     try {
       console.log('Generating ID card:', { person, template, expiryDate });
-      // The actual API call is handled in TemplateSelection component
-      // This is just the success callback
+      console.log('Generation result:', result);
 
-      // Show success message and transition to results if needed
-      alert(`ID card generated successfully for ${person.name}!`);
+      // Convert single result to results format for display
+      setGenerationResults({
+        successful: [result],
+        failed: [],
+        totalProcessed: 1,
+        successCount: 1,
+        failureCount: 0,
+      });
 
-      // Reset to initial state after successful generation
-      setGenerationType(null);
-      setSelectedPersonType(null);
-      setSelectedPerson(null);
-      setCurrentStep('type');
+      // Show results screen
+      setCurrentStep('results');
     } catch (error) {
       console.error('Error generating ID card:', error);
       alert('Failed to generate ID card. Please try again.');
