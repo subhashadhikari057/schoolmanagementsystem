@@ -152,6 +152,14 @@ export class JwtAuthGuard implements CanActivate {
    * Extract JWT token from Authorization header or cookies
    */
   private extractTokenFromHeader(request: Request): string | undefined {
+    // Debug: Log what we're receiving
+    this.logger.debug('Extracting token from request', {
+      hasAuthHeader: !!request.headers.authorization,
+      hasCookies: !!request.cookies,
+      cookieKeys: request.cookies ? Object.keys(request.cookies) : [],
+      accessTokenCookie: request.cookies?.accessToken ? 'present' : 'missing',
+    });
+
     // First try Authorization header
     const authHeader = request.headers.authorization;
     if (authHeader) {

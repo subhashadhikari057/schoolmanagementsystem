@@ -17,6 +17,7 @@ interface ImportCSVModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  roomId: string;
 }
 
 interface ValidationError {
@@ -29,6 +30,7 @@ const ImportCSVModal: React.FC<ImportCSVModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  roomId,
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -341,29 +343,29 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
 
   return (
     <div
-      className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200'
+      className='fixed inset-0 bg-gray-900/30 backdrop-blur-md flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200'
       onClick={handleClose}
     >
       <div
-        className='bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform transition-all duration-300 scale-100 animate-in slide-in-from-bottom-4 max-h-[90vh] overflow-hidden'
+        className='bg-gray-50/95 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-4xl transform transition-all duration-300 scale-100 animate-in slide-in-from-bottom-4 max-h-[95vh] sm:max-h-[90vh] overflow-hidden border border-gray-200/50'
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className='px-6 py-5 border-b bg-white flex items-center justify-between'>
-          <div className='flex items-center space-x-4'>
-            <div className='p-2.5 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-xl shadow-md text-white'>
-              <Upload size={20} />
+        <div className='px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200/60 bg-white/90 backdrop-blur-sm flex items-center justify-between sticky top-0 z-10'>
+          <div className='flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0'>
+            <div className='p-2 sm:p-2.5 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-lg sm:rounded-xl shadow-md text-white flex-shrink-0'>
+              <Upload size={18} className='sm:w-5 sm:h-5' />
             </div>
-            <div>
-              <h2 className='text-lg font-bold text-gray-900'>
+            <div className='min-w-0 flex-1'>
+              <h2 className='text-base sm:text-lg font-bold text-gray-900 truncate'>
                 Import Assets from CSV
               </h2>
-              <p className='text-sm text-gray-500'>
+              <p className='text-xs sm:text-sm text-gray-500 truncate'>
                 Upload or drag-and-drop a CSV to bulk import assets
               </p>
             </div>
           </div>
-          <div className='flex items-center space-x-2'>
+          <div className='flex items-center space-x-2 flex-shrink-0'>
             <Button
               variant='outline'
               size='sm'
@@ -384,12 +386,12 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
         </div>
 
         {/* Body */}
-        <div className='flex flex-col max-h-[calc(90vh-140px)]'>
+        <div className='flex flex-col max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-140px)]'>
           {!file ? (
             /* File Upload Section */
-            <div className='p-6'>
+            <div className='p-4 sm:p-6'>
               <div
-                className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${
+                className={`relative border-2 border-dashed rounded-lg sm:rounded-xl p-4 sm:p-6 text-center transition-all duration-200 ${
                   dragActive
                     ? 'border-indigo-400 bg-indigo-50'
                     : 'border-gray-200 bg-gray-50 hover:border-indigo-400 hover:bg-indigo-50'
@@ -407,16 +409,16 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
                   disabled={isLoading}
                 />
 
-                <div className='flex flex-col items-center space-y-4'>
-                  <div className='w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center'>
-                    <Upload className='h-7 w-7 text-indigo-600' />
+                <div className='flex flex-col items-center space-y-3 sm:space-y-4'>
+                  <div className='w-12 h-12 sm:w-14 sm:h-14 bg-indigo-100 rounded-full flex items-center justify-center'>
+                    <Upload className='h-6 w-6 sm:h-7 sm:w-7 text-indigo-600' />
                   </div>
 
                   <div>
-                    <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+                    <h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2'>
                       Drop your CSV file here, or click to browse
                     </h3>
-                    <p className='text-sm text-gray-500'>
+                    <p className='text-xs sm:text-sm text-gray-500'>
                       Support for CSV files up to 10MB
                     </p>
                   </div>
@@ -453,13 +455,13 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
           ) : (
             /* Preview Section */
             <div className='flex-1 flex flex-col overflow-hidden'>
-              <div className='p-6 border-b border-gray-200'>
-                <div className='flex items-center justify-between'>
+              <div className='p-4 sm:p-6 border-b border-gray-200/50'>
+                <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
                   <div>
-                    <h3 className='text-lg font-semibold text-gray-900'>
+                    <h3 className='text-base sm:text-lg font-semibold text-gray-900'>
                       Preview Import Data
                     </h3>
-                    <p className='text-sm text-gray-600'>
+                    <p className='text-xs sm:text-sm text-gray-600'>
                       {previewData.length} rows ready for import
                       {validationErrors.length > 0 && (
                         <span className='text-red-600 ml-2'>
@@ -470,11 +472,13 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
                   </div>
                   <Button
                     variant='outline'
+                    size='sm'
                     onClick={() => {
                       setFile(null);
                       setPreviewData([]);
                       setValidationErrors([]);
                     }}
+                    className='w-full sm:w-auto'
                   >
                     Upload Different File
                   </Button>
@@ -483,7 +487,7 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
 
               {/* Validation Errors */}
               {validationErrors.length > 0 && (
-                <div className='p-4 bg-red-50 border-b border-red-200'>
+                <div className='p-3 sm:p-4 bg-red-50/90 backdrop-blur-sm border-b border-red-200/60'>
                   <div className='flex items-center space-x-2 mb-2'>
                     <AlertCircle className='h-5 w-5 text-red-600' />
                     <h4 className='font-semibold text-red-900'>
@@ -506,29 +510,35 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
               )}
 
               {/* Data Preview */}
-              <div className='flex-1 overflow-auto p-4'>
+              <div className='flex-1 overflow-auto p-3 sm:p-4'>
                 {isLoading ? (
                   <div className='flex items-center justify-center py-8'>
                     <div className='animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent mr-3'></div>
-                    <span>Processing file...</span>
+                    <span className='text-sm sm:text-base'>
+                      Processing file...
+                    </span>
                   </div>
                 ) : (
                   <div className='overflow-x-auto'>
-                    <table className='w-full text-sm border border-gray-200 rounded-lg'>
-                      <thead className='bg-gray-50'>
+                    <table className='w-full text-xs sm:text-sm border border-gray-200 rounded-lg min-w-[600px]'>
+                      <thead className='bg-white/90 backdrop-blur-sm'>
                         <tr>
-                          <th className='px-3 py-2 text-left border-b'>
+                          <th className='px-2 sm:px-3 py-2 text-left border-b'>
                             Model Name
                           </th>
-                          <th className='px-3 py-2 text-left border-b'>
+                          <th className='px-2 sm:px-3 py-2 text-left border-b'>
                             Category
                           </th>
-                          <th className='px-3 py-2 text-left border-b'>
+                          <th className='px-2 sm:px-3 py-2 text-left border-b'>
                             Serial Number
                           </th>
-                          <th className='px-3 py-2 text-left border-b'>Room</th>
-                          <th className='px-3 py-2 text-left border-b'>Cost</th>
-                          <th className='px-3 py-2 text-left border-b'>
+                          <th className='px-2 sm:px-3 py-2 text-left border-b'>
+                            Room
+                          </th>
+                          <th className='px-2 sm:px-3 py-2 text-left border-b'>
+                            Cost
+                          </th>
+                          <th className='px-2 sm:px-3 py-2 text-left border-b'>
                             Status
                           </th>
                         </tr>
@@ -555,16 +565,16 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
                             <td className='px-3 py-2'>
                               <span
                                 className={`text-xs px-2 py-1 rounded-full ${
-                                  item.status === 'ok'
+                                  item.status === 'IN_SERVICE'
                                     ? 'bg-green-100 text-green-800'
-                                    : item.status === 'damaged'
+                                    : item.status === 'DAMAGED'
                                       ? 'bg-red-100 text-red-800'
-                                      : item.status === 'under_repair'
+                                      : item.status === 'UNDER_REPAIR'
                                         ? 'bg-yellow-100 text-yellow-800'
                                         : 'bg-gray-100 text-gray-800'
                                 }`}
                               >
-                                {item.status?.replace('_', ' ') || 'OK'}
+                                {item.status?.replace('_', ' ') || 'IN SERVICE'}
                               </span>
                             </td>
                           </tr>
@@ -605,11 +615,12 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
                   </div>
                 </div>
 
-                <div className='flex space-x-3'>
+                <div className='flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3'>
                   <Button
                     variant='outline'
                     onClick={handleClose}
                     disabled={isLoading}
+                    className='w-full sm:w-auto'
                   >
                     Cancel
                   </Button>
@@ -620,7 +631,7 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
                       validationErrors.length > 0 ||
                       previewData.length === 0
                     }
-                    className='bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+                    className='w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
                   >
                     {isLoading ? (
                       <>

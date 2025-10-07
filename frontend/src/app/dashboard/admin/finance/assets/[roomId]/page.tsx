@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import RoomDetailPage from '@/components/organisms/finance/RoomDetailPage';
 import { roomService } from '@/api/services/room.service';
-import type { Room } from '@/types/asset.types';
+import type { RoomWithAssets } from '@/types/asset.types';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -13,7 +13,7 @@ export default function RoomDetailPageWrapper() {
   const router = useRouter();
   const roomId = String(params?.roomId ?? '');
 
-  const [room, setRoom] = useState<Room | null>(null);
+  const [room, setRoom] = useState<RoomWithAssets | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function RoomDetailPageWrapper() {
             id: d.id || roomId,
             roomNo: d.roomNo || d.roomNo || '',
             name: d.name || d.roomName || '',
-            floor: d.floor ?? 1,
+            floor: String(d.floor ?? 1),
             building: d.building || d.buildingName || '',
             capacity: d.capacity ?? 0,
             type: (d.type as any) || 'Classroom',
@@ -45,7 +45,7 @@ export default function RoomDetailPageWrapper() {
             id: roomId,
             roomNo: roomId,
             name: 'Room',
-            floor: 1,
+            floor: '1',
             building: 'Main Building',
             capacity: 0,
             type: 'Classroom',
@@ -57,8 +57,16 @@ export default function RoomDetailPageWrapper() {
             updatedAt: new Date().toISOString(),
           });
         }
-      } catch (e) {
-        console.error(e);
+      } catch (e: any) {
+        console.error('Room fetch error:', e);
+
+        // Handle authentication errors
+        if (e?.statusCode === 401 || e?.code === 'UNAUTHORIZED') {
+          toast.error('Session expired. Please login again.');
+          router.push('/login');
+          return;
+        }
+
         toast.error('Failed to load room details');
         setRoom(null);
       } finally {
