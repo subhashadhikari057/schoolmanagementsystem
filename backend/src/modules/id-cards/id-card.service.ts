@@ -22,6 +22,11 @@ export interface IDCardData {
   qrCodeUrl?: string;
   expiryDate: Date;
   createdAt: Date;
+  template: {
+    name: string;
+    dimensions: string;
+    orientation: string;
+  };
 }
 
 export interface RenderedField {
@@ -172,6 +177,11 @@ export class IDCardService {
       qrCodeUrl,
       expiryDate: idCard.expiryDate,
       createdAt: idCard.createdAt,
+      template: {
+        name: template.name,
+        dimensions: template.dimensions,
+        orientation: template.orientation,
+      },
     };
   }
 
@@ -274,6 +284,7 @@ export class IDCardService {
       'Middle Name': getString(userData.middleName),
       'Last Name': getString(userData.lastName),
       'Full Name':
+        getString(userData.fullName) ||
         `${getString(userData.firstName)} ${userData.middleName ? getString(userData.middleName) + ' ' : ''}${getString(userData.lastName)}`.trim(),
       Email: getString(userData.email),
       'Phone Number': getString(userData.phone),
@@ -370,6 +381,94 @@ export class IDCardService {
   }
 
   /**
+   * Get all ID cards with filtering and pagination
+   */
+  async getAllIDCards(filters: {
+    page?: number;
+    limit?: number;
+    type?: string;
+    search?: string;
+    isActive?: boolean;
+  }) {
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (filters.type) {
+      where.type = filters.type;
+    }
+
+    if (filters.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    }
+
+    if (filters.search) {
+      // Search in user's name (requires join)
+      where.issuedFor = {
+        OR: [
+          { fullName: { contains: filters.search, mode: 'insensitive' } },
+          { email: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    const [idCards, total] = await Promise.all([
+      this.prisma.iDCard.findMany({
+        where,
+        include: {
+          template: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+            },
+          },
+          issuedFor: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.iDCard.count({ where }),
+    ]);
+
+    return {
+      idCards,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Delete an ID card
+   */
+  async deleteIDCard(id: string) {
+    const idCard = await this.prisma.iDCard.findUnique({
+      where: { id },
+    });
+
+    if (!idCard) {
+      throw new NotFoundException('ID card not found');
+    }
+
+    await this.prisma.iDCard.delete({
+      where: { id },
+    });
+
+    return { message: 'ID card deleted successfully' };
+  }
+
+  /**
    * Get ID card by ID with full data
    */
   async getIDCard(idCardId: string): Promise<IDCardData> {
@@ -448,6 +547,11 @@ export class IDCardService {
       qrCodeUrl,
       expiryDate: idCard.expiryDate,
       createdAt: idCard.createdAt,
+      template: {
+        name: idCard.template.name,
+        dimensions: idCard.template.dimensions,
+        orientation: idCard.template.orientation,
+      },
     };
   }
 

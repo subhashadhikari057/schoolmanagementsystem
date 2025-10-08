@@ -307,6 +307,9 @@ export class IDCardTemplateService {
   async deleteTemplate(id: string, userId: string) {
     const template = await this.prisma.iDCardTemplate.findUnique({
       where: { id },
+      include: {
+        idCards: true, // Include related ID cards to check usage
+      },
     });
 
     if (!template) {
@@ -315,6 +318,13 @@ export class IDCardTemplateService {
 
     if (template.isDefault) {
       throw new BadRequestException('Cannot delete default template');
+    }
+
+    // Check if template is being used by any generated ID cards
+    if (template.idCards && template.idCards.length > 0) {
+      throw new BadRequestException(
+        `Cannot delete template "${template.name}" because it is being used by ${template.idCards.length} generated ID card(s). Please delete or reassign those ID cards first.`,
+      );
     }
 
     await this.prisma.$transaction(async tx => {

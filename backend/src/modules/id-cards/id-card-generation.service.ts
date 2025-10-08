@@ -67,22 +67,13 @@ export class IDCardGenerationService {
     // Get user ID for database operations
     const userId = await this.getUserIdFromPerson(personId, personType);
 
-    // Check if person already has an active ID card of this type
-    const existingCard = await this.prisma.iDCard.findFirst({
-      where: {
-        issuedForId: userId,
-        templateId: templateId,
-        expiryDate: {
-          gte: new Date(),
-        },
-      },
-    });
-
-    if (existingCard) {
-      throw new BadRequestException(
-        'Person already has an active ID card with this template',
-      );
-    }
+    // Note: We allow regeneration of ID cards without checking for existing active cards
+    // This allows users to:
+    // - Replace lost or damaged cards
+    // - Update information on cards
+    // - Regenerate with different templates
+    // - Create new cards after manual deletion
+    // If multiple active cards become an issue, consider adding soft delete or versioning
 
     // Generate QR code data
     const qrData = this.generateQRCodeData(person, userId);

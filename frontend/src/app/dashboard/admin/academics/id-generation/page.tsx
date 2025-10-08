@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import CreateTemplateModal from '@/components/organisms/modals/CreateTemplateModal';
 import TemplatePreviewModal from '@/components/organisms/modals/TemplatePreviewModal';
 import TemplateCopyModal from '@/components/organisms/modals/TemplateCopyModal';
+import IDCardViewModal from '@/components/organisms/modals/IDCardViewModal';
 import TemplatesGrid from '@/components/organisms/templates/TemplatesGrid';
 import { templateApiService } from '@/services/template.service';
 import { IDCardTemplate, TemplateStats } from '@/types/template.types';
@@ -15,7 +16,10 @@ import PersonSearch from '@/components/organisms/id-generation/PersonSearch';
 import TemplateSelection from '@/components/organisms/id-generation/TemplateSelection';
 import BulkGeneration from '@/components/organisms/id-generation/BulkGeneration';
 import GenerationResults from '@/components/organisms/id-generation/GenerationResults';
+import GeneratedIDCardsView from '@/components/organisms/id-generation/GeneratedIDCardsView';
 import { IDCardGenerationResults } from '@/types/generation-results.types';
+import { toast } from 'sonner';
+import { showConfirmation } from '@/utils/confirmation-toast';
 
 interface Person {
   id: string;
@@ -47,6 +51,8 @@ const IDCardGenerationPage = () => {
   const [createTemplateModalOpen, setCreateTemplateModalOpen] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [copyModalOpen, setCopyModalOpen] = useState(false);
+  const [idCardViewModalOpen, setIdCardViewModalOpen] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] =
     useState<IDCardTemplate | null>(null);
   const [templates, setTemplates] = useState<IDCardTemplate[]>([]);
@@ -129,6 +135,53 @@ const IDCardGenerationPage = () => {
     fetchTemplates(); // Refresh the templates list
   };
 
+  const handleTemplateDelete = async (template: IDCardTemplate) => {
+    showConfirmation({
+      title: 'Delete Template',
+      message: `Are you sure you want to delete "${template.name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          setIsLoading(true);
+          await templateApiService.deleteTemplate(template.id);
+          
+          toast.success(`Template "${template.name}" has been deleted successfully`);
+          
+          // Refresh templates list
+          await fetchTemplates();
+        } catch (error: unknown) {
+          console.error('Error deleting template:', error);
+          
+          // Extract the error message
+          const errorMessage = 
+            (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+            (error as { message?: string })?.message || 
+            'Failed to delete template';
+          
+          // Show detailed error message
+          if (errorMessage.includes('being used by')) {
+            // Template is in use
+            toast.error(errorMessage, {
+              duration: 6000, // Show longer for important message
+            });
+          } else if (errorMessage.includes('default template')) {
+            toast.error('Cannot delete default template. Please set another template as default first.');
+          } else if (errorMessage.includes('Foreign key constraint')) {
+            toast.error('This template is currently being used and cannot be deleted. Please remove all ID cards using this template first.', {
+              duration: 6000,
+            });
+          } else {
+            toast.error(errorMessage);
+          }
+        } finally {
+          setIsLoading(false);
+        }
+      },
+    });
+  };
+
   // ID Generation handlers
   const handlePersonSelect = (person: Person) => {
     setSelectedPerson(person);
@@ -156,17 +209,29 @@ const IDCardGenerationPage = () => {
       // The actual API call is handled in TemplateSelection component
       // This is just the success callback
 
-      // Show success message and transition to results if needed
-      alert(`ID card generated successfully for ${person.name}!`);
+      // Show success message with toast
+      toast.success('ID Card Generated Successfully!', {
+        description: `ID card for ${person.name} has been generated and is ready for download.`,
+        duration: 5000,
+      });
+
+      // Wait a moment to show the success message
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Reset to initial state after successful generation
       setGenerationType(null);
       setSelectedPersonType(null);
       setSelectedPerson(null);
       setCurrentStep('type');
+
+      // Optionally refresh the page or navigate to generated cards tab
+      // You can add logic here to switch to the "Generated ID Cards" tab
     } catch (error) {
       console.error('Error generating ID card:', error);
-      alert('Failed to generate ID card. Please try again.');
+      toast.error('Failed to Generate ID Card', {
+        description: error instanceof Error ? error.message : 'Please try again or contact support.',
+        duration: 6000,
+      });
     }
   };
 
@@ -641,9 +706,21 @@ const IDCardGenerationPage = () => {
                         onPreview={handleTemplatePreview}
                         onEdit={handleTemplateEdit}
                         onCopy={handleTemplateCopy}
+                        onDelete={handleTemplateDelete}
                       />
                     )}
                   </div>
+                ),
+              },
+              {
+                name: 'Generated ID Cards',
+                content: (
+                  <GeneratedIDCardsView
+                    onViewCard={cardId => {
+                      setSelectedCardId(cardId);
+                      setIdCardViewModalOpen(true);
+                    }}
+                  />
                 ),
               },
             ]}
@@ -679,6 +756,12 @@ const IDCardGenerationPage = () => {
         onOpenChange={setCopyModalOpen}
         template={selectedTemplate}
         onCopy={handleNewTemplateCopy}
+      />
+
+      <IDCardViewModal
+        open={idCardViewModalOpen}
+        onOpenChange={setIdCardViewModalOpen}
+        cardId={selectedCardId}
       />
     </div>
   );

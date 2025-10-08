@@ -2,8 +2,10 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
   Param,
+  Query,
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
@@ -18,6 +20,25 @@ export class IDCardController {
     private readonly idCardService: IDCardService,
     private readonly qrVerificationService: QRVerificationService,
   ) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get all ID cards with filtering and pagination' })
+  @ApiResponse({ status: 200, description: 'ID cards retrieved successfully' })
+  async getAllIDCards(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('type') type?: string,
+    @Query('search') search?: string,
+    @Query('isActive') isActive?: string,
+  ) {
+    return this.idCardService.getAllIDCards({
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
+      type,
+      search,
+      isActive: isActive !== undefined ? isActive === 'true' : undefined,
+    });
+  }
 
   @Post('generate')
   @HttpCode(HttpStatus.CREATED)
@@ -56,6 +77,15 @@ export class IDCardController {
   @ApiResponse({ status: 404, description: 'ID card not found' })
   async getIDCard(@Param('id') id: string) {
     return this.idCardService.getIDCard(id);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete an ID card' })
+  @ApiResponse({ status: 204, description: 'ID card deleted successfully' })
+  @ApiResponse({ status: 404, description: 'ID card not found' })
+  async deleteIDCard(@Param('id') id: string) {
+    return this.idCardService.deleteIDCard(id);
   }
 
   @Post('verify-qr')

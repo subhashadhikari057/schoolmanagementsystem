@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Eye, Edit, Copy, MoreVertical } from 'lucide-react';
+import { Eye, Edit, Copy, MoreVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IDCardTemplate, IDCardTemplateType } from '@/types/template.types';
 import TemplatePreview from './TemplatePreview';
@@ -17,6 +17,7 @@ interface TemplatesGridProps {
   onPreview: (template: IDCardTemplate) => void;
   onEdit: (template: IDCardTemplate) => void;
   onCopy: (template: IDCardTemplate) => void;
+  onDelete: (template: IDCardTemplate) => void;
 }
 
 export default function TemplatesGrid({
@@ -24,6 +25,7 @@ export default function TemplatesGrid({
   onPreview,
   onEdit,
   onCopy,
+  onDelete,
 }: TemplatesGridProps) {
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
@@ -111,6 +113,14 @@ export default function TemplatesGrid({
               >
                 <Copy className='w-3 h-3 mr-1' />
                 Copy
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => onDelete(template)}
+                className='h-8 border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300'
+              >
+                <Trash2 className='w-3 h-3' />
               </Button>
             </div>
           </div>

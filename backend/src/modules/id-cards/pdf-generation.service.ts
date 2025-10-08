@@ -205,7 +205,18 @@ export class PDFGenerationService {
 
     // Set font properties
     const fontSize = field.fontSize || 12;
-    const fontFamily = field.fontFamily || 'Helvetica';
+    // Map custom fonts to PDFKit built-in fonts
+    const fontFamilyMap: Record<string, string> = {
+      Inter: 'Helvetica',
+      Arial: 'Helvetica',
+      Roboto: 'Helvetica',
+      'Times New Roman': 'Times-Roman',
+      'Courier New': 'Courier',
+      Georgia: 'Times-Roman',
+    };
+
+    const requestedFont = field.fontFamily || 'Helvetica';
+    const fontFamily = fontFamilyMap[requestedFont] || 'Helvetica';
     const color = field.color || '#000000';
 
     doc.font(fontFamily).fontSize(fontSize).fillColor(color);

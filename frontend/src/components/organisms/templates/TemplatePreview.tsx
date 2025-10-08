@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { IDCardTemplate, TemplateFieldType } from '@/types/template.types';
-import { Type, ImageIcon, QrCode } from 'lucide-react';
+import { Type, ImageIcon, QrCode, User } from 'lucide-react';
 
 interface TemplatePreviewProps {
   template: IDCardTemplate;
@@ -27,24 +27,38 @@ export default function TemplatePreview({
   const previewWidth = isHorizontal ? width : height;
   const previewHeight = isHorizontal ? height : width;
 
-  // Scale to fit preview area (max 128px width)
-  const scale = Math.min(128 / previewWidth, 80 / previewHeight);
+  // Scale to fit preview area with better visibility
+  const scale = Math.min(120 / previewWidth, 75 / previewHeight);
   const scaledWidth = previewWidth * scale;
   const scaledHeight = previewHeight * scale;
 
   return (
-    <div className={`flex items-center justify-center ${className}`}>
+    <div className={`flex items-center justify-center p-3 ${className}`}>
       <div
-        className='relative border-2 border-gray-300 shadow-sm'
+        className='relative shadow-md hover:shadow-lg transition-shadow duration-200'
         style={{
           width: `${scaledWidth}px`,
           height: `${scaledHeight}px`,
           backgroundColor: template.backgroundColor || '#ffffff',
-          borderRadius: `${(template.borderRadius || 0) * scale}px`,
-          borderColor: template.borderColor || '#e5e7eb',
+          borderRadius: `${(template.borderRadius || 2) * scale}px`,
+          border: `${Math.max(1, (template.borderWidth || 1) * scale)}px solid ${template.borderColor || '#d1d5db'}`,
+          backgroundImage: template.backgroundImage 
+            ? `url(${template.backgroundImage})` 
+            : 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
         }}
       >
-        {/* Render template fields as mini previews */}
+        {/* Simplified watermark */}
+        {template.watermark && (
+          <div className='absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none'>
+            <span className='text-xs font-bold transform rotate-[-45deg] text-gray-400'>
+              {template.watermark}
+            </span>
+          </div>
+        )}
+
+        {/* Render all fields */}
         {template.fields?.map((field, index) => {
           const fieldStyle = {
             position: 'absolute' as const,
@@ -52,8 +66,9 @@ export default function TemplatePreview({
             top: `${(field.y / previewHeight) * 100}%`,
             width: `${(field.width / previewWidth) * 100}%`,
             height: `${(field.height / previewHeight) * 100}%`,
-            fontSize: `${Math.max(6, (field.fontSize || 12) * scale * 0.8)}px`,
-            color: field.color || '#000000',
+            fontSize: `${Math.max(3, (field.fontSize || 12) * scale * 0.4)}px`,
+            color: field.color || '#1f2937',
+            fontWeight: field.fontWeight || 'normal',
           };
 
           switch (field.fieldType) {
@@ -62,23 +77,34 @@ export default function TemplatePreview({
                 <div
                   key={index}
                   style={fieldStyle}
-                  className='flex items-center justify-start overflow-hidden'
+                  className='flex items-center overflow-hidden'
                 >
-                  <span className='truncate text-xs opacity-75'>
-                    {field.label}
+                  <span className='truncate text-[5px] opacity-60 font-medium'>
+                    {field.label?.substring(0, 20) || 'Text'}
                   </span>
                 </div>
               );
 
             case TemplateFieldType.IMAGE:
+            case TemplateFieldType.PHOTO:
+              return (
+                <div
+                  key={index}
+                  style={fieldStyle}
+                  className='flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-sm'
+                >
+                  <User className='w-1.5 h-1.5 text-blue-400' />
+                </div>
+              );
+
             case TemplateFieldType.LOGO:
               return (
                 <div
                   key={index}
                   style={fieldStyle}
-                  className='flex items-center justify-center bg-gray-100 border border-gray-300 rounded-sm'
+                  className='flex items-center justify-center bg-white border border-gray-200 rounded-sm'
                 >
-                  <ImageIcon className='w-2 h-2 text-gray-400' />
+                  <ImageIcon className='w-1 h-1 text-gray-400' />
                 </div>
               );
 
@@ -87,34 +113,56 @@ export default function TemplatePreview({
                 <div
                   key={index}
                   style={fieldStyle}
-                  className='flex items-center justify-center bg-white border border-gray-300 rounded-sm'
+                  className='flex items-center justify-center bg-white border border-gray-300 rounded-sm p-px'
                 >
-                  <QrCode className='w-2 h-2 text-gray-600' />
+                  <QrCode className='w-1.5 h-1.5 text-gray-700' />
                 </div>
               );
 
-            default:
+            case TemplateFieldType.BARCODE:
               return (
                 <div
                   key={index}
                   style={fieldStyle}
-                  className='bg-gray-200 border border-gray-300 rounded-sm flex items-center justify-center'
+                  className='flex items-center justify-center bg-white border border-gray-200 rounded-sm overflow-hidden'
                 >
-                  <Type className='w-2 h-2 text-gray-500' />
+                  <div className='flex gap-px h-full w-full p-px'>
+                    {[...Array(5)].map((_, i) => (
+                      <div
+                        key={i}
+                        className='flex-1 bg-black'
+                        style={{ opacity: i % 2 === 0 ? 1 : 0.3 }}
+                      />
+                    ))}
+                  </div>
                 </div>
               );
+
+            default:
+              return null;
           }
         })}
 
-        {/* Show placeholder if no fields */}
+        {/* Empty state */}
         {(!template.fields || template.fields.length === 0) && (
-          <div className='absolute inset-0 flex items-center justify-center'>
+          <div className='absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100'>
             <div className='text-center'>
-              <Type className='w-4 h-4 text-gray-400 mx-auto mb-1' />
-              <div className='text-xs text-gray-400'>Empty</div>
+              <div className='w-6 h-6 bg-white rounded-md shadow-sm flex items-center justify-center mx-auto mb-1 border border-gray-200'>
+                <Type className='w-3 h-3 text-gray-400' />
+              </div>
+              <div className='text-[6px] text-gray-500 font-medium'>Empty</div>
             </div>
           </div>
         )}
+
+        {/* Minimal corner accent */}
+        <div 
+          className='absolute top-0 right-0 w-3 h-3 opacity-5'
+          style={{
+            background: `linear-gradient(135deg, transparent 50%, ${template.borderColor || '#3b82f6'} 50%)`,
+            borderTopRightRadius: `${(template.borderRadius || 2) * scale}px`,
+          }}
+        />
       </div>
     </div>
   );
