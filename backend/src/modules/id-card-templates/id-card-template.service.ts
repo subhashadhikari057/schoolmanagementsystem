@@ -36,6 +36,9 @@ export class IDCardTemplateService {
       throw new BadRequestException('Template must have at least one field');
     }
 
+    // Auto-fix field dataSource values for production readiness
+    const fixedFields = this.autoFixFieldDataSources(dto.fields, dto.type);
+
     // Create template and fields in transaction
     const template = await this.prisma.$transaction(async tx => {
       const newTemplate = await tx.iDCardTemplate.create({
@@ -66,10 +69,10 @@ export class IDCardTemplateService {
         },
       });
 
-      // Create fields if provided
-      if (dto.fields && dto.fields.length > 0) {
+      // Create fields with auto-fixed dataSource values
+      if (fixedFields && fixedFields.length > 0) {
         await tx.iDCardTemplateField.createMany({
-          data: dto.fields.map(field => ({
+          data: fixedFields.map(field => ({
             templateId: newTemplate.id,
             fieldType: field.fieldType,
             label: field.label,
@@ -297,16 +300,17 @@ export class IDCardTemplateService {
   private transformTemplate(template: any) {
     return {
       ...template,
-      // Map status to isPublished for frontend compatibility
-      isPublished: template.status === 'ACTIVE',
-      // Remove status from the response since frontend uses isPublished
-      status: undefined,
+      // Keep status field for frontend
+      status: template.status,
     };
   }
 
   async deleteTemplate(id: string, userId: string) {
     const template = await this.prisma.iDCardTemplate.findUnique({
       where: { id },
+      include: {
+        idCards: true, // Include related ID cards to check usage
+      },
     });
 
     if (!template) {
@@ -315,6 +319,13 @@ export class IDCardTemplateService {
 
     if (template.isDefault) {
       throw new BadRequestException('Cannot delete default template');
+    }
+
+    // Check if template is being used by any generated ID cards
+    if (template.idCards && template.idCards.length > 0) {
+      throw new BadRequestException(
+        `Cannot delete template "${template.name}" because it is being used by ${template.idCards.length} generated ID card(s). Please delete or reassign those ID cards first.`,
+      );
     }
 
     await this.prisma.$transaction(async tx => {
@@ -445,14 +456,14 @@ export class IDCardTemplateService {
       where: { id },
       data: {
         status: 'ACTIVE',
-        updatedById: userId,
+        updatedById: userId === 'system' ? null : userId,
       },
       include: {
         fields: true,
       },
     });
 
-    return updatedTemplate;
+    return this.transformTemplate(updatedTemplate);
   }
 
   async unpublishTemplate(id: string, userId: string) {
@@ -472,14 +483,14 @@ export class IDCardTemplateService {
       where: { id },
       data: {
         status: 'INACTIVE',
-        updatedById: userId,
+        updatedById: userId === 'system' ? null : userId,
       },
       include: {
         fields: true,
       },
     });
 
-    return updatedTemplate;
+    return this.transformTemplate(updatedTemplate);
   }
 
   async getAvailableFields() {
@@ -628,11 +639,12 @@ export class IDCardTemplateService {
             'Image fields with database source must specify a database field',
           );
         }
-        if (imageField.dataSource === 'static' && !imageField.imageUrl) {
-          throw new BadRequestException(
-            'Image fields with static source must specify an image URL',
-          );
-        }
+        // Allow static image fields without imageUrl - can be uploaded later
+        // if (imageField.dataSource === 'static' && !imageField.imageUrl) {
+        //   throw new BadRequestException(
+        //     'Image fields with static source must specify an image URL',
+        //   );
+        // }
       }
 
       // Validate text fields have content
@@ -809,5 +821,373 @@ export class IDCardTemplateService {
       template.type,
     );
     return hasRequiredFields.valid;
+  }
+
+  /**
+   * Automatically fix field dataSource values based on field type and label
+   * This ensures templates work correctly without manual intervention
+   * Enhanced version with comprehensive coverage for all field types and edge cases
+   */
+  private autoFixFieldDataSources(fields: any[], templateType: string): any[] {
+    // console.log(`🔧 Auto-fixing fields for ${templateType} template...`);
+
+    return fields.map(field => {
+      let dataSource = field.dataSource;
+      let databaseField = field.databaseField;
+      let staticText = field.staticText;
+      const imageUrl = field.imageUrl;
+
+      const originalDataSource = dataSource;
+
+      // Auto-fix null or undefined dataSource
+      if (!dataSource) {
+        // QR codes and barcodes should always use database
+        if (field.fieldType === 'QR_CODE' || field.fieldType === 'BARCODE') {
+          dataSource = 'database';
+
+          // Set default databaseField if not set based on template type
+          if (!databaseField) {
+            switch (templateType) {
+              case 'STUDENT':
+                databaseField = 'studentId';
+                break;
+              case 'TEACHER':
+              case 'STAFF':
+              case 'STAFF_NO_LOGIN':
+                databaseField = 'employeeId';
+                break;
+              default:
+                databaseField = 'id';
+            }
+          }
+        }
+        // School-related fields should be static
+        else if (
+          field.label === 'School Name' ||
+          field.label === 'School Logo' ||
+          field.label?.toLowerCase().includes('school') ||
+          field.label?.toLowerCase().includes('institution')
+        ) {
+          dataSource = 'static';
+          databaseField = null;
+
+          // Set default static content
+          if (
+            field.fieldType === 'TEXT' &&
+            field.label?.toLowerCase().includes('name') &&
+            !staticText
+          ) {
+            staticText = 'Your School Name';
+          }
+          // For image fields, imageUrl can be null - will be uploaded later
+        }
+        // Photo and image fields
+        else if (
+          field.fieldType === 'IMAGE' ||
+          field.fieldType === 'PHOTO' ||
+          field.fieldType === 'LOGO' ||
+          (field.label &&
+            (field.label.toLowerCase().includes('photo') ||
+              field.label.toLowerCase().includes('picture') ||
+              field.label.toLowerCase().includes('image')))
+        ) {
+          // School logos should be static, personal photos should be from database
+          if (
+            field.label?.toLowerCase().includes('school') ||
+            field.label?.toLowerCase().includes('logo') ||
+            field.label?.toLowerCase().includes('institution')
+          ) {
+            dataSource = 'static';
+            databaseField = null;
+            // imageUrl can be set later through upload
+          } else {
+            dataSource = 'database';
+
+            // Set appropriate photo field mapping based on template type and label
+            if (
+              !databaseField ||
+              databaseField === 'photo' ||
+              databaseField === 'profilePicture'
+            ) {
+              if (templateType === 'STUDENT') {
+                databaseField = 'Student Photo';
+              } else if (templateType === 'TEACHER') {
+                databaseField = 'Teacher Photo';
+              } else if (
+                templateType === 'STAFF' ||
+                templateType === 'STAFF_NO_LOGIN'
+              ) {
+                databaseField = 'Staff Photo';
+              } else {
+                databaseField = 'photo';
+              }
+            }
+          }
+        }
+        // Text fields analysis
+        else if (field.fieldType === 'TEXT') {
+          // If field has a databaseField or label suggesting database mapping
+          if (
+            field.databaseField ||
+            this.isFieldNameSuggestingDatabase(field.label, templateType)
+          ) {
+            dataSource = 'database';
+
+            // Normalize and map field names to standard database fields
+            if (field.label) {
+              const mappedField = this.mapLabelToDatabaseField(
+                field.label,
+                templateType,
+              );
+              if (mappedField) {
+                databaseField = mappedField;
+              }
+            }
+          }
+          // If field has staticText or label suggesting static content
+          else if (
+            field.staticText ||
+            this.isFieldNameSuggestingStatic(field.label)
+          ) {
+            dataSource = 'static';
+            databaseField = null;
+
+            // Preserve existing staticText or set default
+            if (!staticText && field.label?.toLowerCase().includes('school')) {
+              staticText = 'Your School Name';
+            }
+          }
+          // Default: if unclear, use database for personal info, static for institutional
+          else {
+            if (this.isPersonalInformationField(field.label)) {
+              dataSource = 'database';
+              databaseField = this.mapLabelToDatabaseField(
+                field.label,
+                templateType,
+              );
+            } else {
+              dataSource = 'static';
+              databaseField = null;
+              staticText = staticText || field.placeholder || 'Static Text';
+            }
+          }
+        }
+        // Other field types - set sensible defaults
+        else {
+          // Default to database for most other field types
+          dataSource = 'database';
+          if (!databaseField) {
+            databaseField = field.label || 'defaultField';
+          }
+        }
+      }
+
+      // Log the fix if dataSource was changed
+      if (originalDataSource !== dataSource) {
+        // console.log(`  ✓ Fixed field "${field.label}": null → ${dataSource} (${databaseField || staticText || 'no content'})`);
+      }
+
+      return {
+        ...field,
+        dataSource,
+        databaseField,
+        staticText,
+        imageUrl,
+      };
+    });
+  }
+
+  /**
+   * Check if field name suggests database mapping
+   */
+  private isFieldNameSuggestingDatabase(
+    label: string,
+    templateType: string,
+  ): boolean {
+    if (!label) return false;
+
+    const lowerLabel = label.toLowerCase();
+
+    // Common database field indicators
+    const databaseIndicators = [
+      'name',
+      'id',
+      'number',
+      'class',
+      'section',
+      'grade',
+      'designation',
+      'position',
+      'department',
+      'email',
+      'phone',
+      'address',
+      'blood',
+      'birth',
+      'age',
+      'parent',
+      'guardian',
+      'employee',
+      'student',
+      'admission',
+      'roll',
+      'contact',
+    ];
+
+    return databaseIndicators.some(indicator => lowerLabel.includes(indicator));
+  }
+
+  /**
+   * Check if field name suggests static content
+   */
+  private isFieldNameSuggestingStatic(label: string): boolean {
+    if (!label) return false;
+
+    const lowerLabel = label.toLowerCase();
+
+    // Static content indicators
+    const staticIndicators = [
+      'school',
+      'institution',
+      'academy',
+      'college',
+      'university',
+      'logo',
+      'motto',
+      'slogan',
+      'address',
+      'website',
+      'established',
+    ];
+
+    return staticIndicators.some(indicator => lowerLabel.includes(indicator));
+  }
+
+  /**
+   * Check if field represents personal information
+   */
+  private isPersonalInformationField(label: string): boolean {
+    if (!label) return false;
+
+    const lowerLabel = label.toLowerCase();
+
+    const personalIndicators = [
+      'name',
+      'photo',
+      'picture',
+      'image',
+      'id',
+      'number',
+      'class',
+      'section',
+      'grade',
+      'designation',
+      'position',
+      'department',
+      'email',
+      'phone',
+      'blood',
+      'birth',
+      'age',
+    ];
+
+    return personalIndicators.some(indicator => lowerLabel.includes(indicator));
+  }
+
+  /**
+   * Map user-friendly labels to standardized database field names
+   */
+  private mapLabelToDatabaseField(
+    label: string,
+    templateType: string,
+  ): string | null {
+    if (!label) return null;
+
+    // Comprehensive field mapping for all template types
+    const universalMappings: Record<string, string> = {
+      'Full Name': 'Full Name',
+      'First Name': 'Full Name',
+      Name: 'Full Name',
+      Email: 'Email',
+      Phone: 'Phone',
+      'Phone Number': 'Phone',
+      Contact: 'Phone',
+      'Blood Group': 'Blood Group',
+      'Blood Type': 'Blood Group',
+      'Date of Birth': 'Date of Birth',
+      DOB: 'Date of Birth',
+      'Birth Date': 'Date of Birth',
+      Address: 'Address',
+    };
+
+    // Template-specific mappings
+    const templateSpecificMappings = {
+      STUDENT: {
+        'Student ID': 'Student ID',
+        'Student Number': 'Student ID',
+        'Roll Number': 'Student ID',
+        'Admission Number': 'Student ID',
+        Class: 'Class',
+        Grade: 'Class',
+        Section: 'Section',
+        'Student Photo': 'Student Photo',
+        Photo: 'Student Photo',
+        Picture: 'Student Photo',
+      },
+      TEACHER: {
+        'Employee ID': 'Employee ID',
+        'Teacher ID': 'Employee ID',
+        'Staff ID': 'Employee ID',
+        Designation: 'Designation',
+        Position: 'Designation',
+        Title: 'Designation',
+        Department: 'Department',
+        Subject: 'Department',
+        'Teacher Photo': 'Teacher Photo',
+        Photo: 'Teacher Photo',
+        Picture: 'Teacher Photo',
+      },
+      STAFF: {
+        'Employee ID': 'Employee ID',
+        'Staff ID': 'Employee ID',
+        Position: 'Position',
+        Designation: 'Position',
+        Role: 'Position',
+        Department: 'Department',
+        Division: 'Department',
+        'Staff Photo': 'Staff Photo',
+        Photo: 'Staff Photo',
+        Picture: 'Staff Photo',
+      },
+      STAFF_NO_LOGIN: {
+        'Employee ID': 'Employee ID',
+        'Staff ID': 'Employee ID',
+        Position: 'Position',
+        Designation: 'Position',
+        Role: 'Position',
+        Department: 'Department',
+        Division: 'Department',
+        'Staff Photo': 'Staff Photo',
+        Photo: 'Staff Photo',
+        Picture: 'Staff Photo',
+      },
+    };
+
+    // Check universal mappings first
+    if (universalMappings[label]) {
+      return universalMappings[label];
+    }
+
+    // Check template-specific mappings
+    const templateMappings =
+      templateSpecificMappings[
+        templateType as keyof typeof templateSpecificMappings
+      ];
+    if (templateMappings && templateMappings[label]) {
+      return templateMappings[label];
+    }
+
+    // Return the label as-is if no mapping found (it might be correct already)
+    return label;
   }
 }

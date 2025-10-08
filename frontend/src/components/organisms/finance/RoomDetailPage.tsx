@@ -1,43 +1,43 @@
-'use client';
+﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  X,
   Package,
-  ChevronDown,
-  ChevronRight,
-  Eye,
-  Edit,
-  RotateCcw,
-  Move,
-  MoreHorizontal,
+  ShoppingCart,
   AlertTriangle,
-  CheckCircle,
-  Clock,
-  DollarSign,
-  Calendar,
-  Shield,
   Building2,
-  Plus,
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Zap,
+  Bell,
+  Target,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type {
-  Room,
-  AssetModel,
-  AssetItem,
+  RoomWithAssets,
   AssetStatus,
+  AssetModelWithItems,
 } from '@/types/asset.types';
-import ReplaceAssetModal from './modals/ReplaceAssetModal';
+
+// Tab components
+import AssetsTab from './tabs/AssetsTab';
+import AcquisitionTab from './tabs/AcquisitionTab';
+import DamagedRepairsTab from './tabs/DamagedRepairsTab';
+// Modals
 import AddAssetModal from './modals/AddAssetModal';
-import AssetDetailsModal from './modals/AssetDetailsModal';
-import EditAssetModal from './modals/EditAssetModal';
-import MoveAssetModal from './modals/MoveAssetModal';
-import QuickAddUnitsModal from './modals/QuickAddUnitsModal';
+import ImportCSVModal from './modals/ImportCSVModal';
+
+// Dynamic import for Record Acquisition Modal
+const RecordAcquisitionModal = React.lazy(
+  () => import('./modals/RecordAcquisitionModal'),
+);
 
 interface RoomDetailPageProps {
-  room: Room;
+  room: RoomWithAssets;
   onAssetUpdate?: () => void;
 }
 
@@ -45,101 +45,503 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
   room,
   onAssetUpdate,
 }) => {
-  const [assetModels, setAssetModels] = useState<AssetModel[]>([]);
-  const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
-  const [selectedItem, setSelectedItem] = useState<AssetItem | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isMoveOpen, setIsMoveOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('assets');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<AssetStatus | 'all'>('all');
-  const [loading, setLoading] = useState(false);
 
   // Modal states
-  const [isReplaceModalOpen, setIsReplaceModalOpen] = useState(false);
   const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false);
-  // Quick Add Units modal state
-  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
-  const [quickAddModel, setQuickAddModel] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
+  const [isRecordAcquisitionModalOpen, setIsRecordAcquisitionModalOpen] =
+    useState(false);
+  const [isImportCSVModalOpen, setIsImportCSVModalOpen] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
-  useEffect(() => {
-    // load assets for page view if needed
-    async function loadRoomAssets() {
-      setLoading(true);
-      try {
-        await new Promise(r => setTimeout(r, 300));
-        // TODO: Load real asset models from API
-        setAssetModels([]);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadRoomAssets();
+  // Enhanced state for UX improvements
+  const [lastUpdated] = useState<Date>(new Date());
+  const [notifications, setNotifications] = useState<
+    Array<{
+      id: string;
+      type: 'success' | 'warning' | 'error' | 'info';
+      message: string;
+      timestamp: Date;
+    }>
+  >([]);
+
+  // Enhanced mock data for demonstration
+  const roomWithMockData = useMemo(() => {
+    const mockAssetModels: AssetModelWithItems[] = [
+      {
+        id: 'model-001',
+        name: 'Interactive Projector',
+        brand: 'Epson',
+        modelNo: 'BrightLink 695Wi',
+        category: 'electronics',
+        items: [
+          {
+            id: 'item-001',
+            modelId: 'model-001',
+            roomId: room.id,
+            serial: 'EP2023001',
+            tag: 'PROJ-001',
+            status: 'IN_SERVICE',
+            warrantyExpiry: '2025-12-31',
+            location: { type: 'ROOM', roomId: room.id },
+            acquisitionId: 'acq-001',
+            lastEvent: {
+              type: 'MAINTENANCE_CHECK',
+              at: '2024-10-01T10:00:00Z',
+              note: 'Regular maintenance performed',
+            },
+          },
+          {
+            id: 'item-002',
+            modelId: 'model-001',
+            roomId: room.id,
+            serial: 'EP2023002',
+            tag: 'PROJ-002',
+            status: 'DAMAGED',
+            warrantyExpiry: '2025-12-31',
+            location: {
+              type: 'ROOM',
+              roomId: room.id,
+              note: 'Lamp needs replacement',
+            },
+            acquisitionId: 'acq-001',
+            lastEvent: {
+              type: 'DAMAGE_REPORT',
+              at: '2024-09-28T14:30:00Z',
+              note: 'Lamp burnt out during class',
+            },
+          },
+        ],
+        totalQuantity: 2,
+        okCount: 1,
+        damagedCount: 1,
+        underRepairCount: 0,
+        replacedCount: 0,
+        disposedCount: 0,
+        totalValue: 2500,
+        manufacturer: 'Epson Corporation',
+        createdAt: '2024-01-15T09:00:00Z',
+        updatedAt: '2024-10-01T10:00:00Z',
+      },
+      {
+        id: 'model-002',
+        name: 'Student Desk & Chair Set',
+        brand: 'SchoolMaster',
+        modelNo: 'SM-DESK-40',
+        category: 'furniture',
+        items: [
+          {
+            id: 'item-003',
+            modelId: 'model-002',
+            roomId: room.id,
+            tag: 'DESK-001',
+            status: 'IN_SERVICE',
+            location: { type: 'ROOM', roomId: room.id },
+            acquisitionId: 'acq-002',
+          },
+          {
+            id: 'item-004',
+            modelId: 'model-002',
+            roomId: room.id,
+            tag: 'DESK-002',
+            status: 'IN_SERVICE',
+            location: { type: 'ROOM', roomId: room.id },
+            acquisitionId: 'acq-002',
+          },
+          {
+            id: 'item-005',
+            modelId: 'model-002',
+            roomId: room.id,
+            tag: 'DESK-003',
+            status: 'UNDER_REPAIR',
+            location: { type: 'VENDOR', note: 'Sent for chair repair' },
+            acquisitionId: 'acq-002',
+            lastEvent: {
+              type: 'REPAIR_STARTED',
+              at: '2024-10-05T08:00:00Z',
+              note: 'Chair mechanism broken, sent to vendor',
+            },
+          },
+        ],
+        totalQuantity: 3,
+        okCount: 2,
+        damagedCount: 0,
+        underRepairCount: 1,
+        replacedCount: 0,
+        disposedCount: 0,
+        totalValue: 450,
+        manufacturer: 'SchoolMaster Furniture',
+        createdAt: '2024-02-01T09:00:00Z',
+        updatedAt: '2024-10-05T08:00:00Z',
+      },
+    ];
+
+    return {
+      ...room,
+      assets: mockAssetModels,
+      totalAssets: mockAssetModels.reduce(
+        (sum, model) => sum + model.totalQuantity,
+        0,
+      ),
+      totalDamaged: mockAssetModels.reduce(
+        (sum, model) => sum + model.damagedCount + model.underRepairCount,
+        0,
+      ),
+      totalValue: mockAssetModels.reduce(
+        (sum, model) => sum + model.totalValue,
+        0,
+      ),
+    };
   }, [room]);
 
-  const toggleModelExpansion = (modelId: string) => {
-    const newExpanded = new Set(expandedModels);
-    if (newExpanded.has(modelId)) newExpanded.delete(modelId);
-    else newExpanded.add(modelId);
-    setExpandedModels(newExpanded);
-  };
+  // Intelligent KPI calculations
+  const roomMetrics = useMemo(() => {
+    const workingAssets =
+      roomWithMockData.totalAssets - roomWithMockData.totalDamaged;
+    const healthPercentage =
+      roomWithMockData.totalAssets > 0
+        ? Math.round((workingAssets / roomWithMockData.totalAssets) * 100)
+        : 100;
 
-  const getStatusColor = (status: AssetStatus) => {
-    switch (status) {
-      case 'ok':
-        return 'text-green-600 bg-green-50';
-      case 'damaged':
-        return 'text-red-600 bg-red-50';
-      case 'under_repair':
-        return 'text-yellow-600 bg-yellow-50';
-      case 'retired':
-        return 'text-gray-600 bg-gray-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
-  };
+    // Calculate trends (mock for now - would come from API)
+    const assetTrend: 'up' | 'down' | 'neutral' =
+      roomWithMockData.totalAssets > 0 ? 'up' : 'neutral';
+    const healthTrend: 'up' | 'down' | 'neutral' =
+      healthPercentage >= 95
+        ? 'up'
+        : healthPercentage >= 80
+          ? 'neutral'
+          : 'down';
 
-  const getStatusIcon = (status: AssetStatus) => {
-    switch (status) {
-      case 'ok':
-        return <CheckCircle className='h-4 w-4' />;
-      case 'damaged':
-        return <AlertTriangle className='h-4 w-4' />;
-      case 'under_repair':
-        return <Clock className='h-4 w-4' />;
-      default:
-        return <Package className='h-4 w-4' />;
-    }
-  };
+    // Priority indicators
+    const criticalIssues =
+      roomWithMockData.assets?.reduce((count, model) => {
+        return (
+          count +
+          (model.items?.filter(item => item.status === 'DAMAGED').length || 0)
+        );
+      }, 0) || 0;
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    const warrantyExpiring =
+      roomWithMockData.assets?.reduce((count, model) => {
+        return (
+          count +
+          (model.items?.filter(item => {
+            if (!item.warrantyExpiry) return false;
+            const daysLeft = Math.ceil(
+              (new Date(item.warrantyExpiry).getTime() - new Date().getTime()) /
+                (1000 * 3600 * 24),
+            );
+            return daysLeft >= 0 && daysLeft <= 30;
+          }).length || 0)
+        );
+      }, 0) || 0;
+
+    return {
+      totalAssets: roomWithMockData.totalAssets,
+      workingAssets,
+      issuesCount: roomWithMockData.totalDamaged,
+      damagedAssets: roomWithMockData.totalDamaged,
+      totalValue: roomWithMockData.totalValue,
+      healthPercentage,
+      assetTrend,
+      healthTrend,
+      criticalIssues,
+      warrantyExpiring,
+      avgAssetValue:
+        roomWithMockData.totalAssets > 0
+          ? roomWithMockData.totalValue / roomWithMockData.totalAssets
+          : 0,
+      acquisitionCount: roomWithMockData.assets?.length || 0,
+    };
+  }, [roomWithMockData]);
+
+  // Smart notification system
+  const addNotification = useCallback(
+    (type: 'success' | 'warning' | 'error' | 'info', message: string) => {
+      const notification = {
+        id: Date.now().toString(),
+        type,
+        message,
+        timestamp: new Date(),
+      };
+      setNotifications(prev => [notification, ...prev.slice(0, 4)]);
+      setTimeout(() => {
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      }, 5000);
+    },
+    [],
+  );
+
+  // Enhanced keyboard shortcuts for better UX
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
+
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+        switch (e.key) {
+          case '1':
+            e.preventDefault();
+            setActiveTab('assets');
+            addNotification('info', 'Switched to Assets tab (Ctrl+1)');
+            break;
+          case '2':
+            e.preventDefault();
+            setActiveTab('acquisition');
+            addNotification('info', 'Switched to Acquisition tab (Ctrl+2)');
+            break;
+          case '3':
+            e.preventDefault();
+            setActiveTab('damaged');
+            addNotification('info', 'Switched to Damaged/Repairs tab (Ctrl+3)');
+            break;
+          case 'k': {
+            e.preventDefault();
+            const searchInput = document.querySelector(
+              'input[placeholder*="search" i]',
+            ) as HTMLInputElement;
+            if (searchInput) {
+              searchInput.focus();
+              searchInput.select();
+              addNotification('info', 'Search focused (Ctrl+K)');
+            }
+            break;
+          }
+          case 'n': {
+            e.preventDefault();
+            if (e.shiftKey) {
+              setIsRecordAcquisitionModalOpen(true);
+              addNotification(
+                'info',
+                'Opening acquisition form... (Ctrl+Shift+N)',
+              );
+            } else {
+              setIsAddAssetModalOpen(true);
+              addNotification('info', 'Opening add asset form... (Ctrl+N)');
+            }
+            break;
+          }
+        }
+      }
+
+      if (e.key === 'Escape') {
+        if (notifications.length > 0) {
+          setNotifications([]);
+          addNotification('info', 'Notifications cleared');
+        } else if (showKeyboardShortcuts) {
+          setShowKeyboardShortcuts(false);
+        }
+      }
+
+      if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setShowKeyboardShortcuts(!showKeyboardShortcuts);
+        addNotification(
+          'info',
+          showKeyboardShortcuts
+            ? 'Shortcuts hidden'
+            : 'Shortcuts shown (Press ? again to hide)',
+        );
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyboard);
+    return () => document.removeEventListener('keydown', handleKeyboard);
+  }, [addNotification, notifications.length, showKeyboardShortcuts]);
+
+  // Enhanced search and filter logic (kept for future use)
+  const smartSearchAndFilter = useCallback(
+    (models: any[], query: string, status: AssetStatus | 'all') => {
+      return models.filter(model => {
+        const matchesSearch =
+          !query ||
+          model.name.toLowerCase().includes(query.toLowerCase()) ||
+          model.brand?.toLowerCase().includes(query.toLowerCase()) ||
+          model.category.toLowerCase().includes(query.toLowerCase());
+
+        const matchesStatus =
+          status === 'all' ||
+          (status === 'IN_SERVICE' && model.okCount > 0) ||
+          (status === 'DAMAGED' && model.damagedCount > 0) ||
+          (status === 'UNDER_REPAIR' && model.underRepairCount > 0);
+
+        return matchesSearch && matchesStatus;
+      });
+    },
+    [],
+  );
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
     }).format(amount);
+
+  const getTrendIcon = (trend: 'up' | 'down' | 'neutral') => {
+    switch (trend) {
+      case 'up':
+        return <TrendingUp className='h-4 w-4 text-green-500' />;
+      case 'down':
+        return <TrendingDown className='h-4 w-4 text-red-500' />;
+      default:
+        return <Target className='h-4 w-4 text-gray-500' />;
+    }
   };
 
-  const filteredModels = assetModels.filter(model => {
-    const matchesSearch =
-      !searchQuery ||
-      model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      model.manufacturer?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'ok' && model.okCount > 0) ||
-      (statusFilter === 'damaged' && model.damagedCount > 0) ||
-      (statusFilter === 'under_repair' && model.underRepairCount > 0);
-    return matchesSearch && matchesStatus;
-  });
+  const getHealthColor = (percentage: number) => {
+    if (percentage >= 95) return 'text-green-600 bg-green-50';
+    if (percentage >= 80) return 'text-yellow-600 bg-yellow-50';
+    return 'text-red-600 bg-red-50';
+  };
 
   return (
     <div className='w-full'>
-      {/* Header */}
+      {/* Breadcrumb */}
+      <div className='mb-4 text-sm text-gray-600'>
+        <span>Asset Management</span>
+        <span className='mx-2'>&gt;</span>
+        <span className='font-medium text-gray-900'>
+          {room.name || `Room ${room.roomNo}`}
+        </span>
+        <span className='mx-2'>&gt;</span>
+        <span className='text-blue-600 capitalize'>
+          {activeTab.replace('_', ' ')}
+        </span>
+        {lastUpdated && (
+          <span className='ml-4 text-xs text-gray-400'>
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </span>
+        )}
+      </div>
+
+      {/* Enhanced Notification Bar */}
+      {notifications.length > 0 && (
+        <div className='mb-4 space-y-2'>
+          {notifications.slice(0, 2).map(notification => (
+            <div
+              key={notification.id}
+              className={`${
+                notification.type === 'success'
+                  ? 'bg-green-50 text-green-800 border border-green-200 shadow-green-100'
+                  : notification.type === 'warning'
+                    ? 'bg-yellow-50 text-yellow-800 border border-yellow-200 shadow-yellow-100'
+                    : notification.type === 'error'
+                      ? 'bg-red-50 text-red-800 border border-red-200 shadow-red-100'
+                      : 'bg-blue-50 text-blue-800 border border-blue-200 shadow-blue-100'
+              } flex items-center space-x-3 px-4 py-3 rounded-lg text-sm transform transition-all duration-300 ease-out shadow-md hover:scale-[1.02] cursor-default`}
+            >
+              <div
+                className={`${
+                  notification.type === 'success'
+                    ? 'bg-green-100'
+                    : notification.type === 'warning'
+                      ? 'bg-yellow-100'
+                      : notification.type === 'error'
+                        ? 'bg-red-100'
+                        : 'bg-blue-100'
+                } p-1 rounded-full flex-shrink-0`}
+              >
+                {notification.type === 'success' && (
+                  <CheckCircle2 className='h-4 w-4' />
+                )}
+                {notification.type === 'warning' && (
+                  <AlertCircle className='h-4 w-4' />
+                )}
+                {notification.type === 'error' && (
+                  <AlertTriangle className='h-4 w-4' />
+                )}
+                {notification.type === 'info' && <Bell className='h-4 w-4' />}
+              </div>
+              <span className='font-medium flex-1'>{notification.message}</span>
+              <button
+                onClick={() =>
+                  setNotifications(prev =>
+                    prev.filter(n => n.id !== notification.id),
+                  )
+                }
+                className='ml-auto text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-white/50'
+                title='Dismiss notification'
+              >
+                x
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Keyboard Shortcuts Panel */}
+      {showKeyboardShortcuts && (
+        <div className='mb-4 bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm'>
+          <div className='flex items-center justify-between mb-3'>
+            <h3 className='font-semibold text-gray-900 flex items-center'>
+              <Target className='h-4 w-4 mr-2' />
+              Keyboard Shortcuts
+            </h3>
+            <button
+              onClick={() => setShowKeyboardShortcuts(false)}
+              className='text-gray-400 hover:text-gray-600 transition-colors'
+            >
+              x
+            </button>
+          </div>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-3 text-sm'>
+            <div className='space-y-2'>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Switch to Assets</span>
+                <kbd className='px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono'>
+                  Ctrl+1
+                </kbd>
+              </div>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Switch to Acquisition</span>
+                <kbd className='px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono'>
+                  Ctrl+2
+                </kbd>
+              </div>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Switch to Damaged/Repairs</span>
+                <kbd className='px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono'>
+                  Ctrl+3
+                </kbd>
+              </div>
+            </div>
+            <div className='space-y-2'>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Focus Search</span>
+                <kbd className='px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono'>
+                  Ctrl+K
+                </kbd>
+              </div>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Add Asset</span>
+                <kbd className='px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono'>
+                  Ctrl+N
+                </kbd>
+              </div>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Record Acquisition</span>
+                <kbd className='px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono'>
+                  Ctrl+Shift+N
+                </kbd>
+              </div>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Toggle Help</span>
+                <kbd className='px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono'>
+                  ?
+                </kbd>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Room Header (Always Visible) */}
       <div className='bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-t-lg'>
         <div className='flex items-center justify-between w-full'>
           <div className='flex items-center space-x-4'>
@@ -147,432 +549,206 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
               <Building2 className='h-6 w-6' />
             </div>
             <div>
-              <h2 className='text-xl font-bold'>Room {room.roomNo}</h2>
+              <h2 className='text-xl font-bold'>
+                {room.name || `Room ${room.roomNo}`}
+              </h2>
               <p className='text-blue-100 text-sm'>
-                {room.name} • {room.building} • Floor {room.floor}
+                {room.type && `${room.type} - `}
+                {room.building}
+                {room.floor && ` - Floor ${room.floor}`}
               </p>
             </div>
           </div>
         </div>
+
+        {/* Enhanced KPIs */}
         <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 w-full'>
-          <div className='bg-white/10 rounded-lg p-3'>
-            <div className='text-2xl font-bold'>{room.totalAssets}</div>
-            <div className='text-blue-100 text-sm'>Total Assets</div>
-          </div>
-          <div className='bg-white/10 rounded-lg p-3'>
-            <div className='text-2xl font-bold text-green-200'>
-              {room.totalAssets - room.totalDamaged}
+          <div className='bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20'>
+            <div className='flex items-center justify-between mb-2'>
+              <div className='text-2xl font-bold'>
+                {roomMetrics.totalAssets}
+              </div>
+              {getTrendIcon(roomMetrics.assetTrend)}
             </div>
-            <div className='text-blue-100 text-sm'>Working</div>
+            <div className='text-blue-100 text-sm'>Total Assets</div>
+            <div className='text-xs text-blue-200 mt-1'>
+              Avg: {formatCurrency(roomMetrics.avgAssetValue)}
+            </div>
           </div>
-          <div className='bg-white/10 rounded-lg p-3'>
-            <div className='text-2xl font-bold text-red-200'>
-              {room.totalDamaged}
+
+          <div className='bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20'>
+            <div className='flex items-center justify-between mb-2'>
+              <div className='text-2xl font-bold text-green-200'>
+                {roomMetrics.workingAssets}
+              </div>
+              <div
+                className={`px-2 py-1 rounded-full text-xs font-medium ${getHealthColor(roomMetrics.healthPercentage)}`}
+              >
+                {roomMetrics.healthPercentage}%
+              </div>
+            </div>
+            <div className='text-blue-100 text-sm'>Working Assets</div>
+            <div className='text-xs text-blue-200 mt-1'>
+              Health:{' '}
+              {roomMetrics.healthPercentage >= 95
+                ? 'Excellent'
+                : roomMetrics.healthPercentage >= 80
+                  ? 'Good'
+                  : 'Needs Attention'}
+            </div>
+          </div>
+
+          <div className='bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20'>
+            <div className='flex items-center justify-between mb-2'>
+              <div className='text-2xl font-bold text-red-200'>
+                {roomMetrics.issuesCount}
+              </div>
+              {roomMetrics.criticalIssues > 0 && (
+                <div className='bg-red-500/20 text-red-200 px-2 py-1 rounded-full text-xs flex items-center space-x-1'>
+                  <Zap className='h-3 w-3' />
+                  <span>{roomMetrics.criticalIssues}</span>
+                </div>
+              )}
             </div>
             <div className='text-blue-100 text-sm'>Issues</div>
+            <div className='text-xs text-blue-200 mt-1'>
+              {roomMetrics.criticalIssues > 0
+                ? `${roomMetrics.criticalIssues} Critical`
+                : 'All Clear'}
+            </div>
           </div>
-          <div className='bg-white/10 rounded-lg p-3'>
-            <div className='text-2xl font-bold'>
-              {formatCurrency(room.totalValue)}
+
+          <div className='bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/20'>
+            <div className='flex items-center justify-between mb-2'>
+              <div className='text-2xl font-bold'>
+                {formatCurrency(roomMetrics.totalValue)}
+              </div>
+              {roomMetrics.warrantyExpiring > 0 && (
+                <div className='bg-yellow-500/20 text-yellow-200 px-2 py-1 rounded-full text-xs flex items-center space-x-1'>
+                  <Clock className='h-3 w-3' />
+                  <span>{roomMetrics.warrantyExpiring}</span>
+                </div>
+              )}
             </div>
             <div className='text-blue-100 text-sm'>Total Value</div>
+            <div className='text-xs text-blue-200 mt-1'>
+              {roomMetrics.warrantyExpiring > 0
+                ? `${roomMetrics.warrantyExpiring} Warranty Expiring`
+                : 'All Current'}
+            </div>
           </div>
+        </div>
+
+        {/* Quick Header Actions */}
+        <div className='flex justify-end items-center gap-3 mt-6'>
+          <Button
+            variant='secondary'
+            size='sm'
+            className='bg-white/20 hover:bg-white/30 text-white border-white/20 transition-all duration-200'
+            onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
+            title='Keyboard shortcuts (?)'
+          >
+            <Target className='h-4 w-4 mr-2' />
+            Help
+          </Button>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className='p-4 border-b border-gray-200 bg-gray-50 w-full'>
-        <div className='flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between w-full'>
-          <div className='flex-1 min-w-0'>
-            <Input
-              placeholder='Search assets by name or model...'
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className='w-full'
-            />
+      {/* Enhanced Tabs */}
+      <div className='bg-white rounded-lg shadow-sm mt-6 overflow-hidden'>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
+          <div className='border-b border-gray-200 bg-gray-50/50'>
+            <TabsList className='w-full justify-start bg-transparent p-0 h-auto'>
+              <TabsTrigger
+                value='assets'
+                className='rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-4 font-medium transition-all duration-200 hover:bg-white/80'
+              >
+                <Package className='h-4 w-4 mr-2' />
+                Assets
+              </TabsTrigger>
+              <TabsTrigger
+                value='acquisition'
+                className='rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-4 font-medium transition-all duration-200 hover:bg-white/80'
+              >
+                <ShoppingCart className='h-4 w-4 mr-2' />
+                Acquisition
+              </TabsTrigger>
+              <TabsTrigger
+                value='damaged'
+                className='rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-4 font-medium transition-all duration-200 hover:bg-white/80'
+              >
+                <AlertTriangle className='h-4 w-4 mr-2' />
+                Damaged/Repairs
+              </TabsTrigger>
+            </TabsList>
           </div>
-          <div className='flex items-center space-x-2'>
-            <select
-              value={String(statusFilter)}
-              onChange={e => setStatusFilter(e.target.value as any)}
-              className='text-sm border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              <option value='all'>All Status</option>
-              <option value='ok'>Working</option>
-              <option value='damaged'>Damaged</option>
-              <option value='under_repair'>Under Repair</option>
-            </select>
-            <Button
-              size='sm'
-              className='flex items-center space-x-2'
-              onClick={() => setIsAddAssetModalOpen(true)}
-            >
-              <Plus className='h-4 w-4' />
-              <span>Add Asset</span>
-            </Button>
+
+          <div className='p-6'>
+            <TabsContent value='assets' className='mt-0'>
+              <AssetsTab
+                room={roomWithMockData}
+                searchQuery={searchQuery}
+                statusFilter={statusFilter}
+                onAssetUpdate={onAssetUpdate}
+                onNotification={addNotification}
+                onSearchChange={setSearchQuery}
+                onStatusFilterChange={setStatusFilter}
+                onOpenAddAsset={() => setIsAddAssetModalOpen(true)}
+              />
+            </TabsContent>
+
+            <TabsContent value='acquisition' className='mt-0'>
+              <AcquisitionTab
+                room={roomWithMockData}
+                onNotification={addNotification}
+                onOpenRecordAcquisition={() =>
+                  setIsRecordAcquisitionModalOpen(true)
+                }
+                onOpenImportCSV={() => setIsImportCSVModalOpen(true)}
+              />
+            </TabsContent>
+
+            <TabsContent value='damaged' className='mt-0'>
+              <DamagedRepairsTab
+                room={roomWithMockData}
+                onNotification={addNotification}
+              />
+            </TabsContent>
           </div>
-        </div>
-      </div>
-
-      {/* Models list styled like GenericTable */}
-      <div className='p-4 w-full'>
-        <div className='bg-white rounded-lg shadow w-full'>
-          {loading ? (
-            <div className='flex items-center justify-center p-8'>
-              Loading assets...
-            </div>
-          ) : filteredModels.length === 0 ? (
-            <div className='text-center py-12'>
-              <Package className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-              <h3 className='text-lg font-medium text-gray-900 mb-2'>
-                No assets found
-              </h3>
-              <p className='text-sm text-gray-500 mb-6'>
-                {searchQuery
-                  ? 'Try adjusting your search criteria'
-                  : 'This room has no assets yet'}
-              </p>
-              <Button onClick={() => setIsAddAssetModalOpen(true)}>
-                <Plus className='h-4 w-4 mr-2' />
-                Add First Asset
-              </Button>
-            </div>
-          ) : (
-            <div className='divide-y divide-gray-200'>
-              {filteredModels.map(model => (
-                <div key={model.id} className='w-full'>
-                  <div
-                    className='flex items-center px-4 py-4 hover:bg-gray-50 cursor-pointer group w-full'
-                    onClick={() => toggleModelExpansion(model.id)}
-                  >
-                    {/* Expand/Collapse Icon */}
-                    <div className='flex items-center justify-center mr-3'>
-                      {expandedModels.has(model.id) ? (
-                        <ChevronDown className='h-5 w-5 text-gray-400' />
-                      ) : (
-                        <ChevronRight className='h-5 w-5 text-gray-400' />
-                      )}
-                    </div>
-
-                    {/* Name, Category, Manufacturer */}
-                    <div className='flex-1 min-w-0'>
-                      <div className='flex items-center space-x-2'>
-                        <h3 className='text-lg font-semibold text-gray-900 truncate'>
-                          {model.name}
-                        </h3>
-                        <Badge variant='secondary' className='text-xs'>
-                          {model.category}
-                        </Badge>
-                      </div>
-                      {model.manufacturer && (
-                        <p className='text-sm text-gray-500 mt-1'>
-                          {model.manufacturer}{' '}
-                          {model.modelNumber && `• ${model.modelNumber}`}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Quantity and Status - Center-right aligned */}
-                    <div className='ml-auto mr-6 flex flex-col items-end'>
-                      <div className='text-sm font-medium text-gray-900'>
-                        {model.totalQuantity} Total
-                      </div>
-                      <div className='flex items-center space-x-3 text-xs text-gray-500 mt-1'>
-                        <span className='flex items-center'>
-                          <div className='w-2 h-2 bg-green-500 rounded-full mr-1'></div>
-                          {model.okCount} OK
-                        </span>
-                        {model.damagedCount > 0 && (
-                          <span className='flex items-center'>
-                            <div className='w-2 h-2 bg-red-500 rounded-full mr-1'></div>
-                            {model.damagedCount} Damaged
-                          </span>
-                        )}
-                        {model.underRepairCount > 0 && (
-                          <span className='flex items-center'>
-                            <div className='w-2 h-2 bg-yellow-500 rounded-full mr-1'></div>
-                            {model.underRepairCount} Repair
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Value aligned at far right */}
-                    <div className='flex items-center'>
-                      <div className='flex flex-col items-end mr-3'>
-                        <div className='text-sm font-semibold text-gray-900'>
-                          {formatCurrency(model.totalValue)}
-                        </div>
-                        <div className='text-xs text-gray-500'>Total Value</div>
-                      </div>
-
-                      {/* Quick Add at far right */}
-                      <button
-                        type='button'
-                        className='p-1 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 focus:outline-none'
-                        title='Quick Add Units'
-                        tabIndex={0}
-                        onClick={e => {
-                          e.stopPropagation();
-                          setQuickAddModel({ id: model.id, name: model.name });
-                          setIsQuickAddOpen(true);
-                        }}
-                      >
-                        <Plus className='h-4 w-4' />
-                      </button>
-                    </div>
-                    {/* Quick Add Units Modal (keep outside click area) */}
-                    <QuickAddUnitsModal
-                      isOpen={isQuickAddOpen && !!quickAddModel}
-                      onClose={() => {
-                        setIsQuickAddOpen(false);
-                        setQuickAddModel(null);
-                      }}
-                      onSuccess={(createdItems: any[]) => {
-                        // find the model and append created items
-                        setAssetModels(prev =>
-                          prev.map(m =>
-                            m.id === quickAddModel?.id
-                              ? {
-                                  ...m,
-                                  items: [...m.items, ...createdItems],
-                                  totalQuantity:
-                                    m.totalQuantity + createdItems.length,
-                                  okCount: m.okCount + createdItems.length,
-                                  totalValue:
-                                    m.totalValue +
-                                    createdItems.reduce(
-                                      (s: any, it: any) => s + (it.cost || 0),
-                                      0,
-                                    ),
-                                }
-                              : m,
-                          ),
-                        );
-                        setIsQuickAddOpen(false);
-                        setQuickAddModel(null);
-                        if (onAssetUpdate) onAssetUpdate();
-                      }}
-                      modelName={quickAddModel?.name || ''}
-                      modelId={quickAddModel?.id || ''}
-                    />
-                  </div>
-                  {expandedModels.has(model.id) && (
-                    <div className='border-t border-gray-100 bg-gray-50 w-full'>
-                      {model.items.length === 0 ? (
-                        <div className='p-4 text-center text-gray-500 text-sm'>
-                          No individual items to display
-                        </div>
-                      ) : (
-                        <div className='overflow-x-auto w-full'>
-                          <table className='min-w-full divide-y divide-gray-200'>
-                            <thead className='bg-gray-50'>
-                              <tr>
-                                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                                  Serial/Tag
-                                </th>
-                                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                                  Status
-                                </th>
-                                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                                  Warranty
-                                </th>
-                                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                                  Last Event
-                                </th>
-                                <th className='px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                                  Actions
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className='bg-white divide-y divide-gray-200'>
-                              {model.items.map(item => (
-                                <tr key={item.id} className='hover:bg-gray-50'>
-                                  <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                                    <div>
-                                      <div className='font-mono text-xs font-medium'>
-                                        {item.serialNumber}
-                                      </div>
-                                      <div className='text-xs text-gray-500'>
-                                        {item.tagNumber}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                                    <div
-                                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}
-                                    >
-                                      {getStatusIcon(item.status)}
-                                      <span className='ml-1 capitalize'>
-                                        {item.status.replace('_', ' ')}
-                                      </span>
-                                    </div>
-                                  </td>
-                                  <td className='px-6 py-4 whitespace-nowrap text-xs text-gray-600'>
-                                    {item.warranty}
-                                  </td>
-                                  <td className='px-6 py-4 whitespace-nowrap'>
-                                    {item.lastEvent ? (
-                                      <div className='text-xs'>
-                                        <div className='font-medium text-gray-900'>
-                                          {item.lastEvent.type}
-                                        </div>
-                                        <div className='text-gray-500'>
-                                          {new Date(
-                                            item.lastEvent.date,
-                                          ).toLocaleDateString()}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <span className='text-xs text-gray-400'>
-                                        No recent events
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className='px-6 py-4 whitespace-nowrap'>
-                                    <div className='flex items-center justify-end space-x-1'>
-                                      <Button
-                                        size='sm'
-                                        variant='ghost'
-                                        onClick={() => {
-                                          setSelectedItem(item);
-                                          setIsDetailsOpen(true);
-                                        }}
-                                      >
-                                        <Eye className='h-4 w-4' />
-                                      </Button>
-                                      <Button
-                                        size='sm'
-                                        variant='ghost'
-                                        onClick={() => {
-                                          setSelectedItem(item);
-                                          setIsEditOpen(true);
-                                        }}
-                                      >
-                                        <Edit className='h-4 w-4' />
-                                      </Button>
-                                      <Button
-                                        size='sm'
-                                        variant='ghost'
-                                        onClick={() => {
-                                          setSelectedItem(item);
-                                          setIsReplaceModalOpen(true);
-                                        }}
-                                      >
-                                        <RotateCcw className='h-4 w-4' />
-                                      </Button>
-                                      <Button
-                                        size='sm'
-                                        variant='ghost'
-                                        onClick={() => {
-                                          setSelectedItem(item);
-                                          setIsMoveOpen(true);
-                                        }}
-                                      >
-                                        <Move className='h-4 w-4' />
-                                      </Button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        </Tabs>
       </div>
 
       {/* Modals */}
-      <ReplaceAssetModal
-        isOpen={isReplaceModalOpen}
-        onClose={() => {
-          setIsReplaceModalOpen(false);
-          setSelectedItem(null);
-        }}
-        item={selectedItem}
-        onSuccess={createdItem => {
-          // replace the selected item in state with createdItem
-          if (createdItem && selectedItem) {
-            setAssetModels(prev =>
-              prev.map(model => ({
-                ...model,
-                items: model.items.map(it =>
-                  it.id === selectedItem.id ? createdItem : it,
-                ),
-              })),
-            );
-          }
-          setIsReplaceModalOpen(false);
-          setSelectedItem(null);
-          if (onAssetUpdate) onAssetUpdate();
-        }}
-      />
-      <AssetDetailsModal
-        isOpen={isDetailsOpen}
-        onClose={() => {
-          setIsDetailsOpen(false);
-          setSelectedItem(null);
-        }}
-        item={selectedItem}
-      />
-      <EditAssetModal
-        isOpen={isEditOpen}
-        onClose={() => {
-          setIsEditOpen(false);
-          setSelectedItem(null);
-        }}
-        item={selectedItem}
-        onSuccess={() => {
-          setIsEditOpen(false);
-          setSelectedItem(null);
-          if (onAssetUpdate) onAssetUpdate();
-        }}
-      />
-      <MoveAssetModal
-        isOpen={isMoveOpen}
-        onClose={() => {
-          setIsMoveOpen(false);
-          setSelectedItem(null);
-        }}
-        item={selectedItem}
-        onSuccess={movedItem => {
-          // remove moved item from its current model (we're moving out)
-          if (movedItem) {
-            setAssetModels(prev =>
-              prev.map(model => ({
-                ...model,
-                items: model.items.filter(it => it.id !== movedItem.id),
-                totalQuantity: Math.max(
-                  0,
-                  model.totalQuantity -
-                    (model.items.some(it => it.id === movedItem.id) ? 1 : 0),
-                ),
-              })),
-            );
-          }
-          setIsMoveOpen(false);
-          setSelectedItem(null);
-          if (onAssetUpdate) onAssetUpdate();
-        }}
-      />
       <AddAssetModal
         isOpen={isAddAssetModalOpen}
         onClose={() => setIsAddAssetModalOpen(false)}
-        onSuccess={createdModels => {
-          if (Array.isArray(createdModels) && createdModels.length) {
-            // append created models to assetModels
-            setAssetModels(prev => [...createdModels, ...prev]);
-          }
+        onSuccess={() => {
           setIsAddAssetModalOpen(false);
           if (onAssetUpdate) onAssetUpdate();
         }}
-        targetRoomId={room.id}
+        targetRoomId={roomWithMockData.id}
+      />
+
+      <React.Suspense fallback={<div>Loading...</div>}>
+        <RecordAcquisitionModal
+          isOpen={isRecordAcquisitionModalOpen}
+          onClose={() => setIsRecordAcquisitionModalOpen(false)}
+          onSuccess={() => {
+            setIsRecordAcquisitionModalOpen(false);
+            if (onAssetUpdate) onAssetUpdate();
+          }}
+          roomId={room.id}
+        />
+      </React.Suspense>
+
+      <ImportCSVModal
+        isOpen={isImportCSVModalOpen}
+        onClose={() => setIsImportCSVModalOpen(false)}
+        onSuccess={() => {
+          setIsImportCSVModalOpen(false);
+          if (onAssetUpdate) onAssetUpdate();
+        }}
+        roomId={room.id}
       />
     </div>
   );

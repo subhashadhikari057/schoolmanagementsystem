@@ -7,8 +7,10 @@ import { IDCardGenerationService } from './id-card-generation.service';
 import { IDCardGenerationController } from './id-card-generation.controller';
 import { PDFGenerationService } from './pdf-generation.service';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
+import { SchoolInformationModule } from '../school-information/school-information.module';
 
 @Module({
+  imports: [SchoolInformationModule],
   controllers: [IDCardController, IDCardGenerationController],
   providers: [
     IDCardService,

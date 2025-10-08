@@ -147,8 +147,7 @@ export interface IDCardTemplate {
   features?: string[];
   metadata?: Record<string, unknown>;
   isDefault: boolean;
-  // Removed isActive - all templates are usable
-  isPublished: boolean;
+  status: 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED'; // Template status
   usageCount: number;
   createdAt: string;
   updatedAt: string;

@@ -7,7 +7,14 @@
  */
 
 import React from 'react';
-import { Eye, Edit, Copy, MoreVertical } from 'lucide-react';
+import {
+  Eye,
+  Edit,
+  Copy,
+  MoreVertical,
+  Trash2,
+  CheckCircle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IDCardTemplate, IDCardTemplateType } from '@/types/template.types';
 import TemplatePreview from './TemplatePreview';
@@ -17,6 +24,8 @@ interface TemplatesGridProps {
   onPreview: (template: IDCardTemplate) => void;
   onEdit: (template: IDCardTemplate) => void;
   onCopy: (template: IDCardTemplate) => void;
+  onDelete: (template: IDCardTemplate) => void;
+  onPublish?: (template: IDCardTemplate) => void;
 }
 
 export default function TemplatesGrid({
@@ -24,6 +33,8 @@ export default function TemplatesGrid({
   onPreview,
   onEdit,
   onCopy,
+  onDelete,
+  onPublish,
 }: TemplatesGridProps) {
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
@@ -33,7 +44,7 @@ export default function TemplatesGrid({
           className='bg-white border border-blue-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 transition-all duration-200'
         >
           {/* Template Preview */}
-          <div className='w-full h-32 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg mb-3 flex items-center justify-center border-2 border-blue-200'>
+          <div className='w-full h-40 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg mb-3 flex items-center justify-center border-2 border-blue-200'>
             <TemplatePreview template={template} />
           </div>
 
@@ -64,8 +75,20 @@ export default function TemplatesGrid({
               >
                 {template.type.toLowerCase()}
               </span>
-              <span className='px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800'>
-                Template
+              <span
+                className={`px-2 py-1 text-xs rounded-full ${
+                  template.status === 'ACTIVE'
+                    ? 'bg-green-100 text-green-800'
+                    : template.status === 'INACTIVE'
+                      ? 'bg-gray-100 text-gray-800'
+                      : template.status === 'ARCHIVED'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                }`}
+              >
+                {template.status === 'ACTIVE'
+                  ? 'Published'
+                  : (template.status || 'DRAFT').toLowerCase()}
               </span>
             </div>
 
@@ -84,34 +107,57 @@ export default function TemplatesGrid({
             )}
 
             {/* Action Buttons */}
-            <div className='flex items-center space-x-2 pt-2'>
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={() => onPreview(template)}
-                className='flex-1 h-8 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300'
-              >
-                <Eye className='w-3 h-3 mr-1' />
-                Preview
-              </Button>
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={() => onEdit(template)}
-                className='flex-1 h-8 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300'
-              >
-                <Edit className='w-3 h-3 mr-1' />
-                Edit
-              </Button>
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={() => onCopy(template)}
-                className='flex-1 h-8 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300'
-              >
-                <Copy className='w-3 h-3 mr-1' />
-                Copy
-              </Button>
+            <div className='space-y-2 pt-2'>
+              <div className='flex items-center space-x-2'>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => onPreview(template)}
+                  className='flex-1 h-8 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300'
+                >
+                  <Eye className='w-3 h-3 mr-1' />
+                  Preview
+                </Button>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => onEdit(template)}
+                  className='flex-1 h-8 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300'
+                >
+                  <Edit className='w-3 h-3 mr-1' />
+                  Edit
+                </Button>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => onCopy(template)}
+                  className='flex-1 h-8 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300'
+                >
+                  <Copy className='w-3 h-3 mr-1' />
+                  Copy
+                </Button>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => onDelete(template)}
+                  className='h-8 border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300'
+                >
+                  <Trash2 className='w-3 h-3' />
+                </Button>
+              </div>
+
+              {/* Publish Button - Only show if not published and onPublish is provided */}
+              {template.status !== 'ACTIVE' && onPublish && (
+                <Button
+                  variant='default'
+                  size='sm'
+                  onClick={() => onPublish(template)}
+                  className='w-full h-8 bg-green-600 hover:bg-green-700 text-white'
+                >
+                  <CheckCircle className='w-3 h-3 mr-1' />
+                  Publish Template
+                </Button>
+              )}
             </div>
           </div>
         </div>

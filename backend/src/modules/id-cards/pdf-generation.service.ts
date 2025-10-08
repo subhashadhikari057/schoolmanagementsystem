@@ -205,7 +205,18 @@ export class PDFGenerationService {
 
     // Set font properties
     const fontSize = field.fontSize || 12;
-    const fontFamily = field.fontFamily || 'Helvetica';
+    // Map custom fonts to PDFKit built-in fonts
+    const fontFamilyMap: Record<string, string> = {
+      Inter: 'Helvetica',
+      Arial: 'Helvetica',
+      Roboto: 'Helvetica',
+      'Times New Roman': 'Times-Roman',
+      'Courier New': 'Courier',
+      Georgia: 'Times-Roman',
+    };
+
+    const requestedFont = field.fontFamily || 'Helvetica';
+    const fontFamily = fontFamilyMap[requestedFont] || 'Helvetica';
     const color = field.color || '#000000';
 
     doc.font(fontFamily).fontSize(fontSize).fillColor(color);
@@ -259,7 +270,7 @@ export class PDFGenerationService {
       if (imagePath.startsWith('http')) {
         // For URLs, you might want to download and cache the image first
         if (process.env.NODE_ENV === 'development') {
-          console.warn('URL images not implemented yet:', imagePath);
+          // console.warn('URL images not implemented yet:', imagePath);
         }
         return;
       }
@@ -391,7 +402,46 @@ export class PDFGenerationService {
     fieldPath: string,
   ): string {
     try {
-      const keys = fieldPath.split('.');
+      // Map user-friendly field names to actual object properties
+      const fieldMappings: Record<string, string> = {
+        // Student fields
+        'Full Name': 'user.fullName',
+        'Student ID': 'studentId',
+        Class: 'class.name',
+        Section: 'class.section',
+        'Student Photo': 'profilePicture',
+        photo: 'profilePicture',
+
+        // Teacher fields
+        'Employee ID': 'employeeId',
+        Designation: 'designation',
+        Department: 'department', // Teacher department is a string field, not object
+        'Teacher Photo': 'profile.profilePhotoUrl', // Correct teacher photo path
+
+        // Staff fields
+        Position: 'position',
+        'Staff Photo': 'profilePicture',
+
+        // Common fields
+        Email: 'user.email',
+        Phone: 'user.phone',
+        'Date of Birth': 'user.dateOfBirth',
+      };
+
+      // Check if there's a mapping for this field
+      let actualPath = fieldMappings[fieldPath] || fieldPath;
+
+      // Handle lowercase variations
+      const lowerFieldPath = fieldPath.toLowerCase();
+      if (lowerFieldPath === 'studentid') {
+        actualPath = 'studentId';
+      } else if (lowerFieldPath === 'employeeid') {
+        actualPath = 'employeeId';
+      } else if (lowerFieldPath === 'fullname') {
+        actualPath = 'user.fullName';
+      }
+
+      const keys = actualPath.split('.');
       let value = personData;
 
       for (const key of keys) {

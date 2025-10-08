@@ -124,9 +124,6 @@ export default function Dropdown({
                 await studentService.getStudentByUserId(userId);
               profileData = studentResponse.data;
             } catch (error) {
-              console.log(
-                'Could not fetch student profile by user ID, trying current student API',
-              );
               // Fallback - this might not work for all cases
             }
             break;
@@ -142,49 +139,30 @@ export default function Dropdown({
                 profileData = fullTeacherResponse.data;
               }
             } catch (error) {
-              console.log('Could not fetch teacher profile');
+              // Silent fail - will use fallback initials
             }
             break;
           case 'staff':
-            try {
-              // For staff, we might need to find a different approach since there's no getCurrentStaff
-              // For now, skip staff profile photos
-              console.log('Staff profile photos not yet supported in dropdown');
-            } catch (error) {
-              console.log('Could not fetch staff profile');
-            }
+            // For staff, we might need to find a different approach since there's no getCurrentStaff
+            // For now, skip staff profile photos
             break;
           case 'parent':
-            try {
-              // For parent, we might need to find a different approach since there's no getCurrentParent
-              // For now, skip parent profile photos
-              console.log(
-                'Parent profile photos not yet supported in dropdown',
-              );
-            } catch (error) {
-              console.log('Could not fetch parent profile');
-            }
+            // For parent, we might need to find a different approach since there's no getCurrentParent
+            // For now, skip parent profile photos
             break;
           case 'superadmin':
           case 'admin':
           case 'accountant':
           default:
-            // For admin roles, we might not have profile photos yet
-            console.log(
-              'Admin role profile photos not yet supported in dropdown',
-            );
-            return;
+            // For admin roles, profile photos might not be implemented yet
+            // But don't return early - let the fallback to initials work
+            break;
         }
 
         if (profileData?.profilePhotoUrl) {
           setProfilePhotoUrl(profileData.profilePhotoUrl);
-          console.log(
-            'Profile photo loaded for dropdown:',
-            profileData.profilePhotoUrl,
-          );
         }
       } catch (error) {
-        console.log('Could not fetch profile photo for dropdown:', error);
         // Silently fail - user will see initials instead
       }
     },
