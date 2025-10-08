@@ -39,33 +39,36 @@ export default function DeleteConfirmationModal({
 
   return (
     <div
-      className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4'
+      className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4'
       onClick={handleClose}
     >
       <div
-        className='bg-white rounded-xl w-full max-w-md shadow-2xl animate-in fade-in duration-300'
+        className='bg-white rounded-lg sm:rounded-xl w-full max-w-xs sm:max-w-md shadow-2xl animate-in fade-in duration-300 mx-2 sm:mx-0'
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className='bg-gradient-to-r from-red-50 to-orange-50 p-6 rounded-t-xl border-b border-gray-100'>
+        <div className='bg-gradient-to-r from-red-50 to-orange-50 p-4 sm:p-6 rounded-t-lg sm:rounded-t-xl border-b border-gray-100 relative'>
           <button
             onClick={handleClose}
-            className={`absolute top-4 right-4 p-2 rounded-full transition-colors ${
+            className={`absolute top-2 right-2 sm:top-4 sm:right-4 p-1.5 sm:p-2 rounded-full transition-colors ${
               isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/50'
             }`}
+            disabled={isLoading}
           >
-            <X className='h-5 w-5 text-gray-500' />
+            <X className='h-4 w-4 sm:h-5 sm:w-5 text-gray-500' />
           </button>
 
-          <div className='flex items-center gap-3'>
-            <AlertTriangle className='w-6 h-6 text-red-500' />
-            <h2 className='text-xl font-bold text-gray-800'>{title}</h2>
+          <div className='flex items-center gap-2 sm:gap-3 pr-8 sm:pr-12'>
+            <AlertTriangle className='w-5 h-5 sm:w-6 sm:h-6 text-red-500 flex-shrink-0' />
+            <h2 className='text-lg sm:text-xl font-bold text-gray-800 leading-tight'>
+              {title}
+            </h2>
           </div>
         </div>
 
         {/* Content */}
-        <div className='p-6'>
-          <p className='text-gray-600'>
+        <div className='p-4 sm:p-6'>
+          <p className='text-sm sm:text-base text-gray-600 leading-relaxed'>
             {message}
             {itemName && (
               <span className='font-semibold text-gray-900'> {itemName}</span>
@@ -74,25 +77,31 @@ export default function DeleteConfirmationModal({
         </div>
 
         {/* Footer */}
-        <div className='flex justify-end gap-3 p-6 border-t bg-gray-50 rounded-b-xl'>
+        <div className='flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t bg-gray-50 rounded-b-lg sm:rounded-b-xl'>
           <Button
             onClick={handleClose}
-            className={`px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
-            }`}
+            disabled={isLoading}
+            className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-white border border-gray-300 rounded-md text-gray-700 text-sm sm:text-base font-medium ${
+              isLoading
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:bg-gray-50 active:bg-gray-100'
+            } transition-colors`}
           >
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
-            className={`px-4 py-2 bg-red-600 text-white rounded-md flex items-center gap-2 ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-700'
-            }`}
+            disabled={isLoading}
+            className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 bg-red-600 text-white rounded-md flex items-center justify-center gap-2 text-sm sm:text-base font-medium ${
+              isLoading
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:bg-red-700 active:bg-red-800'
+            } transition-colors`}
           >
             {isLoading ? (
               <>
                 <Loader2 className='w-4 h-4 animate-spin' />
-                Deleting...
+                <span>Deleting...</span>
               </>
             ) : (
               'Delete'

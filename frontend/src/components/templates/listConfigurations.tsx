@@ -1494,6 +1494,7 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
             avatar={item.avatar}
             idLabel='PAR'
             role='parent'
+            hideId={true}
           />
         ),
       },
@@ -1680,25 +1681,6 @@ export const LIST_CONFIGS: Record<string, ListConfiguration<any>> = {
   subjects: {
     title: 'Subjects List',
     searchPlaceholder: 'Search Subjects...',
-    primaryFilter: {
-      title: 'All Faculty',
-      options: [
-        { value: 'all', label: 'All Faculty' },
-        { value: 'science', label: 'Science' },
-        { value: 'engineering', label: 'Engineering' },
-        { value: 'arts', label: 'Arts' },
-        { value: 'mathematics', label: 'Mathematics' },
-        { value: 'social-studies', label: 'Social Studies' },
-      ],
-    },
-    secondaryFilter: {
-      title: 'All Status',
-      options: [
-        { value: 'all', label: 'All Status' },
-        { value: 'active', label: 'Active' },
-        { value: 'inactive', label: 'Inactive' },
-      ],
-    },
     columns: [
       {
         key: 'name',

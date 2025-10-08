@@ -6,7 +6,6 @@ import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import { FileText, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { GenericList } from '@/components/templates/GenericList';
 import { getListConfig } from '@/components/templates/listConfigurations';
-import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import { LeaveRequestService } from '@/api/services/leave-request.service';
 import { HttpClient } from '@/api/client/http-client';
 import { useAuth } from '@/hooks/useAuth';
@@ -455,11 +454,15 @@ const LeaveRequestManagement: React.FC = () => {
         ...config.primaryFilter,
         value: statusFilter,
         onChange: handleStatusFilterChange,
+        title: config.primaryFilter?.title || 'Status',
+        options: config.primaryFilter?.options || [],
       },
       secondaryFilter: {
         ...config.secondaryFilter,
         value: typeFilter,
         onChange: handleTypeFilterChange,
+        title: config.secondaryFilter?.title || 'Type',
+        options: config.secondaryFilter?.options || [],
       },
     };
   }, [searchTerm, statusFilter, typeFilter]);
@@ -488,7 +491,6 @@ const LeaveRequestManagement: React.FC = () => {
         onSearch={handleSearch}
         onPrimaryFilterChange={handleStatusFilterChange}
         onSecondaryFilterChange={handleTypeFilterChange}
-        customActions={<ActionButtons pageType='leave-requests' />}
       />
 
       {/* Leave Request Detail Modal */}

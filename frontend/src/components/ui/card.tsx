@@ -9,6 +9,7 @@ const Card = React.forwardRef<
     ref={ref}
     className={cn(
       'rounded-lg bg-card text-card-foreground shadow-sm',
+      'w-full max-w-full', // Ensure cards are responsive
       className,
     )}
     {...props}
@@ -22,7 +23,11 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex flex-col space-y-1.5 p-6', className)}
+    className={cn(
+      'flex flex-col space-y-1.5',
+      'p-4 sm:p-6', // Responsive padding
+      className,
+    )}
     {...props}
   />
 ));
@@ -35,7 +40,8 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      'text-2xl font-semibold leading-none tracking-tight',
+      'font-semibold leading-none tracking-tight',
+      'text-lg sm:text-xl md:text-2xl', // Responsive text sizing
       className,
     )}
     {...props}
@@ -49,7 +55,11 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-muted-foreground', className)}
+    className={cn(
+      'text-muted-foreground',
+      'text-sm sm:text-base', // Responsive text sizing
+      className,
+    )}
     {...props}
   />
 ));
@@ -59,7 +69,14 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+  <div
+    ref={ref}
+    className={cn(
+      'p-4 sm:p-6 pt-0', // Responsive padding
+      className,
+    )}
+    {...props}
+  />
 ));
 CardContent.displayName = 'CardContent';
 
@@ -69,7 +86,12 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex items-center p-6 pt-0', className)}
+    className={cn(
+      'flex items-center',
+      'p-4 sm:p-6 pt-0', // Responsive padding
+      'flex-col sm:flex-row gap-2 sm:gap-4', // Stack on mobile, row on desktop
+      className,
+    )}
     {...props}
   />
 ));

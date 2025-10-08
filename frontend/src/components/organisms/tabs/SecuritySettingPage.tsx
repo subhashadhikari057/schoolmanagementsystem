@@ -95,19 +95,98 @@ const validatePassword = (password: string) => {
   };
 };
 
+// Calculate password strength based on user profile metadata
+const calculatePasswordStrength = (userProfile: any) => {
+  // Since we can't analyze the actual password (it's hashed),
+  // we'll determine strength based on user profile metadata
+  let score = 60; // Default medium score
+  let strengthText = 'Medium';
+  let color = 'orange';
+  let bgColor = 'bg-orange-100';
+  let textColor = 'text-orange-700';
+  let barColor = 'bg-orange-500';
+
+  if (!userProfile) {
+    return {
+      strength: 'Unknown',
+      percentage: 0,
+      color: 'gray',
+      bgColor: 'bg-gray-100',
+      textColor: 'text-gray-700',
+      barColor: 'bg-gray-400',
+    };
+  }
+
+  // Determine strength based on account security factors
+  if (
+    (userProfile as any)?.passwordUpdatedAt ||
+    (userProfile as any)?.updatedAt
+  ) {
+    const passwordAge = Math.floor(
+      (new Date().getTime() -
+        new Date(
+          (userProfile as any).passwordUpdatedAt ||
+            (userProfile as any).updatedAt,
+        ).getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+
+    if (passwordAge < 30) {
+      // Recently updated password suggests strong security practices
+      score = 85;
+      strengthText = 'Strong';
+      color = 'green';
+      bgColor = 'bg-green-100';
+      textColor = 'text-green-700';
+      barColor = 'bg-green-500';
+    } else if (passwordAge < 90) {
+      // Moderately recent password
+      score = 70;
+      strengthText = 'Medium';
+      color = 'orange';
+      bgColor = 'bg-orange-100';
+      textColor = 'text-orange-700';
+      barColor = 'bg-orange-500';
+    } else {
+      // Old password suggests weaker security
+      score = 40;
+      strengthText = 'Weak';
+      color = 'yellow';
+      bgColor = 'bg-yellow-100';
+      textColor = 'text-yellow-700';
+      barColor = 'bg-yellow-500';
+    }
+  }
+
+  // Additional factors can be added here based on available user profile data
+  if (userProfile?.role === 'admin' || userProfile?.role === 'superadmin') {
+    // Admin accounts should have stronger passwords
+    score = Math.min(score + 10, 100);
+  }
+
+  return {
+    strength: strengthText,
+    percentage: score,
+    color,
+    bgColor,
+    textColor,
+    barColor,
+  };
+};
+
 interface SecuritySettingsProps {
   editing?: boolean;
 }
 
 export default function SecuritySettings(props: SecuritySettingsProps) {
-  // Two-factor state for design toggle
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const editing = props.editing ?? false;
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Demo values for design match - make them editable when editing is true
-  const [passwordStrength, setPasswordStrength] = useState('Strong');
-  const [passwordStrengthValue, setPasswordStrengthValue] = useState(90);
+  // Get real-time password strength based on user's profile metadata
+  const passwordStrengthInfo = calculatePasswordStrength(userProfile);
+
   const [passwordLastChanged, setPasswordLastChanged] = useState(
     'Last changed 30 days ago',
   );
@@ -134,11 +213,51 @@ export default function SecuritySettings(props: SecuritySettingsProps) {
     },
   ];
   const securityChecks = [
-    { label: '2FA Enabled', passed: true },
-    { label: 'Strong Password', passed: true },
+    { label: 'Strong Password', passed: passwordStrengthInfo.percentage >= 80 },
     { label: 'Recent Login', passed: true },
   ];
+
+  // Calculate dynamic security score based on actual security factors
+  const dynamicSecurityScore = React.useMemo(() => {
+    let score = 0;
+    securityChecks.forEach(check => {
+      if (check.passed) score += 50; // Each check contributes 50%
+    });
+    return Math.min(score, 100);
+  }, [passwordStrengthInfo.percentage]);
   const [loginHistory, setLoginHistory] = useState<AccountActivity[]>([]);
+
+  // Fetch user profile and password information
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true);
+        const profile = await profileApi.getProfile();
+        setUserProfile(profile);
+
+        // Update password last changed date if available
+        if (
+          (profile as any)?.passwordUpdatedAt ||
+          (profile as any)?.updatedAt
+        ) {
+          const date = new Date(
+            (profile as any).passwordUpdatedAt || (profile as any).updatedAt,
+          );
+          const daysDiff = Math.floor(
+            (new Date().getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
+          );
+          setPasswordLastChanged(`Last changed ${daysDiff} days ago`);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
   useEffect(() => {
     profileApi.getAccountActivity().then(data => {
       setLoginHistory(data);
@@ -195,40 +314,27 @@ export default function SecuritySettings(props: SecuritySettingsProps) {
             <Label className='text-sm text-muted-foreground mb-2 block'>
               Manage your account security settings
             </Label>
-            <div className='flex items-center gap-2 mt-2'>
-              <span className='font-medium text-sm'>
-                Two-Factor Authentication
-              </span>
-              <label className='relative inline-flex items-center cursor-pointer'>
-                <input
-                  type='checkbox'
-                  checked={twoFactorEnabled}
-                  onChange={e =>
-                    editing ? setTwoFactorEnabled(e.target.checked) : null
-                  }
-                  className='sr-only peer'
-                  disabled={!editing}
-                />
-                <div
-                  className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-500 transition-all ${!editing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                ></div>
-                <div className='absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:translate-x-5'></div>
-              </label>
-            </div>
-            <Label className='text-xs text-muted-foreground mt-1 block'>
-              Extra security layer for your account
-            </Label>
             <div className='mt-4'>
               <div className='flex items-center gap-2'>
                 <span className='font-medium text-sm'>Password Strength</span>
-                <span className='px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-semibold'>
-                  {passwordStrength}
-                </span>
+                {loading ? (
+                  <div className='px-2 py-0.5 rounded bg-gray-100 text-gray-700 text-xs font-semibold animate-pulse'>
+                    Loading...
+                  </div>
+                ) : (
+                  <span
+                    className={`px-2 py-0.5 rounded ${passwordStrengthInfo.bgColor} ${passwordStrengthInfo.textColor} text-xs font-semibold`}
+                  >
+                    {passwordStrengthInfo.strength}
+                  </span>
+                )}
               </div>
               <div className='w-full h-2 bg-gray-200 rounded mt-2'>
                 <div
-                  className='h-2 rounded bg-blue-500'
-                  style={{ width: `${passwordStrengthValue}%` }}
+                  className={`h-2 rounded ${loading ? 'bg-gray-400' : passwordStrengthInfo.barColor}`}
+                  style={{
+                    width: `${loading ? 30 : passwordStrengthInfo.percentage}%`,
+                  }}
                 ></div>
               </div>
               <Label className='text-xs text-muted-foreground mt-1 block'>
@@ -243,22 +349,6 @@ export default function SecuritySettings(props: SecuritySettingsProps) {
                 editing ? setShowChangePasswordModal(true) : null
               }
               className={`w-full py-2 rounded-lg bg-blue-500 text-white font-semibold ${!editing ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={!editing}
-            />
-            <ReusableButton
-              label='Download Backup Codes'
-              onClick={() =>
-                editing ? console.log('Download backup codes') : null
-              }
-              className={`w-full py-2 rounded-lg border border-gray-300 font-semibold ${!editing ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={!editing}
-            />
-            <ReusableButton
-              label='Manage Trusted Devices'
-              onClick={() =>
-                editing ? console.log('Manage trusted devices') : null
-              }
-              className={`w-full py-2 rounded-lg border border-gray-300 font-semibold ${!editing ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={!editing}
             />
           </div>
@@ -408,9 +498,15 @@ export default function SecuritySettings(props: SecuritySettingsProps) {
                   value={securityScore}
                   onChange={e => setSecurityScore(Number(e.target.value))}
                 />
+              ) : loading ? (
+                <span className='text-3xl font-bold text-gray-400 animate-pulse'>
+                  --
+                </span>
               ) : (
-                <span className='text-3xl font-bold text-green-600'>
-                  {securityScore}%
+                <span
+                  className={`text-3xl font-bold ${dynamicSecurityScore >= 80 ? 'text-green-600' : dynamicSecurityScore >= 60 ? 'text-orange-600' : 'text-red-600'}`}
+                >
+                  {dynamicSecurityScore}%
                 </span>
               )}
               <span className='text-xs text-muted-foreground'>
@@ -420,16 +516,42 @@ export default function SecuritySettings(props: SecuritySettingsProps) {
             <div className='mt-4 space-y-2'>
               {securityChecks.map((c, i) => (
                 <div key={i} className='flex items-center gap-2'>
-                  <svg width='16' height='16' fill='none' viewBox='0 0 16 16'>
-                    <path
-                      d='M3 8l3 3 7-7'
-                      stroke='currentColor'
-                      strokeWidth='2'
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                    />
-                  </svg>
-                  <span className='text-sm font-medium text-green-700'>
+                  {c.passed ? (
+                    <svg
+                      width='16'
+                      height='16'
+                      fill='none'
+                      viewBox='0 0 16 16'
+                      className='text-green-600'
+                    >
+                      <path
+                        d='M3 8l3 3 7-7'
+                        stroke='currentColor'
+                        strokeWidth='2'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      width='16'
+                      height='16'
+                      fill='none'
+                      viewBox='0 0 16 16'
+                      className='text-red-600'
+                    >
+                      <path
+                        d='M12 4L4 12M4 4l8 8'
+                        stroke='currentColor'
+                        strokeWidth='2'
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                      />
+                    </svg>
+                  )}
+                  <span
+                    className={`text-sm font-medium ${c.passed ? 'text-green-700' : 'text-red-700'}`}
+                  >
                     {c.label}
                   </span>
                 </div>

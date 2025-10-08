@@ -18,7 +18,6 @@ import {
 } from '@/components/templates/GenericList';
 import { noticeService, type Notice } from '@/api/services/notice.service';
 import { toast } from 'sonner';
-import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 
 type Row = BaseItem & {
@@ -465,7 +464,33 @@ const NoticeManagement: React.FC = () => {
         onSearch={setSearchQuery}
         onPrimaryFilterChange={setStatusFilter}
         onSecondaryFilterChange={setPriorityFilter}
-        customActions={<ActionButtons pageType='notices' />}
+        customActions={
+          <button
+            onClick={() => {
+              // Trigger notice create modal
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('notices:create'));
+              }
+            }}
+            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+          >
+            <svg
+              className='w-4 h-4 mr-2'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+              xmlns='http://www.w3.org/2000/svg'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 4v16m8-8H4'
+              />
+            </svg>
+            Create Notice
+          </button>
+        }
       />
       {loading && <div className='text-sm text-gray-500 px-2'>Loading...</div>}
       {viewing && (

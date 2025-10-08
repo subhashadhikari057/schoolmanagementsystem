@@ -11,15 +11,14 @@ import {
   MapPin,
   Briefcase,
   GraduationCap,
-  BookOpen,
   Landmark,
   Camera,
 } from 'lucide-react';
 import { Teacher } from '@/components/templates/listConfigurations';
 import { teacherService } from '@/api/services/teacher.service';
-import { subjectService } from '@/api/services/subject.service';
 import { toast } from 'sonner';
 import Avatar from '@/components/atoms/display/Avatar';
+import Dropdown from '@/components/molecules/interactive/Dropdown';
 // Use local components instead of importing from molecules/forms
 // We'll define these components locally in this file
 
@@ -165,57 +164,6 @@ const LabeledDatePicker: React.FC<{
   );
 };
 
-// Local MultiSelect component
-const MultiSelect: React.FC<{
-  options: { value: string; label: string }[];
-  selected: string[];
-  onChange: (values: string[]) => void;
-  placeholder?: string;
-  icon?: React.ReactNode;
-  disabled?: boolean;
-}> = ({
-  options,
-  selected,
-  onChange,
-  placeholder = 'Select...',
-  icon,
-  disabled,
-}) => {
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const values = Array.from(e.target.selectedOptions, option => option.value);
-    onChange(values);
-  };
-
-  return (
-    <div className='relative'>
-      {icon && (
-        <div className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400'>
-          {icon}
-        </div>
-      )}
-      <select
-        multiple
-        value={selected}
-        onChange={handleChange}
-        disabled={disabled}
-        className={`border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500 py-2 px-3 ${icon ? 'pl-10' : ''}`}
-        size={4}
-      >
-        {options.map(option => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      {selected.length === 0 && (
-        <div className='pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400'>
-          <span className='text-sm'>{placeholder}</span>
-        </div>
-      )}
-    </div>
-  );
-};
-
 interface EditTeacherForm {
   firstName: string;
   middleName: string;
@@ -245,8 +193,6 @@ interface EditTeacherForm {
   panNumber: string;
   citizenshipNumber: string;
 
-  subjects: string[];
-
   photo: File | null;
   status: string;
 }
@@ -255,6 +201,15 @@ const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const GENDERS = ['Male', 'Female', 'Other'];
 const MARITAL_STATUS = ['Single', 'Married', 'Divorced', 'Widowed'];
 const STATUSES = ['Active', 'On Leave', 'Inactive', 'Suspended', 'Transferred'];
+
+const DESIGNATION_OPTIONS = [
+  { value: '', label: 'Select designation' },
+  { value: 'Senior Teacher', label: 'Senior Teacher' },
+  { value: 'Assistant Teacher', label: 'Assistant Teacher' },
+  { value: 'Head of Department', label: 'Head of Department' },
+  { value: 'Principal', label: 'Principal' },
+  { value: 'Vice Principal', label: 'Vice Principal' },
+];
 
 const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
   isOpen,
@@ -290,40 +245,13 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
     panNumber: '',
     citizenshipNumber: '',
 
-    subjects: [],
-
     photo: null,
     status: 'Active',
   });
 
-  const [availableSubjects, setAvailableSubjects] = useState<
-    { value: string; label: string }[]
-  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-
-  // Load available subjects
-  useEffect(() => {
-    const loadSubjects = async () => {
-      try {
-        const response = await subjectService.getAllSubjects();
-        if (response.success && response.data) {
-          const subjects = response.data.map(subject => ({
-            value: subject.id.toString(),
-            label: subject.name,
-          }));
-          setAvailableSubjects(subjects);
-        }
-      } catch (err) {
-        console.error('Error loading subjects:', err);
-      }
-    };
-
-    if (isOpen) {
-      loadSubjects();
-    }
-  }, [isOpen]);
 
   // Populate form when teacher data changes
   useEffect(() => {
@@ -504,8 +432,6 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
                 (teacher.citizenshipNumber as string) ||
                 '',
 
-              subjects: teacherData.subjects?.map(s => s.id.toString()) || [],
-
               photo: null,
               status: teacher.status || 'Active',
             });
@@ -563,8 +489,6 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
             panNumber: teacher.panNumber || '',
             citizenshipNumber: teacher.citizenshipNumber || '',
 
-            subjects: teacher.subjects?.map((_, idx) => idx.toString()) || [],
-
             photo: null,
             status: teacher.status || 'Active',
           });
@@ -596,10 +520,10 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
     }));
   };
 
-  const handleMultiSelectChange = (name: string, values: string[]) => {
+  const handleDesignationChange = (value: string) => {
     setFormData(prev => ({
       ...prev,
-      [name]: values,
+      designation: value,
     }));
   };
 
@@ -673,11 +597,6 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
         }),
       );
 
-      // Subjects data
-      const subjectsData = {
-        subjects: formData.subjects.length > 0 ? formData.subjects : undefined,
-      };
-
       // Bank details - filter out empty strings
       const bankData = Object.fromEntries(
         Object.entries({
@@ -702,8 +621,6 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
       const hasProfessionalData = Object.values(professionalData).some(
         val => val !== undefined && val !== '',
       );
-      const hasSubjectsData =
-        subjectsData.subjects && subjectsData.subjects.length > 0;
       const hasBankData = Object.values(bankData).some(
         val => val !== undefined && val !== '',
       );
@@ -718,10 +635,6 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
 
       if (hasProfessionalData) {
         teacherData.professional = professionalData;
-      }
-
-      if (hasSubjectsData) {
-        teacherData.subjects = subjectsData;
       }
 
       if (hasBankData) {
@@ -1017,13 +930,19 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
               </h3>
 
               <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                <LabeledInput
-                  label='Designation'
-                  name='designation'
-                  value={formData.designation}
-                  onChange={handleInputChange}
-                  placeholder='Enter designation'
-                />
+                <div>
+                  <label className='text-sm font-medium leading-none mb-2 block'>
+                    Designation
+                  </label>
+                  <Dropdown
+                    type='filter'
+                    options={DESIGNATION_OPTIONS}
+                    selectedValue={formData.designation}
+                    onSelect={handleDesignationChange}
+                    placeholder='Select designation'
+                    className='w-full'
+                  />
+                </div>
 
                 <LabeledInput
                   label='Department'
@@ -1115,22 +1034,7 @@ const TeacherEditModal: React.FC<TeacherEditModalProps> = ({
                 </div>
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    Subjects
-                  </label>
-                  <MultiSelect
-                    options={availableSubjects}
-                    selected={formData.subjects}
-                    onChange={values =>
-                      handleMultiSelectChange('subjects', values)
-                    }
-                    placeholder='Select subjects'
-                    icon={<BookOpen className='h-4 w-4' />}
-                  />
-                </div>
-
+              <div className='grid grid-cols-1 md:grid-cols-1 gap-4 mt-4'>
                 <LabeledSelect
                   label='Status'
                   name='status'

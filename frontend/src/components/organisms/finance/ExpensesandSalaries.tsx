@@ -2,32 +2,12 @@
 
 import React from 'react';
 import StatCard from '@/components/molecules/cards/StatCard';
-import { FileText, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { Users, DollarSign, GraduationCap, Briefcase } from 'lucide-react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
-import Tabs from '@/components/organisms/tabs/GenericTabs';
-import AssetTab from './AssetTab';
-import ExpensesTab from './ExpensesTab';
-import SalaryTab from './SalaryTab';
+import GenericTabs from '@/components/organisms/tabs/GenericTabs';
+import SalaryTable from './SalaryTable';
 
 const stats = [
-  {
-    label: 'Total Expenses',
-    value: 'NPR 12M',
-    icon: DollarSign,
-    bgColor: 'bg-red-100',
-    iconColor: 'text-red-600',
-    change: '+NPR 500K',
-    isPositive: false,
-  },
-  {
-    label: 'Monthly Average',
-    value: 'NPR 1M',
-    icon: TrendingUp,
-    bgColor: 'bg-yellow-100',
-    iconColor: 'text-yellow-600',
-    change: '+NPR 50K',
-    isPositive: true,
-  },
   {
     label: 'Total Salaries',
     value: 'NPR 9M',
@@ -50,29 +30,47 @@ const stats = [
 
 const tabs = [
   {
-    name: 'Expenses',
-    content: <ExpensesTab />,
+    name: 'Teachers',
+    icon: <GraduationCap className='h-4 w-4 mr-2' />,
+    content: <SalaryTable employeeType='teacher' />,
   },
   {
-    name: 'Salaries',
-    content: <SalaryTab />,
-  },
-  {
-    name: 'Asset Management',
-    content: <AssetTab />,
+    name: 'Staff',
+    icon: <Briefcase className='h-4 w-4 mr-2' />,
+    content: <SalaryTable employeeType='staff' />,
   },
 ];
 
 const ExpensesandSalaries = () => {
   return (
-    <div className='space-y-6'>
-      <SectionTitle level={1} text='Finance Overview' />
-      <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4'>
-        {stats.map(stat => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
+    <div className='min-h-screen bg-background'>
+      {/* Header */}
+      <div className='pt-3'>
+        <div className='w-full'>
+          <h1 className='text-xl font-bold text-gray-900'>Salary Management</h1>
+          <p className='text-sm text-gray-600 mt-1'>
+            Manage All Salary Related Information Here
+          </p>
+        </div>
       </div>
-      <Tabs tabs={tabs} />
+
+      {/* Stats Grid */}
+      <div className='mt-3'>
+        <div className='w-full'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+            {stats.map(stat => (
+              <StatCard key={stat.label} {...stat} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs & Content */}
+      <div className='mt-4'>
+        <div className='w-full'>
+          <GenericTabs tabs={tabs} defaultIndex={0} />
+        </div>
+      </div>
     </div>
   );
 };
