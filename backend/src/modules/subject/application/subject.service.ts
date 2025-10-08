@@ -201,10 +201,10 @@ export class SubjectService {
     // Separate DTO fields from relation data
     const { classAssignments, teacherIds, ...subjectData } = dto;
 
-    console.log('Original DTO:', dto);
-    console.log('Subject data after extraction:', subjectData);
-    console.log('Class assignments:', classAssignments);
-    console.log('Teacher IDs:', teacherIds);
+    // console.log('Original DTO:', dto);
+    // console.log('Subject data after extraction:', subjectData);
+    // console.log('Class assignments:', classAssignments);
+    // console.log('Teacher IDs:', teacherIds);
 
     // Ensure only valid Subject model fields are passed to Prisma
     const validSubjectFields = {

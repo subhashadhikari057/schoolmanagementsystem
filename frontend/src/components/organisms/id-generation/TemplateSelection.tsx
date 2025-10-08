@@ -18,6 +18,7 @@ import {
 import { IDCardTemplate, IDCardTemplateType } from '@/types/template.types';
 import { templateApiService } from '@/services/template.service';
 import { personSearchService, Person } from '@/services/person-search.service';
+import { toast } from 'sonner';
 
 // Person interface is now imported from the service
 
@@ -28,7 +29,6 @@ interface TemplateSelectionProps {
     person: Person,
     template: IDCardTemplate,
     expiryDate: string,
-    result: any,
   ) => void;
 }
 
@@ -81,7 +81,7 @@ export default function TemplateSelection({
 
         // Filter for active templates only
         const activeTemplates = response.templates.filter(
-          template => template.isPublished,
+          template => template.status === 'ACTIVE',
         );
 
         setTemplates(activeTemplates);
@@ -104,15 +104,26 @@ export default function TemplateSelection({
   // Set default expiry date when component mounts
   useEffect(() => {
     setExpiryDate(generateDefaultExpiryDate());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPerson.type]);
 
   const handleGenerate = async () => {
     if (!selectedTemplate || !expiryDate) {
+      toast.error('Missing Required Information', {
+        description: 'Please select a template and set an expiry date.',
+      });
       return;
     }
 
     setIsGenerating(true);
     try {
+      console.log('Starting ID card generation...', {
+        personId: selectedPerson.id,
+        personType: selectedPerson.type,
+        templateId: selectedTemplate.id,
+        expiryDate,
+      });
+
       // Use the real API service to generate the ID card
       const result = await personSearchService.generateIndividualIDCard({
         personId: selectedPerson.id,
@@ -123,17 +134,33 @@ export default function TemplateSelection({
 
       console.log('ID card generated successfully:', result);
 
+      // Show success toast
+      toast.success('ID Card Generated!', {
+        description: `Successfully generated ID card for ${selectedPerson.name}`,
+        duration: 4000,
+      });
+
       // Call the parent callback with the result
-      await onGenerate(selectedPerson, selectedTemplate, expiryDate, result);
-    } catch (error) {
+      await onGenerate(selectedPerson, selectedTemplate, expiryDate);
+    } catch (error: unknown) {
       console.error('Error generating ID card:', error);
 
-      // Show error message to user
+      // Extract error message
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to generate ID card. Please try again.';
-      alert(errorMessage);
+        (
+          error as {
+            response?: { data?: { message?: string } };
+            message?: string;
+          }
+        )?.response?.data?.message ||
+        (error as { message?: string })?.message ||
+        'Failed to generate ID card';
+
+      // Show detailed error toast
+      toast.error('Generation Failed', {
+        description: errorMessage,
+        duration: 6000,
+      });
     } finally {
       setIsGenerating(false);
     }

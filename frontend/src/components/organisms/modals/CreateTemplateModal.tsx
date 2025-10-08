@@ -24,6 +24,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { templateApiService } from '@/services/template.service';
 import {
+  schoolInformationService,
+  SchoolInformation,
+} from '@/api/services/school-information.service';
+import {
   CreateTemplateDto,
   TemplateField,
   IDCardTemplate,
@@ -93,6 +97,7 @@ export default function CreateTemplateModal({
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
   const [showValidation, setShowValidation] = useState(false);
+  const [schoolInfo, setSchoolInfo] = useState<SchoolInformation | null>(null);
 
   // Drag and drop state
   const [isDragging, setIsDragging] = useState(false);
@@ -144,6 +149,27 @@ export default function CreateTemplateModal({
   const [templateFields, setTemplateFields] = useState<
     ComponentTemplateField[]
   >([]);
+
+  // Load school information for logo display
+  React.useEffect(() => {
+    const loadSchoolInfo = async () => {
+      if (isOpen) {
+        try {
+          const response =
+            await schoolInformationService.getSchoolInformation();
+          if (response.success && response.data) {
+            setSchoolInfo(response.data);
+            // Force a re-render of template fields when school info loads
+            setTemplateFields(prev => [...prev]);
+          }
+        } catch (error) {
+          console.warn('Failed to load school information:', error);
+        }
+      }
+    };
+
+    loadSchoolInfo();
+  }, [isOpen]);
 
   // Initialize form with edit data
   React.useEffect(() => {
@@ -228,6 +254,9 @@ export default function CreateTemplateModal({
       value: IDCardTemplateType.STUDENT,
       label: 'Student ID Card',
       fields: [
+        'School Name',
+        'School Code',
+        'School Address',
         'First Name',
         'Middle Name',
         'Last Name',
@@ -254,6 +283,9 @@ export default function CreateTemplateModal({
       value: IDCardTemplateType.TEACHER,
       label: 'Teacher ID Card',
       fields: [
+        'School Name',
+        'School Code',
+        'School Address',
         'First Name',
         'Middle Name',
         'Last Name',
@@ -279,6 +311,9 @@ export default function CreateTemplateModal({
       value: IDCardTemplateType.STAFF,
       label: 'Staff ID Card',
       fields: [
+        'School Name',
+        'School Code',
+        'School Address',
         'First Name',
         'Middle Name',
         'Last Name',
@@ -313,10 +348,25 @@ export default function CreateTemplateModal({
       thumbnail: '👤',
       fields: [
         {
+          id: 'schoolLogo',
+          fieldType: TemplateFieldType.LOGO,
+          label: 'School Logo',
+          dataSource: 'database' as const,
+          databaseField: 'schoolLogo',
+          x: 32,
+          y: 1,
+          width: 10,
+          height: 10,
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
           id: 'photo',
           fieldType: TemplateFieldType.IMAGE,
           label: 'Student Photo',
-          databaseField: 'photo',
+          dataSource: 'database' as const,
+          databaseField: 'Student Photo',
           x: 5,
           y: 5,
           width: 23,
@@ -329,6 +379,7 @@ export default function CreateTemplateModal({
           id: 'schoolName',
           fieldType: TemplateFieldType.TEXT,
           label: 'School Name',
+          dataSource: 'database' as const,
           databaseField: 'schoolName',
           placeholder: 'ABC High School',
           x: 32,
@@ -344,13 +395,32 @@ export default function CreateTemplateModal({
           locked: false,
         },
         {
+          id: 'schoolAddress',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'School Address',
+          dataSource: 'database' as const,
+          databaseField: 'School Address',
+          placeholder: 'School Address',
+          x: 32,
+          y: 13,
+          width: 48,
+          height: 4,
+          fontSize: 7,
+          textAlign: TextAlignment.CENTER,
+          color: '#6b7280',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
           id: 'fullName',
           fieldType: TemplateFieldType.TEXT,
           label: 'Full Name',
-          databaseField: 'fullName',
+          dataSource: 'database' as const,
+          databaseField: 'Full Name',
           placeholder: 'John Doe',
           x: 32,
-          y: 15,
+          y: 18,
           width: 48,
           height: 7,
           fontSize: 10,
@@ -365,7 +435,8 @@ export default function CreateTemplateModal({
           id: 'studentId',
           fieldType: TemplateFieldType.TEXT,
           label: 'Student ID',
-          databaseField: 'studentId',
+          dataSource: 'database' as const,
+          databaseField: 'Student ID',
           placeholder: 'STU-2025-001',
           x: 32,
           y: 24,
@@ -382,7 +453,8 @@ export default function CreateTemplateModal({
           id: 'class',
           fieldType: TemplateFieldType.TEXT,
           label: 'Class',
-          databaseField: 'class',
+          dataSource: 'database' as const,
+          databaseField: 'Class',
           placeholder: 'Class: 10-A',
           x: 32,
           y: 32,
@@ -399,7 +471,8 @@ export default function CreateTemplateModal({
           id: 'section',
           fieldType: TemplateFieldType.TEXT,
           label: 'Section',
-          databaseField: 'section',
+          dataSource: 'database' as const,
+          databaseField: 'Section',
           placeholder: 'Sec: A',
           x: 57,
           y: 32,
@@ -416,6 +489,7 @@ export default function CreateTemplateModal({
           id: 'qrCode',
           fieldType: TemplateFieldType.QR_CODE,
           label: 'QR Code',
+          dataSource: 'database' as const,
           databaseField: 'studentId',
           x: 5,
           y: 37,
@@ -437,8 +511,9 @@ export default function CreateTemplateModal({
       fields: [
         {
           id: 'schoolLogo',
-          fieldType: TemplateFieldType.IMAGE,
+          fieldType: TemplateFieldType.LOGO,
           label: 'School Logo',
+          dataSource: 'database' as const,
           databaseField: 'schoolLogo',
           x: 5,
           y: 3,
@@ -452,6 +527,7 @@ export default function CreateTemplateModal({
           id: 'schoolName',
           fieldType: TemplateFieldType.TEXT,
           label: 'School Name',
+          dataSource: 'database' as const,
           databaseField: 'schoolName',
           placeholder: 'ABC School',
           x: 20,
@@ -467,10 +543,29 @@ export default function CreateTemplateModal({
           locked: false,
         },
         {
+          id: 'schoolAddress',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'School Address',
+          dataSource: 'database' as const,
+          databaseField: 'School Address',
+          placeholder: 'School Address',
+          x: 20,
+          y: 13,
+          width: 60,
+          height: 4,
+          fontSize: 7,
+          textAlign: TextAlignment.LEFT,
+          color: '#6b7280',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
           id: 'photo',
           fieldType: TemplateFieldType.IMAGE,
           label: 'Teacher Photo',
-          databaseField: 'photo',
+          dataSource: 'database' as const,
+          databaseField: 'Teacher Photo',
           x: 5,
           y: 18,
           width: 22,
@@ -483,7 +578,8 @@ export default function CreateTemplateModal({
           id: 'fullName',
           fieldType: TemplateFieldType.TEXT,
           label: 'Full Name',
-          databaseField: 'fullName',
+          dataSource: 'database' as const,
+          databaseField: 'Full Name',
           placeholder: 'Prof. Jane Smith',
           x: 30,
           y: 18,
@@ -501,7 +597,8 @@ export default function CreateTemplateModal({
           id: 'designation',
           fieldType: TemplateFieldType.TEXT,
           label: 'Designation',
-          databaseField: 'designation',
+          dataSource: 'database' as const,
+          databaseField: 'Designation',
           placeholder: 'Senior Teacher',
           x: 30,
           y: 27,
@@ -518,7 +615,8 @@ export default function CreateTemplateModal({
           id: 'department',
           fieldType: TemplateFieldType.TEXT,
           label: 'Department',
-          databaseField: 'department',
+          dataSource: 'database' as const,
+          databaseField: 'Department',
           placeholder: 'Mathematics Dept.',
           x: 30,
           y: 35,
@@ -535,7 +633,8 @@ export default function CreateTemplateModal({
           id: 'employeeId',
           fieldType: TemplateFieldType.TEXT,
           label: 'Employee ID',
-          databaseField: 'employeeId',
+          dataSource: 'database' as const,
+          databaseField: 'Employee ID',
           placeholder: 'EMP-T-042',
           x: 30,
           y: 42,
@@ -553,6 +652,7 @@ export default function CreateTemplateModal({
           id: 'qrCode',
           fieldType: TemplateFieldType.QR_CODE,
           label: 'QR Code',
+          dataSource: 'database' as const,
           databaseField: 'employeeId',
           x: 63,
           y: 35,
@@ -572,19 +672,52 @@ export default function CreateTemplateModal({
       thumbnail: '👷',
       fields: [
         {
+          id: 'schoolLogo',
+          fieldType: TemplateFieldType.LOGO,
+          label: 'School Logo',
+          dataSource: 'database' as const,
+          databaseField: 'schoolLogo',
+          x: 5,
+          y: 1,
+          width: 12,
+          height: 12,
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
           id: 'schoolName',
           fieldType: TemplateFieldType.TEXT,
           label: 'School Name',
+          dataSource: 'database' as const,
           databaseField: 'schoolName',
           placeholder: 'ABC School System',
-          x: 5,
+          x: 20,
           y: 3,
-          width: 75,
+          width: 60,
           height: 8,
           fontSize: 11,
           fontWeight: 'bold',
-          textAlign: TextAlignment.CENTER,
+          textAlign: TextAlignment.LEFT,
           color: '#7c3aed',
+          zIndex: 1,
+          opacity: 100,
+          locked: false,
+        },
+        {
+          id: 'schoolAddress',
+          fieldType: TemplateFieldType.TEXT,
+          label: 'School Address',
+          dataSource: 'database' as const,
+          databaseField: 'School Address',
+          placeholder: 'School Address',
+          x: 20,
+          y: 11,
+          width: 60,
+          height: 4,
+          fontSize: 7,
+          textAlign: TextAlignment.LEFT,
+          color: '#6b7280',
           zIndex: 1,
           opacity: 100,
           locked: false,
@@ -593,9 +726,10 @@ export default function CreateTemplateModal({
           id: 'photo',
           fieldType: TemplateFieldType.IMAGE,
           label: 'Staff Photo',
-          databaseField: 'photo',
+          dataSource: 'database' as const,
+          databaseField: 'Staff Photo',
           x: 29,
-          y: 13,
+          y: 16,
           width: 27,
           height: 25,
           zIndex: 1,
@@ -606,7 +740,8 @@ export default function CreateTemplateModal({
           id: 'fullName',
           fieldType: TemplateFieldType.TEXT,
           label: 'Full Name',
-          databaseField: 'fullName',
+          dataSource: 'database' as const,
+          databaseField: 'Full Name',
           placeholder: 'Robert Johnson',
           x: 5,
           y: 40,
@@ -624,7 +759,8 @@ export default function CreateTemplateModal({
           id: 'designation',
           fieldType: TemplateFieldType.TEXT,
           label: 'Designation',
-          databaseField: 'designation',
+          dataSource: 'database' as const,
+          databaseField: 'Position',
           placeholder: 'Admin Officer',
           x: 5,
           y: 48,
@@ -1194,12 +1330,49 @@ export default function CreateTemplateModal({
       const content = () => {
         switch (field.fieldType) {
           case TemplateFieldType.TEXT: {
-            const displayText =
-              field.dataSource === 'static'
-                ? field.staticText || field.placeholder || field.label
-                : field.databaseField
-                  ? `{${field.databaseField}}`
-                  : field.label;
+            let displayText = '';
+
+            if (field.dataSource === 'static') {
+              displayText =
+                field.staticText || field.placeholder || field.label;
+            } else if (field.databaseField) {
+              // Handle school information fields with multiple possible field names
+              const fieldName = field.databaseField.toLowerCase();
+
+              if (fieldName.includes('school') && fieldName.includes('name')) {
+                displayText =
+                  schoolInfo?.schoolName || field.placeholder || 'School Name';
+              } else if (
+                fieldName.includes('school') &&
+                fieldName.includes('code')
+              ) {
+                displayText =
+                  schoolInfo?.schoolCode || field.placeholder || 'SCH001';
+              } else if (
+                fieldName.includes('school') &&
+                fieldName.includes('address')
+              ) {
+                displayText =
+                  schoolInfo?.address || field.placeholder || 'School Address';
+              } else if (fieldName === 'schoolname') {
+                displayText =
+                  schoolInfo?.schoolName || field.placeholder || 'School Name';
+              } else if (fieldName === 'schoolcode') {
+                displayText =
+                  schoolInfo?.schoolCode || field.placeholder || 'SCH001';
+              } else if (
+                fieldName === 'address' ||
+                fieldName === 'schooladdress'
+              ) {
+                displayText =
+                  schoolInfo?.address || field.placeholder || 'School Address';
+              } else {
+                // Use placeholder for other database fields
+                displayText = field.placeholder || `{${field.databaseField}}`;
+              }
+            } else {
+              displayText = field.label;
+            }
             return (
               <div
                 className='w-full h-full flex items-center'
@@ -1237,12 +1410,25 @@ export default function CreateTemplateModal({
               }
 
               if (field.databaseField) {
+                // Show actual school logo if it's a school logo field and we have the data
+                if (field.databaseField === 'schoolLogo' && schoolInfo?.logo) {
+                  return (
+                    <img
+                      src={schoolInfo.logo}
+                      alt='School Logo'
+                      className='w-full h-full object-cover rounded'
+                    />
+                  );
+                }
+
                 return (
                   <div className='w-full h-full flex items-center justify-center bg-blue-50 border border-blue-200 rounded'>
                     <div className='text-center'>
                       <ImageIcon className='w-6 h-6 text-blue-400 mx-auto mb-1' />
                       <div className='text-xs text-blue-600'>
-                        {field.databaseField}
+                        {field.databaseField === 'schoolLogo'
+                          ? 'School Logo'
+                          : field.databaseField}
                       </div>
                     </div>
                   </div>
@@ -1484,9 +1670,24 @@ export default function CreateTemplateModal({
         onSuccess();
         onClose();
       }, 1500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating template:', error);
-      // You could add error handling UI here
+      console.error('Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        fullError: JSON.stringify(error, null, 2),
+      });
+
+      // Show user-friendly error message
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to create template. Please try again.';
+
+      // You could replace this with a toast notification
+      alert(`Error: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

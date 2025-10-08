@@ -21,6 +21,11 @@ export interface IDCardData {
   qrCodeUrl?: string;
   expiryDate: string;
   createdAt: string;
+  template: {
+    name: string;
+    dimensions: string;
+    orientation: string;
+  };
 }
 
 export interface RenderedField {
@@ -40,6 +45,45 @@ export interface RenderedField {
     color?: string;
     backgroundColor?: string;
   };
+}
+
+export interface IDCardListItem {
+  id: string;
+  type: string;
+  templateId: string;
+  expiryDate: string;
+  batchName?: string;
+  issuedForId: string;
+  isActive: boolean;
+  qrCodeData?: string;
+  createdAt: string;
+  updatedAt: string;
+  template: {
+    id: string;
+    name: string;
+    type: string;
+  };
+  issuedFor: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+}
+
+export interface IDCardListResponse {
+  idCards: IDCardListItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface IDCardFilters {
+  page?: number;
+  limit?: number;
+  type?: string;
+  search?: string;
+  isActive?: boolean;
 }
 
 export const idCardApiService = {
@@ -92,6 +136,31 @@ export const idCardApiService = {
     const response = await httpClient.get<IDCardData>(
       `/api/id-cards/${idCardId}`,
       undefined,
+      { requiresAuth: true },
+    );
+    return response.data;
+  },
+
+  /**
+   * Get all ID cards with filtering and pagination
+   */
+  async getAllIDCards(
+    filters: IDCardFilters = {},
+  ): Promise<IDCardListResponse> {
+    const response = await httpClient.get<IDCardListResponse>(
+      '/api/id-cards',
+      { params: filters },
+      { requiresAuth: true },
+    );
+    return response.data;
+  },
+
+  /**
+   * Delete an ID card
+   */
+  async deleteIDCard(idCardId: string): Promise<{ message: string }> {
+    const response = await httpClient.delete<{ message: string }>(
+      `/api/id-cards/${idCardId}`,
       { requiresAuth: true },
     );
     return response.data;

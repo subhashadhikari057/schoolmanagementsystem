@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { IDCardTemplateType } from '@prisma/client';
 import * as QRCode from 'qrcode';
+import { SchoolInformationService } from '../school-information/application/school-information.service';
 
 export interface GenerateIDCardDto {
   templateId: string;
@@ -22,6 +23,11 @@ export interface IDCardData {
   qrCodeUrl?: string;
   expiryDate: Date;
   createdAt: Date;
+  template: {
+    name: string;
+    dimensions: string;
+    orientation: string;
+  };
 }
 
 export interface RenderedField {
@@ -45,7 +51,10 @@ export interface RenderedField {
 
 @Injectable()
 export class IDCardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private schoolInformationService: SchoolInformationService,
+  ) {}
 
   /**
    * Generate an individual ID card from a template for a specific user
@@ -91,6 +100,9 @@ export class IDCardService {
     // Get user data based on template type
     const userData = await this.getUserData(dto.userId, template.type);
 
+    // Get school information for populating school-related fields
+    const schoolInformation = await this.schoolInformationService.findOne();
+
     // Generate rendered fields by mapping template fields to actual data
     const renderedFields: RenderedField[] = [];
     let qrCodeUrl: string | undefined;
@@ -100,7 +112,11 @@ export class IDCardService {
 
       // Map database fields to actual user data
       if (field.dataSource === 'database' && field.databaseField) {
-        fieldValue = this.mapDatabaseField(userData, field.databaseField);
+        fieldValue = this.mapDatabaseField(
+          userData,
+          field.databaseField,
+          schoolInformation,
+        );
       } else if (field.dataSource === 'static' && field.staticText) {
         fieldValue = field.staticText;
       } else {
@@ -172,6 +188,11 @@ export class IDCardService {
       qrCodeUrl,
       expiryDate: idCard.expiryDate,
       createdAt: idCard.createdAt,
+      template: {
+        name: template.name,
+        dimensions: template.dimensions,
+        orientation: template.orientation,
+      },
     };
   }
 
@@ -253,6 +274,7 @@ export class IDCardService {
   private mapDatabaseField(
     userData: Record<string, unknown>,
     fieldName: string,
+    schoolInformation?: any,
   ): string {
     // Helper function to safely get string values
     const getString = (value: unknown): string => {
@@ -274,6 +296,7 @@ export class IDCardService {
       'Middle Name': getString(userData.middleName),
       'Last Name': getString(userData.lastName),
       'Full Name':
+        getString(userData.fullName) ||
         `${getString(userData.firstName)} ${userData.middleName ? getString(userData.middleName) + ' ' : ''}${getString(userData.lastName)}`.trim(),
       Email: getString(userData.email),
       'Phone Number': getString(userData.phone),
@@ -281,8 +304,17 @@ export class IDCardService {
       'Date of Birth': getDate(userData.dateOfBirth),
       'Blood Group': getString(userData.bloodGroup),
 
+      // School/Organization fields (now populated from actual school information)
+      'School Name': schoolInformation?.schoolName || 'School Name Not Set',
+      'School Logo': schoolInformation?.logo || '',
+      schoolLogo: schoolInformation?.logo || '',
+      schoolName: schoolInformation?.schoolName || 'School Name Not Set',
+      'School Address': schoolInformation?.address || 'School Address Not Set',
+      'School Code': schoolInformation?.schoolCode || 'School Code Not Set',
+
       // Student specific
       'Student ID': getString(userData.studentId),
+      studentId: getString(userData.studentId), // Alternative field name (lowercase)
       'Roll Number': getString(userData.rollNumber),
       'Admission Number': getString(userData.admissionNumber),
       Class: getString(userData.className),
@@ -299,8 +331,11 @@ export class IDCardService {
       'Employee ID': getString(userData.employeeId),
       'Teacher ID':
         getString(userData.teacherId) || getString(userData.employeeId),
+      employeeId: getString(userData.employeeId), // Alternative field name
       Designation: getString(userData.designation),
+      designation: getString(userData.designation), // Alternative field name
       Department: getString(userData.department),
+      department: getString(userData.department), // Alternative field name
       'Subject Taught': Array.isArray(userData.subjectsTaught)
         ? userData.subjectsTaught.join(', ')
         : '',
@@ -308,6 +343,8 @@ export class IDCardService {
       Experience: userData.experience ? `${userData.experience} years` : '',
       'Date of Joining': getDate(userData.dateOfJoining),
       'Teacher Photo': getString(userData.profilePicture),
+      photo: getString(userData.profilePicture), // Alternative field name
+      fullName: getString(userData.fullName), // Alternative field name
 
       // Staff specific
       Position: getString(userData.position),
@@ -370,6 +407,94 @@ export class IDCardService {
   }
 
   /**
+   * Get all ID cards with filtering and pagination
+   */
+  async getAllIDCards(filters: {
+    page?: number;
+    limit?: number;
+    type?: string;
+    search?: string;
+    isActive?: boolean;
+  }) {
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (filters.type) {
+      where.type = filters.type;
+    }
+
+    if (filters.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    }
+
+    if (filters.search) {
+      // Search in user's name (requires join)
+      where.issuedFor = {
+        OR: [
+          { fullName: { contains: filters.search, mode: 'insensitive' } },
+          { email: { contains: filters.search, mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    const [idCards, total] = await Promise.all([
+      this.prisma.iDCard.findMany({
+        where,
+        include: {
+          template: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+            },
+          },
+          issuedFor: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.iDCard.count({ where }),
+    ]);
+
+    return {
+      idCards,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Delete an ID card
+   */
+  async deleteIDCard(id: string) {
+    const idCard = await this.prisma.iDCard.findUnique({
+      where: { id },
+    });
+
+    if (!idCard) {
+      throw new NotFoundException('ID card not found');
+    }
+
+    await this.prisma.iDCard.delete({
+      where: { id },
+    });
+
+    return { message: 'ID card deleted successfully' };
+  }
+
+  /**
    * Get ID card by ID with full data
    */
   async getIDCard(idCardId: string): Promise<IDCardData> {
@@ -392,6 +517,10 @@ export class IDCardService {
       idCard.issuedForId,
       idCard.template.type as IDCardTemplateType,
     );
+
+    // Get school information for populating school-related fields
+    const schoolInformation = await this.schoolInformationService.findOne();
+
     const renderedFields: RenderedField[] = [];
     let qrCodeUrl: string | undefined;
 
@@ -399,7 +528,11 @@ export class IDCardService {
       let fieldValue = '';
 
       if (field.dataSource === 'database' && field.databaseField) {
-        fieldValue = this.mapDatabaseField(userData, field.databaseField);
+        fieldValue = this.mapDatabaseField(
+          userData,
+          field.databaseField,
+          schoolInformation,
+        );
       } else if (field.dataSource === 'static' && field.staticText) {
         fieldValue = field.staticText;
       } else {
@@ -448,6 +581,11 @@ export class IDCardService {
       qrCodeUrl,
       expiryDate: idCard.expiryDate,
       createdAt: idCard.createdAt,
+      template: {
+        name: idCard.template.name,
+        dimensions: idCard.template.dimensions,
+        orientation: idCard.template.orientation,
+      },
     };
   }
 

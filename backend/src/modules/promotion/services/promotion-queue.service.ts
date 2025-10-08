@@ -140,9 +140,9 @@ export class PromotionQueueService {
           await this.processIndividualPromotion(record, job.userId);
 
           // Update counters based on promotion type
-          console.log(
-            `📊 Processing student ${record.student.user.fullName}: ${record.promotionType}`,
-          );
+          // console.log(
+          //   `📊 Processing student ${record.student.user.fullName}: ${record.promotionType}`,
+          // );
           switch (record.promotionType) {
             case PromotionType.PROMOTED:
               job.promotedStudents++;
@@ -180,13 +180,13 @@ export class PromotionQueueService {
       job.completedAt = new Date();
 
       // Update batch with final statistics
-      console.log('📊 Final promotion counts:', {
-        promoted: job.promotedStudents,
-        retained: job.retainedStudents,
-        graduated: job.graduatedStudents,
-        failed: job.failedStudents,
-        total: job.totalStudents,
-      });
+      // console.log('📊 Final promotion counts:', {
+      //   promoted: job.promotedStudents,
+      //   retained: job.retainedStudents,
+      //   graduated: job.graduatedStudents,
+      //   failed: job.failedStudents,
+      //   total: job.totalStudents,
+      // });
 
       await this.prisma.promotionBatch.update({
         where: { id: batch.id },
