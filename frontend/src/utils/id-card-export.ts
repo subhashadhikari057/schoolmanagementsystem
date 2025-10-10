@@ -11,41 +11,43 @@ import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 
 /**
+ * Wait for all images to load in an element
+ */
+async function waitForImagesToLoad(element: HTMLElement): Promise<void> {
+  const images = element.querySelectorAll('img');
+  const imagePromises = Array.from(images).map(img => {
+    if (img.complete) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      // Timeout after 5 seconds
+      setTimeout(resolve, 5000);
+    });
+  });
+  await Promise.all(imagePromises);
+}
+
+/**
  * Convert ID card element to high-quality image
  */
 async function captureIDCardImage(
   element: HTMLElement,
-  scale: number = 3,
+  scale: number = 4,
 ): Promise<HTMLCanvasElement> {
-  // Ensure element is visible and has dimensions
-  if (!element || element.offsetWidth === 0 || element.offsetHeight === 0) {
-    throw new Error('Element is not visible or has no dimensions');
-  }
+  // Wait for all images to load
+  await waitForImagesToLoad(element);
 
-  console.log('Capturing element:', {
-    width: element.offsetWidth,
-    height: element.offsetHeight,
-    tagName: element.tagName,
-    className: element.className,
-  });
-
-  // Temporarily remove shadows and transitions for cleaner capture
-  const originalBoxShadow = element.style.boxShadow;
-  const originalTransition = element.style.transition;
-  const originalTransform = element.style.transform;
-
-  element.style.boxShadow = 'none';
-  element.style.transition = 'none';
-  element.style.transform = 'none';
+  // Small delay to ensure rendering is complete
+  await new Promise(resolve => setTimeout(resolve, 300));
 
   try {
     const canvas = await html2canvas(element, {
       scale: scale, // Higher scale for better quality
       useCORS: true, // Handle cross-origin images
-      allowTaint: true, // Allow tainted canvas for cross-origin
+      allowTaint: true, // Allow tainted canvas
       backgroundColor: '#ffffff',
-      logging: true, // Enable logging for debugging
-      imageTimeout: 15000, // Increase timeout for images
+      logging: false,
+      imageTimeout: 15000, // 15 second timeout for images
       removeContainer: false,
       foreignObjectRendering: false, // Disable for better compatibility
       width: element.offsetWidth,
@@ -56,24 +58,10 @@ async function captureIDCardImage(
       y: 0,
     });
 
-    console.log('Canvas created:', {
-      width: canvas.width,
-      height: canvas.height,
-    });
-
-    if (canvas.width === 0 || canvas.height === 0) {
-      throw new Error('Generated canvas has no dimensions');
-    }
-
     return canvas;
   } catch (error) {
-    console.error('Error capturing element:', error);
-    throw error;
-  } finally {
-    // Restore original styles
-    element.style.boxShadow = originalBoxShadow;
-    element.style.transition = originalTransition;
-    element.style.transform = originalTransform;
+    console.error('Error capturing ID card:', error);
+    throw new Error('Failed to capture ID card. Please try again.');
   }
 }
 
@@ -85,35 +73,29 @@ export async function downloadIDCardAsPDF(
   cardHolderName: string,
   templateName: string,
 ): Promise<void> {
-  const loadingToast = toast.loading('Generating PDF...', {
-    description: 'Please wait while we create your ID card PDF',
-  });
+  const loadingToast = toast.loading('Preparing ID card for PDF export...');
 
   try {
-    console.log('Starting PDF generation for:', cardHolderName);
-
     // Capture the ID card as high-quality image
-    const canvas = await captureIDCardImage(cardElement, 4); // Increase to 4x for even better quality
-    const imgData = canvas.toDataURL('image/png', 1.0);
+    toast.loading('Capturing ID card...', { id: loadingToast });
+    const canvas = await captureIDCardImage(cardElement, 4);
 
-    // Verify we have valid image data
-    if (!imgData || imgData === 'data:,') {
-      throw new Error('Failed to capture ID card image');
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      throw new Error('Failed to capture ID card - canvas is empty');
     }
+
+    toast.loading('Generating PDF document...', { id: loadingToast });
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
 
     // Get actual dimensions from canvas
     const imgWidth = canvas.width;
     const imgHeight = canvas.height;
 
-    console.log('Canvas dimensions:', { imgWidth, imgHeight });
-
     // Create PDF with exact ID card dimensions
     // Convert pixels to mm (assuming 96 DPI: 1 inch = 25.4mm, 96px = 25.4mm)
     const pxToMm = 25.4 / 96;
-    const pdfWidth = (imgWidth / 4) * pxToMm; // Divide by scale factor
-    const pdfHeight = (imgHeight / 4) * pxToMm;
-
-    console.log('PDF dimensions (mm):', { pdfWidth, pdfHeight });
+    const pdfWidth = (imgWidth * pxToMm) / 4; // Divide by scale
+    const pdfHeight = (imgHeight * pxToMm) / 4;
 
     const pdf = new jsPDF({
       orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
@@ -123,7 +105,7 @@ export async function downloadIDCardAsPDF(
     });
 
     // Add image to PDF (exact fit, no margins)
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
 
     // Add metadata
     pdf.setProperties({
@@ -136,23 +118,21 @@ export async function downloadIDCardAsPDF(
 
     // Generate filename
     const timestamp = new Date().toISOString().split('T')[0];
-    const safeName = cardHolderName.replace(/[^a-zA-Z0-9]/g, '_');
-    const filename = `ID_Card_${safeName}_${timestamp}.pdf`;
-
-    console.log('Saving PDF as:', filename);
+    const filename = `ID_Card_${cardHolderName.replace(/\s+/g, '_')}_${timestamp}.pdf`;
 
     // Save PDF
+    toast.loading('Saving PDF...', { id: loadingToast });
     pdf.save(filename);
 
-    toast.dismiss(loadingToast);
-    toast.success('PDF Downloaded Successfully! 🎉', {
+    toast.success('PDF downloaded successfully!', {
+      id: loadingToast,
       description: `Saved as ${filename}`,
       duration: 4000,
     });
   } catch (error) {
     console.error('Error generating PDF:', error);
-    toast.dismiss(loadingToast);
-    toast.error('Failed to Generate PDF', {
+    toast.error('Failed to generate PDF', {
+      id: loadingToast,
       description:
         error instanceof Error
           ? error.message
@@ -170,54 +150,40 @@ export async function printIDCard(
   cardElement: HTMLElement,
   cardHolderName: string,
 ): Promise<void> {
-  const loadingToast = toast.loading('Preparing Print...', {
-    description: 'Creating print preview',
-  });
+  const loadingToast = toast.loading('Preparing ID card for printing...');
 
   try {
-    console.log('Starting print preparation for:', cardHolderName);
-
     // Capture the ID card as high-quality image
-    const canvas = await captureIDCardImage(cardElement, 4); // 4x scale for crisp print
-    const imgData = canvas.toDataURL('image/png', 1.0);
+    toast.loading('Capturing ID card...', { id: loadingToast });
+    const canvas = await captureIDCardImage(cardElement, 4);
 
-    // Verify we have valid image data
-    if (!imgData || imgData === 'data:,') {
-      throw new Error('Failed to capture ID card image');
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      throw new Error('Failed to capture ID card - canvas is empty');
     }
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
 
     // Calculate dimensions for print (maintain aspect ratio)
-    const imgWidth = canvas.width / 4; // Actual pixel width after scaling
-    const imgHeight = canvas.height / 4;
-    const aspectRatio = imgWidth / imgHeight;
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
 
-    console.log('Print dimensions:', { imgWidth, imgHeight, aspectRatio });
+    // Convert to mm for printing (standard CR80 card: 85.6 x 53.98mm)
+    const pxToMm = 25.4 / 96;
+    const printWidthMm = (imgWidth * pxToMm) / 4; // Divide by scale
+    const printHeightMm = (imgHeight * pxToMm) / 4;
 
-    // Standard ID card size in mm (CR80: 85.6 x 53.98mm)
-    let printWidth = 85.6;
-    let printHeight = 53.98;
+    toast.loading('Opening print preview...', { id: loadingToast });
 
-    // Adjust if aspect ratio is different
-    if (Math.abs(aspectRatio - 85.6 / 53.98) > 0.1) {
-      if (aspectRatio > 1) {
-        // Landscape
-        printHeight = printWidth / aspectRatio;
-      } else {
-        // Portrait
-        printWidth = printHeight * aspectRatio;
-      }
-    }
-
-    // Create print window
+    // Create a new window for printing
     const printWindow = window.open('', '_blank', 'width=900,height=700');
 
     if (!printWindow) {
       throw new Error(
-        'Failed to open print window. Please allow popups for this site.',
+        'Failed to open print window. Please allow popups in your browser.',
       );
     }
 
-    // Create print document
+    // Create print document with improved styling
     printWindow.document.write(`
       <!DOCTYPE html>
       <html lang="en">
@@ -233,14 +199,15 @@ export async function printIDCard(
             }
 
             @page {
-              size: ${printWidth}mm ${printHeight}mm;
+              size: ${printWidthMm}mm ${printHeightMm}mm;
               margin: 0;
             }
 
             body {
               margin: 0;
-              padding: 0;
+              padding: 20px;
               display: flex;
+              flex-direction: column;
               justify-content: center;
               align-items: center;
               min-height: 100vh;
@@ -251,24 +218,25 @@ export async function printIDCard(
             .print-container {
               background: white;
               padding: 30px;
-              box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-              border-radius: 12px;
-              max-width: 95%;
+              border-radius: 16px;
+              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+              max-width: 800px;
+              width: 100%;
             }
 
             .id-card-wrapper {
               display: flex;
               justify-content: center;
               align-items: center;
-              width: ${printWidth}mm;
-              height: ${printHeight}mm;
+              width: ${printWidthMm}mm;
+              height: ${printHeightMm}mm;
+              margin: 0 auto;
               page-break-after: avoid;
               page-break-inside: avoid;
               background: white;
-              border: 2px solid #e5e7eb;
               border-radius: 8px;
               overflow: hidden;
-              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+              box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             }
 
             .id-card {
@@ -278,191 +246,176 @@ export async function printIDCard(
               object-fit: contain;
             }
 
-            .no-print {
-              margin-top: 25px;
+            .info-section {
+              margin-top: 30px;
               text-align: center;
               padding: 20px;
               background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              border-radius: 8px;
+              border-radius: 12px;
               color: white;
             }
 
-            .no-print h2 {
-              margin: 0 0 10px 0;
+            .info-section h2 {
               font-size: 24px;
-              font-weight: 700;
+              margin-bottom: 12px;
+              font-weight: 600;
             }
 
-            .no-print p {
+            .info-section p {
               margin: 8px 0;
-              font-size: 15px;
+              font-size: 16px;
               opacity: 0.95;
             }
 
-            .no-print .info-grid {
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 10px;
-              margin: 15px 0;
-              padding: 15px;
-              background: rgba(255,255,255,0.1);
-              border-radius: 6px;
-              backdrop-filter: blur(10px);
+            .info-section .dimensions {
+              font-family: 'Courier New', monospace;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px 16px;
+              border-radius: 8px;
+              display: inline-block;
+              margin-top: 12px;
             }
 
-            .no-print .info-item {
-              text-align: left;
-              padding: 8px;
-              background: rgba(255,255,255,0.15);
-              border-radius: 4px;
-            }
-
-            .no-print .info-label {
-              font-size: 12px;
-              opacity: 0.8;
-              margin-bottom: 4px;
-            }
-
-            .no-print .info-value {
-              font-size: 14px;
-              font-weight: 600;
-            }
-
-            .button-group {
+            .button-container {
               display: flex;
               gap: 12px;
               justify-content: center;
-              margin-top: 20px;
+              margin-top: 30px;
             }
 
-            .no-print button {
+            .button-container button {
               padding: 14px 28px;
               border: none;
-              border-radius: 8px;
-              font-size: 15px;
+              border-radius: 10px;
+              font-size: 16px;
               font-weight: 600;
               cursor: pointer;
-              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-              display: inline-flex;
-              align-items: center;
-              gap: 8px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+              font-family: inherit;
             }
 
             .print-button {
-              background: white;
-              color: #667eea;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
             }
 
             .print-button:hover {
               transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+              box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
             }
 
             .cancel-button {
-              background: rgba(255,255,255,0.2);
-              color: white;
-              border: 2px solid rgba(255,255,255,0.3);
+              background: #e5e7eb;
+              color: #374151;
             }
 
             .cancel-button:hover {
-              background: rgba(255,255,255,0.3);
+              background: #d1d5db;
               transform: translateY(-2px);
             }
 
             @media print {
               body {
                 background: white;
+                padding: 0;
               }
 
               .print-container {
                 padding: 0;
                 box-shadow: none;
                 border-radius: 0;
+                max-width: none;
               }
 
-              .no-print {
+              .info-section,
+              .button-container {
                 display: none !important;
               }
 
               .id-card-wrapper {
-                width: ${printWidth}mm;
-                height: ${printHeight}mm;
+                width: ${printWidthMm}mm;
+                height: ${printHeightMm}mm;
                 margin: 0;
                 padding: 0;
-                border: none;
                 box-shadow: none;
                 border-radius: 0;
+                page-break-inside: avoid;
+              }
+
+              @page {
+                margin: 0;
               }
             }
 
-            @keyframes fadeIn {
-              from { opacity: 0; transform: translateY(10px); }
-              to { opacity: 1; transform: translateY(0); }
+            .loading {
+              display: inline-block;
+              width: 20px;
+              height: 20px;
+              border: 3px solid rgba(255,255,255,.3);
+              border-radius: 50%;
+              border-top-color: white;
+              animation: spin 1s ease-in-out infinite;
             }
 
-            .print-container {
-              animation: fadeIn 0.4s ease-out;
+            @keyframes spin {
+              to { transform: rotate(360deg); }
             }
           </style>
         </head>
         <body>
           <div class="print-container">
             <div class="id-card-wrapper">
-              <img src="${imgData}" alt="ID Card - ${cardHolderName}" class="id-card" />
+              <img src="${imgData}" alt="ID Card - ${cardHolderName}" class="id-card" onload="document.getElementById('loading').style.display='none'" />
             </div>
             
-            <div class="no-print">
-              <h2>🎫 Ready to Print</h2>
-              <div class="info-grid">
-                <div class="info-item">
-                  <div class="info-label">Card Holder</div>
-                  <div class="info-value">${cardHolderName}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Card Size</div>
-                  <div class="info-value">${printWidth.toFixed(1)} × ${printHeight.toFixed(1)} mm</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Format</div>
-                  <div class="info-value">Standard ID Card</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Quality</div>
-                  <div class="info-value">High Resolution</div>
-                </div>
-              </div>
-              <p style="font-size: 13px; margin-top: 10px; opacity: 0.9;">
-                💡 Tip: Use high-quality card stock for best results
-              </p>
-              <div class="button-group">
-                <button class="print-button" onclick="window.print()">
-                  🖨️ Print Now
-                </button>
-                <button class="cancel-button" onclick="window.close()">
-                  ✕ Cancel
-                </button>
-              </div>
+            <div class="info-section">
+              <h2>✓ Ready to Print</h2>
+              <p><strong>Card Holder:</strong> ${cardHolderName}</p>
+              <p class="dimensions">Card Size: ${printWidthMm.toFixed(1)}mm × ${printHeightMm.toFixed(1)}mm</p>
+            </div>
+
+            <div class="button-container">
+              <button class="print-button" onclick="window.print()">
+                🖨️ Print ID Card
+              </button>
+              <button class="cancel-button" onclick="window.close()">
+                ✕ Cancel
+              </button>
             </div>
           </div>
+
+          <script>
+            // Auto-focus print button
+            document.querySelector('.print-button').focus();
+            
+            // Keyboard shortcut: Ctrl+P or Cmd+P
+            document.addEventListener('keydown', function(e) {
+              if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+              }
+              // ESC to close
+              if (e.key === 'Escape') {
+                window.close();
+              }
+            });
+          </script>
         </body>
       </html>
     `);
 
     printWindow.document.close();
 
-    // Wait for images to load
-    setTimeout(() => {
-      toast.dismiss(loadingToast);
-      toast.success('Print Preview Opened! 🖨️', {
-        description: 'Configure your printer and click "Print Now"',
-        duration: 4000,
-      });
-    }, 500);
+    toast.success('Print preview ready!', {
+      id: loadingToast,
+      description: 'Configure your printer settings and print.',
+      duration: 3000,
+    });
   } catch (error) {
-    console.error('Error preparing print:', error);
-    toast.dismiss(loadingToast);
-    toast.error('Failed to Prepare Print', {
+    console.error('Error printing ID card:', error);
+    toast.error('Failed to prepare print', {
+      id: loadingToast,
       description: error instanceof Error ? error.message : 'Please try again.',
       duration: 5000,
     });

@@ -560,7 +560,7 @@ Office Chair,furniture,OCH001,TAG003,2024-02-01,249.99,Office Supplies Inc,1 yea
                             </td>
                             <td className='px-3 py-2'>{item.roomNo}</td>
                             <td className='px-3 py-2'>
-                              ${item.cost.toFixed(2)}
+                              ${item.cost ? item.cost.toFixed(2) : '0.00'}
                             </td>
                             <td className='px-3 py-2'>
                               <span

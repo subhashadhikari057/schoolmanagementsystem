@@ -86,16 +86,11 @@ export default function IDCardViewModal({
     try {
       setIsProcessing(true);
 
-      // The cardPreviewRef points directly to the wrapper containing IDCardPreview
-      const cardElement = cardPreviewRef.current
-        .firstElementChild as HTMLElement;
-
-      if (!cardElement) {
-        throw new Error('Card preview element not found');
-      }
+      // Wait a moment to ensure rendering is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       await downloadIDCardAsPDF(
-        cardElement,
+        cardPreviewRef.current,
         getCardHolderName(),
         cardData.template.name,
       );
@@ -116,15 +111,10 @@ export default function IDCardViewModal({
     try {
       setIsProcessing(true);
 
-      // The cardPreviewRef points directly to the wrapper containing IDCardPreview
-      const cardElement = cardPreviewRef.current
-        .firstElementChild as HTMLElement;
+      // Wait a moment to ensure rendering is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      if (!cardElement) {
-        throw new Error('Card preview element not found');
-      }
-
-      await printIDCard(cardElement, getCardHolderName());
+      await printIDCard(cardPreviewRef.current, getCardHolderName());
     } catch (error) {
       console.error('Error printing:', error);
       toast.error('Failed to prepare print');
@@ -169,7 +159,17 @@ export default function IDCardViewModal({
                 ID Card Preview
               </h3>
               <div className='bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl p-12 border-2 border-blue-200 shadow-inner'>
-                <div ref={cardPreviewRef} data-card-id={cardData.id}>
+                <div
+                  ref={cardPreviewRef}
+                  data-card-preview
+                  data-card-id={cardData.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '250px',
+                  }}
+                >
                   <IDCardPreview idCard={cardData} scale={1.5} />
                 </div>
               </div>
