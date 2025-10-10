@@ -117,8 +117,16 @@ export class IDCardService {
           field.databaseField,
           schoolInformation,
         );
-      } else if (field.dataSource === 'static' && field.staticText) {
-        fieldValue = field.staticText;
+      } else if (field.dataSource === 'static') {
+        // For static fields, check both staticText and imageUrl
+        if (field.staticText) {
+          fieldValue = field.staticText;
+        } else if (field.imageUrl) {
+          // For IMAGE and LOGO fields with imageUrl
+          fieldValue = field.imageUrl;
+        } else {
+          fieldValue = field.placeholder || field.label;
+        }
       } else {
         fieldValue = field.placeholder || field.label;
       }
@@ -269,6 +277,71 @@ export class IDCardService {
   }
 
   /**
+   * Format image URL to be accessible from frontend
+   */
+  private formatImageUrl(imagePath: string, fieldType?: string): string {
+    if (!imagePath) {
+      return '';
+    }
+
+    // If it's already a full URL, return as is
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+
+    // Get the backend URL from environment or default to localhost
+    const backendUrl =
+      process.env.BACKEND_URL || process.env.APP_URL || 'http://localhost:8080';
+
+    // Handle different image path formats
+    if (imagePath.startsWith('/api/v1/files/')) {
+      // Already in API format, just add backend URL
+      return `${backendUrl}${imagePath}`;
+    }
+
+    if (imagePath.startsWith('/uploads/')) {
+      // Convert uploads path to API format
+      const pathParts = imagePath.split('/');
+      if (pathParts.length >= 3) {
+        const folder = pathParts[2]; // e.g., 'school-info', 'teachers', etc.
+        const filename = pathParts[pathParts.length - 1];
+        return `${backendUrl}/api/v1/files/${folder}/${filename}`;
+      }
+    }
+
+    if (imagePath.startsWith('uploads/')) {
+      // Convert uploads path without leading slash to API format
+      const pathParts = imagePath.split('/');
+      if (pathParts.length >= 2) {
+        const folder = pathParts[1]; // e.g., 'school-info', 'teachers', etc.
+        const filename = pathParts[pathParts.length - 1];
+        return `${backendUrl}/api/v1/files/${folder}/${filename}`;
+      }
+    }
+
+    // If it's just a filename, try to determine the correct folder based on field type
+    if (!imagePath.includes('/')) {
+      let folder = 'school-info'; // default
+
+      if (fieldType === 'teacher_photo' || fieldType === 'profilePicture') {
+        folder = 'teachers';
+      } else if (fieldType === 'student_photo') {
+        folder = 'students';
+      } else if (fieldType === 'school_logo') {
+        folder = 'school-info/logos';
+      }
+
+      return `${backendUrl}/api/v1/files/${folder}/${imagePath}`;
+    }
+
+    // Fallback: treat as relative path and prepend backend URL
+    const normalizedPath = imagePath.startsWith('/')
+      ? imagePath
+      : `/${imagePath}`;
+    return `${backendUrl}${normalizedPath}`;
+  }
+
+  /**
    * Map database field names to actual user data values
    */
   private mapDatabaseField(
@@ -306,8 +379,12 @@ export class IDCardService {
 
       // School/Organization fields (now populated from actual school information)
       'School Name': schoolInformation?.schoolName || 'School Name Not Set',
-      'School Logo': schoolInformation?.logo || '',
-      schoolLogo: schoolInformation?.logo || '',
+      'School Logo': schoolInformation?.logo
+        ? this.formatImageUrl(schoolInformation.logo, 'school_logo')
+        : '',
+      schoolLogo: schoolInformation?.logo
+        ? this.formatImageUrl(schoolInformation.logo, 'school_logo')
+        : '',
       schoolName: schoolInformation?.schoolName || 'School Name Not Set',
       'School Address': schoolInformation?.address || 'School Address Not Set',
       'School Code': schoolInformation?.schoolCode || 'School Code Not Set',
@@ -325,7 +402,12 @@ export class IDCardService {
         : '',
       'Emergency Contact':
         getString(userData.fatherPhone) || getString(userData.motherPhone),
-      'Student Photo': getString(userData.profilePicture),
+      'Student Photo': userData.profilePicture
+        ? this.formatImageUrl(
+            getString(userData.profilePicture),
+            'student_photo',
+          )
+        : '',
 
       // Teacher specific
       'Employee ID': getString(userData.employeeId),
@@ -342,15 +424,27 @@ export class IDCardService {
       Qualification: getString(userData.qualification),
       Experience: userData.experience ? `${userData.experience} years` : '',
       'Date of Joining': getDate(userData.dateOfJoining),
-      'Teacher Photo': getString(userData.profilePicture),
-      photo: getString(userData.profilePicture), // Alternative field name
+      'Teacher Photo': userData.profilePicture
+        ? this.formatImageUrl(
+            getString(userData.profilePicture),
+            'teacher_photo',
+          )
+        : '',
+      photo: userData.profilePicture
+        ? this.formatImageUrl(
+            getString(userData.profilePicture),
+            'teacher_photo',
+          )
+        : '', // Alternative field name
       fullName: getString(userData.fullName), // Alternative field name
 
       // Staff specific
       Position: getString(userData.position),
       Shift: getString(userData.shift),
       'Working Hours': getString(userData.workingHours),
-      'Staff Photo': getString(userData.profilePicture),
+      'Staff Photo': userData.profilePicture
+        ? this.formatImageUrl(getString(userData.profilePicture), 'staff_photo')
+        : '',
     };
 
     return fieldMap[fieldName] || '';
@@ -533,8 +627,16 @@ export class IDCardService {
           field.databaseField,
           schoolInformation,
         );
-      } else if (field.dataSource === 'static' && field.staticText) {
-        fieldValue = field.staticText;
+      } else if (field.dataSource === 'static') {
+        // For static fields, check both staticText and imageUrl
+        if (field.staticText) {
+          fieldValue = field.staticText;
+        } else if (field.imageUrl) {
+          // For IMAGE and LOGO fields with imageUrl
+          fieldValue = field.imageUrl;
+        } else {
+          fieldValue = field.placeholder || field.label;
+        }
       } else {
         fieldValue = field.placeholder || field.label;
       }

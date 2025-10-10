@@ -586,6 +586,98 @@ export class IDCardTemplateService {
     return { fields };
   }
 
+  async getSchoolInformation() {
+    try {
+      // Fetch school information from the database
+      const schoolInfo = await this.prisma.schoolInformation.findFirst();
+
+      if (!schoolInfo) {
+        return {
+          success: false,
+          message: 'School information not found',
+          data: null,
+        };
+      }
+
+      // Transform to include school information fields available for ID cards
+      const schoolFields = [
+        {
+          name: 'school_name',
+          label: 'School Name',
+          value: schoolInfo.schoolName,
+          type: 'text',
+          category: 'school',
+        },
+        {
+          name: 'school_code',
+          label: 'School Code',
+          value: schoolInfo.schoolCode,
+          type: 'text',
+          category: 'school',
+        },
+        {
+          name: 'established_year',
+          label: 'Established Year',
+          value: schoolInfo.establishedYear?.toString(),
+          type: 'text',
+          category: 'school',
+        },
+        {
+          name: 'school_address',
+          label: 'School Address',
+          value: schoolInfo.address,
+          type: 'text',
+          category: 'school',
+        },
+        {
+          name: 'school_website',
+          label: 'School Website',
+          value: schoolInfo.website,
+          type: 'text',
+          category: 'school',
+        },
+        {
+          name: 'school_email',
+          label: 'School Email',
+          value: schoolInfo.emails?.[0] || null,
+          type: 'text',
+          category: 'school',
+        },
+        {
+          name: 'school_phone',
+          label: 'School Phone',
+          value: schoolInfo.contactNumbers?.[0] || null,
+          type: 'text',
+          category: 'school',
+        },
+        {
+          name: 'school_logo',
+          label: 'School Logo',
+          value: schoolInfo.logo,
+          type: 'image',
+          category: 'school',
+        },
+      ];
+
+      return {
+        success: true,
+        message: 'School information retrieved successfully',
+        data: {
+          schoolInformation: schoolInfo,
+          availableFields: schoolFields.filter(field => field.value), // Only include fields with values
+          allFields: schoolFields, // Include all fields for reference
+        },
+      };
+    } catch (error) {
+      console.error('Error fetching school information for ID cards:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch school information',
+        data: null,
+      };
+    }
+  }
+
   async getTemplateStats() {
     const [totalTemplates, activeTemplates, totalUsage] = await Promise.all([
       this.prisma.iDCardTemplate.count(),

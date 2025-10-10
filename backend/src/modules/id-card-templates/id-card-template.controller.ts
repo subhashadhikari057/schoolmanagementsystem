@@ -68,6 +68,16 @@ export class IDCardTemplateController {
     return this.templateService.getAvailableFields();
   }
 
+  @Get('school-information')
+  @ApiOperation({ summary: 'Get school information for ID card templates' })
+  @ApiResponse({
+    status: 200,
+    description: 'School information retrieved successfully',
+  })
+  async getSchoolInformation() {
+    return this.templateService.getSchoolInformation();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get template by ID' })
   @ApiResponse({ status: 200, description: 'Template retrieved successfully' })
