@@ -194,6 +194,45 @@ const IDCardGenerationPage = () => {
     });
   };
 
+  const handleTemplatePublish = async (template: IDCardTemplate) => {
+    try {
+      setIsLoading(true);
+
+      if (template.status === 'ACTIVE') {
+        // Unpublish the template
+        await templateApiService.unpublishTemplate(template.id);
+        toast.success(
+          `Template "${template.name}" has been unpublished successfully`,
+        );
+      } else {
+        // Publish the template
+        await templateApiService.publishTemplate(template.id);
+        toast.success(
+          `Template "${template.name}" has been published successfully`,
+        );
+      }
+
+      // Refresh templates list
+      await fetchTemplates();
+    } catch (error: unknown) {
+      console.error('Error publishing/unpublishing template:', error);
+
+      const errorMessage =
+        (
+          error as {
+            response?: { data?: { message?: string } };
+            message?: string;
+          }
+        )?.response?.data?.message ||
+        (error as { message?: string })?.message ||
+        'Failed to publish/unpublish template';
+
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // ID Generation handlers
   const handlePersonSelect = (person: Person) => {
     setSelectedPerson(person);
@@ -946,6 +985,7 @@ const IDCardGenerationPage = () => {
                             onEdit={handleTemplateEdit}
                             onCopy={handleTemplateCopy}
                             onDelete={handleTemplateDelete}
+                            onPublish={handleTemplatePublish}
                           />
                         )}
                       </div>

@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import type {
   Room,
-  AssetModel,
+  AssetModelWithItems,
   AssetItem,
   AssetStatus,
 } from '@/types/asset.types';
@@ -46,7 +46,7 @@ const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
   room,
   onAssetUpdate,
 }) => {
-  const [assetModels, setAssetModels] = useState<AssetModel[]>([]);
+  const [assetModels, setAssetModels] = useState<AssetModelWithItems[]>([]);
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
   const [selectedItem, setSelectedItem] = useState<AssetItem | null>(null);
   const [isItemDrawerOpen, setIsItemDrawerOpen] = useState(false);
@@ -90,13 +90,14 @@ const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
 
   const getStatusColor = (status: AssetStatus) => {
     switch (status) {
-      case 'ok':
+      case 'IN_SERVICE':
         return 'text-green-600 bg-green-50';
-      case 'damaged':
+      case 'DAMAGED':
         return 'text-red-600 bg-red-50';
-      case 'under_repair':
+      case 'UNDER_REPAIR':
         return 'text-yellow-600 bg-yellow-50';
-      case 'retired':
+      case 'REPLACED':
+      case 'DISPOSED':
         return 'text-gray-600 bg-gray-50';
       default:
         return 'text-gray-600 bg-gray-50';
@@ -105,11 +106,11 @@ const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
 
   const getStatusIcon = (status: AssetStatus) => {
     switch (status) {
-      case 'ok':
+      case 'IN_SERVICE':
         return <CheckCircle className='h-4 w-4' />;
-      case 'damaged':
+      case 'DAMAGED':
         return <AlertTriangle className='h-4 w-4' />;
-      case 'under_repair':
+      case 'UNDER_REPAIR':
         return <Clock className='h-4 w-4' />;
       default:
         return <Package className='h-4 w-4' />;
@@ -131,9 +132,9 @@ const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
 
     const matchesStatus =
       statusFilter === 'all' ||
-      (statusFilter === 'ok' && model.okCount > 0) ||
-      (statusFilter === 'damaged' && model.damagedCount > 0) ||
-      (statusFilter === 'under_repair' && model.underRepairCount > 0);
+      (statusFilter === 'IN_SERVICE' && model.okCount > 0) ||
+      (statusFilter === 'DAMAGED' && model.damagedCount > 0) ||
+      (statusFilter === 'UNDER_REPAIR' && model.underRepairCount > 0);
 
     return matchesSearch && matchesStatus;
   });
@@ -182,24 +183,24 @@ const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
           {/* Stats */}
           <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mt-6'>
             <div className='bg-white/10 rounded-lg p-3'>
-              <div className='text-2xl font-bold'>{room.totalAssets}</div>
+              <div className='text-2xl font-bold'>{room.totalAssets ?? 0}</div>
               <div className='text-blue-100 text-sm'>Total Assets</div>
             </div>
             <div className='bg-white/10 rounded-lg p-3'>
               <div className='text-2xl font-bold text-green-200'>
-                {room.totalAssets - room.totalDamaged}
+                {(room.totalAssets ?? 0) - (room.totalDamaged ?? 0)}
               </div>
               <div className='text-blue-100 text-sm'>Working</div>
             </div>
             <div className='bg-white/10 rounded-lg p-3'>
               <div className='text-2xl font-bold text-red-200'>
-                {room.totalDamaged}
+                {room.totalDamaged ?? 0}
               </div>
               <div className='text-blue-100 text-sm'>Issues</div>
             </div>
             <div className='bg-white/10 rounded-lg p-3'>
               <div className='text-2xl font-bold'>
-                {formatCurrency(room.totalValue)}
+                {formatCurrency(room.totalValue ?? 0)}
               </div>
               <div className='text-blue-100 text-sm'>Total Value</div>
             </div>
@@ -396,7 +397,8 @@ const RoomDetailDrawer: React.FC<RoomDetailDrawerProps> = ({
                                           </div>
                                           <div className='text-gray-500'>
                                             {new Date(
-                                              item.lastEvent.date,
+                                              item.lastEvent.date ||
+                                                item.lastEvent.at,
                                             ).toLocaleDateString()}
                                           </div>
                                         </div>

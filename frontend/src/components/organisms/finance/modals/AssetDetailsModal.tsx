@@ -87,7 +87,9 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
                 <div>
                   <div className='text-sm font-medium'>Purchase Date</div>
                   <div className='text-gray-600 mt-1'>
-                    {new Date(item.purchaseDate).toLocaleDateString()}
+                    {item.purchaseDate
+                      ? new Date(item.purchaseDate).toLocaleDateString()
+                      : '—'}
                   </div>
                 </div>
               </div>
@@ -96,10 +98,10 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
             <div className='bg-white rounded-xl shadow-sm p-5 border border-gray-100 flex flex-col items-start justify-center'>
               <div className='text-sm text-gray-500'>Asset Value</div>
               <div className='text-2xl font-bold text-gray-900 mt-2'>
-                {formatCurrency(item.cost)}
+                {item.cost ? formatCurrency(item.cost) : '—'}
               </div>
               <div className='text-sm text-gray-400 mt-2'>
-                {item.warranty} warranty
+                {item.warranty || 'No warranty info'}
               </div>
             </div>
           </div>
@@ -158,11 +160,15 @@ const AssetDetailsModal: React.FC<AssetDetailsModalProps> = ({
               <div className='bg-gray-50 rounded-lg p-3 text-sm text-gray-700'>
                 <div className='font-medium'>{item.lastEvent.type}</div>
                 <div className='text-xs text-gray-500'>
-                  {new Date(item.lastEvent.date).toLocaleDateString()}
+                  {item.lastEvent.date
+                    ? new Date(item.lastEvent.date).toLocaleDateString()
+                    : item.lastEvent.at
+                      ? new Date(item.lastEvent.at).toLocaleDateString()
+                      : '—'}
                 </div>
-                {item.lastEvent.description && (
+                {item.lastEvent.note && (
                   <div className='text-sm text-gray-600 mt-2'>
-                    {item.lastEvent.description}
+                    {item.lastEvent.note}
                   </div>
                 )}
               </div>

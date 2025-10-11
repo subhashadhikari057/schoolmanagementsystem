@@ -42,13 +42,13 @@ const EditAssetModal: React.FC<EditAssetModalProps> = ({
     if (item && isOpen) {
       setForm({
         modelName: item.tagNumber || '',
-        serialNumber: item.serialNumber,
+        serialNumber: item.serialNumber || '',
         tagNumber: item.tagNumber || '',
         status: item.status,
-        purchaseDate: item.purchaseDate,
-        cost: item.cost,
-        vendor: item.vendor,
-        warranty: item.warranty,
+        purchaseDate: item.purchaseDate || '',
+        cost: item.cost || 0,
+        vendor: item.vendor || '',
+        warranty: item.warranty || '',
         roomId: item.assignedTo?.id || '',
       });
     }

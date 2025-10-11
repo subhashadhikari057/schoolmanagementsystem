@@ -14,6 +14,7 @@ import {
   MoreVertical,
   Trash2,
   CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IDCardTemplate, IDCardTemplateType } from '@/types/template.types';
@@ -146,16 +147,29 @@ export default function TemplatesGrid({
                 </Button>
               </div>
 
-              {/* Publish Button - Only show if not published and onPublish is provided */}
-              {template.status !== 'ACTIVE' && onPublish && (
+              {/* Publish/Unpublish Button - Show for all templates if onPublish is provided */}
+              {onPublish && (
                 <Button
-                  variant='default'
+                  variant={template.status === 'ACTIVE' ? 'outline' : 'default'}
                   size='sm'
                   onClick={() => onPublish(template)}
-                  className='w-full h-8 bg-green-600 hover:bg-green-700 text-white'
+                  className={`w-full h-8 ${
+                    template.status === 'ACTIVE'
+                      ? 'border-orange-200 text-orange-700 hover:bg-orange-50 hover:border-orange-300'
+                      : 'bg-green-600 hover:bg-green-700 text-white'
+                  }`}
                 >
-                  <CheckCircle className='w-3 h-3 mr-1' />
-                  Publish Template
+                  {template.status === 'ACTIVE' ? (
+                    <>
+                      <XCircle className='w-3 h-3 mr-1' />
+                      Unpublish Template
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className='w-3 h-3 mr-1' />
+                      Publish Template
+                    </>
+                  )}
                 </Button>
               )}
             </div>

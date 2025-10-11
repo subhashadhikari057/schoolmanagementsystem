@@ -171,6 +171,70 @@ export default function CreateTemplateModal({
     loadSchoolInfo();
   }, [isOpen]);
 
+  // Also load school information when template fields change or during editing
+  React.useEffect(() => {
+    const loadSchoolInfoForTemplateFields = async () => {
+      if (isOpen && templateFields.length > 0) {
+        try {
+          const schoolResponse =
+            await templateApiService.getSchoolInformation();
+          if (schoolResponse.success && schoolResponse.data) {
+            // Update template fields that have school information references
+            setTemplateFields(prev =>
+              prev.map(field => {
+                // Auto-populate school information for relevant fields
+                if (field.dataSource === 'database') {
+                  switch (field.databaseField) {
+                    case 'schoolName':
+                      return {
+                        ...field,
+                        dataSource: 'static' as const,
+                        staticText:
+                          schoolResponse.data?.schoolInformation?.schoolName ||
+                          field.placeholder,
+                        databaseField: undefined,
+                      };
+                    case 'schoolLogo':
+                      if (schoolResponse.data?.schoolInformation?.logo) {
+                        return {
+                          ...field,
+                          dataSource: 'static' as const,
+                          imageUrl:
+                            schoolResponse.data?.schoolInformation?.logo,
+                          databaseField: undefined,
+                        };
+                      }
+                      break;
+                    case 'School Address':
+                      return {
+                        ...field,
+                        dataSource: 'static' as const,
+                        staticText:
+                          schoolResponse.data?.schoolInformation?.address ||
+                          field.placeholder,
+                        databaseField: undefined,
+                      };
+                  }
+                }
+                return field;
+              }),
+            );
+          }
+        } catch (error) {
+          console.warn(
+            'Failed to load school information for template fields:',
+            error,
+          );
+        }
+      }
+    };
+
+    // Only run this if we don't have school info yet
+    if (!schoolInfo) {
+      loadSchoolInfoForTemplateFields();
+    }
+  }, [isOpen, templateFields.length, schoolInfo]);
+
   // Initialize form with edit data
   React.useEffect(() => {
     if (editTemplate && isOpen) {
@@ -815,28 +879,34 @@ export default function CreateTemplateModal({
     zoomLevel,
   ]);
 
-  const loadSampleTemplate = useCallback((sampleId: string) => {
-    const sample = sampleTemplates.find(s => s.id === sampleId);
-    if (!sample) return;
+  const loadSampleTemplate = useCallback(
+    (sampleId: string) => {
+      const sample = sampleTemplates.find(s => s.id === sampleId);
+      if (!sample) return;
 
-    // Update settings
-    setSettings(prev => ({
-      ...prev,
-      name: sample.name,
-      type: sample.type,
-    }));
+      // Update settings
+      setSettings(prev => ({
+        ...prev,
+        name: sample.name,
+        type: sample.type,
+      }));
 
-    // Load sample fields
-    const newFields: ComponentTemplateField[] = sample.fields.map(f => ({
-      ...f,
-      fontFamily: 'Inter',
-      required: false,
-      visible: true,
-    }));
+      // Load sample fields and integrate school information where available
+      const newFields: ComponentTemplateField[] = sample.fields.map(f => {
+        // Just return fields with database sources preserved
+        return {
+          ...f,
+          fontFamily: 'Inter',
+          required: false,
+          visible: true,
+        };
+      });
 
-    setTemplateFields(newFields);
-    setSelectedField(null);
-  }, []);
+      setTemplateFields(newFields);
+      setSelectedField(null);
+    },
+    [schoolInfo],
+  );
 
   const addField = useCallback(
     (fieldType: TemplateFieldType) => {
@@ -2123,6 +2193,220 @@ export default function CreateTemplateModal({
                           </Button>
                         </div>
                       </div>
+
+                      {/* School Information Quick Add Section */}
+                      {schoolInfo && (
+                        <div className='bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200'>
+                          <Label className='text-sm font-semibold text-green-900 mb-3 block'>
+                            📚 School Information
+                          </Label>
+                          <p className='text-xs text-green-700 mb-3'>
+                            Add pre-filled school details to your ID card
+                          </p>
+                          <div className='grid grid-cols-1 gap-2'>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => {
+                                const newField: ComponentTemplateField = {
+                                  id: `school_name_${Date.now()}`,
+                                  fieldType: TemplateFieldType.TEXT,
+                                  label: 'School Name',
+                                  dataSource: 'static',
+                                  staticText: schoolInfo.schoolName,
+                                  x: 50,
+                                  y: 20,
+                                  width: 150,
+                                  height: 25,
+                                  fontSize: 14,
+                                  fontWeight: 'bold',
+                                  textAlign: TextAlignment.CENTER,
+                                  fontFamily: 'Inter',
+                                  color: '#1e40af',
+                                  placeholder: schoolInfo.schoolName,
+                                  required: false,
+                                  visible: true,
+                                  locked: false,
+                                  opacity: 100,
+                                  zIndex: templateFields.length + 1,
+                                };
+                                setTemplateFields(prev => [...prev, newField]);
+                                setSelectedField(newField.id);
+                              }}
+                              className='justify-start h-10 border-green-200 hover:bg-green-50 hover:border-green-300'
+                            >
+                              <Type className='w-4 h-4 mr-2 text-green-600' />
+                              <span className='text-green-700'>
+                                School Name
+                              </span>
+                            </Button>
+
+                            {schoolInfo?.logo && (
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                onClick={() => {
+                                  const newField: ComponentTemplateField = {
+                                    id: `school_logo_${Date.now()}`,
+                                    fieldType: TemplateFieldType.IMAGE,
+                                    label: 'School Logo',
+                                    dataSource: 'static',
+                                    imageUrl: schoolInfo.logo || '',
+                                    x: 20,
+                                    y: 10,
+                                    width: 40,
+                                    height: 40,
+                                    fontSize: 12,
+                                    fontWeight: 'normal',
+                                    textAlign: TextAlignment.CENTER,
+                                    fontFamily: 'Inter',
+                                    color: '#000000',
+                                    placeholder: 'School Logo',
+                                    required: false,
+                                    visible: true,
+                                    locked: false,
+                                    opacity: 100,
+                                    zIndex: templateFields.length + 1,
+                                  };
+                                  setTemplateFields(prev => [
+                                    ...prev,
+                                    newField,
+                                  ]);
+                                  setSelectedField(newField.id);
+                                }}
+                                className='justify-start h-10 border-green-200 hover:bg-green-50 hover:border-green-300'
+                              >
+                                <ImageIcon className='w-4 h-4 mr-2 text-green-600' />
+                                <span className='text-green-700'>
+                                  School Logo
+                                </span>
+                              </Button>
+                            )}
+
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => {
+                                const newField: ComponentTemplateField = {
+                                  id: `school_address_${Date.now()}`,
+                                  fieldType: TemplateFieldType.TEXT,
+                                  label: 'School Address',
+                                  dataSource: 'static',
+                                  staticText: schoolInfo.address,
+                                  x: 50,
+                                  y: 45,
+                                  width: 120,
+                                  height: 15,
+                                  fontSize: 9,
+                                  fontWeight: 'normal',
+                                  textAlign: TextAlignment.CENTER,
+                                  fontFamily: 'Inter',
+                                  color: '#6b7280',
+                                  placeholder: schoolInfo.address,
+                                  required: false,
+                                  visible: true,
+                                  locked: false,
+                                  opacity: 100,
+                                  zIndex: templateFields.length + 1,
+                                };
+                                setTemplateFields(prev => [...prev, newField]);
+                                setSelectedField(newField.id);
+                              }}
+                              className='justify-start h-10 border-green-200 hover:bg-green-50 hover:border-green-300'
+                            >
+                              <Type className='w-4 h-4 mr-2 text-green-600' />
+                              <span className='text-green-700'>
+                                School Address
+                              </span>
+                            </Button>
+
+                            {schoolInfo?.website && (
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                onClick={() => {
+                                  const newField: ComponentTemplateField = {
+                                    id: `school_website_${Date.now()}`,
+                                    fieldType: TemplateFieldType.TEXT,
+                                    label: 'School Website',
+                                    dataSource: 'static',
+                                    staticText: schoolInfo.website || '',
+                                    x: 50,
+                                    y: 160,
+                                    width: 100,
+                                    height: 12,
+                                    fontSize: 8,
+                                    fontWeight: 'normal',
+                                    textAlign: TextAlignment.CENTER,
+                                    fontFamily: 'Inter',
+                                    color: '#6366f1',
+                                    placeholder: schoolInfo.website || '',
+                                    required: false,
+                                    visible: true,
+                                    locked: false,
+                                    opacity: 100,
+                                    zIndex: templateFields.length + 1,
+                                  };
+                                  setTemplateFields(prev => [
+                                    ...prev,
+                                    newField,
+                                  ]);
+                                  setSelectedField(newField.id);
+                                }}
+                                className='justify-start h-10 border-green-200 hover:bg-green-50 hover:border-green-300'
+                              >
+                                <Type className='w-4 h-4 mr-2 text-green-600' />
+                                <span className='text-green-700'>
+                                  School Website
+                                </span>
+                              </Button>
+                            )}
+
+                            {schoolInfo.contactNumbers &&
+                              schoolInfo.contactNumbers.length > 0 && (
+                                <Button
+                                  variant='outline'
+                                  size='sm'
+                                  onClick={() => {
+                                    const newField: ComponentTemplateField = {
+                                      id: `school_phone_${Date.now()}`,
+                                      fieldType: TemplateFieldType.TEXT,
+                                      label: 'School Phone',
+                                      dataSource: 'static',
+                                      staticText: schoolInfo.contactNumbers[0],
+                                      x: 50,
+                                      y: 175,
+                                      width: 80,
+                                      height: 12,
+                                      fontSize: 8,
+                                      fontWeight: 'normal',
+                                      textAlign: TextAlignment.CENTER,
+                                      fontFamily: 'Inter',
+                                      color: '#059669',
+                                      placeholder: schoolInfo.contactNumbers[0],
+                                      required: false,
+                                      visible: true,
+                                      locked: false,
+                                      opacity: 100,
+                                      zIndex: templateFields.length + 1,
+                                    };
+                                    setTemplateFields(prev => [
+                                      ...prev,
+                                      newField,
+                                    ]);
+                                    setSelectedField(newField.id);
+                                  }}
+                                  className='justify-start h-10 border-green-200 hover:bg-green-50 hover:border-green-300'
+                                >
+                                  <Type className='w-4 h-4 mr-2 text-green-600' />
+                                  <span className='text-green-700'>
+                                    School Phone
+                                  </span>
+                                </Button>
+                              )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Enhanced Field Management List */}
                       <div className='space-y-4'>

@@ -117,6 +117,29 @@ class TemplateApiService {
     );
     return response.data;
   }
+
+  async getSchoolInformation(): Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      schoolInformation: any;
+      availableFields: any[];
+      allFields: any[];
+    } | null;
+  }> {
+    const response = await httpClient.get<{
+      success: boolean;
+      message: string;
+      data: {
+        schoolInformation: any;
+        availableFields: any[];
+        allFields: any[];
+      } | null;
+    }>(`${this.endpoints.templates}/school-information`, undefined, {
+      requiresAuth: true,
+    });
+    return response.data;
+  }
 }
 
 export const templateApiService = new TemplateApiService();

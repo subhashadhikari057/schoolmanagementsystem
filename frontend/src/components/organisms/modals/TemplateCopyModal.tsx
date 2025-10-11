@@ -79,7 +79,7 @@ export default function TemplateCopyModal({
         features: formData.copyFeatures ? template?.features : [],
         metadata: template?.metadata || {},
         isDefault: false,
-        isPublished: false,
+        status: 'DRAFT',
         usageCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

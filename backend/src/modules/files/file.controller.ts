@@ -24,6 +24,7 @@ export class FileController {
       'leave-requests',
       'teacher-leave-requests',
       'templates', // Add templates folder for logo uploads
+      'school-info', // Add school-info folder for school logos
       'assignments',
       'submissions',
     ];
@@ -44,7 +45,9 @@ export class FileController {
         ? 'attachments'
         : folder === 'templates'
           ? 'logos'
-          : 'profiles',
+          : folder === 'school-info'
+            ? 'logos'
+            : 'profiles',
       filename,
     );
 

@@ -28,10 +28,26 @@ export type AssetCategory =
 
 export interface Room {
   id: string;
-  name: string;
+  name?: string;
+  roomNo: string;
   type?: string;
   building?: string;
-  floor?: string;
+  floor?: string | number;
+  capacity?: number;
+  assets?: any[];
+  totalAssets?: number;
+  totalDamaged?: number;
+  totalValue?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  assignedClasses?: Array<{
+    id: string;
+    name?: string;
+    grade: number;
+    section: string;
+    shift: 'morning' | 'day';
+    currentEnrollment?: number;
+  }>;
 }
 
 export interface Acquisition {
@@ -71,6 +87,8 @@ export interface AssetModel {
   name: string;
   brand?: string;
   modelNo?: string;
+  modelNumber?: string;
+  manufacturer?: string;
   category: string;
 }
 
@@ -78,6 +96,7 @@ export interface AssetEvent {
   id?: string;
   type: string;
   at: string;
+  date?: string;
   note?: string;
   reportedBy?: string;
   severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -90,9 +109,12 @@ export interface AssetItem {
   modelId: string;
   roomId?: string;
   serial?: string;
+  serialNumber?: string;
   tag: string;
+  tagNumber?: string;
   status: AssetStatus;
   warrantyExpiry?: string;
+  warranty?: string;
   location: {
     type: LocationType;
     roomId?: string;
@@ -105,6 +127,14 @@ export interface AssetItem {
   lastEvent?: AssetEvent;
   eventHistory?: AssetEvent[]; // Full history of asset events
   notes?: string;
+  // Purchase/Financial information
+  purchaseDate?: string;
+  cost?: number;
+  vendor?: string;
+  assignedTo?: {
+    id: string;
+    name?: string;
+  };
 }
 
 // Extended types for room management
@@ -220,7 +250,7 @@ export interface ImportAssetData {
   serialNumber: string;
   tagNumber: string;
   purchaseDate: string;
-  cost: number;
+  cost?: number;
   vendor: string;
   warranty: string;
   roomNo: string;
@@ -228,4 +258,11 @@ export interface ImportAssetData {
   manufacturer?: string;
   modelNumber?: string;
   description?: string;
+}
+
+export interface AssetSearchFilters {
+  status?: AssetStatus;
+  category?: AssetCategory;
+  roomId?: string;
+  search?: string;
 }

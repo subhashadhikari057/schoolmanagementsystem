@@ -22,6 +22,12 @@ import Select, {
 import { Label } from '@/components/ui/label';
 import type { AssetCategory } from '@/types/asset.types';
 
+interface AssetUnit {
+  id: string;
+  serialNumber: string;
+  tagNumber: string;
+}
+
 interface AddAssetModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -31,40 +37,57 @@ interface AddAssetModalProps {
 }
 
 interface AssetFormData {
-  // Asset Info
-  nameOfAsset: string;
-  brand: string;
-  modelNo: string;
-  serialNo: string;
+  // Basic info (required for this modal)
+  modelName: string;
+  category: AssetCategory;
+  manufacturer?: string;
+  modelNumber?: string;
+  description?: string;
 
-  // Vendor Info
-  vendorName: string;
-  vendorPanVat: string;
-  vendorAddress: string;
-  vendorContactDetails: string;
-  paymentTiming: 'installment' | 'full_payment';
-  paymentMode: 'cash' | 'bank';
-  invoiceDate: string;
-  settlementDate: string;
+  // Purchase info (required for this modal)
+  quantity: number;
+  purchaseDate: string;
+  costPerUnit: number;
+  vendor: string;
+  warranty: string;
 
-  // Accounting Info
-  ledgerNo: string;
-  purchaseValue: number;
-  transportationCharges: number;
-  assetCategory: AssetCategory;
-  budgetHead: string;
-  noOfQuantity: number;
-  rate: number;
-  totalValue: number;
+  // Assignment (required for this modal)
+  targetRoomId: string;
 
-  // Management Info
-  hsCode: string;
-  assignedDate: string;
-  assignedPlace: string;
-  status: 'under_repair' | 'to_repair' | 'ok' | 'written_off';
+  // Asset Acquisition Form fields (optional - from original interface)
+  nameOfAsset?: string;
+  brand?: string;
+  modelNo?: string;
+  serialNo?: string;
 
-  // Form Creation Date
-  acquisitionFormCreationDate: string;
+  // Vendor Info (optional)
+  vendorName?: string;
+  vendorPanVat?: string;
+  vendorAddress?: string;
+  vendorContactDetails?: string;
+  paymentTiming?: 'installment' | 'full_payment';
+  paymentMode?: 'cash' | 'bank';
+  invoiceDate?: string;
+  settlementDate?: string;
+
+  // Accounting Info (optional)
+  ledgerNo?: string;
+  purchaseValue?: number;
+  transportationCharges?: number;
+  assetCategory?: AssetCategory;
+  budgetHead?: string;
+  noOfQuantity?: number;
+  rate?: number;
+  totalValue?: number;
+
+  // Management Info (optional)
+  hsCode?: string;
+  assignedDate?: string;
+  assignedPlace?: string;
+  status?: 'under_repair' | 'to_repair' | 'ok' | 'written_off';
+
+  // Form Creation Date (optional)
+  acquisitionFormCreationDate?: string;
 }
 
 const AddAssetModal: React.FC<AddAssetModalProps> = ({
@@ -74,7 +97,17 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({
   targetRoomId,
 }) => {
   const [formData, setFormData] = useState<AssetFormData>({
-    // Asset Info
+    // Required fields for the modal
+    modelName: '',
+    category: 'electronics',
+    quantity: 1,
+    purchaseDate: '',
+    costPerUnit: 0,
+    vendor: '',
+    warranty: '1 year',
+    targetRoomId: targetRoomId || '',
+
+    // Optional fields - Asset Info
     nameOfAsset: '',
     brand: '',
     modelNo: '',
@@ -109,6 +142,9 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({
     // Form Creation Date
     acquisitionFormCreationDate: new Date().toISOString().split('T')[0],
   });
+  const [assetUnits, setAssetUnits] = useState<AssetUnit[]>([
+    { id: '1', serialNumber: '', tagNumber: '' },
+  ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

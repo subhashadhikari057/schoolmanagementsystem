@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
 import { idCardApiService, IDCardData } from '@/services/id-card.service';
 import { toast } from 'sonner';
 import IDCardPreview from '@/components/organisms/id-generation/IDCardPreview';
+import { downloadIDCardAsPDF, printIDCard } from '@/utils/id-card-export';
 
 interface IDCardViewModalProps {
   open: boolean;
@@ -34,6 +35,8 @@ export default function IDCardViewModal({
 }: IDCardViewModalProps) {
   const [loading, setLoading] = useState(false);
   const [cardData, setCardData] = useState<IDCardData | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const cardPreviewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open && cardId) {
@@ -55,6 +58,68 @@ export default function IDCardViewModal({
       onOpenChange(false);
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Get card holder name from rendered fields
+   */
+  const getCardHolderName = (): string => {
+    if (!cardData) return 'Unknown';
+
+    const nameField = cardData.renderedFields.find(
+      f =>
+        f.label?.toLowerCase() === 'full name' ||
+        (f.label?.toLowerCase().includes('name') &&
+          !f.label?.toLowerCase().includes('school')),
+    );
+
+    return nameField?.value || 'Unknown';
+  };
+
+  /**
+   * Handle PDF download
+   */
+  const handleDownloadPDF = async () => {
+    if (!cardData || !cardPreviewRef.current) return;
+
+    try {
+      setIsProcessing(true);
+
+      // Wait a moment to ensure rendering is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      await downloadIDCardAsPDF(
+        cardPreviewRef.current,
+        getCardHolderName(),
+        cardData.template.name,
+      );
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to download PDF');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  /**
+   * Handle print
+   */
+  const handlePrint = async () => {
+    if (!cardData || !cardPreviewRef.current) return;
+
+    try {
+      setIsProcessing(true);
+
+      // Wait a moment to ensure rendering is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      await printIDCard(cardPreviewRef.current, getCardHolderName());
+    } catch (error) {
+      console.error('Error printing:', error);
+      toast.error('Failed to prepare print');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -94,7 +159,19 @@ export default function IDCardViewModal({
                 ID Card Preview
               </h3>
               <div className='bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl p-12 border-2 border-blue-200 shadow-inner'>
-                <IDCardPreview idCard={cardData} scale={1.5} />
+                <div
+                  ref={cardPreviewRef}
+                  data-card-preview
+                  data-card-id={cardData.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '250px',
+                  }}
+                >
+                  <IDCardPreview idCard={cardData} scale={1.5} />
+                </div>
               </div>
             </div>
 
@@ -187,25 +264,37 @@ export default function IDCardViewModal({
                 <Button
                   variant='outline'
                   size='sm'
-                  onClick={() => {
-                    toast.info('Print functionality coming soon!');
-                  }}
+                  onClick={handlePrint}
+                  disabled={isProcessing || loading}
+                  className='hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-all duration-200'
                 >
-                  <Printer className='w-4 h-4 mr-2' />
+                  {isProcessing ? (
+                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                  ) : (
+                    <Printer className='w-4 h-4 mr-2' />
+                  )}
                   Print
                 </Button>
                 <Button
                   variant='outline'
                   size='sm'
-                  onClick={() => {
-                    toast.info('Download PDF functionality coming soon!');
-                  }}
+                  onClick={handleDownloadPDF}
+                  disabled={isProcessing || loading}
+                  className='hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all duration-200'
                 >
-                  <Download className='w-4 h-4 mr-2' />
+                  {isProcessing ? (
+                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                  ) : (
+                    <Download className='w-4 h-4 mr-2' />
+                  )}
                   Download PDF
                 </Button>
               </div>
-              <Button variant='ghost' onClick={() => onOpenChange(false)}>
+              <Button
+                variant='ghost'
+                onClick={() => onOpenChange(false)}
+                disabled={isProcessing}
+              >
                 Close
               </Button>
             </div>
