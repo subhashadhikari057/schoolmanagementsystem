@@ -154,8 +154,18 @@ export default function Dropdown({
           case 'admin':
           case 'accountant':
           default:
-            // For admin roles, profile photos might not be implemented yet
-            // But don't return early - let the fallback to initials work
+            // ADMIN PROFILE PHOTOS NOT SUPPORTED
+            // ===================================
+            // Admins (SUPER_ADMIN, ADMIN) do NOT have a profile table in the database schema.
+            // Unlike teachers, students, parents, and staff who have dedicated profile tables,
+            // admins are just Users with admin roles.
+            //
+            // To support admin profile photos, you would need to:
+            // 1. Create an AdminProfile table in the database schema (similar to TeacherProfile, StudentProfile, etc.)
+            // 2. Update the ProfileService.getUserProfile() to include admin profile data
+            // 3. Add admin profile photo upload functionality
+            //
+            // Until then, admins will always show initials in the Avatar component.
             break;
         }
 
