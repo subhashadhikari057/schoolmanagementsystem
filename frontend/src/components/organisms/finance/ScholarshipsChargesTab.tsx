@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Award,
@@ -233,6 +234,8 @@ const getErrorMessage = (error: unknown): string => {
 };
 
 export const ScholarshipsChargesTab: React.FC = () => {
+  const router = useRouter();
+
   // State Management
   const [activeSubTab, setActiveSubTab] = useState<'scholarships' | 'charges'>(
     'scholarships',
@@ -618,8 +621,7 @@ export const ScholarshipsChargesTab: React.FC = () => {
           </button>
           <button
             onClick={() => {
-              setSelectedItem(row);
-              setShowViewModal(true);
+              router.push(`/dashboard/admin/finance/scholarship/${row.id}`);
             }}
             className='p-1.5 rounded-md hover:bg-gray-100 text-gray-600 hover:text-gray-800'
             title='View Details'

@@ -110,13 +110,17 @@ const ViewFeeStructureModal: React.FC<ViewFeeStructureModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch detailed structure data when modal opens
+  // Update structure details when modal opens or structure prop changes
   useEffect(() => {
     if (isOpen && structure && structure.id) {
       try {
         setLoading(true);
         setError(null);
         setStructureDetails(structure); // Use passed data immediately
+        console.log(
+          'ViewFeeStructureModal: Updated structure details',
+          structure,
+        );
         toast.success('Fee structure details loaded successfully');
       } catch (err) {
         console.error('Error loading structure details:', err);
@@ -133,6 +137,20 @@ const ViewFeeStructureModal: React.FC<ViewFeeStructureModalProps> = ({
       setStructureDetails(null);
     }
   }, [isOpen, structure]);
+
+  // Additional effect to update when structure changes while modal is open
+  useEffect(() => {
+    if (structure && structureDetails && structure.id === structureDetails.id) {
+      // Check if effectiveFrom has changed
+      if (structure.effectiveFrom !== structureDetails.effectiveFrom) {
+        console.log('ViewFeeStructureModal: Updating effectiveFrom', {
+          old: structureDetails.effectiveFrom,
+          new: structure.effectiveFrom,
+        });
+        setStructureDetails(structure);
+      }
+    }
+  }, [structure, structureDetails]);
 
   if (!isOpen) return null;
 

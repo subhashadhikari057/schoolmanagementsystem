@@ -113,6 +113,42 @@ export interface ChargeDefinition {
   createdAt: string;
 }
 
+export interface ScholarshipDetails {
+  id: string;
+  name: string;
+  description?: string;
+  type: 'MERIT' | 'NEED_BASED' | 'SPORTS' | 'OTHER';
+  valueType: 'PERCENTAGE' | 'FIXED';
+  value: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  eligibilityCriteria?: string;
+  deadline?: string;
+  totalAmount?: number;
+  assignments: ScholarshipAssignment[];
+}
+
+export interface ScholarshipAssignment {
+  id: string;
+  effectiveFrom: string;
+  expiresAt?: string;
+  isActive: boolean;
+  student: {
+    id: string;
+    rollNumber: string;
+    user: {
+      fullName: string;
+      email: string;
+    };
+    class: {
+      name: string;
+      grade: number;
+      section: string;
+    };
+  };
+}
+
 export const feeService = {
   async listStructures(params: FeeStructureListParams) {
     const qp = new URLSearchParams();
@@ -219,5 +255,34 @@ export const feeService = {
       `/api/v1/fees/charges/${id}/reactivate`,
     );
     return response.data;
+  },
+  async getScholarshipDetails(id: string) {
+    try {
+      const response = await apiClient.get<ScholarshipDetails>(
+        `/api/v1/fees/scholarships/${id}/details`,
+      );
+      return response.data;
+    } catch (error) {
+      // For development: If endpoint doesn't exist, throw a descriptive error
+      console.warn(
+        'Scholarship details endpoint not implemented yet, falling back to mock data',
+      );
+      throw new Error('Scholarship details endpoint not available');
+    }
+  },
+  async toggleScholarshipAssignment(assignmentId: string, isActive: boolean) {
+    try {
+      const response = await apiClient.put(
+        `/api/v1/fees/scholarships/assignments/${assignmentId}/toggle`,
+        { isActive },
+      );
+      return response.data;
+    } catch (error) {
+      // For development: If endpoint doesn't exist, throw a descriptive error
+      console.warn(
+        'Scholarship assignment toggle endpoint not implemented yet',
+      );
+      throw new Error('Scholarship assignment toggle endpoint not available');
+    }
   },
 };

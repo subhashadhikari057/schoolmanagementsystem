@@ -6,7 +6,8 @@ import { csrfService } from '@/api/services/csrf.service';
 import { httpClient } from '@/api/client/http-client';
 import { toast } from 'sonner';
 import LabeledNepaliDatePicker from './LabeledNepaliDatePicker';
-import NepaliYearRangePicker from '@/components/ui/NepaliYearRangePicker';
+import NepaliYearPicker from '@/components/ui/NepaliYearPicker';
+import { ad2bs } from 'hamro-nepali-patro';
 
 export interface FeeStructureDraftItem {
   label: string;
@@ -146,6 +147,24 @@ const CreateFeeStructureModal: React.FC<CreateFeeStructureModalProps> = ({
       window.removeEventListener('keydown', handleKey);
     };
   }, [showYearDropdown]);
+
+  // Initialize form with today's date when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const today = new Date();
+      const todayBS = ad2bs(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate(),
+      );
+      const todayBSString = `${todayBS.year}-${todayBS.month.toString().padStart(2, '0')}-${todayBS.day.toString().padStart(2, '0')}`;
+
+      setForm(prev => ({
+        ...prev,
+        effectiveFrom: todayBSString,
+      }));
+    }
+  }, [isOpen]);
 
   // Load classes when modal opens
   useEffect(() => {
@@ -483,12 +502,12 @@ const CreateFeeStructureModal: React.FC<CreateFeeStructureModalProps> = ({
                 error={errors.structureName}
                 placeholder='e.g. Grade 10 Annual Fee'
               />
-              {/* Academic Year Nepali Year Range Picker */}
+              {/* Academic Year Nepali Year Picker */}
               <div>
-                <NepaliYearRangePicker
+                <NepaliYearPicker
                   label='Academic Year'
                   value={form.academicYear}
-                  onChange={val => updateField('academicYear', val)}
+                  onChange={(val: string) => updateField('academicYear', val)}
                   error={errors.academicYear}
                 />
               </div>
