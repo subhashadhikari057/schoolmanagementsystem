@@ -14,6 +14,7 @@ import {
   Zap,
   Bell,
   Target,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,6 +28,8 @@ import type {
 import AssetsTab from './tabs/AssetsTab';
 import AcquisitionTab from './tabs/AcquisitionTab';
 import DamagedRepairsTab from './tabs/DamagedRepairsTab';
+import ReportsTab from './tabs/ReportsTab';
+
 // Modals
 import AddAssetModal from './modals/AddAssetModal';
 import ImportCSVModal from './modals/ImportCSVModal';
@@ -127,7 +130,7 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
       },
       {
         id: 'model-002',
-        name: 'Student Desk & Chair Set',
+        name: 'Student Desk and Chair Set',
         brand: 'SchoolMaster',
         modelNo: 'SM-DESK-40',
         category: 'furniture',
@@ -205,7 +208,6 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
         ? Math.round((workingAssets / roomWithMockData.totalAssets) * 100)
         : 100;
 
-    // Calculate trends (mock for now - would come from API)
     const assetTrend: 'up' | 'down' | 'neutral' =
       roomWithMockData.totalAssets > 0 ? 'up' : 'neutral';
     const healthTrend: 'up' | 'down' | 'neutral' =
@@ -215,7 +217,6 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
           ? 'neutral'
           : 'down';
 
-    // Priority indicators
     const criticalIssues =
       roomWithMockData.assets?.reduce((count, model) => {
         return (
@@ -301,6 +302,11 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
             setActiveTab('damaged');
             addNotification('info', 'Switched to Damaged/Repairs tab (Ctrl+3)');
             break;
+          case '4':
+            e.preventDefault();
+            setActiveTab('reports');
+            addNotification('info', 'Switched to Reports tab (Ctrl+4)');
+            break;
           case 'k': {
             e.preventDefault();
             const searchInput = document.querySelector(
@@ -313,7 +319,7 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
             }
             break;
           }
-          case 'n': {
+          case 'n':
             e.preventDefault();
             if (e.shiftKey) {
               setIsRecordAcquisitionModalOpen(true);
@@ -326,7 +332,6 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
               addNotification('info', 'Opening add asset form... (Ctrl+N)');
             }
             break;
-          }
         }
       }
 
@@ -354,28 +359,6 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
     document.addEventListener('keydown', handleKeyboard);
     return () => document.removeEventListener('keydown', handleKeyboard);
   }, [addNotification, notifications.length, showKeyboardShortcuts]);
-
-  // Enhanced search and filter logic (kept for future use)
-  const smartSearchAndFilter = useCallback(
-    (models: any[], query: string, status: AssetStatus | 'all') => {
-      return models.filter(model => {
-        const matchesSearch =
-          !query ||
-          model.name.toLowerCase().includes(query.toLowerCase()) ||
-          model.brand?.toLowerCase().includes(query.toLowerCase()) ||
-          model.category.toLowerCase().includes(query.toLowerCase());
-
-        const matchesStatus =
-          status === 'all' ||
-          (status === 'IN_SERVICE' && model.okCount > 0) ||
-          (status === 'DAMAGED' && model.damagedCount > 0) ||
-          (status === 'UNDER_REPAIR' && model.underRepairCount > 0);
-
-        return matchesSearch && matchesStatus;
-      });
-    },
-    [],
-  );
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', {
@@ -428,13 +411,13 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
               key={notification.id}
               className={`${
                 notification.type === 'success'
-                  ? 'bg-green-50 text-green-800 border border-green-200 shadow-green-100'
+                  ? 'bg-green-50 text-green-800 border border-green-200'
                   : notification.type === 'warning'
-                    ? 'bg-yellow-50 text-yellow-800 border border-yellow-200 shadow-yellow-100'
+                    ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
                     : notification.type === 'error'
-                      ? 'bg-red-50 text-red-800 border border-red-200 shadow-red-100'
-                      : 'bg-blue-50 text-blue-800 border border-blue-200 shadow-blue-100'
-              } flex items-center space-x-3 px-4 py-3 rounded-lg text-sm transform transition-all duration-300 ease-out shadow-md hover:scale-[1.02] cursor-default`}
+                      ? 'bg-red-50 text-red-800 border border-red-200'
+                      : 'bg-blue-50 text-blue-800 border border-blue-200'
+              } flex items-center space-x-3 px-4 py-3 rounded-lg text-sm shadow-md`}
             >
               <div
                 className={`${
@@ -445,7 +428,7 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
                       : notification.type === 'error'
                         ? 'bg-red-100'
                         : 'bg-blue-100'
-                } p-1 rounded-full flex-shrink-0`}
+                } p-1 rounded-full`}
               >
                 {notification.type === 'success' && (
                   <CheckCircle2 className='h-4 w-4' />
@@ -465,10 +448,9 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
                     prev.filter(n => n.id !== notification.id),
                   )
                 }
-                className='ml-auto text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-white/50'
-                title='Dismiss notification'
+                className='text-gray-400 hover:text-gray-600'
               >
-                x
+                ×
               </button>
             </div>
           ))}
@@ -485,9 +467,9 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
             </h3>
             <button
               onClick={() => setShowKeyboardShortcuts(false)}
-              className='text-gray-400 hover:text-gray-600 transition-colors'
+              className='text-gray-400 hover:text-gray-600'
             >
-              x
+              ×
             </button>
           </div>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-3 text-sm'>
@@ -508,6 +490,12 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
                 <span className='text-gray-600'>Switch to Damaged/Repairs</span>
                 <kbd className='px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono'>
                   Ctrl+3
+                </kbd>
+              </div>
+              <div className='flex justify-between'>
+                <span className='text-gray-600'>Switch to Reports</span>
+                <kbd className='px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono'>
+                  Ctrl+4
                 </kbd>
               </div>
             </div>
@@ -582,7 +570,9 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
                 {roomMetrics.workingAssets}
               </div>
               <div
-                className={`px-2 py-1 rounded-full text-xs font-medium ${getHealthColor(roomMetrics.healthPercentage)}`}
+                className={`px-2 py-1 rounded-full text-xs font-medium ${getHealthColor(
+                  roomMetrics.healthPercentage,
+                )}`}
               >
                 {roomMetrics.healthPercentage}%
               </div>
@@ -644,7 +634,7 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
           <Button
             variant='secondary'
             size='sm'
-            className='bg-white/20 hover:bg-white/30 text-white border-white/20 transition-all duration-200'
+            className='bg-white/20 hover:bg-white/30 text-white border-white/20'
             onClick={() => setShowKeyboardShortcuts(!showKeyboardShortcuts)}
             title='Keyboard shortcuts (?)'
           >
@@ -661,24 +651,31 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
             <TabsList className='w-full justify-start bg-transparent p-0 h-auto'>
               <TabsTrigger
                 value='assets'
-                className='rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-4 font-medium transition-all duration-200 hover:bg-white/80'
+                className='rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-white px-6 py-4'
               >
                 <Package className='h-4 w-4 mr-2' />
                 Assets
               </TabsTrigger>
               <TabsTrigger
                 value='acquisition'
-                className='rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-4 font-medium transition-all duration-200 hover:bg-white/80'
+                className='rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-white px-6 py-4'
               >
                 <ShoppingCart className='h-4 w-4 mr-2' />
                 Acquisition
               </TabsTrigger>
               <TabsTrigger
                 value='damaged'
-                className='rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-4 font-medium transition-all duration-200 hover:bg-white/80'
+                className='rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:bg-white px-6 py-4'
               >
                 <AlertTriangle className='h-4 w-4 mr-2' />
                 Damaged/Repairs
+              </TabsTrigger>
+              <TabsTrigger
+                value='reports'
+                className='rounded-none border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:bg-white px-6 py-4'
+              >
+                <FileText className='h-4 w-4 mr-2' />
+                Reports
               </TabsTrigger>
             </TabsList>
           </div>
@@ -710,6 +707,13 @@ const RoomDetailPage: React.FC<RoomDetailPageProps> = ({
 
             <TabsContent value='damaged' className='mt-0'>
               <DamagedRepairsTab
+                room={roomWithMockData}
+                onNotification={addNotification}
+              />
+            </TabsContent>
+
+            <TabsContent value='reports' className='mt-0'>
+              <ReportsTab
                 room={roomWithMockData}
                 onNotification={addNotification}
               />

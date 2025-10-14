@@ -14,6 +14,26 @@ interface AvatarProps {
   size?: AvatarSize;
 }
 
+/**
+ * Avatar Component
+ *
+ * Displays user profile photos with fallback to role-based gradient initials.
+ *
+ * IMPORTANT: Admin profile photos are NOT supported yet!
+ * =========================================================
+ * Admins (SUPER_ADMIN, ADMIN roles) do NOT have a profile table in the database schema.
+ * Unlike teachers, students, parents, and staff, admins are just Users with admin roles.
+ * This means:
+ * - Admin users will always show initials (no profile photos)
+ * - The `src` prop will be undefined/null for admin users
+ * - Red gradient with initials will be shown for admins
+ *
+ * To implement admin profile photos, you would need to:
+ * 1. Create AdminProfile table in prisma schema (like TeacherProfile, StudentProfile, etc.)
+ * 2. Update ProfileService.getUserProfile() to include admin profile data
+ * 3. Add admin profile photo upload functionality in the admin creation/edit flow
+ * 4. Update Dropdown.tsx fetchProfilePhoto() to handle admin photo fetching
+ */
 export default function Avatar({
   src,
   className = '',
@@ -36,14 +56,8 @@ export default function Avatar({
     '2xl': 'w-20 h-20 text-2xl sm:w-24 sm:h-24 sm:text-3xl',
   };
 
-  // Debug logging
-  console.log(`Avatar [${context}]:`, {
-    src,
-    name,
-    role,
-    imageError,
-    isLoading,
-  });
+  // Debug logging removed to clean up build output
+  // Uncomment for debugging: console.log(`Avatar [${context}]:`, { src, name, role, imageError, isLoading });
 
   // Generate initials from name
   const getInitials = (fullName: string): string => {
@@ -79,11 +93,8 @@ export default function Avatar({
   // Clean and validate image src URL
   const getValidImageSrc = (src: string): string | null => {
     if (!src || src.trim() === '') {
-      console.log('Avatar: No src provided');
       return null;
     }
-
-    console.log('Avatar: Original src:', src);
 
     // Handle full URLs from backend that need to be proxied through Next.js
     if (
@@ -92,7 +103,6 @@ export default function Avatar({
     ) {
       // Convert to relative URL for Next.js proxy
       const relativePath = src.replace(/^https?:\/\/localhost:8080\//, '/');
-      console.log('Avatar: Converting backend URL to proxy URL:', relativePath);
       return relativePath;
     }
 
@@ -101,7 +111,6 @@ export default function Avatar({
       // Convert to API format that Next.js can proxy
       const apiPath = src.replace(/^\/?(uploads\/)/, 'api/v1/files/');
       const finalUrl = `/${apiPath}`;
-      console.log('Avatar: Converted uploads URL to:', finalUrl);
       return finalUrl;
     }
 
@@ -109,23 +118,19 @@ export default function Avatar({
     if (src.startsWith('/api/v1/files/') || src.startsWith('api/v1/files/')) {
       // Use the rewrites proxy to avoid CORS and hostname issues
       const finalUrl = `/${src.replace(/^\//, '')}`;
-      console.log('Avatar: Using API URL:', finalUrl);
       return finalUrl;
     }
 
     // Handle full URLs - for external images
     if (src.startsWith('http://') || src.startsWith('https://')) {
-      console.log('Avatar: Using full URL:', src);
       return src;
     }
 
     // Handle base64 images
     if (src.startsWith('data:image/')) {
-      console.log('Avatar: Using base64 image');
       return src;
     }
 
-    console.log('Avatar: Unknown URL format:', src);
     return null;
   };
 
@@ -134,21 +139,18 @@ export default function Avatar({
 
   // Handle image load error
   const handleImageError = () => {
-    console.log('Avatar: Image failed to load for URL:', validSrc);
     setImageError(true);
     setIsLoading(false);
   };
 
   // Handle image load start
   const handleImageLoadStart = () => {
-    console.log('Avatar: Image loading started for URL:', validSrc);
     setIsLoading(true);
     setImageError(false);
   };
 
   // Handle image load success
   const handleImageLoad = () => {
-    console.log('Avatar: Image loaded successfully for URL:', validSrc);
     setIsLoading(false);
     setImageError(false);
   };

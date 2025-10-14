@@ -15,8 +15,9 @@ import {
 } from 'lucide-react';
 import { StaffService } from '@/api/services/staff.service';
 import { toast } from 'sonner';
-import { ad2bs } from 'hamro-nepali-patro';
+import { ad2bs, bs2ad } from 'hamro-nepali-patro';
 import { generateTempEmployeeId } from '@/utils/employeeIdUtils';
+import NepaliDatePicker from '@/components/ui/NepaliDatePicker';
 
 interface AddStaffSalaryModalProps {
   isOpen: boolean;
@@ -702,23 +703,26 @@ const StaffSalaryAdjustmentStep: React.FC<StaffSalaryAdjustmentStepProps> = ({
 
           {/* Effective Date */}
           <div className='space-y-2'>
-            <label className='text-sm font-medium text-gray-700'>
-              Effective Date (Nepali Calendar)
-            </label>
-            <div className='space-y-2'>
-              {adjustment.effectiveDateBS && (
-                <div className='text-sm font-medium text-orange-700 bg-orange-50 p-2 rounded border border-orange-200'>
-                  📅 {adjustment.effectiveDateBS} BS
-                </div>
-              )}
-
-              {adjustment.effectiveDate && (
-                <div className='text-xs text-gray-500 bg-gray-50 p-2 rounded border border-gray-200'>
-                  English Date:{' '}
-                  {new Date(adjustment.effectiveDate).toLocaleDateString()}
-                </div>
-              )}
-            </div>
+            <NepaliDatePicker
+              label='Effective Date (From which date to increase/decrease)'
+              value={adjustment.effectiveDateBS}
+              onChange={bsDate => {
+                try {
+                  if (bsDate) {
+                    const [year, month, day] = bsDate.split('-').map(Number);
+                    const ad = bs2ad(year, month, day);
+                    const adDate = new Date(ad.year, ad.month - 1, ad.date);
+                    onAdjustmentChange(
+                      'effectiveDate',
+                      adDate.toISOString().split('T')[0],
+                    );
+                    onAdjustmentChange('effectiveDateBS', bsDate);
+                  }
+                } catch (error) {
+                  console.error('Date conversion error:', error);
+                }
+              }}
+            />
           </div>
         </div>
       </div>

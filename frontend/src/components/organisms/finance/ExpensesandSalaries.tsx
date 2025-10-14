@@ -2,10 +2,17 @@
 
 import React from 'react';
 import StatCard from '@/components/molecules/cards/StatCard';
-import { Users, DollarSign, GraduationCap, Briefcase } from 'lucide-react';
+import {
+  Users,
+  DollarSign,
+  GraduationCap,
+  Briefcase,
+  Package,
+} from 'lucide-react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import GenericTabs from '@/components/organisms/tabs/GenericTabs';
 import SalaryTable from './SalaryTable';
+import AssetTab from './AssetTab';
 
 const stats = [
   {
@@ -39,6 +46,11 @@ const tabs = [
     icon: <Briefcase className='h-4 w-4 mr-2' />,
     content: <SalaryTable employeeType='staff' />,
   },
+  {
+    name: 'Asset Management',
+    icon: <Package className='h-4 w-4 mr-2' />,
+    content: <AssetTab />,
+  },
 ];
 
 const ExpensesandSalaries = () => {
@@ -47,9 +59,11 @@ const ExpensesandSalaries = () => {
       {/* Header */}
       <div className='pt-3'>
         <div className='w-full'>
-          <h1 className='text-xl font-bold text-gray-900'>Salary Management</h1>
+          <h1 className='text-xl font-bold text-gray-900'>
+            Finance Management
+          </h1>
           <p className='text-sm text-gray-600 mt-1'>
-            Manage All Salary Related Information Here
+            Manage Salaries and Assets
           </p>
         </div>
       </div>
