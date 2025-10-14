@@ -5,6 +5,8 @@ import { classService, type ClassResponse } from '@/api/services/class.service';
 import { csrfService } from '@/api/services/csrf.service';
 import { httpClient } from '@/api/client/http-client';
 import { toast } from 'sonner';
+import LabeledNepaliDatePicker from './LabeledNepaliDatePicker';
+import NepaliYearRangePicker from '@/components/ui/NepaliYearRangePicker';
 
 export interface FeeStructureDraftItem {
   label: string;
@@ -481,79 +483,27 @@ const CreateFeeStructureModal: React.FC<CreateFeeStructureModalProps> = ({
                 error={errors.structureName}
                 placeholder='e.g. Grade 10 Annual Fee'
               />
-              {/* Academic Year searchable */}
-              <div ref={yearDropdownRef}>
-                <label className='text-sm font-medium leading-none mb-1 block'>
-                  Academic Year<span className='text-red-500 ml-1'>*</span>
-                </label>
-                <div className='relative'>
-                  <input
-                    value={yearQuery}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setYearQuery(val);
-                      // keep academicYear in sync so validation passes even if user doesn't click dropdown
-                      updateField('academicYear', val);
-                      setShowYearDropdown(true);
-                    }}
-                    onFocus={() => setShowYearDropdown(true)}
-                    onBlur={() =>
-                      setTimeout(() => setShowYearDropdown(false), 120)
-                    }
-                    placeholder='Search / select year'
-                    className={`flex h-10 w-full rounded-md border ${errors.academicYear ? 'border-red-500' : 'border-gray-300'} bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  />
-                  {showYearDropdown && yearOptions.length > 0 && (
-                    <div
-                      className='absolute z-10 mt-1 w-full max-h-48 overflow-auto rounded-md border bg-white shadow'
-                      onMouseDown={e => e.preventDefault()}
-                    >
-                      {yearOptions.map(yr => (
-                        <button
-                          type='button'
-                          key={yr}
-                          onClick={() => {
-                            updateField('academicYear', yr);
-                            setYearQuery(yr);
-                            setShowYearDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-1.5 text-xs hover:bg-blue-50 ${form.academicYear === yr ? 'bg-blue-100 text-blue-700' : ''}`}
-                        >
-                          {yr}
-                        </button>
-                      ))}
-                      {yearOptions.length === 0 && (
-                        <div className='p-2 text-xs text-gray-500'>
-                          No matches
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {errors.academicYear && (
-                  <p className='mt-1 text-xs text-red-600'>
-                    {errors.academicYear}
-                  </p>
-                )}
+              {/* Academic Year Nepali Year Range Picker */}
+              <div>
+                <NepaliYearRangePicker
+                  label='Academic Year'
+                  value={form.academicYear}
+                  onChange={val => updateField('academicYear', val)}
+                  error={errors.academicYear}
+                />
               </div>
             </div>
+
             {/* Effective From */}
             <div className='grid gap-4 md:grid-cols-2'>
               <div>
-                <label className='text-sm font-medium leading-none mb-1 block'>
-                  Effective From<span className='text-red-500 ml-1'>*</span>
-                </label>
-                <input
-                  type='date'
+                <LabeledNepaliDatePicker
+                  label='Effective From (Nepali Date)'
+                  name='effectiveFrom'
                   value={form.effectiveFrom}
-                  onChange={e => updateField('effectiveFrom', e.target.value)}
-                  className={`flex h-10 w-full rounded-md border ${errors.effectiveFrom ? 'border-red-500' : 'border-gray-300'} bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  onChange={val => updateField('effectiveFrom', val)}
+                  error={errors.effectiveFrom}
                 />
-                {errors.effectiveFrom && (
-                  <p className='mt-1 text-xs text-red-600'>
-                    {errors.effectiveFrom}
-                  </p>
-                )}
               </div>
             </div>
 

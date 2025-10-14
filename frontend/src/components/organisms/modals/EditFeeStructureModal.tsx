@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import LabeledNepaliDatePicker from './LabeledNepaliDatePicker';
 import {
   X,
   Plus,
@@ -369,13 +370,11 @@ const EditFeeStructureModal: React.FC<EditFeeStructureModalProps> = ({
                     Name cannot be changed during revision
                   </p>
                 </div>
-                <LabeledInput
-                  label='Effective From'
+                <LabeledNepaliDatePicker
+                  label='Effective From (Nepali Date)'
                   name='effectiveFrom'
-                  type='date'
-                  required
                   value={form.effectiveFrom}
-                  onChange={e => updateField('effectiveFrom', e.target.value)}
+                  onChange={(val: string) => updateField('effectiveFrom', val)}
                   error={errors.effectiveFrom}
                 />
               </div>
