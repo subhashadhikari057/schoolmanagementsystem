@@ -16,3 +16,6 @@ export * from "./common/metadata.interface";
 
 // Calendar Interfaces
 export * from "./calendar/calendar.interface";
+
+// Fee Structure Interfaces
+export * from "./fee-structure/index";
