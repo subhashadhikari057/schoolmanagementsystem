@@ -124,9 +124,6 @@ export default function Dropdown({
                 await studentService.getStudentByUserId(userId);
               profileData = studentResponse.data;
             } catch (error) {
-              console.log(
-                'Could not fetch student profile by user ID, trying current student API',
-              );
               // Fallback - this might not work for all cases
             }
             break;
@@ -142,49 +139,40 @@ export default function Dropdown({
                 profileData = fullTeacherResponse.data;
               }
             } catch (error) {
-              console.log('Could not fetch teacher profile');
+              // Silent fail - will use fallback initials
             }
             break;
           case 'staff':
-            try {
-              // For staff, we might need to find a different approach since there's no getCurrentStaff
-              // For now, skip staff profile photos
-              console.log('Staff profile photos not yet supported in dropdown');
-            } catch (error) {
-              console.log('Could not fetch staff profile');
-            }
+            // For staff, we might need to find a different approach since there's no getCurrentStaff
+            // For now, skip staff profile photos
             break;
           case 'parent':
-            try {
-              // For parent, we might need to find a different approach since there's no getCurrentParent
-              // For now, skip parent profile photos
-              console.log(
-                'Parent profile photos not yet supported in dropdown',
-              );
-            } catch (error) {
-              console.log('Could not fetch parent profile');
-            }
+            // For parent, we might need to find a different approach since there's no getCurrentParent
+            // For now, skip parent profile photos
             break;
           case 'superadmin':
           case 'admin':
           case 'accountant':
           default:
-            // For admin roles, we might not have profile photos yet
-            console.log(
-              'Admin role profile photos not yet supported in dropdown',
-            );
-            return;
+            // ADMIN PROFILE PHOTOS NOT SUPPORTED
+            // ===================================
+            // Admins (SUPER_ADMIN, ADMIN) do NOT have a profile table in the database schema.
+            // Unlike teachers, students, parents, and staff who have dedicated profile tables,
+            // admins are just Users with admin roles.
+            //
+            // To support admin profile photos, you would need to:
+            // 1. Create an AdminProfile table in the database schema (similar to TeacherProfile, StudentProfile, etc.)
+            // 2. Update the ProfileService.getUserProfile() to include admin profile data
+            // 3. Add admin profile photo upload functionality
+            //
+            // Until then, admins will always show initials in the Avatar component.
+            break;
         }
 
         if (profileData?.profilePhotoUrl) {
           setProfilePhotoUrl(profileData.profilePhotoUrl);
-          console.log(
-            'Profile photo loaded for dropdown:',
-            profileData.profilePhotoUrl,
-          );
         }
       } catch (error) {
-        console.log('Could not fetch profile photo for dropdown:', error);
         // Silently fail - user will see initials instead
       }
     },

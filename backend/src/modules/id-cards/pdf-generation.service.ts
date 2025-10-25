@@ -102,7 +102,7 @@ export class PDFGenerationService {
   /**
    * Process template fields and add them to PDF
    */
-  private processTemplateFields(
+  private async processTemplateFields(
     doc: PDFKit.PDFDocument,
     fields: TemplateFieldData[],
     personData: PersonData,
@@ -115,15 +115,19 @@ export class PDFGenerationService {
       (a, b) => (a.zIndex || 1) - (b.zIndex || 1),
     );
 
+    // Get school information for school-related fields
+    const schoolInfo = await this.getSchoolInformation();
+
     for (const field of sortedFields) {
       try {
-        this.processField(
+        await this.processField(
           doc,
           field,
           personData,
           qrCodeData,
           _pageWidth,
           _pageHeight,
+          schoolInfo,
         );
       } catch (error) {
         // Log error for debugging
@@ -131,6 +135,19 @@ export class PDFGenerationService {
           console.error(`Error processing field ${field.label}:`, error);
         }
       }
+    }
+  }
+
+  /**
+   * Get school information for school-related fields
+   */
+  private async getSchoolInformation() {
+    try {
+      const schoolInfo = await this.prisma.schoolInformation.findFirst();
+      return schoolInfo;
+    } catch (error) {
+      console.warn('Failed to load school information:', error);
+      return null;
     }
   }
 
@@ -144,6 +161,7 @@ export class PDFGenerationService {
     qrCodeData: string,
     _pageWidth: number,
     _pageHeight: number,
+    schoolInfo?: any,
   ) {
     const x = field.x;
     const y = field.y;
@@ -165,12 +183,12 @@ export class PDFGenerationService {
 
     switch (field.fieldType) {
       case 'TEXT':
-        this.addTextField(doc, field, personData);
+        this.addTextField(doc, field, personData, schoolInfo);
         break;
       case 'IMAGE':
       case 'PHOTO':
       case 'LOGO':
-        await this.addImageField(doc, field, personData);
+        await this.addImageField(doc, field, personData, schoolInfo);
         break;
       case 'QR_CODE':
         await this.addQRCodeField(doc, field, qrCodeData, personData);
@@ -192,20 +210,41 @@ export class PDFGenerationService {
     doc: PDFKit.PDFDocument,
     field: TemplateFieldData,
     personData: PersonData,
+    schoolInfo?: any,
   ) {
     let text = '';
 
     if (field.dataSource === 'static' && field.staticText) {
       text = field.staticText;
     } else if (field.dataSource === 'database' && field.databaseField) {
-      text = this.getPersonDataValue(personData, field.databaseField) || '';
+      // Check if this is a school-related field first
+      const schoolText = this.getSchoolDataValue(
+        schoolInfo,
+        field.databaseField,
+      );
+      if (schoolText) {
+        text = schoolText;
+      } else {
+        text = this.getPersonDataValue(personData, field.databaseField) || '';
+      }
     }
 
     if (!text) return;
 
     // Set font properties
     const fontSize = field.fontSize || 12;
-    const fontFamily = field.fontFamily || 'Helvetica';
+    // Map custom fonts to PDFKit built-in fonts
+    const fontFamilyMap: Record<string, string> = {
+      Inter: 'Helvetica',
+      Arial: 'Helvetica',
+      Roboto: 'Helvetica',
+      'Times New Roman': 'Times-Roman',
+      'Courier New': 'Courier',
+      Georgia: 'Times-Roman',
+    };
+
+    const requestedFont = field.fontFamily || 'Helvetica';
+    const fontFamily = fontFamilyMap[requestedFont] || 'Helvetica';
     const color = field.color || '#000000';
 
     doc.font(fontFamily).fontSize(fontSize).fillColor(color);
@@ -242,14 +281,24 @@ export class PDFGenerationService {
     doc: PDFKit.PDFDocument,
     field: TemplateFieldData,
     personData: PersonData,
+    schoolInfo?: any,
   ) {
     let imagePath = '';
 
     if (field.dataSource === 'static' && field.imageUrl) {
       imagePath = field.imageUrl;
     } else if (field.dataSource === 'database' && field.databaseField) {
-      imagePath =
-        this.getPersonDataValue(personData, field.databaseField) || '';
+      // Check if this is a school-related image field first
+      const schoolImage = this.getSchoolDataValue(
+        schoolInfo,
+        field.databaseField,
+      );
+      if (schoolImage) {
+        imagePath = schoolImage;
+      } else {
+        imagePath =
+          this.getPersonDataValue(personData, field.databaseField) || '';
+      }
     }
 
     if (!imagePath) return;
@@ -259,7 +308,7 @@ export class PDFGenerationService {
       if (imagePath.startsWith('http')) {
         // For URLs, you might want to download and cache the image first
         if (process.env.NODE_ENV === 'development') {
-          console.warn('URL images not implemented yet:', imagePath);
+          // console.warn('URL images not implemented yet:', imagePath);
         }
         return;
       }
@@ -386,12 +435,112 @@ export class PDFGenerationService {
   /**
    * Get person data value by field path
    */
+  /**
+   * Get school information data value for school-related fields
+   */
+  private getSchoolDataValue(schoolInfo: any, fieldPath: string): string {
+    if (!schoolInfo) return '';
+
+    try {
+      // Map school field names to actual school object properties
+      const schoolFieldMappings: Record<string, string> = {
+        // School basic info
+        schoolName: 'schoolName',
+        'School Name': 'schoolName',
+        schoolCode: 'schoolCode',
+        'School Code': 'schoolCode',
+        schoolLogo: 'logo',
+        'School Logo': 'logo',
+        schoolAddress: 'address',
+        'School Address': 'address',
+        schoolWebsite: 'website',
+        'School Website': 'website',
+        schoolPhone: 'contactNumbers.0',
+        'School Phone': 'contactNumbers.0',
+        schoolEmail: 'emails.0',
+        'School Email': 'emails.0',
+        establishedYear: 'establishedYear',
+        'Established Year': 'establishedYear',
+      };
+
+      // Check if this is a school-related field
+      const actualPath = schoolFieldMappings[fieldPath];
+      if (!actualPath) return '';
+
+      const keys = actualPath.split('.');
+      let value = schoolInfo;
+
+      for (const key of keys) {
+        if (key.match(/^\d+$/)) {
+          // Array index
+          const index = parseInt(key);
+          value = Array.isArray(value) ? value[index] : null;
+        } else {
+          value = value?.[key];
+        }
+      }
+
+      if (value === null || value === undefined) {
+        return '';
+      }
+
+      return String(value);
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error getting school data value:', error);
+      }
+      return '';
+    }
+  }
+
+  /**
+   * Get person data value from the person object
+   */
   private getPersonDataValue(
     personData: PersonData,
     fieldPath: string,
   ): string {
     try {
-      const keys = fieldPath.split('.');
+      // Map user-friendly field names to actual object properties
+      const fieldMappings: Record<string, string> = {
+        // Student fields
+        'Full Name': 'user.fullName',
+        'Student ID': 'studentId',
+        Class: 'class.name',
+        Section: 'class.section',
+        'Student Photo': 'profilePicture',
+        photo: 'profilePicture',
+
+        // Teacher fields
+        'Employee ID': 'employeeId',
+        Designation: 'designation',
+        Department: 'department', // Teacher department is a string field, not object
+        'Teacher Photo': 'profile.profilePhotoUrl', // Correct teacher photo path
+
+        // Staff fields
+        Position: 'position',
+        'Staff Photo': 'profilePicture',
+
+        // Common fields
+        Email: 'user.email',
+        Phone: 'user.phone',
+        'Date of Birth': 'user.dateOfBirth',
+      };
+
+      // Check if there's a mapping for this field
+      let actualPath = fieldMappings[fieldPath] || fieldPath;
+
+      // Handle lowercase variations
+      const lowerFieldPath = fieldPath.toLowerCase();
+      if (lowerFieldPath === 'studentid') {
+        actualPath = 'studentId';
+      } else if (lowerFieldPath === 'employeeid') {
+        actualPath = 'employeeId';
+      } else if (lowerFieldPath === 'fullname') {
+        actualPath = 'user.fullName';
+      }
+
+      const keys = actualPath.split('.');
       let value = personData;
 
       for (const key of keys) {

@@ -323,7 +323,18 @@ const FeeManagementPage = () => {
       header: 'Structure',
       render: row => (
         <div className='space-y-1'>
-          <div className='font-medium text-gray-900'>{row.name}</div>
+          <div className='flex items-center gap-2'>
+            <span className='font-medium text-gray-900'>{row.name}</span>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                row.status === 'ACTIVE'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              {row.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+            </span>
+          </div>
           <div className='text-[10px] text-gray-500'>{row.academicYear}</div>
         </div>
       ),
@@ -414,6 +425,78 @@ const FeeManagementPage = () => {
             title='View History'
           >
             <Clock className='h-4 w-4' />
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                // Toggle status between ACTIVE and ARCHIVED
+                const newStatus =
+                  item.status === 'ACTIVE' ? 'ARCHIVED' : 'ACTIVE';
+
+                // For now, update the local state immediately to show the change
+                setApiData(prevData =>
+                  prevData.map(structure =>
+                    structure.id === item.id
+                      ? { ...structure, status: newStatus }
+                      : structure,
+                  ),
+                );
+
+                // TODO: Uncomment when API is ready
+                // await feeService.updateStatus(item.id, newStatus);
+
+                toast.success(
+                  `Fee structure ${newStatus === 'ACTIVE' ? 'activated' : 'deactivated'} successfully`,
+                );
+
+                // Optionally, refresh data from server
+                // await fetchStructures(true);
+              } catch (err) {
+                toast.error('Failed to update status');
+              }
+            }}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              item.status === 'ACTIVE'
+                ? 'bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800'
+                : 'bg-green-100 text-green-700 hover:bg-green-200 hover:text-green-800'
+            }`}
+            title={
+              item.status === 'ACTIVE'
+                ? 'Deactivate Structure'
+                : 'Activate Structure'
+            }
+          >
+            {item.status === 'ACTIVE' ? (
+              <>
+                <svg
+                  className='w-3.5 h-3.5'
+                  viewBox='0 0 20 20'
+                  fill='currentColor'
+                >
+                  <path
+                    fillRule='evenodd'
+                    d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z'
+                    clipRule='evenodd'
+                  />
+                </svg>
+                Deactivate
+              </>
+            ) : (
+              <>
+                <svg
+                  className='w-3.5 h-3.5'
+                  viewBox='0 0 20 20'
+                  fill='currentColor'
+                >
+                  <path
+                    fillRule='evenodd'
+                    d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.236 4.53L8.107 10.5a.75.75 0 00-1.214 1.029l2.357 2.786a.75.75 0 001.214-.094l3.857-5.09z'
+                    clipRule='evenodd'
+                  />
+                </svg>
+                Activate
+              </>
+            )}
           </button>
         </div>
       ),

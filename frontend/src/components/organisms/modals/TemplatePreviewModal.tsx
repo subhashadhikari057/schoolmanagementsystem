@@ -66,9 +66,9 @@ export default function TemplatePreviewModal({
 
         <div className='space-y-6'>
           {/* Template Info */}
-          <div className='grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg'>
-            <div className='space-y-3'>
-              <div className='flex items-center space-x-2'>
+          <div className='grid grid-cols-2 gap-6 p-5 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border border-gray-200'>
+            <div className='space-y-4'>
+              <div className='flex items-center space-x-3'>
                 <User className='w-4 h-4 text-gray-500' />
                 <span className='text-sm text-gray-600'>Type:</span>
                 <Badge className={`text-xs ${getTypeColor(template.type)}`}>
@@ -76,25 +76,17 @@ export default function TemplatePreviewModal({
                 </Badge>
               </div>
 
-              <div className='flex items-center space-x-2'>
+              <div className='flex items-center space-x-3'>
                 <CreditCard className='w-4 h-4 text-gray-500' />
                 <span className='text-sm text-gray-600'>Size:</span>
                 <span className='text-sm font-medium'>
                   {template.dimensions} mm
                 </span>
               </div>
-
-              <div className='flex items-center space-x-2'>
-                <Calendar className='w-4 h-4 text-gray-500' />
-                <span className='text-sm text-gray-600'>Modified:</span>
-                <span className='text-sm font-medium'>
-                  {new Date(template.updatedAt).toLocaleDateString()}
-                </span>
-              </div>
             </div>
 
-            <div className='space-y-3'>
-              <div className='flex items-center space-x-2'>
+            <div className='space-y-4'>
+              <div className='flex items-center space-x-3'>
                 <Layers className='w-4 h-4 text-gray-500' />
                 <span className='text-sm text-gray-600'>Fields:</span>
                 <span className='text-sm font-medium'>
@@ -102,15 +94,8 @@ export default function TemplatePreviewModal({
                 </span>
               </div>
 
-              <div className='flex items-center space-x-2'>
-                <div className='w-3 h-3 rounded-full bg-blue-500' />
-                <span className='text-sm text-gray-600'>Status:</span>
-                <span className='text-sm font-medium text-blue-600'>
-                  Available
-                </span>
-              </div>
-
-              <div className='flex items-center space-x-2'>
+              <div className='flex items-center space-x-3'>
+                <Calendar className='w-4 h-4 text-gray-500' />
                 <span className='text-sm text-gray-600'>Used:</span>
                 <span className='text-sm font-medium'>
                   {template.usageCount || 0} times
@@ -130,46 +115,59 @@ export default function TemplatePreviewModal({
           )}
 
           {/* Template Preview */}
-          <div className='space-y-3'>
-            <h3 className='text-lg font-medium text-gray-900'>
-              Template Design
+          <div className='space-y-4'>
+            <h3 className='text-lg font-medium text-gray-900 flex items-center space-x-2'>
+              <CreditCard className='w-5 h-5 text-blue-600' />
+              <span>Template Design</span>
             </h3>
-            <div className='flex justify-center p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200'>
-              <div className='scale-150'>
+            <div className='flex justify-center p-12 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl border-2 border-blue-200 shadow-inner'>
+              <div className='scale-[2.5]'>
                 <TemplatePreview template={template} />
               </div>
             </div>
           </div>
 
-          {/* Field List */}
+          {/* Field List - Simplified */}
           {template.fields && template.fields.length > 0 && (
-            <div className='space-y-3'>
-              <h3 className='text-lg font-medium text-gray-900'>
-                Template Fields
+            <div className='space-y-4'>
+              <h3 className='text-lg font-medium text-gray-900 flex items-center space-x-2'>
+                <Layers className='w-5 h-5 text-blue-600' />
+                <span>Template Fields ({template.fields.length})</span>
               </h3>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 {template.fields.map((field, index) => (
                   <div
                     key={index}
-                    className='p-3 bg-white border border-gray-200 rounded-lg'
+                    className='p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow'
                   >
-                    <div className='flex items-center justify-between mb-2'>
-                      <span className='text-sm font-medium text-gray-900'>
+                    <div className='flex items-start justify-between mb-3'>
+                      <span className='text-sm font-semibold text-gray-900'>
                         {field.label}
                       </span>
                       <Badge variant='outline' className='text-xs'>
                         {field.fieldType}
                       </Badge>
                     </div>
-                    <div className='text-xs text-gray-500 space-y-1'>
-                      <div>
-                        Position: {field.x}, {field.y}
+                    <div className='text-xs text-gray-500 space-y-1.5'>
+                      <div className='flex items-center justify-between'>
+                        <span className='text-gray-400'>Position:</span>
+                        <span className='font-medium'>
+                          {field.x}, {field.y}
+                        </span>
                       </div>
-                      <div>
-                        Size: {field.width} × {field.height}
+                      <div className='flex items-center justify-between'>
+                        <span className='text-gray-400'>Size:</span>
+                        <span className='font-medium'>
+                          {field.width} × {field.height}
+                        </span>
                       </div>
                       {field.databaseField && (
-                        <div>Data: {field.databaseField}</div>
+                        <div className='flex items-center justify-between pt-1 border-t border-gray-100'>
+                          <span className='text-gray-400'>Data:</span>
+                          <span className='font-medium text-blue-600'>
+                            {field.databaseField}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>

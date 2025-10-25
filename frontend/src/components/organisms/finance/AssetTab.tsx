@@ -575,11 +575,11 @@ const AssetTab: React.FC = () => {
                     </div>
                   </div>
 
-                  {room.totalDamaged > 0 && (
+                  {(room.totalDamaged ?? 0) > 0 && (
                     <Badge
                       variant={getStatusBadgeVariant(
-                        room.totalDamaged,
-                        room.totalAssets,
+                        room.totalDamaged ?? 0,
+                        room.totalAssets ?? 0,
                       )}
                     >
                       {room.totalDamaged}
@@ -604,14 +604,15 @@ const AssetTab: React.FC = () => {
                       <div className='flex items-center'>
                         <CheckCircle className='h-4 w-4 text-green-500 mr-1' />
                         <span className='text-gray-600'>
-                          {room.totalAssets - room.totalDamaged} OK
+                          {(room.totalAssets ?? 0) - (room.totalDamaged ?? 0)}{' '}
+                          OK
                         </span>
                       </div>
-                      {room.totalDamaged > 0 && (
+                      {(room.totalDamaged ?? 0) > 0 && (
                         <div className='flex items-center'>
                           <AlertTriangle className='h-4 w-4 text-red-500 mr-1' />
                           <span className='text-gray-600'>
-                            {room.totalDamaged} Issues
+                            {room.totalDamaged ?? 0} Issues
                           </span>
                         </div>
                       )}
@@ -622,7 +623,7 @@ const AssetTab: React.FC = () => {
                   <div className='pt-2 border-t border-gray-100'>
                     <p className='text-sm text-gray-600'>Total Value</p>
                     <p className='text-lg font-semibold text-gray-900'>
-                      {formatCurrency(room.totalValue)}
+                      {formatCurrency(room.totalValue ?? 0)}
                     </p>
                   </div>
                 </div>
@@ -631,7 +632,7 @@ const AssetTab: React.FC = () => {
               <CardFooter className='pt-0'>
                 <div className='flex items-center justify-between w-full'>
                   <span className='text-sm text-gray-500'>
-                    {room.totalAssets} assets
+                    {room.totalAssets ?? 0} assets
                   </span>
                   <div className='flex items-center space-x-2'>
                     <Button
@@ -711,6 +712,7 @@ const AssetTab: React.FC = () => {
 
       <ImportCSVModal
         isOpen={isImportCSVModalOpen}
+        roomId={selectedRoom?.id || rooms[0]?.id || ''}
         onClose={() => setIsImportCSVModalOpen(false)}
         onSuccess={() => {
           setIsImportCSVModalOpen(false);

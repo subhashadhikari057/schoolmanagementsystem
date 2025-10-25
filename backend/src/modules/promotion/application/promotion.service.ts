@@ -164,10 +164,10 @@ export class PromotionService {
       },
     });
 
-    console.log('🔍 DEBUG: Found stuck batches:', stuckBatches.length);
+    // console.log('🔍 DEBUG: Found stuck batches:', stuckBatches.length);
 
     if (stuckBatches.length === 0) {
-      console.log('✅ No stuck batches found');
+      // console.log('✅ No stuck batches found');
       return {
         message: 'No stuck batches found',
         cleanedBatches: [],

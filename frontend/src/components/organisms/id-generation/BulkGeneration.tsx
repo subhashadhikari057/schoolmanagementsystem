@@ -98,7 +98,7 @@ export default function BulkGeneration({
       });
 
       const activeTemplates = response.templates.filter(
-        template => template.isPublished,
+        template => template.status === 'ACTIVE',
       );
 
       setTemplates(activeTemplates);

@@ -20,7 +20,7 @@ import Select, {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import type { AssetItem, ReplaceAssetRequest } from '@/types/asset.types';
+import type { AssetItem } from '@/types/asset.types';
 
 interface ReplaceAssetModalProps {
   isOpen: boolean;
@@ -68,7 +68,7 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
         setFormData(prev => ({
           ...prev,
           reason:
-            item.status === 'damaged' ? 'damaged_beyond_repair' : 'upgrade',
+            item.status === 'DAMAGED' ? 'damaged_beyond_repair' : 'upgrade',
           vendor: item.vendor || '',
           newSerialNumber: generateSerial(
             item.tagNumber || item.serialNumber || undefined,
@@ -322,7 +322,7 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
                     Purchase Cost
                   </label>
                   <div className='bg-white p-2 rounded border'>
-                    ${item.cost.toFixed(2)}
+                    ${item.cost ? item.cost.toFixed(2) : '0.00'}
                   </div>
                 </div>
                 <div className='md:col-span-2'>
@@ -330,7 +330,7 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
                     Vendor
                   </label>
                   <div className='bg-white p-2 rounded border'>
-                    {item.vendor}
+                    {item.vendor || '—'}
                   </div>
                 </div>
                 {item.lastEvent && (
@@ -346,12 +346,16 @@ const ReplaceAssetModal: React.FC<ReplaceAssetModalProps> = ({
                         </span>
                         <span className='text-gray-500'>•</span>
                         <span className='text-gray-600'>
-                          {new Date(item.lastEvent.date).toLocaleDateString()}
+                          {item.lastEvent.date
+                            ? new Date(item.lastEvent.date).toLocaleDateString()
+                            : item.lastEvent.at
+                              ? new Date(item.lastEvent.at).toLocaleDateString()
+                              : '—'}
                         </span>
                       </div>
-                      {item.lastEvent.description && (
+                      {item.lastEvent.note && (
                         <p className='text-gray-600 mt-1 text-sm'>
-                          {item.lastEvent.description}
+                          {item.lastEvent.note}
                         </p>
                       )}
                     </div>
