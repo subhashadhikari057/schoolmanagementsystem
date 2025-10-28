@@ -28,9 +28,32 @@ const NepaliDatePicker: React.FC<NepaliDatePickerProps> = ({
   className = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState<number>(1);
-  const [currentYear, setCurrentYear] = useState<number>(2082);
+
+  // Initialize with today's date in Nepali calendar to avoid empty state
+  const getInitialCalendarState = () => {
+    try {
+      const today = new Date();
+      const bsDate = ad2bs(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate(),
+      );
+      return { month: bsDate.month, year: bsDate.year };
+    } catch (error) {
+      console.error('Error getting initial calendar state:', error);
+      return { month: 1, year: 2082 }; // Fallback
+    }
+  };
+
+  const [calendarState, setCalendarState] = useState<{
+    month: number;
+    year: number;
+  }>(getInitialCalendarState());
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Use combined state for month and year to avoid race conditions
+  const currentMonth = calendarState.month;
+  const currentYear = calendarState.year;
 
   const nepaliMonths = [
     'बैशाख',
@@ -86,8 +109,7 @@ const NepaliDatePicker: React.FC<NepaliDatePickerProps> = ({
     try {
       if (value) {
         const [year, month] = value.split('-').map(Number);
-        setCurrentYear(year);
-        setCurrentMonth(month);
+        setCalendarState({ year, month });
       } else {
         const today = new Date();
         const bsDate = ad2bs(
@@ -95,8 +117,7 @@ const NepaliDatePicker: React.FC<NepaliDatePickerProps> = ({
           today.getMonth() + 1,
           today.getDate(),
         );
-        setCurrentYear(bsDate.year);
-        setCurrentMonth(bsDate.month);
+        setCalendarState({ year: bsDate.year, month: bsDate.month });
       }
     } catch (error) {
       console.error('Date initialization error:', error);
@@ -123,27 +144,31 @@ const NepaliDatePicker: React.FC<NepaliDatePickerProps> = ({
     };
   }, [isOpen]);
 
-  const handleDateSelect = (day: number) => {
-    const selectedDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const handleDateSelect = (
+    day: number,
+    yearOverride?: number,
+    monthOverride?: number,
+  ) => {
+    const selectedYear = yearOverride || currentYear;
+    const selectedMonth = monthOverride || currentMonth;
+    const selectedDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     onChange(selectedDate);
     setIsOpen(false);
   };
 
   const goToPreviousMonth = () => {
     if (currentMonth === 1) {
-      setCurrentMonth(12);
-      setCurrentYear(currentYear - 1);
+      setCalendarState({ month: 12, year: currentYear - 1 });
     } else {
-      setCurrentMonth(currentMonth - 1);
+      setCalendarState({ month: currentMonth - 1, year: currentYear });
     }
   };
 
   const goToNextMonth = () => {
     if (currentMonth === 12) {
-      setCurrentMonth(1);
-      setCurrentYear(currentYear + 1);
+      setCalendarState({ month: 1, year: currentYear + 1 });
     } else {
-      setCurrentMonth(currentMonth + 1);
+      setCalendarState({ month: currentMonth + 1, year: currentYear });
     }
   };
 
@@ -155,9 +180,16 @@ const NepaliDatePicker: React.FC<NepaliDatePickerProps> = ({
         today.getMonth() + 1,
         today.getDate(),
       );
-      setCurrentYear(bsDate.year);
-      setCurrentMonth(bsDate.month);
-      handleDateSelect(bsDate.date);
+
+      // Create the today BS string
+      const todayBSString = `${bsDate.year}-${String(bsDate.month).padStart(2, '0')}-${String(bsDate.date).padStart(2, '0')}`;
+
+      // Set the calendar view and date in one atomic operation
+      setCalendarState({ year: bsDate.year, month: bsDate.month });
+
+      // Set the selected date and close the picker
+      onChange(todayBSString);
+      setIsOpen(false);
     } catch (error) {
       console.error('Error going to today:', error);
     }

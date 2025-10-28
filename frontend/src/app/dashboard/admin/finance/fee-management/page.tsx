@@ -251,6 +251,23 @@ const FeeManagementPage = () => {
     fetchStructures();
   }, [fetchStructures]);
 
+  // Update view modal data when apiData changes (after edit)
+  useEffect(() => {
+    if (viewTarget && apiData.length > 0) {
+      const updatedStructure = apiData.find(s => s.id === viewTarget.id);
+      if (
+        updatedStructure &&
+        updatedStructure.effectiveFrom !== viewTarget.effectiveFrom
+      ) {
+        console.log('Main page: Updating view modal with fresh data', {
+          old: viewTarget.effectiveFrom,
+          new: updatedStructure.effectiveFrom,
+        });
+        setViewTarget(updatedStructure);
+      }
+    }
+  }, [apiData, viewTarget]);
+
   const filteredData = useMemo(() => {
     return apiData.filter(fs => {
       // Search filter - case insensitive across multiple fields
@@ -583,9 +600,11 @@ const FeeManagementPage = () => {
             className='text-xs px-3 py-2 rounded-md border border-gray-200 bg-white text-gray-700'
           >
             <option value='all'>All Years</option>
-            <option value='2024-25'>2024-25</option>
-            <option value='2023-24'>2023-24</option>
-            <option value='2025-26'>2025-26</option>
+            <option value='2080'>2080 BS</option>
+            <option value='2081'>2081 BS</option>
+            <option value='2082'>2082 BS</option>
+            <option value='2083'>2083 BS</option>
+            <option value='2084'>2084 BS</option>
           </select>
           <select
             value={statusFilter}
@@ -781,8 +800,15 @@ const FeeManagementPage = () => {
           }}
           onSuccess={async () => {
             try {
+              const editedStructureId = editTarget.id;
               setEditTarget(null);
-              await fetchStructures(true); // Force fetch all to show updated structures
+
+              // Refresh the data
+              await fetchStructures(true);
+
+              // If view modal is open for the same structure, we'll update it in a useEffect
+              // since fetchStructures updates apiData asynchronously
+
               toast.success('Fee structure updated successfully');
             } catch (err) {
               console.error('Error after successful edit:', err);

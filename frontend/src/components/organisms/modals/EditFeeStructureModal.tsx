@@ -14,6 +14,7 @@ import {
 import { csrfService } from '@/api/services/csrf.service';
 import { httpClient } from '@/api/client/http-client';
 import { toast } from 'sonner';
+import { ad2bs } from 'hamro-nepali-patro';
 
 export interface FeeStructureItemDraft {
   label: string;
@@ -147,11 +148,22 @@ const EditFeeStructureModal: React.FC<EditFeeStructureModalProps> = ({
   // Initialize form when structure changes
   useEffect(() => {
     if (isOpen && structure) {
-      const effectiveDate = structure.effectiveFrom
-        ? new Date(structure.effectiveFrom).toISOString().split('T')[0]
-        : '';
+      // Set effective date to today's date in BS format for new revision
+      let todayBS = '';
+      try {
+        const today = new Date();
+        const bsDate = ad2bs(
+          today.getFullYear(),
+          today.getMonth() + 1,
+          today.getDate(),
+        );
+        todayBS = `${bsDate.year}-${String(bsDate.month).padStart(2, '0')}-${String(bsDate.date).padStart(2, '0')}`;
+      } catch (error) {
+        console.error('Error converting today to BS:', error);
+      }
+
       setForm({
-        effectiveFrom: effectiveDate,
+        effectiveFrom: todayBS,
         changeReason: '',
         components: structure.items.map(item => ({
           id: item.id || crypto.randomUUID(),
