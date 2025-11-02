@@ -167,7 +167,7 @@ export class AccountingService {
         studentId,
         deletedAt: null,
         effectiveFrom: { lte: startDate },
-        expiresAt: { gte: adjustedEndDate },
+        OR: [{ expiresAt: null }, { expiresAt: { gte: adjustedEndDate } }],
       },
       include: {
         scholarship: true,
@@ -177,6 +177,7 @@ export class AccountingService {
         // priority: 'desc',
       },
     });
+
     const scholarshipsData = scholarshipsRaw.map(item => {
       return {
         name: item.scholarship.name,

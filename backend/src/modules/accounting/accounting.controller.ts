@@ -13,12 +13,14 @@ import {
   GetAllStudentsDtoType,
 } from '../student/dto/student.dto';
 import { StudentService } from '../student/application/student.service';
+import { FeeStructureService } from '../fee/services/fee-structure.service';
 
 @Controller('api/v1/accounting')
 export class AccountingController {
   constructor(
     private readonly accountingService: AccountingService,
     private readonly studentService: StudentService,
+    private readonly feeService: FeeStructureService,
   ) {}
 
   @Public()
@@ -27,23 +29,47 @@ export class AccountingController {
     return this.accountingService.findAllClasses();
   }
 
+  // @Public()
+  // @Get('fee-structure/:classId')
+  // async feeStructureForClass(
+  //   @Param('classId') classId: string,
+  //   @Query() query: { for: string },
+  // ) {
+  //   const forDate = new Date(query.for ?? new Date().toISOString());
+  //   const result = await this.accountingService.feeStructureForClass(
+  //     forDate,
+  //     classId,
+  //   );
+  //   console.log(result);
+  //   return result;
+  // }
+
   @Public()
   @Get('fee-structure/:classId')
   async feeStructureForClass(
     @Param('classId') classId: string,
-    @Query() query: { for: string },
+    @Query() query: { academicYear: string },
   ) {
-    const forDate = new Date(query.for ?? new Date().toISOString());
-    return this.accountingService.feeStructureForClass(forDate, classId);
+    const { academicYear } = query;
+    return this.feeService.listStructures({
+      classId,
+      academicYear,
+    });
   }
 
   @Public()
   @Get('student')
-  async findAll(
+  async findAllStudents(
     @Query(new ZodValidationPipe(GetAllStudentsDto))
     query: GetAllStudentsDtoType,
   ) {
     return this.studentService.findAll(query);
+  }
+
+  @Public()
+  @Get('student/:id')
+  async findOneStudent(@Param('id') id: string) {
+    return this.studentService.findById(id);
   }
 
   @Public()

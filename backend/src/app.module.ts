@@ -38,6 +38,7 @@ import { ExamTimetableModule } from './modules/exam-timetable/exam-timetable.mod
 import { GradingModule } from './modules/grading/grading.module';
 import { SchoolInformationModule } from './modules/school-information/school-information.module';
 import { PromotionModule } from './modules/promotion/promotion.module';
+import { AccountingModule } from './modules/accounting/accounting.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { PromotionModule } from './modules/promotion/promotion.module';
     GradingModule,
     SchoolInformationModule,
     PromotionModule,
+    AccountingModule,
   ],
 })
 export class AppModule implements NestModule {

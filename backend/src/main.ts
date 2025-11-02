@@ -16,6 +16,8 @@ export async function createApp() {
       'http://localhost:3001', // Alternative frontend port
       'http://127.0.0.1:3000', // Alternative localhost format
       'http://127.0.0.1:3001', // Alternative localhost format
+      'http://localhost:8000', // Alternative accounting port
+      'http://127.0.0.1:8000', // Alternative localhost format
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
