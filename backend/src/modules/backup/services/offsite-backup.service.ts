@@ -2,7 +2,7 @@
  * =============================================================================
  * Offsite Backup Service
  * =============================================================================
- * Handles transferring backups to remote servers via SSH/rsync
+ * Handles transferring backups to remote servers via SSH
  * =============================================================================
  */
 
@@ -10,11 +10,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BackupSettingsService } from './backup-settings.service';
 import { ProgressTrackingService } from './progress-tracking.service';
 import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { Client as SSHClient } from 'ssh2';
 
 export interface OffsiteTransferOptions {
   localFilePath: string;
@@ -82,7 +80,7 @@ export class OffsiteBackupService {
       // Check if local file exists
       try {
         await fs.access(options.localFilePath);
-      } catch (error) {
+      } catch {
         throw new Error(
           `Local backup file not found: ${options.localFilePath}`,
         );
@@ -130,20 +128,21 @@ export class OffsiteBackupService {
   }
 
   /**
-   * Transfer backup via SSH/rsync
+   * Transfer backup via SSH using ssh2 library (cross-platform)
    */
   private async transferViaSSH(
     options: OffsiteTransferOptions,
     offsiteConfig: any,
     operationId?: string,
   ): Promise<OffsiteTransferResult> {
-    try {
+    return new Promise((resolve, reject) => {
       const fileName =
         options.remoteFileName || path.basename(options.localFilePath);
       const remotePath = path.posix.join(offsiteConfig.remotePath, fileName);
-      const remoteTarget = `${offsiteConfig.username}@${offsiteConfig.remoteHost}:${remotePath}`;
 
-      this.logger.log(`Transferring via SSH to: ${remoteTarget}`);
+      this.logger.log(
+        `Transferring via SSH to: ${offsiteConfig.username}@${offsiteConfig.remoteHost}:${remotePath}`,
+      );
 
       // Emit progress: Starting transfer
       if (operationId) {
@@ -156,183 +155,187 @@ export class OffsiteBackupService {
         );
       }
 
-      // Build rsync command
-      const rsyncCmd = [
-        'rsync',
-        '-avz',
-        '--progress',
-        '--partial',
-        '--inplace',
-        `"${options.localFilePath}"`,
-        `"${remoteTarget}"`,
-      ].join(' ');
+      const conn = new SSHClient();
+      const transferTimeout = setTimeout(
+        () => {
+          conn.end();
+          reject(new Error('File transfer timeout (5 minutes)'));
+        },
+        5 * 60 * 1000,
+      ); // 5 minutes timeout
 
-      this.logger.log(`Executing rsync command: ${rsyncCmd}`);
+      conn.on('ready', () => {
+        this.logger.log(`✅ SSH connected, starting SFTP transfer`);
 
-      // Execute rsync
-      const { stdout, stderr } = await execAsync(rsyncCmd, {
-        maxBuffer: 1024 * 1024 * 10, // 10MB buffer for progress output
+        conn.sftp((err, sftp) => {
+          if (err) {
+            clearTimeout(transferTimeout);
+            conn.end();
+            reject(new Error(`SFTP initialization failed: ${err.message}`));
+            return;
+          }
+
+          // Get file stats for progress tracking
+          const fileStats = fsSync.statSync(options.localFilePath);
+          const totalSize = fileStats.size;
+          let uploadedBytes = 0;
+
+          this.logger.log(
+            `📤 Uploading ${fileName} (${(totalSize / 1024 / 1024).toFixed(2)} MB)`,
+          );
+
+          // Create read stream from local file
+          const readStream = fsSync.createReadStream(options.localFilePath);
+
+          // Create write stream to remote file
+          const writeStream = sftp.createWriteStream(remotePath);
+
+          // Track progress
+          readStream.on('data', chunk => {
+            uploadedBytes += chunk.length;
+            const percentComplete = Math.floor(
+              (uploadedBytes / totalSize) * 100,
+            );
+
+            // Update progress (88% -> 95%)
+            if (operationId && percentComplete % 10 === 0) {
+              const mappedProgress =
+                88 + Math.floor((percentComplete / 100) * 7);
+              this.progressTrackingService.updateProgress(
+                operationId,
+                'backup',
+                'transferring_offsite' as any,
+                mappedProgress,
+                `Transferring... ${percentComplete}%`,
+              );
+            }
+          });
+
+          // Handle errors
+          readStream.on('error', error => {
+            clearTimeout(transferTimeout);
+            sftp.end();
+            conn.end();
+            reject(new Error(`File read error: ${error.message}`));
+          });
+
+          writeStream.on('error', error => {
+            clearTimeout(transferTimeout);
+            sftp.end();
+            conn.end();
+            reject(new Error(`File write error: ${error.message}`));
+          });
+
+          // Handle completion
+          writeStream.on('close', async () => {
+            clearTimeout(transferTimeout);
+            this.logger.log(`✅ File uploaded successfully: ${remotePath}`);
+
+            // Emit progress: Transfer complete
+            if (operationId) {
+              this.progressTrackingService.updateProgress(
+                operationId,
+                'backup',
+                'transferring_offsite' as any,
+                95,
+                'Offsite transfer completed',
+              );
+            }
+
+            // Delete local file if requested
+            let localFileDeleted = false;
+            if (options.deleteLocalAfterTransfer) {
+              try {
+                await fs.unlink(options.localFilePath);
+                localFileDeleted = true;
+                this.logger.log(`Local file deleted: ${options.localFilePath}`);
+              } catch (deleteError) {
+                this.logger.warn(
+                  `Failed to delete local file: ${deleteError.message}`,
+                );
+              }
+            }
+
+            sftp.end();
+            conn.end();
+
+            resolve({
+              success: true,
+              remotePath,
+              localFileDeleted,
+            });
+          });
+
+          // Pipe the file
+          readStream.pipe(writeStream);
+        });
       });
 
-      if (
-        stderr &&
-        !stderr.includes('Warning') &&
-        !stderr.includes('building file list')
-      ) {
-        this.logger.warn(`rsync stderr: ${stderr}`);
-      }
+      conn.on('error', error => {
+        clearTimeout(transferTimeout);
+        this.logger.error(`❌ SSH connection error: ${error.message}`);
+        reject(new Error(`SSH connection failed: ${error.message}`));
+      });
 
-      if (stdout) {
-        this.logger.log(`rsync output: ${stdout}`);
-
-        // Parse rsync output for progress
-        // Typical rsync output includes lines like: "1,234,567  50%  1.23MB/s    0:00:05"
-        const progressMatch = stdout.match(/(\d+)%/);
-        if (progressMatch && operationId) {
-          const percentComplete = parseInt(progressMatch[1], 10);
-          // Map rsync % to our progress scale (88-95%)
-          const mappedProgress = 88 + Math.floor((percentComplete / 100) * 7);
-          this.progressTrackingService.updateProgress(
-            operationId,
-            'backup',
-            'transferring_offsite' as any,
-            mappedProgress,
-            `Transferring... ${percentComplete}%`,
-          );
-        }
-      }
-
-      // Emit progress: Transfer complete
-      if (operationId) {
-        this.progressTrackingService.updateProgress(
-          operationId,
-          'backup',
-          'transferring_offsite' as any,
-          95,
-          'Offsite transfer completed',
-        );
-      }
-
-      // Delete local file if requested
-      let localFileDeleted = false;
-      if (options.deleteLocalAfterTransfer) {
-        try {
-          await fs.unlink(options.localFilePath);
-          localFileDeleted = true;
-          this.logger.log(`Local file deleted: ${options.localFilePath}`);
-        } catch (deleteError) {
-          this.logger.warn(
-            `Failed to delete local file: ${deleteError.message}`,
-          );
-        }
-      }
-
-      return {
-        success: true,
-        remotePath,
-        localFileDeleted,
+      // Connect with password
+      const connConfig: any = {
+        host: offsiteConfig.remoteHost,
+        port: 22,
+        username: offsiteConfig.username,
+        password: offsiteConfig.sshConfig?.password,
+        readyTimeout: 30000,
       };
-    } catch (error) {
-      this.logger.error('SSH transfer failed:', error);
-      throw new Error(`SSH transfer failed: ${error.message}`);
-    }
+
+      this.logger.log(
+        `🔑 Connecting with password authentication to ${offsiteConfig.remoteHost}`,
+      );
+      conn.connect(connConfig);
+    });
   }
 
   /**
-   * Test offsite connection
+   * Test offsite connection (delegated to backup-settings.service.ts)
    */
   async testConnection(): Promise<{
     connected: boolean;
-    message: string;
-    details?: any;
+    message?: string;
+    details?: Record<string, unknown>;
   }> {
-    try {
-      const settings = await this.backupSettingsService.getSettings();
-      const { offsite } = settings;
-
-      if (!offsite.enableOffsiteBackup) {
-        return {
-          connected: false,
-          message: 'Offsite backup is disabled',
-        };
-      }
-
-      if (!offsite.remoteHost || !offsite.username) {
-        return {
-          connected: false,
-          message: 'Missing required offsite configuration',
-        };
-      }
-
-      // Test SSH connection
-      const testCmd = `ssh -o ConnectTimeout=10 -o BatchMode=yes ${offsite.username}@${offsite.remoteHost} "echo 'Connection test successful'"`;
-
-      const { stdout } = await execAsync(testCmd);
-
-      if (stdout.includes('Connection test successful')) {
-        return {
-          connected: true,
-          message: 'SSH connection successful',
-          details: {
-            host: offsite.remoteHost,
-            username: offsite.username,
-          },
-        };
-      } else {
-        return {
-          connected: false,
-          message: 'SSH connection failed - unexpected response',
-        };
-      }
-    } catch (error) {
-      return {
-        connected: false,
-        message: `Connection test failed: ${error.message}`,
-      };
-    }
+    return this.backupSettingsService.testOffsiteConnection();
   }
 
   /**
-   * Create remote backup directory if it doesn't exist
+   * Create remote backup directory (delegated to backup-settings.service.ts)
    */
   async createRemoteDirectory(): Promise<{
     success: boolean;
     message: string;
   }> {
-    try {
-      const settings = await this.backupSettingsService.getSettings();
-      const { offsite } = settings;
+    const settings = await this.backupSettingsService.getSettings();
+    const { offsite } = settings;
 
-      if (
-        !offsite.enableOffsiteBackup ||
-        !offsite.remoteHost ||
-        !offsite.username ||
-        !offsite.remotePath
-      ) {
-        return {
-          success: false,
-          message: 'Missing offsite configuration',
-        };
-      }
-
-      const createDirCmd = `ssh ${offsite.username}@${offsite.remoteHost} "mkdir -p '${offsite.remotePath}'"`;
-
-      await execAsync(createDirCmd);
-
-      return {
-        success: true,
-        message: `Remote directory created: ${offsite.remotePath}`,
-      };
-    } catch (error) {
+    if (
+      !offsite.remoteHost ||
+      !offsite.username ||
+      !offsite.sshConfig?.password ||
+      !offsite.remotePath
+    ) {
       return {
         success: false,
-        message: `Failed to create remote directory: ${error.message}`,
+        message: 'Missing offsite configuration',
       };
     }
+
+    return this.backupSettingsService.createRemoteFolder(
+      offsite.remoteHost,
+      offsite.username,
+      offsite.sshConfig.password,
+      offsite.remotePath,
+    );
   }
 
   /**
-   * List remote backup files
+   * List remote backup files using ssh2
    */
   async listRemoteBackups(): Promise<{
     success: boolean;
@@ -343,40 +346,79 @@ export class OffsiteBackupService {
       const settings = await this.backupSettingsService.getSettings();
       const { offsite } = settings;
 
-      if (
-        !offsite.enableOffsiteBackup ||
-        !offsite.remoteHost ||
-        !offsite.username ||
-        !offsite.remotePath
-      ) {
-        return {
-          success: false,
-          error: 'Missing offsite configuration',
-        };
-      }
+      return new Promise(resolve => {
+        if (
+          !offsite.enableOffsiteBackup ||
+          !offsite.remoteHost ||
+          !offsite.username ||
+          !offsite.remotePath ||
+          !offsite.sshConfig?.password
+        ) {
+          resolve({
+            success: false,
+            error: 'Missing offsite configuration',
+          });
+          return;
+        }
 
-      const listCmd = `ssh ${offsite.username}@${offsite.remoteHost} "ls -la '${offsite.remotePath}'"`;
+        const conn = new SSHClient();
+        const connectionTimeout = setTimeout(() => {
+          conn.end();
+          resolve({
+            success: false,
+            error: 'Connection timeout',
+          });
+        }, 10000);
 
-      const { stdout } = await execAsync(listCmd);
+        conn.on('ready', () => {
+          clearTimeout(connectionTimeout);
 
-      const files = stdout
-        .split('\n')
-        .filter(
-          line =>
-            line.trim() &&
-            !line.startsWith('total') &&
-            !line.includes(' . ') &&
-            !line.includes(' .. '),
-        )
-        .map(line => {
-          const parts = line.trim().split(/\s+/);
-          return parts[parts.length - 1]; // Get filename
+          conn.sftp((err, sftp) => {
+            if (err) {
+              conn.end();
+              resolve({
+                success: false,
+                error: `SFTP error: ${err.message}`,
+              });
+              return;
+            }
+
+            sftp.readdir(offsite.remotePath || '/backups', (err, list) => {
+              conn.end();
+
+              if (err) {
+                resolve({
+                  success: false,
+                  error: `Failed to list directory: ${err.message}`,
+                });
+                return;
+              }
+
+              const files = list.map(file => file.filename);
+              resolve({
+                success: true,
+                files,
+              });
+            });
+          });
         });
 
-      return {
-        success: true,
-        files,
-      };
+        conn.on('error', error => {
+          clearTimeout(connectionTimeout);
+          resolve({
+            success: false,
+            error: `SSH error: ${error.message}`,
+          });
+        });
+
+        conn.connect({
+          host: offsite.remoteHost,
+          port: 22,
+          username: offsite.username,
+          password: offsite.sshConfig?.password || '',
+          readyTimeout: 10000,
+        });
+      });
     } catch (error) {
       return {
         success: false,
@@ -386,7 +428,7 @@ export class OffsiteBackupService {
   }
 
   /**
-   * Download a backup from offsite storage
+   * Download a backup from offsite storage using ssh2
    */
   async downloadFromOffsite(
     remoteFileName: string,
@@ -405,73 +447,129 @@ export class OffsiteBackupService {
       const settings = await this.backupSettingsService.getSettings();
       const { offsite } = settings;
 
-      if (
-        !offsite.enableOffsiteBackup ||
-        !offsite.remoteHost ||
-        !offsite.username ||
-        !offsite.remotePath
-      ) {
-        return {
-          success: false,
-          error: 'Missing offsite configuration',
-        };
-      }
+      return new Promise(resolve => {
+        if (
+          !offsite.enableOffsiteBackup ||
+          !offsite.remoteHost ||
+          !offsite.username ||
+          !offsite.remotePath ||
+          !offsite.sshConfig?.password
+        ) {
+          resolve({
+            success: false,
+            error: 'Missing offsite configuration',
+            transferTime: Date.now() - startTime,
+          });
+          return;
+        }
 
-      const remotePath = path.posix.join(offsite.remotePath, remoteFileName);
-      const remoteSource = `${offsite.username}@${offsite.remoteHost}:${remotePath}`;
+        const remotePath = path.posix.join(offsite.remotePath, remoteFileName);
 
-      this.logger.log(
-        `Downloading from ${remoteSource} to ${localDestinationPath}`,
-      );
+        this.logger.log(
+          `Downloading from ${offsite.remoteHost}:${remotePath} to ${localDestinationPath}`,
+        );
 
-      // Ensure local destination directory exists
-      const localDir = path.dirname(localDestinationPath);
-      await fs.mkdir(localDir, { recursive: true });
+        // Ensure local destination directory exists
+        const localDir = path.dirname(localDestinationPath);
+        fs.mkdir(localDir, { recursive: true }).catch(() => {
+          // Directory might already exist, ignore error
+        });
 
-      // Build rsync command for download
-      const rsyncCmd = [
-        'rsync',
-        '-avz',
-        '--progress',
-        '--partial',
-        `"${remoteSource}"`,
-        `"${localDestinationPath}"`,
-      ].join(' ');
+        const conn = new SSHClient();
+        const downloadTimeout = setTimeout(
+          () => {
+            conn.end();
+            resolve({
+              success: false,
+              error: 'Download timeout (5 minutes)',
+              transferTime: Date.now() - startTime,
+            });
+          },
+          5 * 60 * 1000,
+        );
 
-      this.logger.log(`Executing download: ${rsyncCmd}`);
+        conn.on('ready', () => {
+          this.logger.log(`✅ SSH connected, starting SFTP download`);
 
-      const { stdout, stderr } = await execAsync(rsyncCmd, {
-        maxBuffer: 1024 * 1024 * 10, // 10MB buffer
+          conn.sftp((err, sftp) => {
+            if (err) {
+              clearTimeout(downloadTimeout);
+              conn.end();
+              resolve({
+                success: false,
+                error: `SFTP error: ${err.message}`,
+                transferTime: Date.now() - startTime,
+              });
+              return;
+            }
+
+            // Create read stream from remote file
+            const readStream = sftp.createReadStream(remotePath);
+
+            // Create write stream to local file
+            const writeStream = fsSync.createWriteStream(localDestinationPath);
+
+            readStream.on('error', error => {
+              clearTimeout(downloadTimeout);
+              sftp.end();
+              conn.end();
+              resolve({
+                success: false,
+                error: `Failed to read remote file: ${error.message}`,
+                transferTime: Date.now() - startTime,
+              });
+            });
+
+            writeStream.on('error', error => {
+              clearTimeout(downloadTimeout);
+              sftp.end();
+              conn.end();
+              resolve({
+                success: false,
+                error: `Failed to write local file: ${error.message}`,
+                transferTime: Date.now() - startTime,
+              });
+            });
+
+            writeStream.on('close', () => {
+              clearTimeout(downloadTimeout);
+              this.logger.log(
+                `✅ File downloaded successfully: ${localDestinationPath}`,
+              );
+
+              sftp.end();
+              conn.end();
+
+              resolve({
+                success: true,
+                localPath: localDestinationPath,
+                transferTime: Date.now() - startTime,
+              });
+            });
+
+            // Pipe the download
+            readStream.pipe(writeStream);
+          });
+        });
+
+        conn.on('error', error => {
+          clearTimeout(downloadTimeout);
+          resolve({
+            success: false,
+            error: `SSH connection failed: ${error.message}`,
+            transferTime: Date.now() - startTime,
+          });
+        });
+
+        conn.connect({
+          host: offsite.remoteHost,
+          port: 22,
+          username: offsite.username,
+          password: offsite.sshConfig?.password || '',
+          readyTimeout: 30000,
+        });
       });
-
-      if (
-        stderr &&
-        !stderr.includes('Warning') &&
-        !stderr.includes('building file list')
-      ) {
-        this.logger.warn(`rsync stderr: ${stderr}`);
-      }
-
-      if (stdout) {
-        this.logger.log(`rsync output: ${stdout}`);
-      }
-
-      // Verify downloaded file exists
-      try {
-        await fs.access(localDestinationPath);
-      } catch (error) {
-        throw new Error('Download completed but file not found at destination');
-      }
-
-      const transferTime = Date.now() - startTime;
-
-      return {
-        success: true,
-        localPath: localDestinationPath,
-        transferTime,
-      };
     } catch (error) {
-      this.logger.error('Download from offsite failed:', error);
       return {
         success: false,
         error: `Download failed: ${error.message}`,

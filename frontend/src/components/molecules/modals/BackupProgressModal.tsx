@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { X, CheckCircle, XCircle, Loader2, Download } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { X, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import ReusableButton from '@/components/atoms/form-controls/Button';
-import { Card } from '@/components/ui/card';
+import { backupService } from '@/api/services/backup.service';
 
 interface ProgressStage {
   stage: string;
@@ -11,6 +11,7 @@ interface ProgressStage {
   message: string;
   timestamp: Date;
   error?: string;
+  details?: Record<string, unknown>;
 }
 
 interface BackupProgressModalProps {
@@ -18,7 +19,7 @@ interface BackupProgressModalProps {
   onClose: () => void;
   backupId: string;
   backupType: 'DATABASE' | 'FILES' | 'FULL_SYSTEM';
-  onComplete?: (result: any) => void;
+  onComplete?: (result: Record<string, unknown>) => void;
   onCancel?: () => void;
 }
 
@@ -35,44 +36,245 @@ export default function BackupProgressModal({
   const [isComplete, setIsComplete] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
   const [error, setError] = useState<string>('');
+  const [timing, setTiming] = useState<{
+    elapsed: number;
+    remaining: number | null;
+  }>({
+    elapsed: 0,
+    remaining: null,
+  });
   const eventSourceRef = useRef<EventSource | null>(null);
+  const historyLoadedRef = useRef(false);
+  const startTimeRef = useRef<number | null>(null);
+  const lastKnownBackupIdRef = useRef(backupId);
+  const isCompleteRef = useRef(isComplete);
+  const hasFailedRef = useRef(hasFailed);
+  const onCompleteRef = useRef(onComplete);
 
   useEffect(() => {
-    if (!isOpen || !backupId) return;
+    lastKnownBackupIdRef.current = backupId;
+  }, [backupId]);
 
-    // Don't connect to SSE for temporary IDs - wait for real ID
-    const isTempId = backupId.startsWith('temp_');
+  useEffect(() => {
+    isCompleteRef.current = isComplete;
+  }, [isComplete]);
 
-    if (isTempId) {
-      // Show waiting state for temp IDs
-      setCurrentStage({
-        stage: 'initializing',
-        progress: 0,
-        message: 'Initializing backup...',
-        timestamp: new Date(),
-      });
+  useEffect(() => {
+    hasFailedRef.current = hasFailed;
+  }, [hasFailed]);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  const formatDuration = useCallback((seconds: number) => {
+    const clamped = Math.max(0, Math.round(seconds));
+    const mins = Math.floor(clamped / 60);
+    const secs = clamped % 60;
+    if (mins === 0) {
+      return `${secs}s`;
+    }
+    return `${mins}m ${secs}s`;
+  }, []);
+
+  const updateTiming = useCallback(
+    (progress: number, eventTimestamp?: number) => {
+      const now = eventTimestamp ?? Date.now();
+      if (startTimeRef.current === null) {
+        startTimeRef.current = now;
+      }
+      const elapsedSeconds = Math.max(0, (now - startTimeRef.current) / 1000);
+      let remainingSeconds: number | null = null;
+      if (progress > 0 && progress < 100) {
+        const estimatedTotal = elapsedSeconds / (progress / 100);
+        remainingSeconds = Math.max(0, estimatedTotal - elapsedSeconds);
+      }
+      setTiming({ elapsed: elapsedSeconds, remaining: remainingSeconds });
+    },
+    [],
+  );
+
+  const loadProgressHistory = useCallback(async () => {
+    if (!backupId) return false;
+
+    const wait = (ms: number) =>
+      new Promise(resolve => setTimeout(resolve, ms));
+    const MAX_ATTEMPTS = 6;
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      if (attempt > 0) {
+        await wait(400 * attempt);
+      }
+
+      try {
+        const historyResponse =
+          await backupService.getProgressHistory(backupId);
+        const history =
+          (historyResponse?.data as Array<{
+            stage: string;
+            progress: number;
+            message: string;
+            timestamp: string | Date;
+            error?: string;
+            details?: unknown;
+          }>) || [];
+
+        if (!Array.isArray(history) || history.length === 0) {
+          continue;
+        }
+
+        const normalized = history.map(item => ({
+          stage: item.stage,
+          progress: item.progress,
+          message: item.message,
+          timestamp: new Date(item.timestamp),
+          error: item.error,
+          details: (item as { details?: Record<string, unknown> }).details,
+        }));
+
+        normalized.sort(
+          (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+        );
+
+        const latest = normalized[normalized.length - 1];
+
+        if (normalized.length > 0 && startTimeRef.current === null) {
+          startTimeRef.current = normalized[0].timestamp.getTime();
+        }
+
+        setAllStages(normalized);
+        setCurrentStage(latest);
+        updateTiming(latest.progress, latest.timestamp.getTime());
+
+        if (
+          latest.stage === 'backup_completed' ||
+          latest.progress >= 100 ||
+          latest.stage === 'completed'
+        ) {
+          setIsComplete(true);
+          setHasFailed(false);
+          setError('');
+          if (!historyLoadedRef.current) {
+            onCompleteRef.current?.(
+              (latest.details as Record<string, unknown>) || {},
+            );
+          }
+          historyLoadedRef.current = true;
+          return true;
+        }
+
+        if (latest.stage === 'backup_failed' || latest.error) {
+          setHasFailed(true);
+          setError(latest.error || latest.message || 'Backup failed');
+          historyLoadedRef.current = true;
+          return true;
+        }
+
+        historyLoadedRef.current = true;
+        return true;
+      } catch (historyError) {
+        console.error('Failed to load backup progress history:', historyError);
+      }
+    }
+
+    return false;
+  }, [backupId, updateTiming]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
       return;
     }
 
-    // Reset state for real backup IDs
-    setAllStages([]);
-    setCurrentStage(null);
+    startTimeRef.current = Date.now();
+    setTiming({ elapsed: 0, remaining: null });
+    historyLoadedRef.current = false;
     setIsComplete(false);
     setHasFailed(false);
     setError('');
+    setAllStages([]);
+    setCurrentStage({
+      stage: 'initializing',
+      progress: 0,
+      message: lastKnownBackupIdRef.current
+        ? 'Initiating backup...'
+        : 'Preparing backup request...',
+      timestamp: new Date(),
+    });
 
-    // Connect to SSE stream
-    const connectToProgress = () => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      startTimeRef.current = null;
+      setTiming({ elapsed: 0, remaining: null });
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !backupId) {
+      return;
+    }
+
+    setCurrentStage(prev => {
+      if (!prev) {
+        return {
+          stage: 'initializing',
+          progress: 0,
+          message: 'Initiating backup...',
+          timestamp: new Date(),
+        };
+      }
+      if (
+        prev.stage !== 'initializing' ||
+        prev.message === 'Initiating backup...'
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        message: 'Initiating backup...',
+      };
+    });
+  }, [backupId, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !backupId) {
+      return;
+    }
+
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    historyLoadedRef.current = false;
+
+    const timer = setTimeout(() => {
       const eventSource = new EventSource(
         `/api/v1/backup/progress/stream/${backupId}`,
         { withCredentials: true },
       );
 
-      eventSource.onmessage = event => {
+      eventSource.onmessage = async event => {
         try {
           const data = JSON.parse(event.data);
 
-          if (data.error) {
+          if (data.error && typeof data.error === 'string') {
+            if (data.error.includes('Operation not found')) {
+              const historyLoaded = await loadProgressHistory();
+              if (!historyLoaded) {
+                setError(data.error);
+                setHasFailed(true);
+              }
+              eventSource.close();
+              return;
+            }
+
             setError(data.error);
             setHasFailed(true);
             eventSource.close();
@@ -80,21 +282,25 @@ export default function BackupProgressModal({
           }
 
           if (data.status === 'completed') {
+            setIsComplete(true);
             eventSource.close();
+            onCompleteRef.current?.(data.details || {});
+            historyLoadedRef.current = true;
             return;
           }
 
           const stage: ProgressStage = {
-            stage: data.stage,
-            progress: data.progress,
-            message: data.message,
-            timestamp: new Date(data.timestamp),
+            stage: data.stage || 'processing',
+            progress: data.progress || 0,
+            message: data.message || 'Processing...',
+            timestamp: new Date(data.timestamp || Date.now()),
             error: data.error,
+            details: (data.details as Record<string, unknown>) || undefined,
           };
 
           setCurrentStage(stage);
+          updateTiming(stage.progress, stage.timestamp.getTime());
           setAllStages(prev => {
-            // Prevent duplicate stages
             const exists = prev.some(
               s =>
                 s.stage === stage.stage &&
@@ -104,39 +310,51 @@ export default function BackupProgressModal({
             return exists ? prev : [...prev, stage];
           });
 
-          // Check for completion or failure
-          if (data.stage === 'backup_completed' || data.progress === 100) {
+          if (data.stage === 'backup_completed' || data.progress >= 100) {
             setIsComplete(true);
-            setTimeout(() => {
-              onComplete?.(data.details || {});
-            }, 1000);
-          } else if (data.stage === 'backup_failed' || data.error) {
+            eventSource.close();
+            onCompleteRef.current?.(data.details || {});
+            historyLoadedRef.current = true;
+          } else if (
+            data.stage === 'backup_failed' ||
+            (data.error && typeof data.error === 'string')
+          ) {
             setHasFailed(true);
-            setError(data.error || 'Backup failed');
+            setError(
+              typeof data.error === 'string' ? data.error : 'Backup failed',
+            );
+            eventSource.close();
           }
         } catch (err) {
-          console.error('Failed to parse progress update:', err);
+          console.error('Failed to parse SSE progress update:', err);
         }
       };
 
-      eventSource.onerror = err => {
-        console.error('EventSource error:', err);
-        // Don't show error if already complete
+      eventSource.onerror = async err => {
+        console.error('Backup progress stream error:', err);
+        if (!isCompleteRef.current && !hasFailedRef.current) {
+          const historyLoaded = await loadProgressHistory();
+          if (!historyLoaded) {
+            setError(
+              'Connection to backup stream lost. Please refresh to check status.',
+            );
+            setHasFailed(true);
+          }
+        }
         eventSource.close();
       };
 
       eventSourceRef.current = eventSource;
-    };
-
-    connectToProgress();
+    }, 400);
 
     return () => {
+      clearTimeout(timer);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
     };
-  }, [isOpen, backupId]);
+  }, [isOpen, backupId, loadProgressHistory, updateTiming]);
 
   const handleClose = () => {
     if (eventSourceRef.current) {
@@ -152,7 +370,9 @@ export default function BackupProgressModal({
     onCancel?.();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const getStageLabel = (stage: string): string => {
     const labels: Record<string, string> = {
@@ -179,8 +399,8 @@ export default function BackupProgressModal({
   };
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'>
-      <Card className='w-full max-w-2xl p-6 m-4 bg-white rounded-lg shadow-xl'>
+    <div className='fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm'>
+      <div className='w-full max-w-2xl p-6 m-4 bg-white rounded-lg shadow-xl'>
         {/* Header */}
         <div className='flex items-start justify-between mb-6'>
           <div>
@@ -192,7 +412,8 @@ export default function BackupProgressModal({
                   : 'Backup in Progress'}
             </h2>
             <p className='text-sm text-gray-600'>
-              {getBackupTypeName(backupType)} - {backupId}
+              {getBackupTypeName(backupType)} -{' '}
+              {backupId || 'Preparing operation...'}
             </p>
           </div>
           {(isComplete || hasFailed) && (
@@ -204,6 +425,21 @@ export default function BackupProgressModal({
             </button>
           )}
         </div>
+
+        {/* Wait Banner */}
+        {!isComplete && !hasFailed && (
+          <div className='mb-4 rounded-lg border border-blue-100 bg-blue-50 p-4'>
+            <p className='text-sm font-semibold text-blue-900'>
+              Please wait while your backup completes.
+            </p>
+            <p className='mt-1 text-xs text-blue-700'>
+              Elapsed: {formatDuration(timing.elapsed)}
+              {timing.remaining !== null
+                ? ` • Approximately ${formatDuration(timing.remaining)} remaining`
+                : ''}
+            </p>
+          </div>
+        )}
 
         {/* Progress Section */}
         <div className='space-y-4 mb-6'>
@@ -249,6 +485,9 @@ export default function BackupProgressModal({
                   <p className='text-sm text-green-700 mt-1'>
                     Your {getBackupTypeName(backupType).toLowerCase()} has been
                     created and saved.
+                  </p>
+                  <p className='text-xs text-green-600 mt-1'>
+                    Completed in {formatDuration(timing.elapsed)}.
                   </p>
                 </div>
               </div>
@@ -305,8 +544,7 @@ export default function BackupProgressModal({
           {!isComplete && !hasFailed && (
             <ReusableButton
               onClick={handleCancel}
-              variant='outline'
-              className='flex-1'
+              className='flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
             >
               Cancel
             </ReusableButton>
@@ -315,14 +553,17 @@ export default function BackupProgressModal({
           {(isComplete || hasFailed) && (
             <ReusableButton
               onClick={handleClose}
-              variant='primary'
-              className='flex-1'
+              className={`flex-1 px-6 py-2 text-white rounded-lg transition-colors ${
+                isComplete
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'bg-red-600 hover:bg-red-700'
+              }`}
             >
               Close
             </ReusableButton>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

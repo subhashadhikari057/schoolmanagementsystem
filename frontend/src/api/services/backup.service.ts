@@ -56,6 +56,10 @@ export interface RestoreBackupRequest {
   restoreDatabase?: boolean;
   restoreFiles?: boolean;
   restoreConfig?: boolean;
+  dropExisting?: boolean;
+  detectedType?: 'DATABASE' | 'FILES' | 'FULL_SYSTEM';
+  isEncrypted?: boolean;
+  originalFilename?: string;
 }
 
 export interface BackupDashboard {
@@ -63,7 +67,7 @@ export interface BackupDashboard {
   serviceStatus: ServiceStatus;
   storageUsage: StorageUsage;
   recentBackups: BackupItem[];
-  offsiteStatus: any;
+  offsiteStatus: Record<string, unknown>;
   lastUpdated: string;
 }
 
@@ -179,13 +183,15 @@ export class BackupService {
   /**
    * Create a new backup
    */
-  async createBackup(request: CreateBackupRequest): Promise<ApiResponse<any>> {
+  async createBackup(
+    request: CreateBackupRequest,
+  ): Promise<ApiResponse<Record<string, unknown>>> {
     try {
-      const response = await apiClient.post<ApiResponse<any>>(
+      const response = await apiClient.post<Record<string, unknown>>(
         `${this.baseUrl}/create`,
         request,
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error creating backup:', error);
       throw error;
@@ -197,13 +203,13 @@ export class BackupService {
    */
   async restoreBackup(
     request: RestoreBackupRequest,
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<Record<string, unknown>>> {
     try {
-      const response = await apiClient.post<ApiResponse<any>>(
+      const response = await apiClient.post<Record<string, unknown>>(
         `${this.baseUrl}/restore`,
         request,
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error restoring backup:', error);
       throw error;
@@ -221,8 +227,11 @@ export class BackupService {
       restoreDatabase?: boolean;
       restoreFiles?: boolean;
       restoreConfig?: boolean;
+      detectedType?: 'DATABASE' | 'FILES' | 'FULL_SYSTEM';
+      isEncrypted?: boolean;
+      originalFilename?: string;
     },
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<Record<string, unknown>>> {
     try {
       const formData = new FormData();
       formData.append('backupFile', file);
@@ -234,13 +243,53 @@ export class BackupService {
         }
       });
 
-      const response = await apiClient.post<ApiResponse<any>>(
+      const response = await apiClient.post<Record<string, unknown>>(
         `${this.baseUrl}/restore/upload`,
         formData,
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error uploading and restoring backup:', error);
+      throw error;
+    }
+  }
+
+  async getActiveOperations(): Promise<ApiResponse<string[]>> {
+    try {
+      const response = await apiClient.get<string[]>(
+        `${this.baseUrl}/progress/active`,
+      );
+      return response;
+    } catch (error) {
+      console.error('Error fetching active operations:', error);
+      throw error;
+    }
+  }
+
+  async getCurrentProgress(
+    operationId: string,
+  ): Promise<ApiResponse<Record<string, unknown>>> {
+    try {
+      const response = await apiClient.get<Record<string, unknown>>(
+        `${this.baseUrl}/progress/current/${operationId}`,
+      );
+      return response;
+    } catch (error) {
+      console.error('Error fetching progress snapshot:', error);
+      throw error;
+    }
+  }
+
+  async getProgressHistory(
+    operationId: string,
+  ): Promise<ApiResponse<Record<string, unknown>[]>> {
+    try {
+      const response = await apiClient.get<Record<string, unknown>[]>(
+        `${this.baseUrl}/progress/history/${operationId}`,
+      );
+      return response;
+    } catch (error) {
+      console.error('Error fetching progress history:', error);
       throw error;
     }
   }
@@ -263,12 +312,14 @@ export class BackupService {
   /**
    * Delete backup
    */
-  async deleteBackup(backupId: string): Promise<ApiResponse<any>> {
+  async deleteBackup(
+    backupId: string,
+  ): Promise<ApiResponse<Record<string, unknown>>> {
     try {
-      const response = await apiClient.delete<ApiResponse<any>>(
+      const response = await apiClient.delete<Record<string, unknown>>(
         `${this.baseUrl}/${backupId}`,
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error deleting backup:', error);
       throw error;
@@ -278,12 +329,14 @@ export class BackupService {
   /**
    * Validate backup integrity
    */
-  async validateBackup(backupId: string): Promise<ApiResponse<any>> {
+  async validateBackup(
+    backupId: string,
+  ): Promise<ApiResponse<Record<string, unknown>>> {
     try {
-      const response = await apiClient.get<ApiResponse<any>>(
+      const response = await apiClient.get<Record<string, unknown>>(
         `${this.baseUrl}/${backupId}/validate`,
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error validating backup:', error);
       throw error;
@@ -293,7 +346,10 @@ export class BackupService {
   /**
    * Download backup
    */
-  async downloadBackup(backupId: string, clientKey?: string): Promise<Blob> {
+  async downloadBackup(
+    backupId: string,
+    clientKey?: string,
+  ): Promise<{ blob: Blob; filename: string }> {
     try {
       const params = clientKey ? { clientKey } : undefined;
       const response = await fetch(
@@ -308,7 +364,13 @@ export class BackupService {
         throw new Error('Failed to download backup');
       }
 
-      return await response.blob();
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = filenameMatch?.[1] || `backup-${backupId}.enc`;
+
+      const blob = await response.blob();
+
+      return { blob, filename };
     } catch (error) {
       console.error('Error downloading backup:', error);
       throw error;
@@ -318,12 +380,12 @@ export class BackupService {
   /**
    * Test offsite connection
    */
-  async testOffsiteConnection(): Promise<ApiResponse<any>> {
+  async testOffsiteConnection(): Promise<ApiResponse<Record<string, unknown>>> {
     try {
-      const response = await apiClient.post<ApiResponse<any>>(
+      const response = await apiClient.post<Record<string, unknown>>(
         `${this.baseUrl}/test-connection`,
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error testing offsite connection:', error);
       throw error;
@@ -333,12 +395,12 @@ export class BackupService {
   /**
    * Get offsite status
    */
-  async getOffsiteStatus(): Promise<ApiResponse<any>> {
+  async getOffsiteStatus(): Promise<ApiResponse<Record<string, unknown>>> {
     try {
-      const response = await apiClient.get<ApiResponse<any>>(
+      const response = await apiClient.get<Record<string, unknown>>(
         `${this.baseUrl}/offsite/status`,
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error fetching offsite status:', error);
       throw error;
@@ -352,13 +414,13 @@ export class BackupService {
     retentionDays?: number;
     maxBackups?: number;
     type?: string;
-  }): Promise<ApiResponse<any>> {
+  }): Promise<ApiResponse<Record<string, unknown>>> {
     try {
-      const response = await apiClient.post<ApiResponse<any>>(
+      const response = await apiClient.post<Record<string, unknown>>(
         `${this.baseUrl}/cleanup`,
         options,
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error cleaning up backups:', error);
       throw error;
@@ -371,14 +433,13 @@ export class BackupService {
   async getRestorePreview(
     backupId: string,
     clientKey?: string,
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<Record<string, unknown>>> {
     try {
-      const params = clientKey ? { clientKey } : undefined;
-      const response = await apiClient.get<ApiResponse<any>>(
+      const response = await apiClient.get<Record<string, unknown>>(
         `${this.baseUrl}/${backupId}/preview`,
-        params,
+        clientKey ? { clientKey } : undefined,
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error getting restore preview:', error);
       throw error;

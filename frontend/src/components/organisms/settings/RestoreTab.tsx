@@ -18,6 +18,7 @@ import DecryptionKeyModal from '@/components/molecules/modals/DecryptionKeyModal
 import RestoreProgressModal from '@/components/molecules/modals/RestoreProgressModal';
 import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
 import { useBackupContext } from '@/context/BackupContext';
+import type { RestoreBackupRequest } from '@/api/services/backup.service';
 
 interface AvailableBackup {
   id: string;
@@ -87,6 +88,72 @@ export default function RestoreTab() {
     if (mb < 1024) return `${mb.toFixed(2)} MB`;
     const gb = mb / 1024;
     return `${gb.toFixed(2)} GB`;
+  };
+
+  const extractOperationId = (
+    data?: Record<string, unknown>,
+  ): string | undefined => {
+    if (data && typeof data.operationId === 'string') {
+      return data.operationId;
+    }
+    return undefined;
+  };
+
+  const normalizeRestoreOptions = (
+    options: Record<string, unknown>,
+  ): RestoreBackupRequest => ({
+    clientKey:
+      typeof options.clientKey === 'string' && options.clientKey
+        ? options.clientKey
+        : undefined,
+    overwrite:
+      typeof options.overwrite === 'boolean' ? options.overwrite : undefined,
+    restoreDatabase:
+      typeof options.restoreDatabase === 'boolean'
+        ? options.restoreDatabase
+        : undefined,
+    restoreFiles:
+      typeof options.restoreFiles === 'boolean'
+        ? options.restoreFiles
+        : undefined,
+    restoreConfig:
+      typeof options.restoreConfig === 'boolean'
+        ? options.restoreConfig
+        : undefined,
+    dropExisting:
+      typeof options.dropExisting === 'boolean'
+        ? options.dropExisting
+        : undefined,
+  });
+
+  const mapBackupTypeToEnum = (
+    typeLabel?: string,
+  ): 'DATABASE' | 'FILES' | 'FULL_SYSTEM' => {
+    if (!typeLabel) return 'FULL_SYSTEM';
+    const normalized = typeLabel.toLowerCase();
+    if (normalized.includes('database')) return 'DATABASE';
+    if (normalized.includes('file')) return 'FILES';
+    return 'FULL_SYSTEM';
+  };
+
+  const inferTypeFromFilename = (
+    fileName?: string,
+  ): 'DATABASE' | 'FILES' | 'FULL_SYSTEM' => {
+    if (!fileName) return 'FULL_SYSTEM';
+    const sanitized = fileName.toLowerCase().replace(/\.enc$/, '');
+    if (sanitized.endsWith('.sql') || sanitized.endsWith('.sql.gz')) {
+      return 'DATABASE';
+    }
+    if (
+      sanitized.includes('files') &&
+      (sanitized.endsWith('.tar.gz') || sanitized.endsWith('.zip'))
+    ) {
+      return 'FILES';
+    }
+    if (sanitized.includes('full') || sanitized.includes('snapshot')) {
+      return 'FULL_SYSTEM';
+    }
+    return 'FULL_SYSTEM';
   };
 
   const loadAvailableBackups = async () => {
@@ -179,56 +246,102 @@ export default function RestoreTab() {
     }
 
     try {
+      console.log('🚀 Starting restore for backup:', backup.id);
       setLoading(true);
 
       // Initiate restore via API
       const response = await backupService.restoreBackup({
         backupId: backup.id,
+        detectedType: mapBackupTypeToEnum(backup.type),
+        isEncrypted: backup.encrypted,
       });
 
-      if (response.success && response.data?.operationId) {
+      console.log('📦 Restore API Response:', response);
+      setLoading(false);
+
+      const operationId = extractOperationId(
+        response.data as Record<string, unknown> | undefined,
+      );
+      const isSuccessful = response.success === true || Boolean(operationId);
+
+      if (isSuccessful && operationId) {
+        console.log(
+          '✅ Opening restore progress modal with operationId:',
+          operationId,
+        );
+
+        // Show starting toast
+        toast.success(
+          'Restore Started',
+          'Restore operation initiated successfully',
+        );
+
         // Open restore progress modal with operationId
         setRestoreProgressModal({
           isOpen: true,
-          backupId: response.data.operationId,
+          backupId: operationId,
           uploadedFile: null,
           decryptionKey: '',
         });
       } else {
-        toast.error(
-          'Restore Failed',
-          response.error || 'Failed to initiate restore',
-        );
+        const errorMsg =
+          response.error || response.message || 'Failed to initiate restore';
+        console.error('❌ Failed to initiate restore:', errorMsg);
+        toast.error('Restore Failed', errorMsg);
       }
     } catch (err) {
+      setLoading(false);
       const errorMsg =
         err instanceof Error ? err.message : 'Failed to start restore';
+      console.error('❌ Restore error:', err);
       toast.error('Restore Error', errorMsg);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleFileRestore = () => {
+  const handleFileRestore = async () => {
     if (!uploadedFile) return;
 
-    // Open restore progress modal with uploaded file
-    setRestoreProgressModal({
-      isOpen: true,
-      backupId: '',
-      uploadedFile: uploadedFile,
-      decryptionKey: decryptionKey,
-    });
+    // Check if file is encrypted by reading first few bytes
+    try {
+      const buffer = await uploadedFile.slice(0, 512).arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const hasEncryptionMarkers = bytes.length >= 44; // salt(16) + nonce(12) + authTag(16)
+
+      // If encrypted and no key provided, show decryption modal
+      if (hasEncryptionMarkers && !decryptionKey) {
+        setDecryptionModal({
+          isOpen: true,
+          backupName: uploadedFile.name,
+          backup: null, // No backup object for file upload
+        });
+        return;
+      }
+
+      console.log('🚀 Starting file restore:', uploadedFile.name);
+
+      // Open progress modal immediately with the file
+      // The modal will handle uploading and tracking progress
+      setRestoreProgressModal({
+        isOpen: true,
+        backupId: '',
+        uploadedFile: uploadedFile,
+        decryptionKey: decryptionKey,
+      });
+    } catch (err) {
+      console.error('❌ Failed to analyze backup file:', err);
+      toast.error('Error', 'Failed to analyze backup file. Please try again.');
+    }
   };
 
   const handleDownload = async (backup: AvailableBackup) => {
     try {
       setLoading(true);
-      const blob = await backupService.downloadBackup(backup.id);
+      const { blob, filename } = await backupService.downloadBackup(backup.id);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = backup.name || `backup-${backup.id}.zip`;
+      link.download = filename;
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -274,37 +387,70 @@ export default function RestoreTab() {
     const backup = decryptionModal.backup;
     setDecryptionModal({ isOpen: false, backupName: '', backup: null });
 
+    // If it's a file upload (no backup object), set key and open progress modal
+    if (!backup && uploadedFile) {
+      console.log('🔑 Decryption key provided for file upload');
+      setDecryptionKey(key);
+      setRestoreProgressModal({
+        isOpen: true,
+        backupId: '',
+        uploadedFile: uploadedFile,
+        decryptionKey: key,
+      });
+      return;
+    }
+
+    // If it's an available backup, initiate restore via API
     if (!backup) return;
 
     try {
+      console.log('🔑 Starting encrypted restore for backup:', backup.id);
       setLoading(true);
 
       // Initiate restore via API with decryption key
       const response = await backupService.restoreBackup({
         backupId: backup.id,
         clientKey: key,
+        detectedType: mapBackupTypeToEnum(backup.type),
+        isEncrypted: true,
       });
 
-      if (response.success && response.data?.operationId) {
+      console.log('📦 Encrypted restore API Response:', response);
+      setLoading(false);
+
+      const operationId = extractOperationId(
+        response.data as Record<string, unknown> | undefined,
+      );
+      const isSuccessful = response.success === true || Boolean(operationId);
+
+      if (isSuccessful && operationId) {
+        console.log(
+          '✅ Opening restore progress modal with operationId:',
+          operationId,
+        );
+
+        // Show starting toast
+        toast.success('Restore Started', 'Decrypting and restoring backup...');
+
         // Open restore progress modal with operationId
         setRestoreProgressModal({
           isOpen: true,
-          backupId: response.data.operationId,
+          backupId: operationId,
           uploadedFile: null,
           decryptionKey: key,
         });
       } else {
-        toast.error(
-          'Restore Failed',
-          response.error || 'Failed to initiate restore',
-        );
+        const errorMsg =
+          response.error || response.message || 'Failed to initiate restore';
+        console.error('❌ Failed to initiate encrypted restore:', errorMsg);
+        toast.error('Restore Failed', errorMsg);
       }
     } catch (err) {
+      setLoading(false);
       const errorMsg =
         err instanceof Error ? err.message : 'Failed to start restore';
+      console.error('❌ Encrypted restore error:', err);
       toast.error('Restore Error', errorMsg);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -315,26 +461,36 @@ export default function RestoreTab() {
       setLoading(true);
       setError('');
 
-      // Add decryption key if available
-      const restoreOptions = {
+      // Normalize options from modal
+      const restoreOptions = normalizeRestoreOptions({
         ...options,
         clientKey: decryptionKey || options.clientKey,
-      };
+      });
 
       let response;
       if (confirmModal.isFileUpload && uploadedFile) {
-        response = await backupService.uploadAndRestore(
-          uploadedFile,
-          restoreOptions,
-        );
+        const backupTypeHint = inferTypeFromFilename(uploadedFile.name);
+        const isEncryptedHint = uploadedFile.name
+          .toLowerCase()
+          .endsWith('.enc');
+        response = await backupService.uploadAndRestore(uploadedFile, {
+          ...restoreOptions,
+          originalFilename: uploadedFile.name,
+          detectedType: backupTypeHint,
+          isEncrypted: isEncryptedHint,
+        });
       } else if (confirmModal.backup) {
-        response = await backupService.restoreBackup({
+        const backupTypeHint = mapBackupTypeToEnum(confirmModal.backup.type);
+        const payload: RestoreBackupRequest = {
           ...restoreOptions,
           backupId: confirmModal.backup.id,
-        });
+          detectedType: backupTypeHint,
+          isEncrypted: confirmModal.backup.encrypted,
+        };
+        response = await backupService.restoreBackup(payload);
       }
 
-      if (response && response.success) {
+      if (response && (response.success ?? false)) {
         toast.success(
           'Restore Completed',
           'Data has been restored successfully!',
@@ -426,7 +582,7 @@ export default function RestoreTab() {
               Upload & Restore Backup
             </h3>
             <p className='text-sm text-gray-600'>
-              Upload a backup file to restore from
+              Upload a backup file (.zip format) to restore from
             </p>
           </div>
         </div>
@@ -439,11 +595,13 @@ export default function RestoreTab() {
               Upload Backup File
             </h4>
             <p className='text-sm text-gray-600 mb-4'>
-              Select a backup file (.sql, .gz, .zip, .tar.gz) to restore
+              Select a downloaded backup file (.zip format) to restore. Note:
+              Server backups are stored as .enc files, but downloads are
+              provided as .zip
             </p>
             <input
               type='file'
-              accept='.sql,.gz,.zip,.tar.gz'
+              accept='.sql,.gz,.zip,.tar.gz,.enc'
               onChange={handleFileUpload}
               className='hidden'
               id='backup-file'
@@ -487,7 +645,8 @@ export default function RestoreTab() {
               Available Backups
             </h3>
             <p className='text-sm text-gray-600'>
-              Select a backup to restore from
+              Server backups (stored as .enc). Download as .zip or restore
+              directly
             </p>
           </div>
         </div>

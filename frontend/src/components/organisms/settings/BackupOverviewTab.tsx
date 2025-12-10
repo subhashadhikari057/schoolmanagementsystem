@@ -560,20 +560,6 @@ export default function BackupOverviewTab({
                   </div>
                   <div className='flex items-center gap-3'>
                     {getStatusBadge(backup.status)}
-                    <div className='flex gap-1'>
-                      <ReusableButton
-                        onClick={() => {}}
-                        className='p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors'
-                      >
-                        <Database className='h-4 w-4' />
-                      </ReusableButton>
-                      <ReusableButton
-                        onClick={() => {}}
-                        className='p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors'
-                      >
-                        <AlertCircle className='h-4 w-4' />
-                      </ReusableButton>
-                    </div>
                   </div>
                 </div>
               );

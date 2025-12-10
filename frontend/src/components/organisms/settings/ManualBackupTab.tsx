@@ -1,23 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  Database,
-  FileText,
-  HardDrive,
-  AlertTriangle,
-  Download,
-  Trash2,
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Database, FileText, HardDrive, AlertTriangle } from 'lucide-react';
 import ReusableButton from '@/components/atoms/form-controls/Button';
 import { Card } from '@/components/ui/card';
 import { backupService } from '@/api/services/backup.service';
+import type { ApiResponse } from '@/api/services/backup.service';
 import BackupProgressModal from '@/components/molecules/modals/BackupProgressModal';
-import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
 import { useBackupContext } from '@/context/BackupContext';
 
 interface BackupType {
-  id: string;
+  id: 'database' | 'files' | 'full';
   name: string;
   description: string;
   includes: string[];
@@ -35,103 +28,70 @@ export default function ManualBackupTab() {
     backupId: '',
     backupType: 'DATABASE' as 'DATABASE' | 'FILES' | 'FULL_SYSTEM',
   });
-  const [deleteModal, setDeleteModal] = useState<{
-    isOpen: boolean;
-    backupId: string | null;
-    backupName: string | null;
-  }>({ isOpen: false, backupId: null, backupName: null });
-  const [deleting, setDeleting] = useState(false);
 
-  // Load backup history on mount
-  useEffect(() => {
-    loadBackupHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  interface BackupHistoryItem {
-    backupId: string;
-    type: string;
-    startedAt?: string;
-    createdAt?: string;
-    size?: number;
-    encrypted?: boolean;
-    offsiteBackupCompleted?: boolean;
-    status?: string;
-  }
-
-  const [backupHistory, setBackupHistory] = useState<BackupHistoryItem[]>([]);
-
-  const loadBackupHistory = async () => {
-    try {
-      const response = await backupService.listBackups();
-      if (response.success && response.data) {
-        setBackupHistory(response.data as unknown as BackupHistoryItem[]);
-      }
-    } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : 'Failed to load backup history';
-      toast.error('Load Failed', errorMsg);
-    }
+  const resolveBackupType = (
+    id: 'database' | 'files' | 'full',
+  ): 'DATABASE' | 'FILES' | 'FULL_SYSTEM' => {
+    if (id === 'database') return 'DATABASE';
+    if (id === 'files') return 'FILES';
+    return 'FULL_SYSTEM';
   };
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    if (bytes < 1024) return `${bytes} B`;
-    const kb = bytes / 1024;
-    if (kb < 1024) return `${kb.toFixed(2)} KB`;
-    const mb = kb / 1024;
-    if (mb < 1024) return `${mb.toFixed(2)} MB`;
-    const gb = mb / 1024;
-    return `${gb.toFixed(2)} GB`;
-  };
-
-  const handleDownloadHistory = async (
-    backupId: string,
-    backupType: string,
+  const openProgressModal = (
+    backupType: 'DATABASE' | 'FILES' | 'FULL_SYSTEM',
+    operationId?: string,
   ) => {
-    try {
-      const blob = await backupService.downloadBackup(backupId);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `backup-${backupId}-${backupType}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success('Download Started', 'Backup file is being downloaded');
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Download failed';
-      toast.error('Download Failed', errorMsg);
+    setProgressModal({
+      isOpen: true,
+      backupId: operationId ?? '',
+      backupType,
+    });
+  };
+
+  const attachOperationToModal = (operationId: string) => {
+    setProgressModal(prev => ({
+      ...prev,
+      isOpen: true,
+      backupId: operationId,
+    }));
+  };
+
+  const isApiResponse = (
+    value: unknown,
+  ): value is ApiResponse<Record<string, unknown>> => {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'success' in value &&
+      'data' in value
+    );
+  };
+
+  const extractOperationId = (payload: unknown): string | undefined => {
+    if (!payload || typeof payload !== 'object') {
+      return undefined;
     }
-  };
 
-  const handleDeleteHistory = async (backupId: string, backupName: string) => {
-    setDeleteModal({ isOpen: true, backupId, backupName });
-  };
+    if (
+      'operationId' in payload &&
+      typeof (payload as { operationId?: unknown }).operationId === 'string'
+    ) {
+      return (payload as { operationId: string }).operationId;
+    }
 
-  const confirmDelete = async () => {
-    if (!deleteModal.backupId) return;
-
-    try {
-      setDeleting(true);
-      const response = await backupService.deleteBackup(deleteModal.backupId);
-      if (response.success) {
-        toast.success('Backup Deleted', 'Backup has been deleted successfully');
-        setDeleteModal({ isOpen: false, backupId: null, backupName: null });
-        loadBackupHistory(); // Refresh list
-      } else {
-        toast.error(
-          'Delete Failed',
-          response.error || 'Failed to delete backup',
-        );
+    if (isApiResponse(payload)) {
+      const data = payload.data;
+      if (
+        data &&
+        typeof data === 'object' &&
+        'operationId' in data &&
+        typeof (data as { operationId?: unknown }).operationId === 'string'
+      ) {
+        return (data as { operationId: string }).operationId;
       }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Delete failed';
-      toast.error('Delete Failed', errorMsg);
-    } finally {
-      setDeleting(false);
     }
+
+    return undefined;
   };
 
   const [backupTypes] = useState<BackupType[]>([
@@ -179,61 +139,163 @@ export default function ManualBackupTab() {
     },
   ]);
 
-  const handleBackup = async (type: string) => {
+  const handleBackup = async (type: 'database' | 'files' | 'full') => {
+    const backupType = resolveBackupType(type);
     setLoading(type);
     setError('');
+    openProgressModal(backupType);
+
+    const findActiveBackupOperation = async (): Promise<string | null> => {
+      const wait = (ms: number) =>
+        new Promise(resolve => setTimeout(resolve, ms));
+
+      const lookupActive = async (): Promise<string | null> => {
+        try {
+          const activeResponse = await backupService.getActiveOperations();
+          const activeOperations = (activeResponse?.data as string[]) || [];
+
+          if (
+            !Array.isArray(activeOperations) ||
+            activeOperations.length === 0
+          ) {
+            return null;
+          }
+
+          for (
+            let index = activeOperations.length - 1;
+            index >= 0;
+            index -= 1
+          ) {
+            const operationId = activeOperations[index];
+
+            try {
+              const progressResponse =
+                await backupService.getCurrentProgress(operationId);
+              const progressData = progressResponse?.data as {
+                operationType?: string;
+              };
+
+              if (progressData?.operationType === 'backup') {
+                return operationId;
+              }
+            } catch (progressError) {
+              console.warn(
+                'Failed to fetch progress snapshot for operation:',
+                operationId,
+                progressError,
+              );
+            }
+          }
+        } catch (activeError) {
+          console.error(
+            'Failed to detect active backup operation:',
+            activeError,
+          );
+        }
+
+        return null;
+      };
+
+      const MAX_ATTEMPTS = 6;
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+        if (attempt > 0) {
+          await wait(400 * attempt);
+        } else {
+          await wait(500);
+        }
+
+        const activeId = await lookupActive();
+        if (activeId) {
+          return activeId;
+        }
+      }
+
+      try {
+        const historyResponse = await backupService.listBackups({ limit: 1 });
+        const backups =
+          (historyResponse?.data as Array<{
+            metadata?: { operationId?: string };
+          }>) || [];
+
+        const metadataOperationId = backups[0]?.metadata?.operationId;
+        if (metadataOperationId) {
+          try {
+            const history =
+              await backupService.getProgressHistory(metadataOperationId);
+            if (Array.isArray(history?.data) && history.data.length > 0) {
+              return metadataOperationId;
+            }
+          } catch (historyError) {
+            console.warn(
+              'Failed to fetch history for fallback operation:',
+              metadataOperationId,
+              historyError,
+            );
+          }
+        }
+      } catch (historyError) {
+        console.error(
+          'Failed to inspect latest backup metadata:',
+          historyError,
+        );
+      }
+
+      return null;
+    };
 
     try {
-      const backupType =
-        type === 'database'
-          ? 'DATABASE'
-          : type === 'files'
-            ? 'FILES'
-            : 'FULL_SYSTEM';
-
-      // Generate temporary ID for progress tracking
-      const tempBackupId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-      // Open progress modal IMMEDIATELY before API call
-      setProgressModal({
-        isOpen: true,
-        backupId: tempBackupId,
-        backupType: backupType,
+      const response = await backupService.createBackup({
+        type: backupType,
       });
 
-      // Show starting toast
+      if (response.success === false) {
+        const responseError =
+          response.error || response.message || 'Failed to start backup';
+        throw new Error(responseError);
+      }
+
+      const operationId = extractOperationId(response);
+
+      if (!operationId) {
+        throw new Error('Failed to start backup - no operation ID received');
+      }
+
       toast.success(
         'Backup Started',
         `${backupType.replace('_', ' ').toLowerCase()} backup is being created...`,
       );
 
-      // Call API to create backup
-      const response = await backupService.createBackup({
-        type: backupType,
-        // Let backend use global encryption settings
-      });
-
-      // Update modal with real operationId if successful
-      if (response.success && response.data && response.data.operationId) {
-        setProgressModal(prev => ({
-          ...prev,
-          backupId: response.data.operationId, // Use operationId for SSE tracking
-        }));
-      } else {
-        // Close modal and show error
-        setProgressModal(prev => ({ ...prev, isOpen: false }));
-        const errorMsg =
-          response.error || response.message || 'Failed to start backup';
-        setError(errorMsg);
-        toast.error('Backup Failed', errorMsg);
-      }
+      attachOperationToModal(operationId);
     } catch (err) {
-      // Close modal and show error
-      setProgressModal(prev => ({ ...prev, isOpen: false }));
+      const isAbortError =
+        err instanceof Error &&
+        (err.message.includes('aborted') || err.name === 'AbortError');
+
+      if (isAbortError) {
+        const fallbackOperationId = await findActiveBackupOperation();
+
+        if (fallbackOperationId) {
+          toast.success(
+            'Backup In Progress',
+            'Reattached to running backup operation.',
+          );
+          attachOperationToModal(fallbackOperationId);
+        } else {
+          toast.info(
+            'Backup Running',
+            'Backup started, but real-time tracking was not attached. Refresh the page to see status.',
+          );
+          setProgressModal(prev => ({ ...prev, isOpen: false }));
+        }
+        return;
+      }
+
       const errorMsg =
         err instanceof Error ? err.message : 'Failed to start backup';
+      console.error('❌ Backup error:', err);
       setError(errorMsg);
       toast.error('Backup Error', errorMsg);
+      setProgressModal(prev => ({ ...prev, isOpen: false }));
     } finally {
       setLoading('');
     }
@@ -315,135 +377,16 @@ export default function ManualBackupTab() {
         })}
       </div>
 
-      {/* Backup History Section */}
-      {backupHistory.length > 0 && (
-        <Card className='p-6 mt-6'>
-          <div className='flex items-center gap-3 mb-6'>
-            <div className='p-2 bg-gray-50 rounded-lg'>
-              <Database className='h-5 w-5 text-gray-600' />
-            </div>
-            <div>
-              <h3 className='text-lg font-semibold text-gray-900'>
-                Recent Manual Backups
-              </h3>
-              <p className='text-sm text-gray-600'>
-                Download or delete previous backups
-              </p>
-            </div>
-          </div>
-
-          <div className='space-y-3'>
-            {backupHistory.length > 0 ? (
-              backupHistory.slice(0, 10).map(backup => {
-                const IconComponent =
-                  backup.type === 'DATABASE'
-                    ? Database
-                    : backup.type === 'FILES'
-                      ? FileText
-                      : HardDrive;
-                const colorClass =
-                  backup.type === 'DATABASE'
-                    ? 'text-blue-600'
-                    : backup.type === 'FILES'
-                      ? 'text-green-600'
-                      : 'text-purple-600';
-                const bgColorClass =
-                  backup.type === 'DATABASE'
-                    ? 'bg-blue-50'
-                    : backup.type === 'FILES'
-                      ? 'bg-green-50'
-                      : 'bg-purple-50';
-
-                return (
-                  <div
-                    key={backup.backupId}
-                    className='flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors'
-                  >
-                    <div className='flex items-center gap-3 flex-1'>
-                      <div
-                        className={`p-2 ${bgColorClass} rounded-lg ${colorClass}`}
-                      >
-                        <IconComponent className='h-4 w-4' />
-                      </div>
-                      <div>
-                        <h4 className='font-medium text-gray-900'>
-                          {backup.type.replace('_', ' ')} Backup
-                        </h4>
-                        <p className='text-sm text-gray-600'>
-                          {new Date(
-                            backup.startedAt || backup.createdAt || Date.now(),
-                          ).toLocaleString()}{' '}
-                          • {formatBytes(Number(backup.size))}
-                        </p>
-                        <div className='flex items-center gap-2 mt-1'>
-                          {backup.encrypted && (
-                            <span className='inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800'>
-                              Encrypted
-                            </span>
-                          )}
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                              backup.status === 'COMPLETED'
-                                ? 'bg-green-100 text-green-800'
-                                : backup.status === 'FAILED'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-blue-100 text-blue-800'
-                            }`}
-                          >
-                            {backup.status}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <ReusableButton
-                        onClick={() =>
-                          handleDownloadHistory(backup.backupId, backup.type)
-                        }
-                        className='p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors'
-                      >
-                        <Download className='h-4 w-4' />
-                      </ReusableButton>
-                      <ReusableButton
-                        onClick={() =>
-                          handleDeleteHistory(backup.backupId, backup.type)
-                        }
-                        className='p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors'
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </ReusableButton>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className='text-center py-12'>
-                <Database className='h-16 w-16 text-gray-300 mx-auto mb-4' />
-                <h4 className='text-lg font-medium text-gray-900 mb-2'>
-                  No Manual Backups Yet
-                </h4>
-                <p className='text-sm text-gray-600 mb-4'>
-                  Create your first backup using the buttons above
-                </p>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
       {/* Progress Modal */}
       <BackupProgressModal
         isOpen={progressModal.isOpen}
-        onClose={() => setProgressModal(prev => ({ ...prev, isOpen: false }))}
+        onClose={() => {
+          setProgressModal(prev => ({ ...prev, isOpen: false }));
+        }}
         backupId={progressModal.backupId}
         backupType={progressModal.backupType}
-        onComplete={result => {
-          toast.success(
-            'Backup Completed',
-            `Backup completed successfully. Size: ${result.size || 'Unknown'}`,
-          );
-          setProgressModal(prev => ({ ...prev, isOpen: false }));
-          loadBackupHistory();
+        onComplete={() => {
+          toast.success('Backup Complete', 'Backup finished successfully.');
         }}
         onCancel={() => {
           toast.warning(
@@ -452,19 +395,6 @@ export default function ManualBackupTab() {
           );
           setProgressModal(prev => ({ ...prev, isOpen: false }));
         }}
-      />
-
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={deleteModal.isOpen}
-        onClose={() =>
-          setDeleteModal({ isOpen: false, backupId: null, backupName: null })
-        }
-        onConfirm={confirmDelete}
-        title='Delete Backup'
-        message='Are you sure you want to delete this backup?'
-        itemName={deleteModal.backupName || ''}
-        isLoading={deleting}
       />
     </div>
   );

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
@@ -435,6 +436,9 @@ export class BackupService {
       dropExisting?: boolean;
       enablePreRestoreSnapshot?: boolean;
       userId?: string;
+      backupTypeHint?: string;
+      encryptedHint?: boolean;
+      originalFilename?: string;
     } = {},
     operationId?: string,
   ): Promise<void> {
@@ -482,8 +486,14 @@ export class BackupService {
       // Check if backup file still exists
       try {
         await fs.access(backupRecord.location);
-      } catch (error) {
-        throw new Error(`Backup file not found: ${backupRecord.location}`);
+      } catch (fileAccessError) {
+        const reason =
+          fileAccessError instanceof Error
+            ? fileAccessError.message
+            : String(fileAccessError);
+        throw new Error(
+          `Backup file not found: ${backupRecord.location} (${reason})`,
+        );
       }
 
       // Create pre-restore snapshot if enabled
@@ -548,17 +558,61 @@ export class BackupService {
 
       // Use encryption key from metadata if not provided
       let clientKey = options.clientKey;
-      if (backupRecord.encrypted && !clientKey && backupRecord.encryptionKey) {
-        clientKey = backupRecord.encryptionKey;
+      if (backupRecord.encrypted && !clientKey) {
+        if (backupRecord.encryptionKey) {
+          this.logger.log(
+            `Using encryption key from backup metadata for restore`,
+          );
+          clientKey = backupRecord.encryptionKey;
+        } else {
+          // Fallback to global encryption settings
+          this.logger.log(
+            `Backup metadata has no key, checking global encryption settings...`,
+          );
+          try {
+            const backupSettings =
+              await this.backupSettingsService.getSettings();
+            if (
+              backupSettings.encryption.enableEncryption &&
+              backupSettings.encryption.clientEncryptionKey
+            ) {
+              this.logger.log(
+                `Using global encryption key from settings for restore`,
+              );
+              clientKey = backupSettings.encryption.clientEncryptionKey;
+            }
+          } catch (error) {
+            this.logger.warn(
+              `Failed to load encryption settings: ${error.message}`,
+            );
+          }
+        }
       }
+
+      if (backupRecord.encrypted && !clientKey) {
+        throw new Error(
+          'Backup is encrypted but no decryption key is available. Please provide the encryption key.',
+        );
+      }
+
+      this.logger.log(
+        `Restoring encrypted backup with key: ${clientKey ? 'PROVIDED' : 'MISSING'}`,
+      );
 
       // Perform restore with memory monitoring
       try {
         this.logger.log(`Starting restore operation for backup: ${backupId}`);
-        await this.restoreService.restoreFromBackup(backupRecord.location, {
-          ...options,
-          clientKey,
-        });
+        await this.restoreService.restoreFromBackup(
+          backupRecord.location,
+          {
+            ...options,
+            clientKey,
+            originalFilename: path.basename(backupRecord.location),
+            backupTypeHint: backupRecord.type,
+            encryptedHint: backupRecord.encrypted,
+          },
+          operationId,
+        );
         this.logger.log(`Restore operation completed for backup: ${backupId}`);
       } catch (restoreError) {
         this.logger.error(
@@ -778,8 +832,12 @@ export class BackupService {
       // Check if file exists
       try {
         await fs.access(backupRecord.location);
-      } catch (error) {
-        return { valid: false, errors: ['Backup file not found'] };
+      } catch (fileAccessError) {
+        const reason =
+          fileAccessError instanceof Error
+            ? fileAccessError.message
+            : String(fileAccessError);
+        return { valid: false, errors: [`Backup file not found (${reason})`] };
       }
 
       // Validate using restore service
@@ -1285,16 +1343,17 @@ export class BackupService {
    */
   async downloadBackup(
     backupId: string,
-    _clientKey?: string,
+    clientKeyOverride?: string,
   ): Promise<{
     success: boolean;
     message?: string;
     filePath?: string;
     filename?: string;
     fileSize?: number;
+    isTemporary?: boolean;
+    tempFiles?: string[];
   }> {
     try {
-      // Get backup metadata
       const backup = await this.getBackupMetadata(backupId);
 
       if (!backup) {
@@ -1304,33 +1363,137 @@ export class BackupService {
         };
       }
 
-      // Check if backup file exists
       const fs = await import('fs');
       const path = await import('path');
 
-      if (!fs.existsSync(backup.location)) {
+      const fileExistsLocally = fs.existsSync(backup.location);
+      const currentLocation = (backup.metadata as Record<string, unknown>)
+        ?.currentLocation;
+      const isOffsiteOnly = currentLocation === 'offsite' && !fileExistsLocally;
+
+      let filePath = backup.location;
+      let isTemporary = false;
+      const tempFiles: string[] = [];
+
+      if (isOffsiteOnly) {
+        this.logger.log(
+          `Backup ${backupId} is offsite-only, downloading from remote server...`,
+        );
+
+        const settings = await this.backupSettingsService.getSettings();
+        const { offsite } = settings;
+
+        if (
+          !offsite.enableOffsiteBackup ||
+          !offsite.remoteHost ||
+          !offsite.username ||
+          !offsite.remotePath
+        ) {
+          return {
+            success: false,
+            message:
+              'Backup is stored offsite but offsite settings are not configured',
+          };
+        }
+
+        const tempDir = path.join(process.cwd(), 'temp-downloads');
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        const tempFileName = `temp_${Date.now()}_${path.basename(backup.location)}`;
+        const tempFilePath = path.join(tempDir, tempFileName);
+
+        const remoteFileName = path.basename(backup.location);
+        const downloadResult =
+          await this.offsiteBackupService.downloadFromOffsite(
+            remoteFileName,
+            tempFilePath,
+          );
+
+        if (!downloadResult.success) {
+          return {
+            success: false,
+            message: `Failed to download from offsite: ${downloadResult.error}`,
+          };
+        }
+
+        this.logger.log(
+          `Successfully downloaded offsite backup to: ${tempFilePath}`,
+        );
+
+        filePath = tempFilePath;
+        isTemporary = true;
+        tempFiles.push(tempFilePath);
+      } else if (!fileExistsLocally) {
         return {
           success: false,
-          message: 'Backup file not found on disk',
+          message: 'Backup file not found locally or on offsite server',
         };
       }
 
-      // Get file stats
-      const stats = fs.statSync(backup.location);
+      let downloadPath = filePath;
+      let downloadFilename = path.basename(filePath);
 
-      // Generate appropriate filename
-      const extension = backup.encrypted
-        ? '.enc'
-        : backup.type === 'DATABASE'
-          ? '.sql.gz'
-          : '.tar.gz';
-      const filename = `backup-${backup.backupId}-${backup.type.toLowerCase()}${extension}`;
+      if (backup.encrypted) {
+        const effectiveKey = clientKeyOverride || backup.encryptionKey;
+        if (!effectiveKey) {
+          return {
+            success: false,
+            message:
+              'Backup is encrypted and no decryption key is available. Please provide the encryption key.',
+          };
+        }
+
+        const tempDir = path.join(process.cwd(), 'temp-downloads');
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        const baseName = path.basename(filePath).replace(/\.enc$/, '');
+        const decryptedPath = path.join(
+          tempDir,
+          `decrypted_${Date.now()}_${baseName}`,
+        );
+
+        await this.encryptionService.decryptFile(
+          filePath,
+          decryptedPath,
+          effectiveKey,
+        );
+
+        if (isTemporary && fs.existsSync(filePath)) {
+          try {
+            fs.unlinkSync(filePath);
+          } catch (cleanupError) {
+            this.logger.warn(
+              `Failed to delete temporary encrypted file ${filePath}: ${cleanupError instanceof Error ? cleanupError.message : cleanupError}`,
+            );
+          }
+        }
+
+        downloadPath = decryptedPath;
+        downloadFilename = baseName;
+        isTemporary = true;
+        tempFiles.push(decryptedPath);
+      }
+
+      const stats = fs.statSync(downloadPath);
+
+      const extension =
+        path.extname(downloadFilename) ||
+        (backup.type === 'DATABASE' ? '.sql.gz' : '.tar.gz');
+      const filename = downloadFilename.endsWith(extension)
+        ? downloadFilename
+        : `${downloadFilename}${extension}`;
 
       return {
         success: true,
-        filePath: path.resolve(backup.location),
+        filePath: path.resolve(downloadPath),
         filename,
         fileSize: stats.size,
+        isTemporary,
+        tempFiles,
       };
     } catch (error) {
       this.logger.error(`Failed to prepare backup download: ${error.message}`);
