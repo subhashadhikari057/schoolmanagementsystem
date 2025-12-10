@@ -21,6 +21,10 @@ import type { RoomWithAssets } from '@/types/asset.types';
 
 interface ReportsTabProps {
   room: RoomWithAssets;
+  onNotification?: (
+    type: 'success' | 'error' | 'info',
+    message: string,
+  ) => void;
 }
 
 interface KPIData {

@@ -59,9 +59,21 @@ export const simulateApiError = (
   console.log(`API error simulated: ${statusCode} - ${message}`);
 };
 
+type TokenExpiryTestApi = {
+  simulateTokenExpiration: typeof simulateTokenExpiration;
+  simulateSessionExpiry: typeof simulateSessionExpiry;
+  simulateApiError: typeof simulateApiError;
+};
+
+declare global {
+  interface Window {
+    testTokenExpiry: TokenExpiryTestApi;
+  }
+}
+
 // Add a global function for testing in browser console
 if (typeof window !== 'undefined') {
-  (window as any).testTokenExpiry = {
+  window.testTokenExpiry = {
     simulateTokenExpiration,
     simulateSessionExpiry,
     simulateApiError,

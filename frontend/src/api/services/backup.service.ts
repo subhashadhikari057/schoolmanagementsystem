@@ -71,6 +71,15 @@ export interface BackupDashboard {
   lastUpdated: string;
 }
 
+export interface RestorePreview {
+  databaseTables: string[];
+  fileCount: number;
+  totalSize: string;
+  configFiles: string[];
+  warnings: string[];
+  conflicts: string[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -433,13 +442,13 @@ export class BackupService {
   async getRestorePreview(
     backupId: string,
     clientKey?: string,
-  ): Promise<ApiResponse<Record<string, unknown>>> {
+  ): Promise<ApiResponse<RestorePreview>> {
     try {
-      const response = await apiClient.get<Record<string, unknown>>(
+      const response = await apiClient.get<ApiResponse<RestorePreview>>(
         `${this.baseUrl}/${backupId}/preview`,
         clientKey ? { clientKey } : undefined,
       );
-      return response;
+      return response.data;
     } catch (error) {
       console.error('Error getting restore preview:', error);
       throw error;

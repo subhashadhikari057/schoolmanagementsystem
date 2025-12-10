@@ -15,6 +15,7 @@ interface Props {
   disabled?: boolean;
   size?: ButtonSize;
   variant?: ButtonVariant;
+  loading?: boolean;
 }
 
 export default function ReusableButton({
@@ -27,6 +28,7 @@ export default function ReusableButton({
   disabled,
   size = 'md',
   variant = 'primary',
+  loading = false,
 }: Props) {
   // Responsive sizing classes
   const sizeClasses: Record<ButtonSize, string> = {
@@ -54,18 +56,20 @@ export default function ReusableButton({
     min-w-0 max-w-full
     ${sizeClasses[size]}
     ${variantClasses[variant]}
-    ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+    ${disabled || loading ? 'opacity-50 cursor-not-allowed' : ''}
   `;
+
+  const isDisabled = disabled || loading;
 
   if (as === 'div') {
     return (
       <div
-        onClick={disabled ? undefined : onClick}
-        className={`${baseClasses} ${disabled ? '' : 'cursor-pointer'} ${className || ''}`}
+        onClick={isDisabled ? undefined : onClick}
+        className={`${baseClasses} ${isDisabled ? '' : 'cursor-pointer'} ${className || ''}`}
         role='button'
-        tabIndex={disabled ? -1 : 0}
+        tabIndex={isDisabled ? -1 : 0}
         onKeyDown={e => {
-          if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+          if (!isDisabled && (e.key === 'Enter' || e.key === ' ')) {
             onClick?.();
           }
         }}
@@ -80,8 +84,30 @@ export default function ReusableButton({
       onClick={onClick}
       className={`${baseClasses} ${className || ''}`}
       type={type}
-      disabled={disabled}
+      disabled={isDisabled}
     >
+      {loading && (
+        <svg
+          className='mr-2 h-4 w-4 animate-spin text-current'
+          xmlns='http://www.w3.org/2000/svg'
+          fill='none'
+          viewBox='0 0 24 24'
+        >
+          <circle
+            className='opacity-25'
+            cx='12'
+            cy='12'
+            r='10'
+            stroke='currentColor'
+            strokeWidth='4'
+          />
+          <path
+            className='opacity-75'
+            fill='currentColor'
+            d='M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z'
+          />
+        </svg>
+      )}
       <span className='truncate'>{children ? children : label}</span>
     </Button>
   );

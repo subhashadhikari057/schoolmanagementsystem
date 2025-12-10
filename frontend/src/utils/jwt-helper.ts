@@ -6,12 +6,17 @@
  * =============================================================================
  */
 
+interface JwtPayload {
+  exp?: number;
+  [key: string]: unknown;
+}
+
 /**
  * Parse a JWT token and return its payload
  * @param token JWT token string
  * @returns Decoded payload or null if invalid
  */
-export function parseJwt(token: string): any {
+export function parseJwt(token: string): JwtPayload | null {
   try {
     // Split the token and get the payload part (second segment)
     const base64Url = token.split('.')[1];
@@ -42,7 +47,7 @@ export function parseJwt(token: string): any {
 export function isTokenExpired(token: string, bufferSeconds = 60): boolean {
   try {
     const payload = parseJwt(token);
-    if (!payload || !payload.exp) return true;
+    if (!payload || typeof payload.exp !== 'number') return true;
 
     // Get expiration time and current time in seconds
     const expirationTime = payload.exp * 1000; // Convert to milliseconds
@@ -65,7 +70,7 @@ export function isTokenExpired(token: string, bufferSeconds = 60): boolean {
 export function getTokenTimeRemaining(token: string): number {
   try {
     const payload = parseJwt(token);
-    if (!payload || !payload.exp) return 0;
+    if (!payload || typeof payload.exp !== 'number') return 0;
 
     // Get expiration time and current time in seconds
     const expirationTime = payload.exp * 1000; // Convert to milliseconds

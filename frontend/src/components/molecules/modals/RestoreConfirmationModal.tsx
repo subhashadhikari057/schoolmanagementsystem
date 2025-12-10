@@ -12,7 +12,10 @@ import {
 import ReusableButton from '@/components/atoms/form-controls/Button';
 import Input from '@/components/atoms/form-controls/Input';
 import Label from '@/components/atoms/display/Label';
-import { backupService } from '@/api/services/backup.service';
+import {
+  backupService,
+  type RestorePreview,
+} from '@/api/services/backup.service';
 
 interface RestoreConfirmationModalProps {
   isOpen: boolean;
@@ -39,15 +42,6 @@ interface RestoreOptions {
   restoreConfig: boolean;
   dropExisting: boolean;
   createPreSnapshot: boolean;
-}
-
-interface RestorePreview {
-  databaseTables: string[];
-  fileCount: number;
-  totalSize: string;
-  configFiles: string[];
-  warnings: string[];
-  conflicts: string[];
 }
 
 export default function RestoreConfirmationModal({
@@ -100,7 +94,7 @@ export default function RestoreConfirmationModal({
       );
 
       if (response.success && response.data) {
-        setPreview(response.data);
+        setPreview(response.data as RestorePreview);
         setShowPreview(true);
       } else {
         setError(response.error || 'Failed to generate restore preview');

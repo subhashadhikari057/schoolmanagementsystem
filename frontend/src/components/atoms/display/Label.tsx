@@ -1,17 +1,14 @@
 import React from 'react';
 
-export default function Label({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+type LabelProps = React.LabelHTMLAttributes<HTMLLabelElement>;
+
+export default function Label({ children, className, ...rest }: LabelProps) {
   return (
-    <div
-      className={`text-xs sm:text-sm text-gray-500 font-medium ${className}`}
+    <label
+      className={`text-xs sm:text-sm text-gray-500 font-medium ${className || ''}`}
+      {...rest}
     >
       {children}
-    </div>
+    </label>
   );
 }
