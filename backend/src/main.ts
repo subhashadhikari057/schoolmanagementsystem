@@ -16,6 +16,8 @@ export async function createApp() {
       'http://localhost:3001', // Alternative frontend port
       'http://127.0.0.1:3000', // Alternative localhost format
       'http://127.0.0.1:3001', // Alternative localhost format
+      'https://sms.navneetverma.com', // Production domain
+      'https://www.sms.navneetverma.com', // Production domain with www
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
@@ -60,9 +62,8 @@ export async function createApp() {
 async function bootstrap(): Promise<void> {
   try {
     // Validate environment variables before starting the app
-    const { validateEnvironment } = await import(
-      './shared/config/env.validation'
-    );
+    const { validateEnvironment } =
+      await import('./shared/config/env.validation');
     const envConfig = validateEnvironment();
 
     const app = await createApp();
