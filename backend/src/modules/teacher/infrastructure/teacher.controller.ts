@@ -258,7 +258,7 @@ export class TeacherController {
     if (!validationResult.success) {
       throw new BadRequestException({
         message: 'Validation failed',
-        errors: validationResult.error.errors,
+        errors: validationResult.error.issues,
       });
     }
 

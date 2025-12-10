@@ -17,31 +17,15 @@ export const CreateNoticeSchema = z
       .string()
       .min(1, 'Content is required')
       .max(10000, 'Content must be less than 10000 characters'),
-    priority: z.nativeEnum(NoticePriority, {
-      errorMap: () => ({ message: 'Invalid priority value' }),
-    }),
-    recipientType: z.nativeEnum(NoticeRecipientType, {
-      errorMap: () => ({ message: 'Invalid recipient type' }),
-    }),
+    priority: z.nativeEnum(NoticePriority),
+    recipientType: z.nativeEnum(NoticeRecipientType),
     selectedClassId: z.string().uuid().optional(),
     selectedStudentId: z.string().uuid().optional(),
-    category: z
-      .nativeEnum(NoticeCategory, {
-        errorMap: () => ({ message: 'Invalid category' }),
-      })
-      .optional(),
-    publishDate: z.coerce.date({
-      errorMap: () => ({ message: 'Invalid publish date' }),
-    }),
-    expiryDate: z.coerce.date({
-      errorMap: () => ({ message: 'Invalid expiry date' }),
-    }),
+    category: z.nativeEnum(NoticeCategory).optional(),
+    publishDate: z.coerce.date(),
+    expiryDate: z.coerce.date(),
     sendEmailNotification: z.boolean().default(false),
-    status: z
-      .nativeEnum(NoticeStatus, {
-        errorMap: () => ({ message: 'Invalid status' }),
-      })
-      .default('DRAFT'),
+    status: z.nativeEnum(NoticeStatus).default('DRAFT'),
     attachments: z.array(z.string()).optional(), // Array of file IDs
   })
   .refine(
@@ -102,33 +86,13 @@ export const UpdateNoticeSchema = z
         errorMap: () => ({ message: 'Invalid priority value' }),
       })
       .optional(),
-    recipientType: z
-      .nativeEnum(NoticeRecipientType, {
-        errorMap: () => ({ message: 'Invalid recipient type' }),
-      })
-      .optional(),
+    recipientType: z.nativeEnum(NoticeRecipientType).optional(),
     selectedClassId: z.string().uuid().optional(),
     selectedStudentId: z.string().uuid().optional(),
-    category: z
-      .nativeEnum(NoticeCategory, {
-        errorMap: () => ({ message: 'Invalid category' }),
-      })
-      .optional(),
-    publishDate: z.coerce
-      .date({
-        errorMap: () => ({ message: 'Invalid publish date' }),
-      })
-      .optional(),
-    expiryDate: z.coerce
-      .date({
-        errorMap: () => ({ message: 'Invalid expiry date' }),
-      })
-      .optional(),
-    status: z
-      .nativeEnum(NoticeStatus, {
-        errorMap: () => ({ message: 'Invalid status' }),
-      })
-      .optional(),
+    category: z.nativeEnum(NoticeCategory).optional(),
+    publishDate: z.coerce.date().optional(),
+    expiryDate: z.coerce.date().optional(),
+    status: z.nativeEnum(NoticeStatus).optional(),
     sendEmailNotification: z.boolean().optional(),
   })
   .refine(

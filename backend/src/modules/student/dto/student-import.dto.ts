@@ -12,9 +12,7 @@ export const StudentImportRowSchema = z.object({
     .max(12, 'Class grade cannot exceed 12'),
   classSection: z.string().min(1, 'Class section is required'),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
-  gender: z.enum(['Male', 'Female', 'Other'], {
-    errorMap: () => ({ message: 'Gender must be Male, Female, or Other' }),
-  }),
+  gender: z.enum(['Male', 'Female', 'Other']),
   // Parent information
   primaryParentName: z.string().min(1, 'Primary parent name is required'),
   primaryParentPhone: z.string().min(1, 'Primary parent phone is required'),

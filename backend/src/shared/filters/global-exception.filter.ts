@@ -119,7 +119,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     traceId: string,
     context: DetailedErrorResponseDto['context'],
   ): DetailedErrorResponseDto {
-    const validationErrors: ValidationErrorDetail[] = error.errors.map(err => ({
+    const validationErrors: ValidationErrorDetail[] = error.issues.map(err => ({
       field: err.path.join('.'),
       value: ((err as any).input as unknown) || undefined,
       message: err.message,

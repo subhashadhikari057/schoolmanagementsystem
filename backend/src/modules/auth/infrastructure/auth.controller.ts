@@ -49,7 +49,7 @@ export class AuthController {
     const ip: string = req.ip || 'unknown';
     const userAgent: string = req.headers['user-agent'] || 'unknown';
 
-    const result = await this.authService.login(body, ip, userAgent);
+    const result = await this.authService.login(body as any, ip, userAgent);
 
     // ✅ Check if password change is required
     if ('requirePasswordChange' in result && result.requirePasswordChange) {
@@ -209,7 +209,7 @@ export class AuthController {
     const userAgent = req.headers['user-agent'] || 'unknown';
 
     const result = await this.authService.forceChangePassword(
-      body,
+      body as any,
       ip,
       userAgent,
     );
@@ -230,7 +230,7 @@ export class AuthController {
     if (!userId) {
       throw new UnauthorizedException('User not authenticated');
     }
-    await this.authService.changePassword({ ...body, userId });
+    await this.authService.changePassword({ ...(body as any), userId });
     return { message: 'Password changed successfully' };
   }
 
