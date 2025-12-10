@@ -20,11 +20,12 @@ export function signAccessToken(
   options: SignOptions = {},
 ): string {
   loadKeysFromEnv();
-  return jwt.sign(payload, privateKey, {
+  const signOptions: SignOptions = {
     algorithm: 'RS256',
-    expiresIn: env.JWT_ACCESS_EXPIRES_IN,
+    expiresIn: env.JWT_ACCESS_EXPIRES_IN.toString() as any,
     ...options,
-  });
+  };
+  return jwt.sign(payload as object, privateKey as string, signOptions);
 }
 
 export function signRefreshToken(
@@ -32,11 +33,12 @@ export function signRefreshToken(
   options: SignOptions = {},
 ): string {
   loadKeysFromEnv();
-  return jwt.sign(payload, privateKey, {
+  const signOptions: SignOptions = {
     algorithm: 'RS256',
-    expiresIn: env.JWT_REFRESH_EXPIRES_IN,
+    expiresIn: env.JWT_REFRESH_EXPIRES_IN.toString() as any,
     ...options,
-  });
+  };
+  return jwt.sign(payload as object, privateKey as string, signOptions);
 }
 
 export function verifyToken(token: string): JwtPayload | null {
@@ -44,7 +46,7 @@ export function verifyToken(token: string): JwtPayload | null {
     loadKeysFromEnv();
     return jwt.verify(token, publicKey, {
       algorithms: ['RS256'],
-    }) as JwtPayload;
+    } as jwt.VerifyOptions) as JwtPayload;
   } catch {
     return null;
   }
@@ -83,13 +85,14 @@ export function signTempToken(
   options: SignOptions = {},
 ): string {
   loadKeysFromEnv();
-  return jwt.sign(payload, privateKey, {
+  const signOptions: SignOptions = {
     algorithm: 'RS256',
     expiresIn: '30m', // Short-lived for security
     issuer: 'school-management',
     audience: 'temp-action',
     ...options,
-  });
+  };
+  return jwt.sign(payload as object, privateKey as string, signOptions);
 }
 
 export function verifyTempToken(
@@ -101,7 +104,7 @@ export function verifyTempToken(
       algorithms: ['RS256'],
       issuer: 'school-management',
       audience: 'temp-action',
-    }) as JwtPayload;
+    } as jwt.VerifyOptions) as JwtPayload;
 
     if (decoded.userId && decoded.purpose) {
       return {
