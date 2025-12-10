@@ -39,19 +39,19 @@ const nextConfig: NextConfig = {
         port: '8080',
         pathname: '/api/v1/files/**',
       },
-      // Production patterns - replace 'yourdomain.com' with your actual domain
+      // Production patterns - replace 'sms.navneetverma.com' with your actual domain
       {
         protocol: 'https',
-        hostname: 'yourdomain.com',
+        hostname: 'sms.navneetverma.com',
         pathname: '/api/v1/files/**',
       },
       {
         protocol: 'https',
-        hostname: 'yourdomain.com',
+        hostname: 'sms.navneetverma.com',
         pathname: '/uploads/**',
       },
     ],
-    domains: ['localhost', '127.0.0.1', 'yourdomain.com'],
+    domains: ['localhost', '127.0.0.1', 'sms.navneetverma.com'],
   },
   async rewrites() {
     // In production, API calls go through nginx proxy
