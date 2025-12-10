@@ -2,7 +2,7 @@
   "apps": [
     {
       "name": "school-backend",
-      "script": "dist/main.js",
+      "script": "dist/src/main.js",
       "cwd": "/home/deploy/schoolmanagementsystem/backend",
       "instances": 1,
       "exec_mode": "fork",
