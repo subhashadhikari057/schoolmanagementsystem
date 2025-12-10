@@ -79,8 +79,8 @@ export const LoginRequestSchema = z.object({
 export const LoginUserSchema = z.object({
   id: z.string().uuid("Invalid user ID format"),
   full_name: CommonValidation.name,
-  role: z.nativeEnum(UserRole, {
-    errorMap: () => ({ message: "Invalid user role" }),
+  role: z.nativeEnum(UserRole).refine((val) => Object.values(UserRole).includes(val), {
+    message: "Invalid user role",
   }),
 });
 

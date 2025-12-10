@@ -127,7 +127,7 @@ export const DatabaseErrorDetailSchema = z.object({
 export const BusinessLogicErrorDetailSchema = z.object({
   rule: z.string().describe("Business rule that was violated"),
   context: z
-    .record(z.any())
+    .record(z.string(), z.any())
     .optional()
     .describe("Additional context about the business rule violation"),
   suggestion: z
@@ -282,13 +282,13 @@ export const DetailedErrorResponseSchema = BaseErrorResponseSchema.extend({
       external: ExternalServiceErrorDetailSchema.optional().describe(
         "External service error details",
       ),
-      custom: z.record(z.any()).optional().describe("Custom error details"),
+      custom: z.record(z.string(), z.any()).optional().describe("Custom error details"),
     })
     .optional()
     .describe("Detailed error information for debugging"),
 
   errors: z
-    .record(z.array(z.string()))
+    .record(z.string(), z.array(z.string()))
     .optional()
     .describe("Field-specific error messages (legacy support)"),
 

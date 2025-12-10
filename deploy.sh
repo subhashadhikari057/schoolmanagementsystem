@@ -48,19 +48,19 @@ print_status "Prerequisites check passed"
 
 # Create necessary directories
 print_info "Creating directories..."
-mkdir -p /home/schoolapp/logs
-mkdir -p /home/schoolapp/schoolmanagementsystem/backend/logs
-mkdir -p /home/schoolapp/schoolmanagementsystem/backend/uploads
+mkdir -p /deploy/schoolmanagementsystem/logs
+mkdir -p /deploy/schoolmanagementsystem/backend/logs
+mkdir -p /deploy/schoolmanagementsystem/backend/uploads
 
 # Set proper permissions
-sudo chown -R schoolapp:schoolapp /home/schoolapp/
-chmod 755 /home/schoolapp/schoolmanagementsystem/backend/uploads
+sudo chown -R deploy:deploy /deploy/schoolmanagementsystem/
+chmod 755 /deploy/schoolmanagementsystem/backend/uploads
 
 print_status "Directories created"
 
 # Install dependencies
 print_info "Installing dependencies..."
-cd /home/schoolapp/schoolmanagementsystem
+cd /deploy/schoolmanagementsystem
 
 # Install root dependencies
 npm install
@@ -109,6 +109,10 @@ if [ ! -f .env.production ]; then
     print_info "Please create frontend/.env.production file with your configuration"
     exit 1
 fi
+
+# Clean node_modules and reinstall to fix workspace issues
+rm -rf node_modules package-lock.json
+npm install
 
 npm run build
 print_status "Frontend built"

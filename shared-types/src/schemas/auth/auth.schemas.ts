@@ -90,10 +90,8 @@ export const RegisterUserSchema = z.object({
  */
 export const RegisterRequestSchema = z.object({
   user: RegisterUserSchema,
-  role: z.enum([UserRole.STUDENT, UserRole.PARENT], {
-    errorMap: () => ({
-      message: "Only student and parent roles can self-register",
-    }),
+  role: z.enum([UserRole.STUDENT, UserRole.PARENT]).refine((val) => [UserRole.STUDENT, UserRole.PARENT].includes(val), {
+    message: "Only student and parent roles can self-register",
   }),
   metadata: MetadataSchema,
   terms_accepted: z
@@ -207,7 +205,10 @@ export const MeResponseSchema = z.object({
 export const SessionSchema = BaseEntitySchema.extend({
   user_id: CommonValidation.uuid,
   status: z.nativeEnum(SessionStatus),
-  ip_address: z.string().ip("Invalid IP address"),
+  ip_address: z.string().refine((val) => {
+    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    return ipRegex.test(val);
+  }, "Invalid IP address"),
   user_agent: z.string().max(500, "User agent too long"),
   last_activity: z.date(),
   expires_at: z.date(),

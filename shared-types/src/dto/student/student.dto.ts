@@ -157,7 +157,7 @@ export const CreateStudentRequestSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
   gender: GenderSchema,
-  additional_metadata: z.record(z.any()).optional(),
+  additional_metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export const UpdateStudentRequestSchema = z.object({
@@ -171,7 +171,7 @@ export const UpdateStudentRequestSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format")
     .optional(),
   gender: GenderSchema.optional(),
-  additional_metadata: z.record(z.any()).optional(),
+  additional_metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export const SearchStudentsRequestSchema = z.object({

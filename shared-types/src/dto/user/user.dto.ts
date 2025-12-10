@@ -86,7 +86,7 @@ export const CreateUserSchema = z.object({
   phone: CommonValidation.phone.optional(),
   password: CommonValidation.password,
   role: z.nativeEnum(UserRole),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export const UpdateUserSchema = z.object({
@@ -94,7 +94,7 @@ export const UpdateUserSchema = z.object({
   email: CommonValidation.email.optional(),
   phone: CommonValidation.phone.optional(),
   status: z.nativeEnum(UserStatus).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**

@@ -83,7 +83,7 @@ export const ApiErrorResponseSchema = z.object({
   message: z.string(),
   code: z.string().optional(),
   traceId: z.string().optional(),
-  errors: z.record(z.array(z.string())).optional(),
+  errors: z.record(z.string(), z.array(z.string())).optional(),
 });
 
 /**

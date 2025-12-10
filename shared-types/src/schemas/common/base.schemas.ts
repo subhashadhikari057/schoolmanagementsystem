@@ -137,7 +137,7 @@ export const AuditFieldsSchema = z.object({
 /**
  * Metadata schema for flexible additional data
  */
-export const MetadataSchema = z.record(z.any()).optional();
+export const MetadataSchema = z.record(z.string(), z.any()).optional();
 
 /**
  * =============================================================================
@@ -202,7 +202,7 @@ export const ErrorResponseSchema = z.object({
   message: z.string(),
   code: z.string().optional(),
   traceId: z.string().optional(),
-  errors: z.record(z.array(z.string())).optional(),
+  errors: z.record(z.string(), z.array(z.string())).optional(),
 });
 
 /**
