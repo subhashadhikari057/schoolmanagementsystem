@@ -60,12 +60,12 @@ export const GetTeacherAttendanceQuerySchema = z.object({
     .string()
     .transform(val => parseInt(val, 10))
     .pipe(z.number().int().min(1))
-    .default('1'),
+    .default(1),
   limit: z
     .string()
     .transform(val => parseInt(val, 10))
     .pipe(z.number().int().min(1).max(100))
-    .default('20'),
+    .default(20),
 });
 
 export type GetTeacherAttendanceQueryDto = z.infer<

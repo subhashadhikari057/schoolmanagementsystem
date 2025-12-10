@@ -18,9 +18,7 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
 
-    // ✅ ADD THESE TWO LINES BELOW
-    "typeRoots": ["./node_modules/@types", "./src/types"],
-    "types": ["node", "express"]
+    "typeRoots": ["./node_modules/@types"]
   },
   "exclude": ["node_modules", "dist", "generate-jwt-keys.js"]
 }

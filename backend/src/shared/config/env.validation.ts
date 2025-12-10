@@ -46,14 +46,14 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+$/)
     .transform(Number)
-    .default('900000')
+    .default(900000)
     .describe('Access token cookie expiration in milliseconds'),
 
   REFRESH_TOKEN_EXPIRES_IN: z
     .string()
     .regex(/^\d+$/)
     .transform(Number)
-    .default('604800000')
+    .default(604800000)
     .describe('Refresh token cookie expiration in milliseconds'),
 
   // Server Configuration
@@ -61,7 +61,7 @@ const envSchema = z.object({
     .string()
     .regex(/^\d+$/)
     .transform(Number)
-    .default('8080')
+    .default(8080)
     .describe('Port for the server to listen on'),
 
   NODE_ENV: z
@@ -159,7 +159,7 @@ export function validateEnvironment(): EnvConfig {
     if (error instanceof z.ZodError) {
       // Handle Zod validation errors
       console.error('Environment variable validation errors:');
-      error.errors.forEach(err => {
+      error.issues.forEach(err => {
         console.error(`  - ${err.path.join('.')}: ${err.message}`);
       });
     } else if (error instanceof Error) {

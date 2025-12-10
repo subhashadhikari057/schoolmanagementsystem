@@ -81,11 +81,7 @@ export const UpdateNoticeSchema = z
       .min(1, 'Content is required')
       .max(10000, 'Content must be less than 10000 characters')
       .optional(),
-    priority: z
-      .nativeEnum(NoticePriority, {
-        errorMap: () => ({ message: 'Invalid priority value' }),
-      })
-      .optional(),
+    priority: z.nativeEnum(NoticePriority).optional(),
     recipientType: z.nativeEnum(NoticeRecipientType).optional(),
     selectedClassId: z.string().uuid().optional(),
     selectedStudentId: z.string().uuid().optional(),
