@@ -28,7 +28,7 @@
   "author": "School Management System Team",
   "license": "MIT",
   "dependencies": {
-    "zod": "^3.22.4"
+    "zod": "^4.0.10"
   },
   "devDependencies": {
     "@types/jest": "^29.5.8",

@@ -65,12 +65,10 @@ export const RegisterRequestSchema = z.object({
   email: CommonValidation.email,
   phone: CommonValidation.phone.optional(),
   password: CommonValidation.password,
-  role: z.enum([UserRole.STUDENT, UserRole.PARENT], {
-    errorMap: () => ({
-      message: "Only student and parent roles can self-register",
-    }),
+  role: z.enum([UserRole.STUDENT, UserRole.PARENT]).refine((val) => [UserRole.STUDENT, UserRole.PARENT].includes(val), {
+    message: "Only student and parent roles can self-register",
   }),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**

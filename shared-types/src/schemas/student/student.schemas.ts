@@ -27,8 +27,8 @@ import { UserStatus } from "../../enums/core/user-status.enum";
 /**
  * Gender enum schema
  */
-export const GenderSchema = z.enum(["male", "female", "other"], {
-  errorMap: () => ({ message: "Gender must be male, female, or other" }),
+export const GenderSchema = z.enum(["male", "female", "other"]).refine((val) => ["male", "female", "other"].includes(val), {
+  message: "Gender must be male, female, or other",
 });
 
 /**

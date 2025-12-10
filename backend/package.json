@@ -80,7 +80,7 @@
     "swagger-ui-express": "^5.0.1",
     "systeminformation": "^5.27.10",
     "uuid": "^10.0.0",
-    "zod": "^3.25.76"
+    "zod": "^4.0.10"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
@@ -98,7 +98,7 @@
     "@types/dotenv-safe": "^8.1.6",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.10.7",
+    "@types/node": "^22.19.2",
     "@types/node-fetch": "^2.6.12",
     "@types/nodemailer": "^6.4.17",
     "@types/passport-jwt": "^4.0.1",
