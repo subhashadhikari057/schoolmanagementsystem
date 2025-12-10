@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Upload,
   Database,
@@ -8,17 +8,17 @@ import {
   HardDrive,
   Download,
   AlertTriangle,
-  Eye,
   Trash2,
 } from 'lucide-react';
 import ReusableButton from '@/components/atoms/form-controls/Button';
-import Input from '@/components/atoms/form-controls/Input';
-import Label from '@/components/atoms/display/Label';
 import { Card } from '@/components/ui/card';
-
-interface RestoreTabProps {
-  isEditing: boolean;
-}
+import { backupService } from '@/api/services/backup.service';
+import RestoreConfirmationModal from '@/components/molecules/modals/RestoreConfirmationModal';
+import DecryptionKeyModal from '@/components/molecules/modals/DecryptionKeyModal';
+import RestoreProgressModal from '@/components/molecules/modals/RestoreProgressModal';
+import DeleteConfirmationModal from '@/components/organisms/modals/DeleteConfirmationModal';
+import { useBackupContext } from '@/context/BackupContext';
+import type { RestoreBackupRequest } from '@/api/services/backup.service';
 
 interface AvailableBackup {
   id: string;
@@ -30,56 +30,202 @@ interface AvailableBackup {
   encrypted: boolean;
   location: 'Both' | 'Local' | 'Offsite';
   frequency: 'Daily' | 'Weekly';
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
 }
 
-export default function RestoreTab({ isEditing }: RestoreTabProps) {
+export default function RestoreTab() {
+  const { toast } = useBackupContext();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [decryptionKey, setDecryptionKey] = useState('');
-  const [backupType, setBackupType] = useState('');
+  const [availableBackups, setAvailableBackups] = useState<AvailableBackup[]>(
+    [],
+  );
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    backup: AvailableBackup | null;
+    isFileUpload: boolean;
+  }>({
+    isOpen: false,
+    backup: null,
+    isFileUpload: false,
+  });
+  const [decryptionModal, setDecryptionModal] = useState<{
+    isOpen: boolean;
+    backupName: string;
+    backup: AvailableBackup | null;
+  }>({
+    isOpen: false,
+    backupName: '',
+    backup: null,
+  });
+  const [restoreProgressModal, setRestoreProgressModal] = useState({
+    isOpen: false,
+    backupId: '',
+    uploadedFile: null as File | null,
+    decryptionKey: '',
+  });
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    backup: AvailableBackup | null;
+  }>({ isOpen: false, backup: null });
+  const [deleting, setDeleting] = useState(false);
 
-  const [availableBackups] = useState<AvailableBackup[]>([
-    {
-      id: '1',
-      name: 'Full Backup',
-      date: '1/20/2025',
-      time: '4:15:00 PM',
-      size: '2.4 GB',
-      type: 'Full Backup',
-      encrypted: true,
-      location: 'Both',
-      frequency: 'Daily',
-      icon: HardDrive,
-      color: 'text-purple-600',
-    },
-    {
-      id: '2',
-      name: 'Database Backup',
-      date: '1/20/2025',
-      time: '7:45:00 AM',
-      size: '1.8 GB',
-      type: 'Database Backup',
-      encrypted: true,
-      location: 'Local',
-      frequency: 'Daily',
-      icon: Database,
-      color: 'text-blue-600',
-    },
-    {
-      id: '3',
-      name: 'Files Backup',
-      date: '1/19/2025',
-      time: '8:00:00 PM',
-      size: '650 MB',
-      type: 'Files Backup',
-      encrypted: false,
-      location: 'Offsite',
-      frequency: 'Weekly',
-      icon: FileText,
-      color: 'text-green-600',
-    },
-  ]);
+  // Load available backups
+  useEffect(() => {
+    loadAvailableBackups();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(2)} KB`;
+    const mb = kb / 1024;
+    if (mb < 1024) return `${mb.toFixed(2)} MB`;
+    const gb = mb / 1024;
+    return `${gb.toFixed(2)} GB`;
+  };
+
+  const extractOperationId = (
+    data?: Record<string, unknown>,
+  ): string | undefined => {
+    if (data && typeof data.operationId === 'string') {
+      return data.operationId;
+    }
+    return undefined;
+  };
+
+  const normalizeRestoreOptions = (
+    options: Record<string, unknown>,
+  ): RestoreBackupRequest => ({
+    clientKey:
+      typeof options.clientKey === 'string' && options.clientKey
+        ? options.clientKey
+        : undefined,
+    overwrite:
+      typeof options.overwrite === 'boolean' ? options.overwrite : undefined,
+    restoreDatabase:
+      typeof options.restoreDatabase === 'boolean'
+        ? options.restoreDatabase
+        : undefined,
+    restoreFiles:
+      typeof options.restoreFiles === 'boolean'
+        ? options.restoreFiles
+        : undefined,
+    restoreConfig:
+      typeof options.restoreConfig === 'boolean'
+        ? options.restoreConfig
+        : undefined,
+    dropExisting:
+      typeof options.dropExisting === 'boolean'
+        ? options.dropExisting
+        : undefined,
+  });
+
+  const mapBackupTypeToEnum = (
+    typeLabel?: string,
+  ): 'DATABASE' | 'FILES' | 'FULL_SYSTEM' => {
+    if (!typeLabel) return 'FULL_SYSTEM';
+    const normalized = typeLabel.toLowerCase();
+    if (normalized.includes('database')) return 'DATABASE';
+    if (normalized.includes('file')) return 'FILES';
+    return 'FULL_SYSTEM';
+  };
+
+  const inferTypeFromFilename = (
+    fileName?: string,
+  ): 'DATABASE' | 'FILES' | 'FULL_SYSTEM' => {
+    if (!fileName) return 'FULL_SYSTEM';
+    const sanitized = fileName.toLowerCase().replace(/\.enc$/, '');
+    if (sanitized.endsWith('.sql') || sanitized.endsWith('.sql.gz')) {
+      return 'DATABASE';
+    }
+    if (
+      sanitized.includes('files') &&
+      (sanitized.endsWith('.tar.gz') || sanitized.endsWith('.zip'))
+    ) {
+      return 'FILES';
+    }
+    if (sanitized.includes('full') || sanitized.includes('snapshot')) {
+      return 'FULL_SYSTEM';
+    }
+    return 'FULL_SYSTEM';
+  };
+
+  const loadAvailableBackups = async () => {
+    try {
+      setLoading(true);
+      const response = await backupService.listBackups();
+
+      if (response.success && response.data) {
+        type BackupResponse = {
+          backupId: string;
+          type: string;
+          startedAt?: string;
+          createdAt?: string;
+          size?: number;
+          encrypted?: boolean;
+          offsiteBackupCompleted?: boolean;
+          scheduledBackup?: boolean;
+        };
+        const backupsList = (response.data as unknown as BackupResponse[]).map(
+          (backup): AvailableBackup => {
+            const backupTypeName =
+              backup.type === 'DATABASE'
+                ? 'Database Backup'
+                : backup.type === 'FILES'
+                  ? 'Files Backup'
+                  : 'Full System Backup';
+            const backupDate = new Date(
+              backup.startedAt || backup.createdAt || Date.now(),
+            );
+            const locationLabel = backup.offsiteBackupCompleted
+              ? 'Both'
+              : 'Local';
+            const frequencyLabel = backup.scheduledBackup
+              ? 'Scheduled'
+              : 'Manual';
+
+            return {
+              id: backup.backupId,
+              name: backupTypeName,
+              type: backupTypeName as
+                | 'Full Backup'
+                | 'Database Backup'
+                | 'Files Backup',
+              date: backupDate.toLocaleDateString(),
+              time: backupDate.toLocaleTimeString(),
+              size: formatBytes(backup.size || 0),
+              encrypted: backup.encrypted || false,
+              location: locationLabel as 'Both' | 'Local' | 'Offsite',
+              frequency: frequencyLabel as 'Daily' | 'Weekly',
+              icon:
+                backup.type === 'FULL_SYSTEM'
+                  ? HardDrive
+                  : backup.type === 'DATABASE'
+                    ? Database
+                    : FileText,
+              color:
+                backup.type === 'FULL_SYSTEM'
+                  ? 'text-purple-600'
+                  : backup.type === 'DATABASE'
+                    ? 'text-blue-600'
+                    : 'text-green-600',
+            };
+          },
+        );
+        setAvailableBackups(backupsList);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load backups');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,8 +234,283 @@ export default function RestoreTab({ isEditing }: RestoreTabProps) {
     }
   };
 
-  const handleRestore = (backupId: string) => {
-    console.log(`Restoring backup ${backupId}...`);
+  const handleRestore = async (backup: AvailableBackup) => {
+    // If backup is encrypted, show decryption modal first
+    if (backup.encrypted) {
+      setDecryptionModal({
+        isOpen: true,
+        backupName: backup.name,
+        backup: backup,
+      });
+      return;
+    }
+
+    try {
+      console.log('🚀 Starting restore for backup:', backup.id);
+      setLoading(true);
+
+      // Initiate restore via API
+      const response = await backupService.restoreBackup({
+        backupId: backup.id,
+        detectedType: mapBackupTypeToEnum(backup.type),
+        isEncrypted: backup.encrypted,
+      });
+
+      console.log('📦 Restore API Response:', response);
+      setLoading(false);
+
+      const operationId = extractOperationId(
+        response.data as Record<string, unknown> | undefined,
+      );
+      const isSuccessful = response.success === true || Boolean(operationId);
+
+      if (isSuccessful && operationId) {
+        console.log(
+          '✅ Opening restore progress modal with operationId:',
+          operationId,
+        );
+
+        // Show starting toast
+        toast.success(
+          'Restore Started',
+          'Restore operation initiated successfully',
+        );
+
+        // Open restore progress modal with operationId
+        setRestoreProgressModal({
+          isOpen: true,
+          backupId: operationId,
+          uploadedFile: null,
+          decryptionKey: '',
+        });
+      } else {
+        const errorMsg =
+          response.error || response.message || 'Failed to initiate restore';
+        console.error('❌ Failed to initiate restore:', errorMsg);
+        toast.error('Restore Failed', errorMsg);
+      }
+    } catch (err) {
+      setLoading(false);
+      const errorMsg =
+        err instanceof Error ? err.message : 'Failed to start restore';
+      console.error('❌ Restore error:', err);
+      toast.error('Restore Error', errorMsg);
+    }
+  };
+
+  const handleFileRestore = async () => {
+    if (!uploadedFile) return;
+
+    // Check if file is encrypted by reading first few bytes
+    try {
+      const buffer = await uploadedFile.slice(0, 512).arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const hasEncryptionMarkers = bytes.length >= 44; // salt(16) + nonce(12) + authTag(16)
+
+      // If encrypted and no key provided, show decryption modal
+      if (hasEncryptionMarkers && !decryptionKey) {
+        setDecryptionModal({
+          isOpen: true,
+          backupName: uploadedFile.name,
+          backup: null, // No backup object for file upload
+        });
+        return;
+      }
+
+      console.log('🚀 Starting file restore:', uploadedFile.name);
+
+      // Open progress modal immediately with the file
+      // The modal will handle uploading and tracking progress
+      setRestoreProgressModal({
+        isOpen: true,
+        backupId: '',
+        uploadedFile: uploadedFile,
+        decryptionKey: decryptionKey,
+      });
+    } catch (err) {
+      console.error('❌ Failed to analyze backup file:', err);
+      toast.error('Error', 'Failed to analyze backup file. Please try again.');
+    }
+  };
+
+  const handleDownload = async (backup: AvailableBackup) => {
+    try {
+      setLoading(true);
+      const { blob, filename } = await backupService.downloadBackup(backup.id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Download Started', 'Backup file is being downloaded');
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Download failed';
+      toast.error('Download Failed', errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = (backup: AvailableBackup) => {
+    setDeleteModal({ isOpen: true, backup });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.backup) return;
+
+    try {
+      setDeleting(true);
+      const response = await backupService.deleteBackup(deleteModal.backup.id);
+      if (response.success) {
+        toast.success('Backup Deleted', 'Backup has been deleted successfully');
+        setDeleteModal({ isOpen: false, backup: null });
+        loadAvailableBackups(); // Refresh list
+      } else {
+        toast.error(
+          'Delete Failed',
+          response.error || 'Failed to delete backup',
+        );
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Delete failed';
+      toast.error('Delete Failed', errorMsg);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDecryptionKeySubmit = async (key: string) => {
+    const backup = decryptionModal.backup;
+    setDecryptionModal({ isOpen: false, backupName: '', backup: null });
+
+    // If it's a file upload (no backup object), set key and open progress modal
+    if (!backup && uploadedFile) {
+      console.log('🔑 Decryption key provided for file upload');
+      setDecryptionKey(key);
+      setRestoreProgressModal({
+        isOpen: true,
+        backupId: '',
+        uploadedFile: uploadedFile,
+        decryptionKey: key,
+      });
+      return;
+    }
+
+    // If it's an available backup, initiate restore via API
+    if (!backup) return;
+
+    try {
+      console.log('🔑 Starting encrypted restore for backup:', backup.id);
+      setLoading(true);
+
+      // Initiate restore via API with decryption key
+      const response = await backupService.restoreBackup({
+        backupId: backup.id,
+        clientKey: key,
+        detectedType: mapBackupTypeToEnum(backup.type),
+        isEncrypted: true,
+      });
+
+      console.log('📦 Encrypted restore API Response:', response);
+      setLoading(false);
+
+      const operationId = extractOperationId(
+        response.data as Record<string, unknown> | undefined,
+      );
+      const isSuccessful = response.success === true || Boolean(operationId);
+
+      if (isSuccessful && operationId) {
+        console.log(
+          '✅ Opening restore progress modal with operationId:',
+          operationId,
+        );
+
+        // Show starting toast
+        toast.success('Restore Started', 'Decrypting and restoring backup...');
+
+        // Open restore progress modal with operationId
+        setRestoreProgressModal({
+          isOpen: true,
+          backupId: operationId,
+          uploadedFile: null,
+          decryptionKey: key,
+        });
+      } else {
+        const errorMsg =
+          response.error || response.message || 'Failed to initiate restore';
+        console.error('❌ Failed to initiate encrypted restore:', errorMsg);
+        toast.error('Restore Failed', errorMsg);
+      }
+    } catch (err) {
+      setLoading(false);
+      const errorMsg =
+        err instanceof Error ? err.message : 'Failed to start restore';
+      console.error('❌ Encrypted restore error:', err);
+      toast.error('Restore Error', errorMsg);
+    }
+  };
+
+  const handleConfirmRestore = async (
+    options: Record<string, unknown> & { clientKey?: string },
+  ) => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Normalize options from modal
+      const restoreOptions = normalizeRestoreOptions({
+        ...options,
+        clientKey: decryptionKey || options.clientKey,
+      });
+
+      let response;
+      if (confirmModal.isFileUpload && uploadedFile) {
+        const backupTypeHint = inferTypeFromFilename(uploadedFile.name);
+        const isEncryptedHint = uploadedFile.name
+          .toLowerCase()
+          .endsWith('.enc');
+        response = await backupService.uploadAndRestore(uploadedFile, {
+          ...restoreOptions,
+          originalFilename: uploadedFile.name,
+          detectedType: backupTypeHint,
+          isEncrypted: isEncryptedHint,
+        });
+      } else if (confirmModal.backup) {
+        const backupTypeHint = mapBackupTypeToEnum(confirmModal.backup.type);
+        const payload: RestoreBackupRequest = {
+          ...restoreOptions,
+          backupId: confirmModal.backup.id,
+          detectedType: backupTypeHint,
+          isEncrypted: confirmModal.backup.encrypted,
+        };
+        response = await backupService.restoreBackup(payload);
+      }
+
+      if (response && (response.success ?? false)) {
+        toast.success(
+          'Restore Completed',
+          'Data has been restored successfully!',
+        );
+        setConfirmModal({ isOpen: false, backup: null, isFileUpload: false });
+        setDecryptionKey(''); // Clear decryption key
+        setUploadedFile(null);
+        loadAvailableBackups(); // Refresh the backup list
+      } else {
+        const errorMsg = response?.error || 'Restore failed';
+        setError(errorMsg);
+        toast.error('Restore Failed', errorMsg);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Restore failed';
+      setError(errorMsg);
+      toast.error('Restore Error', errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getLocationBadge = (location: string) => {
@@ -123,6 +544,19 @@ export default function RestoreTab({ isEditing }: RestoreTabProps) {
 
   return (
     <div className='space-y-6'>
+      {/* Error Display */}
+      {error && (
+        <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
+          <div className='flex items-start gap-3'>
+            <AlertTriangle className='h-5 w-5 text-red-600 flex-shrink-0 mt-0.5' />
+            <div>
+              <p className='text-sm font-medium text-red-800'>Error</p>
+              <p className='text-sm text-red-700 mt-1'>{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Warning */}
       <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4'>
         <div className='flex items-start gap-3'>
@@ -148,7 +582,7 @@ export default function RestoreTab({ isEditing }: RestoreTabProps) {
               Upload & Restore Backup
             </h3>
             <p className='text-sm text-gray-600'>
-              Upload a backup file to restore from
+              Upload a backup file (.zip format) to restore from
             </p>
           </div>
         </div>
@@ -161,19 +595,20 @@ export default function RestoreTab({ isEditing }: RestoreTabProps) {
               Upload Backup File
             </h4>
             <p className='text-sm text-gray-600 mb-4'>
-              Select a backup file (.sql, .gz, .zip, .tar.gz) to restore
+              Select a downloaded backup file (.zip format) to restore. Note:
+              Server backups are stored as .enc files, but downloads are
+              provided as .zip
             </p>
             <input
               type='file'
-              accept='.sql,.gz,.zip,.tar.gz'
+              accept='.sql,.gz,.zip,.tar.gz,.enc'
               onChange={handleFileUpload}
-              disabled={!isEditing}
               className='hidden'
               id='backup-file'
             />
             <label
               htmlFor='backup-file'
-              className={`inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors ${!isEditing ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+              className={`inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors`}
             >
               <Upload className='h-4 w-4' />
               Choose File
@@ -186,38 +621,16 @@ export default function RestoreTab({ isEditing }: RestoreTabProps) {
             )}
           </div>
 
-          {/* Additional Options */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <Label className='text-sm font-medium text-gray-700 mb-2 block'>
-                Decryption Key (if encrypted)
-              </Label>
-              <Input
-                type='password'
-                value={decryptionKey}
-                onChange={e => setDecryptionKey(e.target.value)}
-                disabled={!isEditing}
-                className='w-full'
-                placeholder='Enter decryption key'
-              />
-            </div>
-            <div>
-              <Label className='text-sm font-medium text-gray-700 mb-2 block'>
-                Backup Type
-              </Label>
-              <select
-                value={backupType}
-                onChange={e => setBackupType(e.target.value)}
-                disabled={!isEditing}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100'
-              >
-                <option value=''>Select backup type</option>
-                <option value='full'>Full System Backup</option>
-                <option value='database'>Database Only</option>
-                <option value='files'>Files Only</option>
-              </select>
-            </div>
-          </div>
+          {/* Restore Button */}
+          {uploadedFile && (
+            <ReusableButton
+              onClick={handleFileRestore}
+              className='w-full px-4 py-3 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium'
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : 'Restore from Uploaded File'}
+            </ReusableButton>
+          )}
         </div>
       </Card>
 
@@ -232,7 +645,8 @@ export default function RestoreTab({ isEditing }: RestoreTabProps) {
               Available Backups
             </h3>
             <p className='text-sm text-gray-600'>
-              Select a backup to restore from
+              Server backups (stored as .enc). Download as .zip or restore
+              directly
             </p>
           </div>
         </div>
@@ -269,30 +683,23 @@ export default function RestoreTab({ isEditing }: RestoreTabProps) {
                 </div>
                 <div className='flex items-center gap-2'>
                   <ReusableButton
-                    onClick={() => {}}
+                    onClick={() => handleDownload(backup)}
                     className='p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors'
-                    disabled={!isEditing}
+                    disabled={loading}
                   >
                     <Download className='h-4 w-4' />
                   </ReusableButton>
                   <ReusableButton
-                    onClick={() => {}}
-                    className='p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors'
-                    disabled={!isEditing}
+                    onClick={() => handleRestore(backup)}
+                    className='px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors text-sm disabled:opacity-50'
+                    disabled={loading}
                   >
-                    <Eye className='h-4 w-4' />
+                    {loading ? 'Loading...' : 'Restore'}
                   </ReusableButton>
                   <ReusableButton
-                    onClick={() => handleRestore(backup.id)}
-                    className='px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors text-sm'
-                    disabled={!isEditing}
-                  >
-                    Restore
-                  </ReusableButton>
-                  <ReusableButton
-                    onClick={() => {}}
+                    onClick={() => handleDelete(backup)}
                     className='p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors'
-                    disabled={!isEditing}
+                    disabled={loading}
                   >
                     <Trash2 className='h-4 w-4' />
                   </ReusableButton>
@@ -302,6 +709,83 @@ export default function RestoreTab({ isEditing }: RestoreTabProps) {
           })}
         </div>
       </Card>
+
+      {/* Decryption Key Modal */}
+      <DecryptionKeyModal
+        isOpen={decryptionModal.isOpen}
+        onClose={() =>
+          setDecryptionModal({ isOpen: false, backupName: '', backup: null })
+        }
+        onSubmit={handleDecryptionKeySubmit}
+        backupName={decryptionModal.backupName}
+      />
+
+      {/* Restore Progress Modal */}
+      <RestoreProgressModal
+        isOpen={restoreProgressModal.isOpen}
+        onClose={() => {
+          setRestoreProgressModal({
+            isOpen: false,
+            backupId: '',
+            uploadedFile: null,
+            decryptionKey: '',
+          });
+          setUploadedFile(null);
+          loadAvailableBackups();
+        }}
+        backupId={restoreProgressModal.backupId}
+        uploadedFile={restoreProgressModal.uploadedFile || undefined}
+        decryptionKey={restoreProgressModal.decryptionKey}
+        onComplete={() => {
+          toast.success(
+            'Restore Completed',
+            'Data has been restored successfully!',
+          );
+          setRestoreProgressModal({
+            isOpen: false,
+            backupId: '',
+            uploadedFile: null,
+            decryptionKey: '',
+          });
+          setUploadedFile(null);
+          loadAvailableBackups();
+        }}
+        onCancel={() => {
+          toast.warning(
+            'Restore Cancelled',
+            'Restore operation was cancelled by user.',
+          );
+          setRestoreProgressModal({
+            isOpen: false,
+            backupId: '',
+            uploadedFile: null,
+            decryptionKey: '',
+          });
+        }}
+      />
+
+      {/* Restore Confirmation Modal */}
+      <RestoreConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() =>
+          setConfirmModal({ isOpen: false, backup: null, isFileUpload: false })
+        }
+        onConfirm={handleConfirmRestore as (options: unknown) => void}
+        backup={confirmModal.backup as never}
+        isFileUpload={confirmModal.isFileUpload}
+        uploadedFile={uploadedFile}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, backup: null })}
+        onConfirm={confirmDelete}
+        title='Delete Backup'
+        message='Are you sure you want to delete this backup?'
+        itemName={deleteModal.backup?.name || ''}
+        isLoading={deleting}
+      />
     </div>
   );
 }

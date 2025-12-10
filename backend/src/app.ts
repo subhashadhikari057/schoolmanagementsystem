@@ -10,7 +10,7 @@ export async function createApp() {
 
   const prisma = app.get(PrismaService);
   await prisma.$connect();
-  console.log('✅ DB connected');
+  // Database connected successfully
 
   return app;
 }

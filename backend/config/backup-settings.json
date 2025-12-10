@@ -1,0 +1,30 @@
+{
+  "encryption": {
+    "enableEncryption": false,
+    "keyRotationEnabled": false,
+    "keyRotationDays": 90
+  },
+  "offsite": {
+    "enableOffsiteBackup": false,
+    "provider": "ssh",
+    "encryptInTransit": true,
+    "syncFrequency": "daily",
+    "backupLocation": "both",
+    "connectionStatus": "disconnected"
+  },
+  "advanced": {
+    "compressionLevel": "medium",
+    "parallelOperations": 2,
+    "backupNotifications": [],
+    "enableProgressTracking": true,
+    "enablePreRestoreSnapshot": true,
+    "maxRetryAttempts": 3,
+    "backupTimeout": 3600
+  },
+  "metadata": {
+    "createdAt": "2025-10-04T17:09:13.967Z",
+    "updatedAt": "2025-10-04T17:09:13.967Z",
+    "version": "1.0.0",
+    "updatedBy": "f0d0ad11-049b-42bd-be81-1220fe100c99"
+  }
+}

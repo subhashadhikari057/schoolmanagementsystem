@@ -7,6 +7,7 @@ import { DatabaseBackupService } from './database-backup.service';
 import { FilesBackupService } from './files-backup.service';
 import { FullSystemBackupService } from './full-system-backup.service';
 import { EncryptionService } from './encryption.service';
+import { ProgressTrackingService } from './progress-tracking.service';
 
 const execAsync = promisify(exec);
 
@@ -25,6 +26,9 @@ export interface RestoreOptions {
   restoreFiles?: boolean;
   restoreConfig?: boolean;
   dropExisting?: boolean;
+  originalFilename?: string;
+  backupTypeHint?: BackupType | string;
+  encryptedHint?: boolean;
 }
 
 export interface BackupInfo {
@@ -32,7 +36,7 @@ export interface BackupInfo {
   encrypted: boolean;
   size: number;
   created: Date;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 @Injectable()
@@ -44,7 +48,27 @@ export class RestoreService {
     private readonly filesBackupService: FilesBackupService,
     private readonly fullSystemBackupService: FullSystemBackupService,
     private readonly encryptionService: EncryptionService,
+    private readonly progressTrackingService: ProgressTrackingService,
   ) {}
+
+  private normalizeBackupType(
+    value?: BackupType | string,
+  ): BackupType | undefined {
+    if (!value) return undefined;
+
+    const upperValue = typeof value === 'string' ? value.toUpperCase() : value;
+
+    switch (upperValue) {
+      case BackupType.DATABASE:
+        return BackupType.DATABASE;
+      case BackupType.FILES:
+        return BackupType.FILES;
+      case BackupType.FULL_SYSTEM:
+        return BackupType.FULL_SYSTEM;
+      default:
+        return undefined;
+    }
+  }
 
   /**
    * Check if a file appears to be encrypted by examining its content
@@ -65,7 +89,7 @@ export class RestoreService {
       const highEntropyThreshold = 8; // More than half should be non-printable for encrypted content
 
       return nonPrintableCount > highEntropyThreshold;
-    } catch (_error) {
+    } catch {
       // If we can't read the file, assume it's not encrypted
       return false;
     }
@@ -77,28 +101,47 @@ export class RestoreService {
   async detectBackupType(
     backupFilePath: string,
     clientKey?: string,
+    originalFilename?: string,
+    hintType?: BackupType,
   ): Promise<BackupType> {
     try {
       this.logger.log(`Detecting backup type for: ${backupFilePath}`);
 
       // Check file existence
       await fs.access(backupFilePath);
-      const fileName = path.basename(backupFilePath);
+      const effectiveName = (
+        originalFilename || path.basename(backupFilePath)
+      ).toLowerCase();
+      const sanitizedName = effectiveName.endsWith('.enc')
+        ? effectiveName.replace(/\.enc$/, '')
+        : effectiveName;
+
+      if (hintType && hintType !== BackupType.UNKNOWN) {
+        this.logger.log(`Using backup type hint: ${hintType}`);
+      }
 
       // Quick detection based on filename patterns
-      if (fileName.includes('db_') && fileName.includes('.sql')) {
+      if (
+        !hintType &&
+        sanitizedName.includes('db_') &&
+        sanitizedName.includes('.sql')
+      ) {
         return BackupType.DATABASE;
       }
 
-      if (fileName.includes('files_') && fileName.includes('.tar.gz')) {
+      if (
+        !hintType &&
+        sanitizedName.includes('files_') &&
+        sanitizedName.includes('.tar.gz')
+      ) {
         return BackupType.FILES;
       }
 
       // Check for full system backups including pre-restore snapshots
       if (
-        (fileName.includes('full_') ||
-          fileName.includes('pre_restore_snapshot_')) &&
-        (fileName.includes('.tar.gz') || !fileName.includes('.'))
+        (sanitizedName.includes('full_') ||
+          sanitizedName.includes('pre_restore_snapshot_')) &&
+        (sanitizedName.includes('.tar.gz') || !sanitizedName.includes('.'))
       ) {
         return BackupType.FULL_SYSTEM;
       }
@@ -129,14 +172,17 @@ export class RestoreService {
           );
           inspectionPath = tempPath;
           needsCleanup = true;
-        } catch (_decryptError) {
+        } catch {
           throw new Error(
             'Failed to decrypt backup file. Please check your encryption key.',
           );
         }
       }
 
-      let detectedType = BackupType.UNKNOWN;
+      let detectedType =
+        hintType && hintType !== BackupType.UNKNOWN
+          ? hintType
+          : BackupType.UNKNOWN;
 
       try {
         // Check if it's a tar archive (files or full system)
@@ -145,7 +191,7 @@ export class RestoreService {
           inspectionPath.endsWith('.tar.gz') ||
           inspectionPath.endsWith('.tar') ||
           !inspectionPath.includes('.') || // Files without extension might be tar archives
-          fileName.includes('pre_restore_snapshot_');
+          sanitizedName.includes('pre_restore_snapshot_');
 
         if (isTarFile) {
           try {
@@ -235,7 +281,7 @@ export class RestoreService {
       const type = await this.detectBackupType(backupFilePath, clientKey);
       const encrypted = backupFilePath.endsWith('.enc');
 
-      let metadata: any = {};
+      let metadata: Record<string, unknown> = {};
 
       // Try to extract metadata for full system backups
       if (type === BackupType.FULL_SYSTEM) {
@@ -272,9 +318,9 @@ export class RestoreService {
             await fs.unlink(archivePath);
           }
           await fs.rm(tempDir, { recursive: true, force: true });
-        } catch (error) {
+        } catch (metadataError) {
           this.logger.warn(
-            'Failed to extract metadata from full system backup',
+            `Failed to extract metadata from full system backup: ${metadataError instanceof Error ? metadataError.message : metadataError}`,
           );
         }
       }
@@ -298,9 +344,23 @@ export class RestoreService {
   async restoreFromBackup(
     backupFilePath: string,
     options: RestoreOptions = {},
-  ): Promise<void> {
+    operationId?: string,
+  ): Promise<{ operationId: string }> {
+    // Generate operation ID for progress tracking if not provided
+    if (!operationId) {
+      operationId = `restore_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    // Create progress tracker
+    this.progressTrackingService.createProgressTracker(operationId, 'restore');
+
     try {
-      this.logger.log(`Starting restore from: ${backupFilePath}`);
+      this.logger.log(
+        `Starting restore from: ${backupFilePath} (operationId: ${operationId})`,
+      );
+
+      // Emit initial progress
+      this.progressTrackingService.initiateRestore(operationId, backupFilePath);
 
       // Check file exists and get size for memory management
       try {
@@ -311,14 +371,53 @@ export class RestoreService {
             `Large backup file detected: ${fileSizeGB.toFixed(2)}GB - restore may take longer`,
           );
         }
-      } catch (_statError) {
+      } catch {
         throw new Error(`Backup file not accessible: ${backupFilePath}`);
       }
 
+      // Emit validation progress
+      this.progressTrackingService.startValidation(operationId);
+
+      const normalizedHint = this.normalizeBackupType(options.backupTypeHint);
+      const originalName = options.originalFilename?.toLowerCase();
+
+      const inferFromName = (name: string): BackupType => {
+        const sanitized = name.endsWith('.enc')
+          ? name.replace(/\.enc$/, '')
+          : name;
+
+        if (sanitized.endsWith('.sql') || sanitized.endsWith('.sql.gz')) {
+          return BackupType.DATABASE;
+        }
+
+        if (
+          sanitized.includes('files') &&
+          (sanitized.endsWith('.tar.gz') || sanitized.endsWith('.zip'))
+        ) {
+          return BackupType.FILES;
+        }
+
+        if (
+          sanitized.includes('full_') ||
+          sanitized.includes('pre_restore_snapshot_') ||
+          sanitized.includes('full-system')
+        ) {
+          return BackupType.FULL_SYSTEM;
+        }
+
+        return BackupType.UNKNOWN;
+      };
+
+      let backupType =
+        normalizedHint ||
+        (originalName ? inferFromName(originalName) : BackupType.UNKNOWN);
+
       // Detect backup type
-      const backupType = await this.detectBackupType(
+      backupType = await this.detectBackupType(
         backupFilePath,
         options.clientKey,
+        originalName || options.originalFilename,
+        backupType,
       );
 
       if (backupType === BackupType.UNKNOWN) {
@@ -329,9 +428,20 @@ export class RestoreService {
 
       this.logger.log(`Backup type detected: ${backupType}`);
 
+      // Check if file is encrypted and needs decryption
+      const isEncrypted =
+        typeof options.encryptedHint === 'boolean'
+          ? options.encryptedHint
+          : await this.isFileEncrypted(backupFilePath);
+      if (isEncrypted && options.clientKey) {
+        this.progressTrackingService.startDecryption(operationId);
+      }
+
       // Route to appropriate restore service
       switch (backupType) {
         case BackupType.DATABASE:
+          this.progressTrackingService.startDatabaseRestore(operationId);
+
           await this.databaseBackupService.restoreFromBackup(backupFilePath, {
             clientKey: options.clientKey,
             dropExisting: options.dropExisting,
@@ -339,6 +449,8 @@ export class RestoreService {
           break;
 
         case BackupType.FILES:
+          this.progressTrackingService.startFileRestore(operationId);
+
           await this.filesBackupService.restoreFromBackup(backupFilePath, {
             clientKey: options.clientKey,
             targetDir: options.targetDir,
@@ -347,6 +459,10 @@ export class RestoreService {
           break;
 
         case BackupType.FULL_SYSTEM:
+          // Full system has both database and files
+          this.progressTrackingService.startUncompressing(operationId);
+          this.progressTrackingService.startDatabaseRestore(operationId);
+
           await this.fullSystemBackupService.restoreFromBackup(backupFilePath, {
             clientKey: options.clientKey,
             targetDir: options.targetDir,
@@ -355,21 +471,37 @@ export class RestoreService {
             restoreConfig: options.restoreConfig,
             overwrite: options.overwrite,
           });
+
+          this.progressTrackingService.startFileRestore(operationId);
           break;
 
         default:
           throw new Error(`Unsupported backup type: ${backupType}`);
       }
 
+      // Emit completion progress
+      this.progressTrackingService.completeRestore(operationId);
+
+      // Complete progress tracker
+      this.progressTrackingService.completeProgressTracker(operationId);
+
       this.logger.log('Restore completed successfully');
+
+      return { operationId };
     } catch (error) {
       this.logger.error(`Restore failed: ${error.message}`);
+
+      // Emit failure progress
+      this.progressTrackingService.failRestore(operationId!, error.message);
+
+      // Complete progress tracker
+      this.progressTrackingService.completeProgressTracker(operationId!);
 
       // Force garbage collection to free memory after failed restore
       if (global.gc) {
         try {
           global.gc();
-        } catch (_gcError) {
+        } catch {
           // Ignore GC errors
         }
       }

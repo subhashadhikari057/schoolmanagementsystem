@@ -127,6 +127,28 @@ export class BackupScheduleController {
     }
   }
 
+  @Get('health')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get backup scheduler health status' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Health status retrieved successfully',
+  })
+  async getSchedulerHealth(): Promise<ApiResponse> {
+    try {
+      const health = await this.schedulerService.getSchedulerHealth();
+      return {
+        success: true,
+        data: health,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
   @Get(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get a specific backup schedule' })
@@ -308,28 +330,6 @@ export class BackupScheduleController {
       return {
         success: true,
         message: 'Backup cleanup completed successfully',
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  @Get('health')
-  @Roles(UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Get backup scheduler health status' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Health status retrieved successfully',
-  })
-  async getSchedulerHealth(): Promise<ApiResponse> {
-    try {
-      const health = await this.schedulerService.getSchedulerHealth();
-      return {
-        success: true,
-        data: health,
       };
     } catch (error: any) {
       return {

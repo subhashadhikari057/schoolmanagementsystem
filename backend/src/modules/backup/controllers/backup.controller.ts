@@ -13,6 +13,7 @@ import {
   UseInterceptors,
   HttpException,
   Res,
+  Logger,
 } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -32,6 +33,7 @@ import { Roles } from '../../../shared/decorators/roles.decorator';
 import { UserRole } from '@sms/shared-types';
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { Response as ExpressResponse } from 'express';
 
 // DTOs
 const CreateBackupDtoSchema = z.object({
@@ -54,6 +56,9 @@ const RestoreBackupDtoSchema = z.object({
   restoreFiles: z.boolean().optional().default(true),
   restoreConfig: z.boolean().optional().default(true),
   dropExisting: z.boolean().optional().default(false),
+  detectedType: z.enum(['DATABASE', 'FILES', 'FULL_SYSTEM']).optional(),
+  isEncrypted: z.boolean().optional(),
+  originalFilename: z.string().optional(),
 });
 
 const ListBackupsDtoSchema = z.object({
@@ -82,6 +87,8 @@ class CleanupBackupsDto extends createZodDto(CleanupBackupsDtoSchema) {}
 @Controller('api/v1/backup')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BackupController {
+  private readonly logger = new Logger(BackupController.name);
+
   constructor(
     private readonly backupService: BackupService,
     private readonly restoreService: RestoreService,
@@ -96,7 +103,7 @@ export class BackupController {
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async createBackup(
     @Body() createBackupDto: CreateBackupDto,
-    @User() user: any,
+    @User() user: { id: string },
   ) {
     try {
       const options: CreateBackupOptions = {
@@ -117,6 +124,7 @@ export class BackupController {
         message: 'Backup created successfully',
         data: {
           backupId: backup.backupId,
+          operationId: backup.metadata?.operationId, // Include operationId for SSE tracking
           type: backup.type,
           size: backup.size.toString(), // Convert BigInt to string for JSON
           location: backup.location,
@@ -147,30 +155,48 @@ export class BackupController {
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async restoreFromBackup(
     @Body() restoreDto: RestoreBackupDto,
-    @User() user: any,
+    @User() user: { id: string },
   ) {
     try {
       if (restoreDto.backupId) {
-        // Restore from metadata with enhanced safety features
-        await this.backupService.restoreFromBackup(restoreDto.backupId, {
-          clientKey: restoreDto.clientKey,
-          targetDir: restoreDto.targetDir,
-          overwrite: restoreDto.overwrite,
-          restoreDatabase: restoreDto.restoreDatabase,
-          restoreFiles: restoreDto.restoreFiles,
-          restoreConfig: restoreDto.restoreConfig,
-          dropExisting: restoreDto.dropExisting,
-          enablePreRestoreSnapshot: true, // Always enable pre-restore snapshots for safety
-          userId: user.id,
-        });
+        // Generate operationId for progress tracking
+        const operationId = `restore_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Start restore in background (non-blocking)
+        this.backupService
+          .restoreFromBackup(
+            restoreDto.backupId,
+            {
+              clientKey: restoreDto.clientKey,
+              targetDir: restoreDto.targetDir,
+              overwrite: restoreDto.overwrite,
+              restoreDatabase: restoreDto.restoreDatabase,
+              restoreFiles: restoreDto.restoreFiles,
+              restoreConfig: restoreDto.restoreConfig,
+              dropExisting: restoreDto.dropExisting,
+              enablePreRestoreSnapshot: true, // Always enable pre-restore snapshots for safety
+              userId: user.id,
+              backupTypeHint: restoreDto.detectedType,
+              encryptedHint: restoreDto.isEncrypted,
+              originalFilename: restoreDto.originalFilename,
+            },
+            operationId, // Pass operationId for SSE progress tracking
+          )
+          .catch(error => {
+            // Log error but don't block response
+            this.logger.error('Restore failed:', error);
+          });
+
+        return {
+          success: true,
+          message: 'Restore initiated successfully',
+          data: {
+            operationId, // Return operationId for progress tracking
+          },
+        };
       } else {
         throw new Error('Either backupId or backup file must be provided');
       }
-
-      return {
-        success: true,
-        message: 'Restore completed successfully',
-      };
     } catch (error) {
       return {
         success: false,
@@ -196,6 +222,7 @@ export class BackupController {
   @ApiResponse({ status: 200, description: 'Restore completed successfully' })
   async restoreFromUploadedFile(
     @UploadedFile() file: Express.Multer.File,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     @Body() restoreDto: any, // Use any to avoid validation issues with multipart data
   ) {
     let tempFilePath: string | undefined;
@@ -248,14 +275,32 @@ export class BackupController {
         dropExisting:
           restoreDto.dropExisting === 'true' ||
           restoreDto.dropExisting === true,
+        originalFilename: file.originalname,
+        backupTypeHint:
+          typeof restoreDto.detectedType === 'string'
+            ? restoreDto.detectedType.toUpperCase()
+            : undefined,
+        encryptedHint:
+          restoreDto.isEncrypted === 'true' || restoreDto.isEncrypted === true,
       };
 
-      // Use the uploaded file path for restore
-      await this.restoreService.restoreFromBackup(tempFilePath, options);
+      // Generate operationId for progress tracking
+      const operationId = `restore_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Start restore in background (non-blocking) and return immediately
+      this.restoreService
+        .restoreFromBackup(tempFilePath, options, operationId)
+        .catch(error => {
+          // Log error but don't block response
+          this.logger.error('Restore failed:', error);
+        });
 
       return {
         success: true,
-        message: 'Restore completed successfully',
+        message: 'Restore initiated successfully',
+        data: {
+          operationId, // Return operationId for progress tracking
+        },
       };
     } catch (error) {
       return {
@@ -269,7 +314,9 @@ export class BackupController {
         try {
           fs.unlinkSync(tempFilePath);
         } catch (cleanupError) {
-          // Log cleanup errors but don't throw
+          this.logger.warn(
+            `Failed to cleanup temporary restore file ${tempFilePath}: ${cleanupError instanceof Error ? cleanupError.message : cleanupError}`,
+          );
         }
       }
     }
@@ -283,8 +330,8 @@ export class BackupController {
     try {
       const backups = await this.backupService.listBackups({
         clientId: query.clientId,
-        type: query.type as any,
-        status: query.status as any,
+        type: query.type,
+        status: query.status,
         limit: query.limit,
         offset: query.offset,
       });
@@ -321,7 +368,7 @@ export class BackupController {
         clientId: cleanupDto.clientId,
         retentionDays: cleanupDto.retentionDays,
         maxBackups: cleanupDto.maxBackups,
-        type: cleanupDto.type as any,
+        type: cleanupDto.type,
       });
 
       return {
@@ -597,7 +644,7 @@ export class BackupController {
   @Roles(UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Reset backup settings to defaults' })
   @ApiResponse({ status: 200, description: 'Settings reset successfully' })
-  async resetToDefaults(@User() user: any) {
+  async resetToDefaults(@User() user: { id: string }) {
     try {
       await this.backupService.resetToDefaults(user.id);
 
@@ -681,7 +728,7 @@ export class BackupController {
   @ApiResponse({ status: 404, description: 'Backup not found' })
   async downloadBackup(
     @Param('backupId') backupId: string,
-    @Res() res: any,
+    @Res() res: ExpressResponse,
     @Query('clientKey') clientKey?: string,
   ) {
     try {
@@ -697,16 +744,55 @@ export class BackupController {
         });
       }
 
-      // Set appropriate headers for file download
+      const cleanupTargets = new Set<string>(result.tempFiles || []);
+      if (result.isTemporary && result.filePath) {
+        cleanupTargets.add(result.filePath);
+      }
+
+      const cleanup = () => {
+        cleanupTargets.forEach(tempPath => {
+          if (tempPath && fs.existsSync(tempPath)) {
+            fs.unlink(tempPath, err => {
+              if (err) {
+                this.logger.warn(
+                  `Failed to delete temp file ${tempPath}: ${err.message}`,
+                );
+              } else {
+                this.logger.log(`Cleaned up temp file: ${tempPath}`);
+              }
+            });
+          }
+        });
+      };
+
       res.setHeader('Content-Type', 'application/octet-stream');
       res.setHeader(
         'Content-Disposition',
         `attachment; filename="${result.filename}"`,
       );
-      res.setHeader('Content-Length', result.fileSize);
+      if (typeof result.fileSize === 'number') {
+        res.setHeader('Content-Length', result.fileSize.toString());
+      }
 
-      // Stream the file
-      return res.sendFile(result.filePath);
+      if (!result.filePath) {
+        return res.status(500).json({
+          success: false,
+          message: 'File path is missing',
+        });
+      }
+
+      if (result.isTemporary) {
+        this.logger.log(`Streaming temporary file: ${result.filePath}`);
+        const fileStream = fs.createReadStream(result.filePath);
+        fileStream.on('end', cleanup);
+        fileStream.on('error', error => {
+          this.logger.error(`Stream error: ${error.message}`);
+          cleanup();
+        });
+        return fileStream.pipe(res);
+      }
+
+      return res.sendFile(result.filePath, cleanup);
     } catch (error) {
       return res.status(500).json({
         success: false,

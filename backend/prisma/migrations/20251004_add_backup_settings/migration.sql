@@ -1,0 +1,36 @@
+-- CreateTable
+CREATE TABLE "public"."backup_settings" (
+    "id" TEXT NOT NULL,
+    "enableEncryption" BOOLEAN NOT NULL DEFAULT false,
+    "clientEncryptionKey" TEXT,
+    "keyRotationEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "keyRotationDays" INTEGER NOT NULL DEFAULT 90,
+    "keyCreatedAt" TIMESTAMP(3),
+    "keyUpdatedAt" TIMESTAMP(3),
+    "enableOffsiteBackup" BOOLEAN NOT NULL DEFAULT false,
+    "offsiteProvider" TEXT NOT NULL DEFAULT 'ssh',
+    "remoteHost" TEXT,
+    "username" TEXT,
+    "remotePath" TEXT NOT NULL DEFAULT '/backups',
+    "sshKeyPath" TEXT,
+    "sshConfig" JSONB DEFAULT '{}',
+    "encryptInTransit" BOOLEAN NOT NULL DEFAULT true,
+    "syncFrequency" TEXT NOT NULL DEFAULT 'immediate',
+    "backupLocation" TEXT NOT NULL DEFAULT 'both',
+    "lastSync" TIMESTAMP(3),
+    "connectionStatus" TEXT NOT NULL DEFAULT 'disconnected',
+    "compressionLevel" TEXT NOT NULL DEFAULT 'medium',
+    "parallelOperations" INTEGER NOT NULL DEFAULT 1,
+    "backupNotifications" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "enableProgressTracking" BOOLEAN NOT NULL DEFAULT true,
+    "enablePreRestoreSnapshot" BOOLEAN NOT NULL DEFAULT true,
+    "maxRetryAttempts" INTEGER NOT NULL DEFAULT 3,
+    "backupTimeout" INTEGER NOT NULL DEFAULT 3600,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedBy" TEXT,
+    "version" TEXT NOT NULL DEFAULT '1.0.0',
+
+    CONSTRAINT "backup_settings_pkey" PRIMARY KEY ("id")
+);
+

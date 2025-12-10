@@ -522,13 +522,14 @@ export class BackupSchedulerService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      // Create backup
+      // Create backup using global settings
       const backup = await this.backupService.createBackup(
         {
           type: schedule.type,
           clientId: schedule.clientId,
-          encrypt: schedule.encrypt,
-          clientKey: schedule.clientKey,
+          // Let backend use global encryption and offsite settings
+          // encrypt: undefined - will use global settings
+          // clientKey: undefined - will use global key if encryption enabled
         },
         schedule.createdById || this.SYSTEM_USER_ID,
       );

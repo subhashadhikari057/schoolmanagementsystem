@@ -7,6 +7,7 @@ import {
 } from './database-backup.service';
 import { FilesBackupService, FilesBackupResult } from './files-backup.service';
 import { EncryptionService } from './encryption.service';
+import { ProgressTrackingService } from './progress-tracking.service';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -21,6 +22,7 @@ export interface FullSystemBackupOptions {
   backupName?: string;
   includePaths?: string[];
   excludePaths?: string[];
+  operationId?: string; // For progress tracking
 }
 
 export interface FullSystemBackupResult {
@@ -48,6 +50,7 @@ export class FullSystemBackupService {
     private readonly databaseBackupService: DatabaseBackupService,
     private readonly filesBackupService: FilesBackupService,
     private readonly encryptionService: EncryptionService,
+    private readonly progressTrackingService: ProgressTrackingService,
     private readonly prisma: PrismaService,
   ) {
     this.backupDir = path.join(process.cwd(), 'backups', 'full-system');
@@ -70,6 +73,7 @@ export class FullSystemBackupService {
   ): Promise<FullSystemBackupResult> {
     const backupId = `full_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const timestamp = new Date();
+    const operationId = options.operationId;
 
     try {
       this.logger.log(`Starting full system backup: ${backupId}`);
@@ -99,16 +103,35 @@ export class FullSystemBackupService {
 
       // 1. Create database backup
       this.logger.log('Creating database backup...');
+      if (operationId) {
+        this.progressTrackingService.updateProgress(
+          operationId,
+          'backup',
+          'dumping_database' as any,
+          20,
+          'Creating database backup...',
+        );
+      }
       const dbBackup = await this.databaseBackupService.createBackup({
         clientId: options.clientId,
         encrypt: false, // We'll encrypt the final archive
         outputDir: tempDir,
         backupName: 'database.sql.gz',
+        operationId, // Pass operationId for nested progress tracking
       });
       results.database = dbBackup;
 
       // 2. Create files backup
       this.logger.log('Creating files backup...');
+      if (operationId) {
+        this.progressTrackingService.updateProgress(
+          operationId,
+          'backup',
+          'collecting_files' as any,
+          40,
+          'Creating files backup...',
+        );
+      }
       const filesBackup = await this.filesBackupService.createBackup({
         clientId: options.clientId,
         encrypt: false, // We'll encrypt the final archive
@@ -116,6 +139,7 @@ export class FullSystemBackupService {
         backupName: 'files.tar.gz',
         includePaths: options.includePaths,
         excludePaths: options.excludePaths,
+        operationId, // Pass operationId for nested progress tracking
       });
       results.files = filesBackup;
 
