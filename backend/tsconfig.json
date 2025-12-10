@@ -20,5 +20,12 @@
 
     "typeRoots": ["./node_modules/@types"]
   },
-  "exclude": ["node_modules", "dist", "generate-jwt-keys.js"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "generate-jwt-keys.js",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/__tests__/**"
+  ]
 }
