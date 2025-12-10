@@ -46,6 +46,9 @@
   },
   "dependencies": {
     "csurf": "^1.11.0",
-    "dotenv-safe": "^9.1.0"
+    "dotenv-safe": "^9.1.0",
+    "next": "^15.5.7",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
   }
 }
