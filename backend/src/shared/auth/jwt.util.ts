@@ -25,7 +25,7 @@ export function signAccessToken(
     expiresIn: env.JWT_ACCESS_EXPIRES_IN.toString() as any,
     ...options,
   };
-  return jwt.sign(payload as object, privateKey as string, signOptions);
+  return jwt.sign(payload, privateKey, signOptions);
 }
 
 export function signRefreshToken(
@@ -38,7 +38,7 @@ export function signRefreshToken(
     expiresIn: env.JWT_REFRESH_EXPIRES_IN.toString() as any,
     ...options,
   };
-  return jwt.sign(payload as object, privateKey as string, signOptions);
+  return jwt.sign(payload, privateKey, signOptions);
 }
 
 export function verifyToken(token: string): JwtPayload | null {
@@ -92,7 +92,7 @@ export function signTempToken(
     audience: 'temp-action',
     ...options,
   };
-  return jwt.sign(payload as object, privateKey as string, signOptions);
+  return jwt.sign(payload, privateKey, signOptions);
 }
 
 export function verifyTempToken(
