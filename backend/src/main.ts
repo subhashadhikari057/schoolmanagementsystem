@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
-import { Express, json } from 'express';
+import { Express } from 'express';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/database/prisma.service';
@@ -28,9 +28,6 @@ export async function createApp() {
     ],
     credentials: true, // Allow cookies and credentials
   });
-
-  // ✅ Enable JSON body parsing with increased limit for file uploads
-  app.use(json({ limit: '10mb' }));
 
   // ✅ Enable cookie parsing middleware
   app.use(cookieParser());
