@@ -21,7 +21,7 @@ import {
   NoticeRecipientTypeLabels,
   NoticeCategory,
   NoticeCategoryLabels,
-} from 'shared-types';
+} from '@sms/shared-types';
 
 // Types based on DTO structure
 type FormState = {

@@ -7,7 +7,7 @@ import Dropdown from '@/components/molecules/interactive/Dropdown';
 import Button from '@/components/atoms/form-controls/Button';
 import { Bell, Eye, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { NoticePriority, NoticePriorityLabels } from 'shared-types';
+import { NoticePriority, NoticePriorityLabels } from '@sms/shared-types';
 
 // Modal for viewing a notice
 interface NoticeViewModalProps {
