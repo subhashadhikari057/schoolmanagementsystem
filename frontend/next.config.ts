@@ -40,16 +40,16 @@ const nextConfig: NextConfig = {
         pathname: '/api/v1/files/**',
       },
       // Production patterns - replace 'sms.navneetverma.com' with your actual domain
-      // {
-      //   protocol: 'https',
-      //   hostname: 'sms.navneetverma.com',
-      //   pathname: '/api/v1/files/**',
-      // },
-      // {
-      //   protocol: 'https',
-      //   hostname: 'sms.navneetverma.com',
-      //   pathname: '/uploads/**',
-      // },
+      {
+        protocol: 'https',
+        hostname: 'sms.navneetverma.com',
+        pathname: '/api/v1/files/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'sms.navneetverma.com',
+        pathname: '/uploads/**',
+      },
     ],
     domains: ['localhost', '127.0.0.1', 'sms.navneetverma.com'],
   },
