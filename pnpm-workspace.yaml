@@ -1,4 +1,20 @@
 packages:
-  - "backend"
-  - "frontend"
-  - "shared-types"
+  - backend
+  - frontend
+  - shared-types
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@prisma/client'
+  - '@prisma/engines'
+  - '@scarf/scarf'
+  - '@swc/core'
+  - argon2
+  - bcrypt
+  - core-js
+  - cpu-features
+  - esbuild
+  - prisma
+  - sharp
+  - ssh2
+  - unrs-resolver

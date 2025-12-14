@@ -39,9 +39,15 @@ import { GradingModule } from './modules/grading/grading.module';
 import { SchoolInformationModule } from './modules/school-information/school-information.module';
 import { PromotionModule } from './modules/promotion/promotion.module';
 import { BackupModule } from './modules/backup/backup.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'node:path';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
     DatabaseModule,
     SharedAuditModule,
     ErrorHandlingModule,

@@ -1,11 +1,9 @@
 import { NestFactory } from '@nestjs/core';
+import * as cookieParser from 'cookie-parser';
+import { Express, json } from 'express';
+import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/database/prisma.service';
-import { json, static as expressStatic } from 'express';
-import * as cookieParser from 'cookie-parser';
-import { ZodValidationPipe } from 'nestjs-zod';
-import { Express } from 'express';
-import { join } from 'path';
 export async function createApp() {
   const app = await NestFactory.create(AppModule);
 
@@ -40,7 +38,7 @@ export async function createApp() {
   // ✅ Add test route here
   const expressApp: Express = app.getHttpAdapter().getInstance();
   // Serve /uploads statically so files can be accessed directly
-  expressApp.use('/uploads', expressStatic(join(process.cwd(), 'uploads')));
+  // expressApp.use('/uploads', expressStatic(join(process.cwd(), 'uploads')));
   expressApp.get('/test', (req, res) => {
     // eslint-disable-next-line no-console
     console.log('✅ /test route hit');

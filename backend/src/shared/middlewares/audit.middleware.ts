@@ -13,13 +13,13 @@ import {
   UserRole,
 } from '@sms/shared-types';
 
-declare module 'express-serve-static-core' {
-  interface Request {
-    traceId?: string;
-    startTime?: number;
-    auditContext?: AuditContext;
-  }
-}
+// declare module 'express-serve-static-core' {
+//   interface Request {
+//     traceId?: string;
+//     startTime?: number;
+//     auditContext?: AuditContext;
+//   }
+// }
 
 @Injectable()
 export class AuditMiddleware implements NestMiddleware {
@@ -29,19 +29,19 @@ export class AuditMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction): void {
     const startTime = Date.now();
-    req.startTime = startTime;
+    // req.startTime = startTime;
 
     // Build audit context from request
     const auditContext: AuditContext = {
       userId: req.user?.id,
-      traceId: req.traceId,
+      // traceId: req.traceId,
       ipAddress: this.getClientIp(req),
       userAgent: req.get('User-Agent'),
       endpoint: req.url,
       method: req.method as any,
     };
 
-    req.auditContext = auditContext;
+    // req.auditContext = auditContext;
 
     // Override res.end to capture response details
     const originalEnd = res.end;
@@ -216,7 +216,6 @@ async function auditRequest(
       url: req.url,
       method: req.method,
       userId: req.user?.id,
-      traceId: req.traceId,
     });
   }
 }

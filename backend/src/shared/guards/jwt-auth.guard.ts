@@ -45,11 +45,11 @@ export interface AuthenticatedUser {
 /**
  * Extend Express Request to include authenticated user
  */
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: AuthenticatedUser;
-  }
-}
+// declare module 'express-serve-static-core' {
+//   interface Request {
+//     user?: AuthenticatedUser;
+//   }
+// }
 
 /**
  * Metadata key for marking routes as public (no authentication required)

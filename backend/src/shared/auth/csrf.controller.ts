@@ -29,14 +29,22 @@ export class CsrfController {
   @HttpCode(HttpStatus.OK)
   getCsrfToken(@Req() req: Request, @Res() res: Response) {
     try {
-      // Generate a simple CSRF token using crypto
-      const token = randomBytes(32).toString('hex');
+      // Generate CSRF token using csurf middleware function
+      // The middleware attaches csrfToken() function to the request
+      const token =
+        typeof (req as any).csrfToken === 'function'
+          ? (req as any).csrfToken()
+          : randomBytes(32).toString('hex');
 
       // Return the token to the client
       return res.status(200).json({
         token: token,
       });
-    } catch {
+    } catch (error) {
+      // Log the error for debugging
+      // eslint-disable-next-line no-console
+      console.error('CSRF Token generation failed:', error);
+
       return res.status(500).json({
         statusCode: 500,
         error: 'Internal Server Error',

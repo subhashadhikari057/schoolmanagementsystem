@@ -28,8 +28,8 @@ export class TraceIdMiddleware implements NestMiddleware {
 /**
  * Express request interface extension to include trace ID
  */
-declare module 'express-serve-static-core' {
-  interface Request {
-    traceId?: string;
-  }
-}
+// declare module 'express-serve-static-core' {
+//   interface Request {
+//     traceId?: string;
+//   }
+// }
