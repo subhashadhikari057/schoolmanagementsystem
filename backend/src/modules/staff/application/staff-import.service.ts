@@ -2,7 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
 import { StaffService } from './staff.service';
-import { parseCSV } from '../../../shared/utils/csv-parser.util';
+import { parseCSV, parseRecords } from '../../../shared/utils/csv-parser.util';
 import { StaffImportRowSchema, StaffImportRow } from '../dto/staff-import.dto';
 
 export interface StaffImportResult {
@@ -61,124 +61,150 @@ export class StaffImportService {
         csvContent,
         StaffImportRowSchema,
       );
-
-      this.logger.log(
-        `CSV parsed successfully. Total rows: ${parseResult.data.length}`,
-      );
-      this.logger.log(`Parse result:`, {
-        totalRows: parseResult.totalRows,
-        validRows: parseResult.validRows,
-        invalidRows: parseResult.invalidRows,
-        errors: parseResult.errors,
-      });
-
-      if (parseResult.errors.length > 0) {
-        this.logger.warn(`CSV parsing errors:`, parseResult.errors);
-      }
-
-      const result: StaffImportResult = {
-        success: true,
-        message: 'Import completed successfully',
-        totalProcessed: parseResult.data.length,
-        successfulImports: 0,
-        failedImports: 0,
-        errors: [],
-        importedStaff: [],
-      };
-
-      // Process each row
-      for (let i = 0; i < parseResult.data.length; i++) {
-        const row = parseResult.data[i];
-        const rowNumber = i + 1;
-
-        try {
-          this.logger.log(`Processing row ${rowNumber}: ${row.fullName}`);
-
-          // Check if staff already exists (active only)
-          const existingStaff = await this.prisma.staff.findFirst({
-            where: {
-              email: row.email,
-              deletedAt: null,
-            },
-          });
-
-          // Also check for deleted staff to handle re-import scenario
-          const deletedStaff = await this.prisma.staff.findFirst({
-            where: {
-              email: row.email,
-              deletedAt: { not: null },
-            },
-          });
-
-          if (existingStaff) {
-            if (options.updateExisting) {
-              // Update existing staff
-              await this.updateExistingStaff(existingStaff.id, row, createdBy);
-              result.successfulImports++;
-              result.importedStaff.push({
-                id: existingStaff.id,
-                fullName: row.fullName,
-                email: row.email,
-                employeeId: existingStaff.employeeId || '',
-                designation: row.designation || 'Staff',
-              });
-            } else if (options.skipDuplicates) {
-              this.logger.log(`Skipping duplicate staff: ${row.fullName}`);
-              continue;
-            } else {
-              throw new Error(`Staff with email ${row.email} already exists`);
-            }
-          } else if (deletedStaff) {
-            // Restore deleted staff instead of creating new one
-            this.logger.log(`Restoring deleted staff: ${row.fullName}`);
-            const restoredStaff = await this.restoreDeletedStaff(
-              deletedStaff.id,
-              row,
-              createdBy,
-            );
-            result.successfulImports++;
-            result.importedStaff.push({
-              id: restoredStaff.id,
-              fullName: row.fullName,
-              email: row.email,
-              employeeId: restoredStaff.employeeId || '',
-              designation: row.designation || 'Staff',
-            });
-          } else {
-            // Create new staff
-            const newStaff = await this.createNewStaff(row, createdBy);
-            result.successfulImports++;
-            result.importedStaff.push({
-              id: newStaff.id,
-              fullName: row.fullName,
-              email: row.email,
-              employeeId: newStaff.employeeId || '',
-              designation: row.designation || 'Staff',
-            });
-          }
-        } catch (error) {
-          this.logger.error(`Error processing row ${rowNumber}:`, error);
-          result.failedImports++;
-          result.errors.push({
-            row: rowNumber,
-            staff: row.fullName,
-            error: error.message,
-          });
-        }
-      }
-
-      // Update result message
-      if (result.failedImports > 0) {
-        result.message = `Import completed with ${result.failedImports} errors`;
-        result.success = false;
-      }
-
-      this.logger.log(`Import completed:`, result);
-      return result;
+      return this.processImport(parseResult, createdBy, options);
     } catch (error) {
       this.logger.error('Failed to import staff from CSV', error);
       throw error;
     }
+  }
+
+  /**
+   * Import staff from parsed records (e.g., XLSX)
+   */
+  async importStaffFromRecords(
+    records: Record<string, string>[],
+    createdBy: string,
+    options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
+  ): Promise<StaffImportResult> {
+    try {
+      const parseResult = parseRecords<StaffImportRow>(
+        records,
+        StaffImportRowSchema,
+      );
+      return this.processImport(parseResult, createdBy, options);
+    } catch (error) {
+      this.logger.error('Failed to import staff from records', error);
+      throw error;
+    }
+  }
+
+  private async processImport(
+    parseResult: {
+      data: StaffImportRow[];
+      errors: Array<{ row: number; line: string; error: string }>;
+      totalRows: number;
+      validRows: number;
+      invalidRows: number;
+    },
+    createdBy: string,
+    options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
+  ): Promise<StaffImportResult> {
+    this.logger.log(
+      `Data parsed successfully. Total rows: ${parseResult.data.length}`,
+    );
+    this.logger.log(`Parse result:`, {
+      totalRows: parseResult.totalRows,
+      validRows: parseResult.validRows,
+      invalidRows: parseResult.invalidRows,
+      errors: parseResult.errors,
+    });
+
+    if (parseResult.errors.length > 0) {
+      this.logger.warn(`Parsing errors:`, parseResult.errors);
+    }
+
+    const result: StaffImportResult = {
+      success: true,
+      message: 'Import completed successfully',
+      totalProcessed: parseResult.data.length,
+      successfulImports: 0,
+      failedImports: 0,
+      errors: [],
+      importedStaff: [],
+    };
+
+    for (let i = 0; i < parseResult.data.length; i++) {
+      const row = parseResult.data[i];
+      const rowNumber = i + 1;
+
+      try {
+        this.logger.log(`Processing row ${rowNumber}: ${row.fullName}`);
+
+        const existingStaff = await this.prisma.staff.findFirst({
+          where: {
+            email: row.email,
+            deletedAt: null,
+          },
+        });
+
+        const deletedStaff = await this.prisma.staff.findFirst({
+          where: {
+            email: row.email,
+            deletedAt: { not: null },
+          },
+        });
+
+        if (existingStaff) {
+          if (options.updateExisting) {
+            await this.updateExistingStaff(existingStaff.id, row, createdBy);
+            result.successfulImports++;
+            result.importedStaff.push({
+              id: existingStaff.id,
+              fullName: row.fullName,
+              email: row.email,
+              employeeId: existingStaff.employeeId || '',
+              designation: row.designation || 'Staff',
+            });
+          } else if (options.skipDuplicates) {
+            this.logger.log(`Skipping duplicate staff: ${row.fullName}`);
+            continue;
+          } else {
+            throw new Error(`Staff with email ${row.email} already exists`);
+          }
+        } else if (deletedStaff) {
+          this.logger.log(`Restoring deleted staff: ${row.fullName}`);
+          const restoredStaff = await this.restoreDeletedStaff(
+            deletedStaff.id,
+            row,
+            createdBy,
+          );
+          result.successfulImports++;
+          result.importedStaff.push({
+            id: restoredStaff.id,
+            fullName: row.fullName,
+            email: row.email,
+            employeeId: restoredStaff.employeeId || '',
+            designation: row.designation || 'Staff',
+          });
+        } else {
+          const newStaff = await this.createNewStaff(row, createdBy);
+          result.successfulImports++;
+          result.importedStaff.push({
+            id: newStaff.id,
+            fullName: row.fullName,
+            email: row.email,
+            employeeId: newStaff.employeeId || '',
+            designation: row.designation || 'Staff',
+          });
+        }
+      } catch (error) {
+        this.logger.error(`Error processing row ${rowNumber}:`, error);
+        result.failedImports++;
+        result.errors.push({
+          row: rowNumber,
+          staff: row.fullName,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    if (result.failedImports > 0) {
+      result.message = `Import completed with ${result.failedImports} errors`;
+      result.success = false;
+    }
+
+    this.logger.log(`Import completed:`, result);
+    return result;
   }
 
   /**
@@ -381,9 +407,11 @@ export class StaffImportService {
   }
 
   /**
-   * Export staff to CSV
+   * Export staff rows for XLSX
    */
-  async exportStaffToCSV(params: StaffExportParams): Promise<string> {
+  async exportStaffToRows(
+    params: StaffExportParams,
+  ): Promise<{ headers: string[]; rows: Array<Array<string | number>> }> {
     try {
       // Build where clause
       const where: any = { deletedAt: null };
@@ -418,52 +446,49 @@ export class StaffImportService {
         );
       }
 
-      // Generate CSV content - SIMPLIFIED VERSION
-      const csvRows = [
-        // Header - Only mandatory + basic optional fields
-        [
-          'fullName',
-          'email',
-          'phone',
-          'dob',
-          'gender',
-          'emergencyContact',
-          'basicSalary',
-          'employeeId',
-          'designation',
-          'department',
-        ].join(','),
+      const headers = [
+        'fullName',
+        'email',
+        'phone',
+        'dob',
+        'gender',
+        'emergencyContact',
+        'basicSalary',
+        'employeeId',
+        'designation',
+        'department',
       ];
 
-      // Data rows
-      for (const staff of filteredStaff) {
-        const row = [
-          `"${staff.fullName}"`,
-          `"${staff.email}"`,
-          `"${staff.phone}"`,
-          `"${staff.dob?.toISOString().split('T')[0] || ''}"`,
-          `"${staff.gender || ''}"`,
-          `"${staff.emergencyContact}"`,
-          `"${staff.basicSalary || 0}"`,
-          `"${staff.employeeId || ''}"`,
-          `"${staff.designation || ''}"`,
-          `"${staff.department || ''}"`,
-        ].join(',');
+      const rows = filteredStaff.map(staff => {
+        const basicSalary =
+          staff.basicSalary !== null && staff.basicSalary !== undefined
+            ? Number(staff.basicSalary)
+            : 0;
+        return [
+          staff.fullName,
+          staff.email,
+          staff.phone || '',
+          staff.dob?.toISOString().split('T')[0] || '',
+          staff.gender || '',
+          staff.emergencyContact || '',
+          basicSalary,
+          staff.employeeId || '',
+          staff.designation || '',
+          staff.department || '',
+        ];
+      });
 
-        csvRows.push(row);
-      }
-
-      return csvRows.join('\n');
+      return { headers, rows };
     } catch (error) {
-      this.logger.error('Failed to export staff to CSV', error);
+      this.logger.error('Failed to export staff', error);
       throw error;
     }
   }
 
   /**
-   * Generate CSV template for staff import - SIMPLIFIED VERSION
+   * Generate template data for staff import - SIMPLIFIED VERSION
    */
-  generateImportTemplate(): string {
+  getImportTemplateData(): { headers: string[]; sampleRow: string[] } {
     const headers = [
       'fullName',
       'email',
@@ -490,8 +515,6 @@ export class StaffImportService {
       'Administration',
     ];
 
-    const csvRows = [headers.join(','), sampleData.join(',')];
-
-    return csvRows.join('\n');
+    return { headers, sampleRow: sampleData };
   }
 }
