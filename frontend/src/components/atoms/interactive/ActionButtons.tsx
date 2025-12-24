@@ -466,18 +466,18 @@ const getActionButtonsConfig = (
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `teacher_import_template.csv`;
+            a.download = `teacher_import_template.xlsx`;
             a.click();
             window.URL.revokeObjectURL(url);
 
-            toast.success('✅ Template downloaded successfully!', {
+            toast.success('Template downloaded successfully.', {
               description:
                 'Use this template to format your teacher data for import.',
               duration: 4000,
             });
           } catch (error) {
             toast.error(
-              `❌ Template download failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              `Template download failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
               {
                 description: 'An unexpected error occurred. Please try again.',
                 duration: 5000,
@@ -502,10 +502,10 @@ const getActionButtonsConfig = (
         className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
         icon: <Upload size={16} />,
         onClick: () => {
-          // Create a file input element for CSV upload
+          // Create a file input element for Excel upload
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = '.csv';
+          input.accept = '.xlsx';
           input.onchange = async e => {
             const file = (e.target as HTMLInputElement).files?.[0];
             if (file) {
@@ -530,23 +530,24 @@ const getActionButtonsConfig = (
 
                 if (response.success) {
                   toast.success(
-                    `🎉 Import successful! ${response.data.successfulImports} teachers imported successfully.`,
+                    `Import successful. ${response.data.successfulImports} teachers imported successfully.`,
                     {
-                      description: `Check the backend console for teacher passwords.`,
+                      description:
+                        'Check the backend console for teacher passwords.',
                       duration: 6000,
                     },
                   );
                   // Refresh the page to show new teachers
                   window.location.reload();
                 } else {
-                  toast.error(`❌ Import failed: ${response.message}`, {
+                  toast.error(`Import failed: ${response.message}`, {
                     description: `${response.data.failedImports} teachers failed to import.`,
                     duration: 5000,
                   });
                 }
               } catch (error) {
                 toast.error(
-                  `❌ Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
                   {
                     description:
                       'An unexpected error occurred. Please try again.',
@@ -602,17 +603,17 @@ const getActionButtonsConfig = (
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `teachers_export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `teachers_export_${new Date().toISOString().split('T')[0]}.xlsx`;
             a.click();
             window.URL.revokeObjectURL(url);
 
-            toast.success('✅ Export successful! Teacher data downloaded.', {
-              description: 'Your CSV file has been downloaded successfully.',
+            toast.success('Export successful. Teacher data downloaded.', {
+              description: 'Your Excel file has been downloaded successfully.',
               duration: 4000,
             });
           } catch (error) {
             toast.error(
-              `❌ Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
               {
                 description: 'An unexpected error occurred. Please try again.',
                 duration: 5000,

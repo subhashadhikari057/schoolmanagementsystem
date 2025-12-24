@@ -4,7 +4,7 @@ import { AuditService } from '../../../shared/logger/audit.service';
 import { TeacherService } from './teacher.service';
 import { SubjectService } from '../../subject/application/subject.service';
 import { ClassService } from '../../class/application/class.service';
-import { parseCSV } from '../../../shared/utils/csv-parser.util';
+import { parseCSV, parseRecords } from '../../../shared/utils/csv-parser.util';
 import {
   TeacherImportRowSchema,
   TeacherImportRow,
@@ -67,109 +67,137 @@ export class TeacherImportService {
         csvContent,
         TeacherImportRowSchema,
       );
-
-      this.logger.log(
-        `CSV parsed successfully. Total rows: ${parseResult.data.length}`,
-      );
-      this.logger.log(`Parse result:`, {
-        totalRows: parseResult.totalRows,
-        validRows: parseResult.validRows,
-        invalidRows: parseResult.invalidRows,
-        errors: parseResult.errors,
-      });
-
-      if (parseResult.errors.length > 0) {
-        this.logger.warn(`CSV parsing errors:`, parseResult.errors);
-      }
-
-      const result: TeacherImportResult = {
-        success: true,
-        message: 'Import completed successfully',
-        totalProcessed: parseResult.data.length,
-        successfulImports: 0,
-        failedImports: 0,
-        errors: [],
-        importedTeachers: [],
-      };
-
-      // Process each row
-      for (let i = 0; i < parseResult.data.length; i++) {
-        const row = parseResult.data[i];
-        const rowNumber = i + 1;
-
-        try {
-          this.logger.log(`Processing row ${rowNumber}: ${row.fullName}`);
-
-          // Check if teacher already exists
-          const existingTeacher = await this.prisma.teacher.findFirst({
-            where: {
-              user: {
-                email: row.email,
-              },
-              deletedAt: null,
-            },
-            include: {
-              user: true,
-            },
-          });
-
-          if (existingTeacher) {
-            if (options.updateExisting) {
-              // Update existing teacher
-              await this.updateExistingTeacher(
-                existingTeacher.id,
-                row,
-                createdBy,
-              );
-              result.successfulImports++;
-              result.importedTeachers.push({
-                id: existingTeacher.id,
-                fullName: row.fullName,
-                email: row.email,
-                employeeId: existingTeacher.employeeId || '',
-                designation: row.designation || 'Teacher',
-              });
-            } else if (options.skipDuplicates) {
-              this.logger.log(`Skipping duplicate teacher: ${row.fullName}`);
-              continue;
-            } else {
-              throw new Error(`Teacher with email ${row.email} already exists`);
-            }
-          } else {
-            // Create new teacher
-            const newTeacher = await this.createNewTeacher(row, createdBy);
-            result.successfulImports++;
-            result.importedTeachers.push({
-              id: newTeacher.id,
-              fullName: row.fullName,
-              email: row.email,
-              employeeId: newTeacher.employeeId || '',
-              designation: row.designation || 'Teacher',
-            });
-          }
-        } catch (error) {
-          this.logger.error(`Error processing row ${rowNumber}:`, error);
-          result.failedImports++;
-          result.errors.push({
-            row: rowNumber,
-            teacher: row.fullName,
-            error: error.message,
-          });
-        }
-      }
-
-      // Update result message
-      if (result.failedImports > 0) {
-        result.message = `Import completed with ${result.failedImports} errors`;
-        result.success = false;
-      }
-
-      this.logger.log(`Import completed:`, result);
-      return result;
+      return this.processImport(parseResult, createdBy, options);
     } catch (error) {
       this.logger.error('Failed to import teachers from CSV', error);
       throw error;
     }
+  }
+
+  /**
+   * Import teachers from parsed records (e.g., XLSX)
+   */
+  async importTeachersFromRecords(
+    records: Record<string, string>[],
+    createdBy: string,
+    options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
+  ): Promise<TeacherImportResult> {
+    try {
+      const parseResult = parseRecords<TeacherImportRow>(
+        records,
+        TeacherImportRowSchema,
+      );
+      return this.processImport(parseResult, createdBy, options);
+    } catch (error) {
+      this.logger.error('Failed to import teachers from records', error);
+      throw error;
+    }
+  }
+
+  private async processImport(
+    parseResult: {
+      data: TeacherImportRow[];
+      errors: Array<{ row: number; line: string; error: string }>;
+      totalRows: number;
+      validRows: number;
+      invalidRows: number;
+    },
+    createdBy: string,
+    options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
+  ): Promise<TeacherImportResult> {
+    this.logger.log(
+      `Data parsed successfully. Total rows: ${parseResult.data.length}`,
+    );
+    this.logger.log(`Parse result:`, {
+      totalRows: parseResult.totalRows,
+      validRows: parseResult.validRows,
+      invalidRows: parseResult.invalidRows,
+      errors: parseResult.errors,
+    });
+
+    if (parseResult.errors.length > 0) {
+      this.logger.warn(`Parsing errors:`, parseResult.errors);
+    }
+
+    const result: TeacherImportResult = {
+      success: true,
+      message: 'Import completed successfully',
+      totalProcessed: parseResult.data.length,
+      successfulImports: 0,
+      failedImports: 0,
+      errors: [],
+      importedTeachers: [],
+    };
+
+    for (let i = 0; i < parseResult.data.length; i++) {
+      const row = parseResult.data[i];
+      const rowNumber = i + 1;
+
+      try {
+        this.logger.log(`Processing row ${rowNumber}: ${row.fullName}`);
+
+        const existingTeacher = await this.prisma.teacher.findFirst({
+          where: {
+            user: {
+              email: row.email,
+            },
+            deletedAt: null,
+          },
+          include: {
+            user: true,
+          },
+        });
+
+        if (existingTeacher) {
+          if (options.updateExisting) {
+            await this.updateExistingTeacher(
+              existingTeacher.id,
+              row,
+              createdBy,
+            );
+            result.successfulImports++;
+            result.importedTeachers.push({
+              id: existingTeacher.id,
+              fullName: row.fullName,
+              email: row.email,
+              employeeId: existingTeacher.employeeId || '',
+              designation: row.designation || 'Teacher',
+            });
+          } else if (options.skipDuplicates) {
+            this.logger.log(`Skipping duplicate teacher: ${row.fullName}`);
+            continue;
+          } else {
+            throw new Error(`Teacher with email ${row.email} already exists`);
+          }
+        } else {
+          const newTeacher = await this.createNewTeacher(row, createdBy);
+          result.successfulImports++;
+          result.importedTeachers.push({
+            id: newTeacher.id,
+            fullName: row.fullName,
+            email: row.email,
+            employeeId: newTeacher.employeeId || '',
+            designation: row.designation || 'Teacher',
+          });
+        }
+      } catch (error) {
+        this.logger.error(`Error processing row ${rowNumber}:`, error);
+        result.failedImports++;
+        result.errors.push({
+          row: rowNumber,
+          teacher: row.fullName,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    if (result.failedImports > 0) {
+      result.message = `Import completed with ${result.failedImports} errors`;
+      result.success = false;
+    }
+
+    this.logger.log(`Import completed:`, result);
+    return result;
   }
 
   /**
@@ -381,10 +409,9 @@ export class TeacherImportService {
     }
   }
 
-  /**
-   * Export teachers to CSV
-   */
-  async exportTeachersToCSV(params: TeacherExportParams): Promise<string> {
+  async exportTeachersToRows(
+    params: TeacherExportParams,
+  ): Promise<{ headers: string[]; rows: Array<Array<string | number>> }> {
     try {
       // Build where clause
       const where: any = { deletedAt: null };
@@ -443,96 +470,112 @@ export class TeacherImportService {
         );
       }
 
-      // Generate CSV content
-      const csvRows = [
-        // Header
-        [
-          'fullName',
-          'email',
-          'phone',
-          'employeeId',
-          'dateOfBirth',
-          'gender',
-          'joiningDate',
-          'experienceYears',
-          'highestQualification',
-          'specialization',
-          'designation',
-          'department',
-          'basicSalary',
-          'allowances',
-          'bankName',
-          'bankAccountNumber',
-          'bankBranch',
-          'subjects',
-          'classes',
-        ].join(','),
+      const headers = [
+        'fullName',
+        'email',
+        'phone',
+        'employeeId',
+        'dateOfBirth',
+        'gender',
+        'joiningDate',
+        'experienceYears',
+        'highestQualification',
+        'specialization',
+        'designation',
+        'department',
+        'basicSalary',
+        'allowances',
+        'bankName',
+        'bankAccountNumber',
+        'bankBranch',
       ];
 
-      // Data rows
-      for (const teacher of filteredTeachers) {
-        const subjects = teacher.subjectAssignments
-          .map(sa => sa.subject.code)
-          .join(';');
+      const rows = filteredTeachers.map(teacher => {
+        const basicSalary =
+          teacher.basicSalary !== null && teacher.basicSalary !== undefined
+            ? Number(teacher.basicSalary)
+            : 0;
+        const allowances =
+          teacher.allowances !== null && teacher.allowances !== undefined
+            ? Number(teacher.allowances)
+            : 0;
 
-        const classes = teacher.classAssignments
-          .map(ca => `${ca.class.grade}-${ca.class.section}`)
-          .join(';');
+        return [
+          teacher.user.fullName,
+          teacher.user.email,
+          teacher.user.phone || '',
+          teacher.employeeId || '',
+          teacher.dateOfBirth?.toISOString().split('T')[0] || '',
+          teacher.gender || '',
+          teacher.joiningDate?.toISOString().split('T')[0] || '',
+          teacher.experienceYears || 0,
+          teacher.qualification || '',
+          teacher.specialization || '',
+          teacher.designation || '',
+          teacher.department || '',
+          basicSalary,
+          allowances,
+          teacher.bankName || '',
+          teacher.bankAccountNumber || '',
+          teacher.bankBranch || '',
+        ];
+      });
 
-        const row = [
-          `"${teacher.user.fullName}"`,
-          `"${teacher.user.email}"`,
-          `"${teacher.user.phone || ''}"`,
-          `"${teacher.employeeId || ''}"`,
-          `"${teacher.dateOfBirth?.toISOString().split('T')[0] || ''}"`,
-          `"${teacher.gender || ''}"`,
-          `"${teacher.joiningDate?.toISOString().split('T')[0] || ''}"`,
-          `"${teacher.experienceYears || 0}"`,
-          `"${teacher.qualification || ''}"`,
-          `"${teacher.specialization || ''}"`,
-          `"${teacher.designation || ''}"`,
-          `"${teacher.department || ''}"`,
-          `"${teacher.basicSalary || 0}"`,
-          `"${teacher.allowances || 0}"`,
-          `"${teacher.bankName || ''}"`,
-          `"${teacher.bankAccountNumber || ''}"`,
-          `"${teacher.bankBranch || ''}"`,
-          `"${subjects}"`,
-          `"${classes}"`,
-        ].join(',');
-
-        csvRows.push(row);
-      }
-
-      return csvRows.join('\n');
+      return { headers, rows };
     } catch (error) {
-      this.logger.error('Failed to export teachers to CSV', error);
+      this.logger.error('Failed to export teachers', error);
       throw error;
     }
   }
 
   /**
-   * Generate CSV template for teacher import
+   * Generate template data for teacher import
    */
-  generateImportTemplate(): string {
+  getImportTemplateData(): { headers: string[]; sampleRow: string[] } {
     const headers = [
       'fullName',
       'email',
       'phone',
+      'employeeId',
+      'dateOfBirth',
+      'gender',
       'joiningDate',
+      'experienceYears',
       'highestQualification',
+      'specialization',
+      'designation',
+      'department',
+      'basicSalary',
+      'allowances',
+      'bankName',
+      'bankAccountNumber',
+      'bankBranch',
+      'subjects',
+      'classes',
     ];
 
     const sampleData = [
       'Sarah Johnson',
       'sarah.johnson@school.com',
       '9876543211',
+      'EMP-0001',
+      '1988-04-12',
+      'Female',
       '2023-01-15',
+      '5',
       'M.Ed',
+      'Mathematics',
+      'Senior Teacher',
+      'Mathematics',
+      '45000',
+      '5000',
+      'Nabil Bank',
+      '1234567890',
+      'Kathmandu',
+      'MATH101,PHY101',
+      '10-A,11-B',
     ];
 
-    const csvRows = [headers.join(','), sampleData.join(',')];
-
-    return csvRows.join('\n');
+    return { headers, sampleRow: sampleData };
   }
 }

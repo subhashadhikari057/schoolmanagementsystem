@@ -176,7 +176,7 @@ export class TeacherService {
   // ========================================================================
 
   /**
-   * Import teachers from CSV file
+   * Import teachers from XLSX file
    */
   async importTeachersFromCSV(
     file: File,
@@ -223,7 +223,7 @@ export class TeacherService {
   }
 
   /**
-   * Export teachers to CSV
+   * Export teachers to XLSX
    */
   async exportTeachersToCSV(params?: {
     department?: string;
@@ -273,7 +273,7 @@ export class TeacherService {
   }
 
   /**
-   * Get CSV template for teacher import
+   * Get XLSX template for teacher import
    */
   async getImportTemplate(): Promise<Blob> {
     // For blob responses, we need to use fetch directly
