@@ -221,6 +221,8 @@ export interface StudentResponse {
   gender?: string;
   bloodGroup?: string;
   ethnicity?: string;
+  motherTongue?: string;
+  disabilityType?: string;
   maritalStatus?: string;
   address?: string;
   street?: string;
@@ -660,7 +662,7 @@ export class StudentService {
   // ========================================================================
 
   /**
-   * Import students from CSV file
+   * Import students from XLSX file
    */
   async importStudentsFromCSV(
     file: File,
@@ -707,7 +709,7 @@ export class StudentService {
   }
 
   /**
-   * Export students to CSV
+   * Export students to XLSX
    */
   async exportStudentsToCSV(params?: {
     classId?: string;
@@ -757,7 +759,7 @@ export class StudentService {
   }
 
   /**
-   * Get CSV template for student import
+   * Get XLSX template for student import
    */
   async getImportTemplate(): Promise<Blob> {
     // For blob responses, we need to use fetch directly

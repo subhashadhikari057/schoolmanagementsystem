@@ -194,24 +194,24 @@ const getActionButtonsConfig = (
               const url = window.URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
-              a.download = `student_import_template.csv`;
+              a.download = `student_import_template.xlsx`;
               a.click();
               window.URL.revokeObjectURL(url);
 
-              toast.success('✅ Template downloaded successfully!', {
+              toast.success('Template downloaded successfully.', {
                 description:
                   'Use this template to format your student data for import.',
                 duration: 4000,
               });
             } else {
-              toast.error('❌ Failed to download template', {
+              toast.error('Failed to download template', {
                 description: 'Please try again or contact support.',
                 duration: 5000,
               });
             }
           } catch (error) {
             toast.error(
-              `❌ Template download failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              `Template download failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
               {
                 description: 'An unexpected error occurred. Please try again.',
                 duration: 5000,
@@ -236,10 +236,10 @@ const getActionButtonsConfig = (
         className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
         icon: <Upload size={16} />,
         onClick: () => {
-          // Create a file input element for CSV upload
+          // Create a file input element for Excel upload
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = '.csv';
+          input.accept = '.xlsx';
           input.onchange = async e => {
             const file = (e.target as HTMLInputElement).files?.[0];
             if (file) {
@@ -280,30 +280,32 @@ const getActionButtonsConfig = (
                   const result = await response.json();
                   if (result.success) {
                     toast.success(
-                      `🎉 Import successful! ${result.successfulImports} students imported successfully.`,
+                      `Import successful. ${result.successfulImports} students imported successfully.`,
                       {
-                        description: `Check the backend console for student and parent passwords.`,
+                        description:
+                          'Check the backend console for student and parent passwords.',
                         duration: 6000,
                       },
                     );
                     // Refresh the page to show new students
                     window.location.reload();
                   } else {
-                    toast.error(`❌ Import failed: ${result.message}`, {
+                    toast.error(`Import failed: ${result.message}`, {
                       description: `${result.failedImports} students failed to import.`,
                       duration: 5000,
                     });
                   }
                 } else {
                   const error = await response.text();
-                  toast.error(`❌ Import failed: ${error}`, {
-                    description: 'Please check your CSV format and try again.',
+                  toast.error(`Import failed: ${error}`, {
+                    description:
+                      'Please check your Excel format and try again.',
                     duration: 5000,
                   });
                 }
               } catch (error) {
                 toast.error(
-                  `❌ Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
                   {
                     description:
                       'An unexpected error occurred. Please try again.',
@@ -378,24 +380,25 @@ const getActionButtonsConfig = (
               const url = window.URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
-              a.download = `students_export_${new Date().toISOString().split('T')[0]}.csv`;
+              a.download = `students_export_${new Date().toISOString().split('T')[0]}.xlsx`;
               a.click();
               window.URL.revokeObjectURL(url);
 
-              toast.success('✅ Export successful! Student data downloaded.', {
-                description: 'Your CSV file has been downloaded successfully.',
+              toast.success('Export successful. Student data downloaded.', {
+                description:
+                  'Your Excel file has been downloaded successfully.',
                 duration: 4000,
               });
             } else {
               const error = await response.text();
-              toast.error(`❌ Export failed: ${error}`, {
+              toast.error(`Export failed: ${error}`, {
                 description: 'Please try again or contact support.',
                 duration: 5000,
               });
             }
           } catch (error) {
             toast.error(
-              `❌ Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
               {
                 description: 'An unexpected error occurred. Please try again.',
                 duration: 5000,

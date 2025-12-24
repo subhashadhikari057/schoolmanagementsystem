@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DisabilityType, MotherTongue } from '@prisma/client';
 
 // Schema for a single student import row
 export const StudentImportRowSchema = z.object({
@@ -13,6 +14,9 @@ export const StudentImportRowSchema = z.object({
   classSection: z.string().min(1, 'Class section is required'),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
   gender: z.enum(['Male', 'Female', 'Other']),
+  motherTongue: z.nativeEnum(MotherTongue).optional(),
+  disabilityType: z.nativeEnum(DisabilityType).optional(),
+  address: z.string().optional(),
   // Parent information
   primaryParentName: z.string().min(1, 'Primary parent name is required'),
   primaryParentPhone: z.string().min(1, 'Primary parent phone is required'),

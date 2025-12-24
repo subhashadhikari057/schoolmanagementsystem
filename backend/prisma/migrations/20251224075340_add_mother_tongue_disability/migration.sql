@@ -1,0 +1,9 @@
+-- CreateEnum
+CREATE TYPE "MotherTongue" AS ENUM ('Nepali', 'Maithili', 'Bhojpuri', 'Tharu', 'Tamang', 'Bajjika', 'Avadhi', 'Nepalbhasha (Newari)', 'Magar Dhut', 'Doteli', 'Urdu', 'Yakthung/ Limbu', 'Gurung', 'Magahi', 'Baitadeli', 'Rai', 'Achhami', 'Bantawa', 'Rajbanshi', 'Sherpa', 'Khash', 'Bajhangi', 'Hindi', 'Magar Kham', 'Chamling', 'Ranatharu', 'Chepang', 'Bajureli', 'Santhali', 'Danuwar', 'Darchuleli', 'Uranw/Urau', 'Kulung', 'Angika', 'Majhi', 'Sunuwar', 'Thami', 'Ganagai', 'Thulung', 'Bangla', 'Ghale', 'Sampang', 'Marwadi', 'Dadeldhuri', 'Dhimal', 'Tajpuriya', 'Kumal', 'Khaling', 'Musalman', 'Wambule', 'Bahing/ Bayung', 'Yakkha', 'Sanskrit', 'Bhujel', 'Bhote', 'Darai', 'Yamphu/Yamphe', 'Nachhiring', 'Hyolmo/Yholmo', 'Dumi', 'Jumli', 'Bote', 'Mewahang', 'Puma', 'Pahari', 'Athpahariya', 'Dungmali', 'Jirel', 'Tibetan', 'Dailekhi', 'Chum/ Nubri', 'Chhantyal', 'Raji', 'Thakali', 'Meche', 'Koyee', 'Lohorung', 'Kewarat', 'Dolpali', 'Done', 'Mugali', 'Jero/ Jerung', 'Karmarong', 'Chhintang', 'Lhopa', 'Lapcha', 'Munda/Mudiyari', 'Manange', 'Chhiling', 'Dura', 'Tilung', 'Sign Language', 'Byansi', 'Balkura/ Baram', 'Baragunwa', 'Sadri', 'English', 'Magar Kaike', 'Sonaha', 'Hayu/ Vayu', 'Kisan', 'Punjabi', 'Dhuleli', 'Khamchi (Raute)', 'Lungkhim', 'Lowa', 'Kagate', 'Waling/ Walung', 'Nar-Phu', 'Lhomi', 'Tichhurong Poike', 'Kurmali', 'Koche', 'Sindhi', 'Phangduwali', 'Belhare', 'Surel', 'Malpande', 'Khariya', 'Sadhani', 'Hariyanwi', 'Sam', 'Bankariya', 'Kusunda');
+
+-- CreateEnum
+CREATE TYPE "DisabilityType" AS ENUM ('No Disability', 'Physical', 'Intellectual Disability', 'Deaf', 'Hard of Hearing', 'Totally Blind', 'Visually Impaired', 'Low Vision', 'Deafblindness', 'Blind', 'Vocal and Speech related', 'Autism', 'Mental / Psychosocial', 'Hemophilia', 'Multiple Disability', 'Deaf and Blind', 'N/A');
+
+-- AlterTable
+ALTER TABLE "Student" ADD COLUMN     "disabilityType" "DisabilityType",
+ADD COLUMN     "motherTongue" "MotherTongue";

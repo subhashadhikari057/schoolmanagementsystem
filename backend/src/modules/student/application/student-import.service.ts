@@ -11,7 +11,10 @@ import { hashPassword } from '../../../shared/auth/hash.util';
 import { generateRandomPassword } from '../../../shared/utils/password.util';
 import {
   parseCSV,
+  parseRecords,
   generateStudentImportTemplate,
+  formatDisabilityTypeLabel,
+  formatMotherTongueLabel,
 } from '../../../shared/utils/csv-parser.util';
 import {
   StudentImportRow,
@@ -48,7 +51,57 @@ export class StudentImportService {
         csvContent,
         StudentImportRowSchema,
       );
+      return this.importStudentsFromParseResult(
+        parseResult,
+        createdBy,
+        options,
+      );
+    } catch (error) {
+      this.logger.error('Failed to import students from CSV', error);
+      throw new BadRequestException(
+        `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
 
+  /**
+   * Import students from parsed records (e.g., XLSX)
+   */
+  async importStudentsFromRecords(
+    records: Record<string, string>[],
+    createdBy: string,
+    options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
+  ): Promise<StudentImportResult> {
+    try {
+      const parseResult = parseRecords<StudentImportRow>(
+        records,
+        StudentImportRowSchema,
+      );
+      return this.importStudentsFromParseResult(
+        parseResult,
+        createdBy,
+        options,
+      );
+    } catch (error) {
+      this.logger.error('Failed to import students from records', error);
+      throw new BadRequestException(
+        `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  private async importStudentsFromParseResult(
+    parseResult: {
+      data: StudentImportRow[];
+      errors: Array<{ row: number; line: string; error: string }>;
+      totalRows: number;
+      validRows: number;
+      invalidRows: number;
+    },
+    createdBy: string,
+    options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
+  ): Promise<StudentImportResult> {
+    try {
       // Log the parsed data for debugging
       this.logger.log(
         `CSV parsed successfully. Total rows: ${parseResult.data.length}`,
@@ -114,7 +167,7 @@ export class StudentImportService {
         importedStudents: results.importedStudents,
       };
     } catch (error) {
-      this.logger.error('Failed to import students from CSV', error);
+      this.logger.error('Failed to import students from records', error);
       throw new BadRequestException(
         `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -447,6 +500,9 @@ export class StudentImportService {
           dob: parsedDateOfBirth,
           dateOfBirth: parsedDateOfBirth, // Also set dateOfBirth for frontend compatibility
           gender: studentData.gender.toLowerCase(),
+          motherTongue: studentData.motherTongue,
+          disabilityType: studentData.disabilityType,
+          address: studentData.address || '',
           academicStatus: 'active',
           feeStatus: 'pending',
           createdById: createdBy,
@@ -559,6 +615,20 @@ export class StudentImportService {
       academicStatus?: string;
     } = {},
   ): Promise<string> {
+    const { headers, rows } = await this.exportStudentsToRows(filters);
+    const csvRows = rows.map(row =>
+      row.map(value => (value ?? '') as string).join(','),
+    );
+    return [headers.join(','), ...csvRows].join('\n');
+  }
+
+  async exportStudentsToRows(
+    filters: {
+      classId?: string;
+      search?: string;
+      academicStatus?: string;
+    } = {},
+  ): Promise<{ headers: string[]; rows: Array<Array<string | number>> }> {
     try {
       // Build where clause based on filters
       const whereClause: Record<string, unknown> = {
@@ -645,6 +715,9 @@ export class StudentImportService {
         'classSection',
         'dateOfBirth',
         'gender',
+        'motherTongue',
+        'disabilityType',
+        'address',
         'primaryParentName',
         'primaryParentPhone',
         'primaryParentEmail',
@@ -655,7 +728,7 @@ export class StudentImportService {
         'secondaryParentRelation',
       ];
 
-      const csvRows = sortedStudents.map(student => {
+      const rows = sortedStudents.map(student => {
         // Get father information from student schema (Primary Parent)
         const fatherName =
           student.fatherFirstName && student.fatherLastName
@@ -678,13 +751,16 @@ export class StudentImportService {
 
         return [
           student.user.fullName,
-          student.user.email,
-          student.user.phone,
+          student.user.email || '',
+          student.user.phone || '',
           student.rollNumber,
           student.class.grade,
           student.class.section,
           student.dob ? student.dob.toISOString().split('T')[0] : '',
-          student.gender,
+          student.gender || '',
+          formatMotherTongueLabel(student.motherTongue || undefined),
+          formatDisabilityTypeLabel(student.disabilityType || undefined),
+          student.address || '',
           fatherName, // primaryParentName (Father)
           fatherPhone, // primaryParentPhone (Father)
           fatherEmail, // primaryParentEmail (Father)
@@ -693,10 +769,10 @@ export class StudentImportService {
           motherPhone, // secondaryParentPhone (Mother)
           motherEmail, // secondaryParentEmail (Mother)
           motherRelation, // secondaryParentRelation (Mother)
-        ].join(',');
+        ];
       });
 
-      return [headers.join(','), ...csvRows].join('\n');
+      return { headers, rows };
     } catch (error) {
       this.logger.error('Failed to export students to CSV', error);
       throw new BadRequestException(

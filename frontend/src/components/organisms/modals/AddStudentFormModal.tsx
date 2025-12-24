@@ -20,6 +20,10 @@ import { classService } from '@/api/services/class.service';
 import { studentService } from '@/api/services/student.service';
 import EthnicitySelect from '@/components/molecules/form/EthnicitySelect';
 import ParentSearchSelect from '@/components/molecules/form/ParentSearchSelect';
+import {
+  DISABILITY_TYPE_OPTIONS,
+  MOTHER_TONGUE_OPTIONS,
+} from '@/constants/studentEnums';
 
 interface AddStudentFormModalProps {
   isOpen: boolean;
@@ -69,6 +73,8 @@ interface StudentFormData {
   gender: string;
   bloodGroup?: string;
   ethnicity?: string;
+  motherTongue?: string;
+  disabilityType?: string;
   address?: string;
   street?: string;
   city?: string;
@@ -140,6 +146,8 @@ const initialFormData: StudentFormData = {
   gender: '',
   bloodGroup: '',
   ethnicity: '',
+  motherTongue: '',
+  disabilityType: '',
   address: '',
   street: '',
   city: '',
@@ -820,6 +828,8 @@ export default function AddStudentFormModal({
               | 'O+'
               | 'O-') || undefined,
           ethnicity: formData.ethnicity?.trim() || undefined,
+          motherTongue: formData.motherTongue || undefined,
+          disabilityType: formData.disabilityType || undefined,
           address: formData.address?.trim() || undefined,
           street: formData.street?.trim() || undefined,
           city: formData.city?.trim() || undefined,
@@ -1308,6 +1318,24 @@ export default function AddStudentFormModal({
                   }
                   placeholder='Select ethnicity'
                   className='mt-4'
+                />
+              </div>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
+                <LabeledSelect
+                  label='Mother Tongue'
+                  name='motherTongue'
+                  value={formData.motherTongue || ''}
+                  onChange={handleInputChange}
+                  options={MOTHER_TONGUE_OPTIONS}
+                  placeholder='Select mother tongue'
+                />
+                <LabeledSelect
+                  label='Disability Type'
+                  name='disabilityType'
+                  value={formData.disabilityType || ''}
+                  onChange={handleInputChange}
+                  options={DISABILITY_TYPE_OPTIONS}
+                  placeholder='Select disability type'
                 />
               </div>
 

@@ -25,7 +25,7 @@ CREATE TABLE "public"."backup_schedules" (
     "lastBackupId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3),
-    "createdById" UUID,
+    "createdById" TEXT,
 
     CONSTRAINT "backup_schedules_pkey" PRIMARY KEY ("id")
 );

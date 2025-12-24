@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DisabilityType, MotherTongue } from '@prisma/client';
 
 // ---------------------------
 // Subschema for user creation
@@ -22,6 +23,8 @@ export const CreateStudentPersonalSchema = z.object({
     .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
     .optional(),
   ethnicity: z.string().optional(),
+  motherTongue: z.nativeEnum(MotherTongue).optional(),
+  disabilityType: z.nativeEnum(DisabilityType).optional(),
   address: z.string().optional(),
   street: z.string().optional(),
   city: z.string().optional(),
@@ -203,6 +206,8 @@ export const UpdateStudentByAdminPersonalSchema = z.object({
     .enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])
     .optional(),
   ethnicity: z.string().optional(),
+  motherTongue: z.nativeEnum(MotherTongue).optional(),
+  disabilityType: z.nativeEnum(DisabilityType).optional(),
   maritalStatus: z
     .enum(['single', 'married', 'divorced', 'widowed'])
     .optional(),
@@ -264,6 +269,8 @@ export const UpdateStudentSelfUserSchema = z.object({
 
 export const UpdateStudentSelfPersonalSchema = z.object({
   ethnicity: z.string().optional(),
+  motherTongue: z.nativeEnum(MotherTongue).optional(),
+  disabilityType: z.nativeEnum(DisabilityType).optional(),
   address: z.string().optional(),
   street: z.string().optional(),
   city: z.string().optional(),
@@ -324,6 +331,8 @@ export const StudentResponseDto = z.object({
   gender: z.string().optional(),
   bloodGroup: z.string().optional(),
   ethnicity: z.string().optional(),
+  motherTongue: z.string().optional(),
+  disabilityType: z.string().optional(),
   maritalStatus: z.string().optional(),
   address: z.string().optional(),
   street: z.string().optional(),

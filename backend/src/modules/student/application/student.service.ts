@@ -238,6 +238,8 @@ export class StudentService {
           gender: personal?.gender || 'Not Specified',
           bloodGroup: personal?.bloodGroup,
           ethnicity: personal?.ethnicity,
+          motherTongue: personal?.motherTongue,
+          disabilityType: personal?.disabilityType,
           address: personal?.address,
           street: personal?.street,
           city: personal?.city,
@@ -1098,6 +1100,10 @@ export class StudentService {
         studentUpdateData.bloodGroup = dto.personal.bloodGroup;
       if (dto.personal.ethnicity !== undefined)
         studentUpdateData.ethnicity = dto.personal.ethnicity;
+      if (dto.personal.motherTongue !== undefined)
+        studentUpdateData.motherTongue = dto.personal.motherTongue;
+      if (dto.personal.disabilityType !== undefined)
+        studentUpdateData.disabilityType = dto.personal.disabilityType;
       if (dto.personal.address !== undefined)
         studentUpdateData.address = dto.personal.address;
       if (dto.personal.street !== undefined)
@@ -1263,6 +1269,8 @@ export class StudentService {
         where: { id: student.id },
         data: {
           ethnicity: dto.personal.ethnicity,
+          motherTongue: dto.personal.motherTongue,
+          disabilityType: dto.personal.disabilityType,
           address: dto.personal.address,
           street: dto.personal.street,
           city: dto.personal.city,

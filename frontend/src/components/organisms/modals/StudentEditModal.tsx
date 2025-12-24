@@ -24,6 +24,10 @@ import { classService } from '@/api/services/class.service';
 import { toast } from 'sonner';
 import EthnicitySelect from '@/components/molecules/form/EthnicitySelect';
 import Avatar from '@/components/atoms/display/Avatar';
+import {
+  DISABILITY_TYPE_OPTIONS,
+  MOTHER_TONGUE_OPTIONS,
+} from '@/constants/studentEnums';
 
 interface StudentEditModalProps {
   isOpen: boolean;
@@ -174,6 +178,8 @@ interface EditStudentForm {
   gender: string;
   bloodGroup: string;
   ethnicity: string;
+  motherTongue: string;
+  disabilityType: string;
   address: string;
   street: string;
   city: string;
@@ -232,6 +238,8 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
     gender: '',
     bloodGroup: '',
     ethnicity: '',
+    motherTongue: '',
+    disabilityType: '',
     address: '',
     street: '',
     city: '',
@@ -397,6 +405,8 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
               gender: details.gender || '',
               bloodGroup: details.bloodGroup || '',
               ethnicity: details.ethnicity || '',
+              motherTongue: details.motherTongue || '',
+              disabilityType: details.disabilityType || '',
               address: details.address || '',
               street: details.street || '',
               city: details.city || '',
@@ -690,6 +700,8 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
           gender: formData.gender,
           bloodGroup: formData.bloodGroup,
           ethnicity: formData.ethnicity,
+          motherTongue: formData.motherTongue,
+          disabilityType: formData.disabilityType,
           address: formData.address,
           street: formData.street,
           city: formData.city,
@@ -975,6 +987,24 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
                   }
                   placeholder='Select ethnicity'
                   className='mt-4'
+                />
+              </div>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
+                <LabeledSelect
+                  label='Mother Tongue'
+                  name='motherTongue'
+                  value={formData.motherTongue}
+                  onChange={handleInputChange}
+                  options={MOTHER_TONGUE_OPTIONS}
+                  placeholder='Select mother tongue'
+                />
+                <LabeledSelect
+                  label='Disability Type'
+                  name='disabilityType'
+                  value={formData.disabilityType}
+                  onChange={handleInputChange}
+                  options={DISABILITY_TYPE_OPTIONS}
+                  placeholder='Select disability type'
                 />
               </div>
             </div>

@@ -21,6 +21,10 @@ import {
 } from '@/api/services/student.service';
 import { toast } from 'sonner';
 import Avatar from '@/components/atoms/display/Avatar';
+import {
+  formatDisabilityType,
+  formatMotherTongue,
+} from '@/constants/studentEnums';
 
 interface StudentViewModalProps {
   isOpen: boolean;
@@ -325,6 +329,22 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
                         {studentDetails.ethnicity || 'N/A'}
                       </span>
                     </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Mother Tongue
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {formatMotherTongue(studentDetails.motherTongue)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Disability Type
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {formatDisabilityType(studentDetails.disabilityType)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -384,6 +404,14 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
                     Address Information
                   </h4>
                   <div className='space-y-2'>
+                    <div>
+                      <span className='text-xs text-gray-500 block'>
+                        Full Address
+                      </span>
+                      <span className='text-sm font-medium text-gray-900'>
+                        {studentDetails.address || 'N/A'}
+                      </span>
+                    </div>
                     <div>
                       <span className='text-xs text-gray-500 block'>
                         Street

@@ -22,7 +22,7 @@ CREATE TABLE "public"."backup_metadata" (
     "metadata" JSONB DEFAULT '{}',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3),
-    "createdById" UUID,
+    "createdById" TEXT,
 
     CONSTRAINT "backup_metadata_pkey" PRIMARY KEY ("id")
 );

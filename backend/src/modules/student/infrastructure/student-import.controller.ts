@@ -30,6 +30,7 @@ import {
 import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../../shared/guards/jwt-auth.guard';
 import { StudentImportService } from '../application/student-import.service';
+import { getStudentImportTemplateData } from '../../../shared/utils/csv-parser.util';
 import { Public } from '../../../shared/guards/jwt-auth.guard';
 
 @ApiTags('Student Import/Export')
@@ -57,7 +58,7 @@ export class StudentImportController {
   @Post('import')
   @RoleAccess.AdminLevel()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Import students from CSV file' })
+  @ApiOperation({ summary: 'Import students from XLSX file' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -66,7 +67,7 @@ export class StudentImportController {
         file: {
           type: 'string',
           format: 'binary',
-          description: 'CSV file with student data',
+          description: 'XLSX file with student data',
         },
         skipDuplicates: {
           type: 'boolean',
@@ -123,14 +124,15 @@ export class StudentImportController {
     FileInterceptor('file', {
       storage: undefined, // Use memory storage to get buffer
       fileFilter: (req, file, cb) => {
-        // Accept CSV files
+        // Accept XLSX files
         if (
-          file.mimetype === 'text/csv' ||
-          file.originalname.endsWith('.csv')
+          file.mimetype ===
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+          file.originalname.endsWith('.xlsx')
         ) {
           cb(null, true);
         } else {
-          cb(new BadRequestException('Only CSV files are supported'), false);
+          cb(new BadRequestException('Only XLSX files are supported'), false);
         }
       },
       limits: {
@@ -148,7 +150,7 @@ export class StudentImportController {
 
     if (!file) {
       this.logger.warn('No file received in import request');
-      throw new BadRequestException('CSV file is required');
+      throw new BadRequestException('XLSX file is required');
     }
 
     // Enhanced debug logging
@@ -181,9 +183,9 @@ export class StudentImportController {
       filename: file.filename,
     });
 
-    if (!file.originalname.endsWith('.csv')) {
+    if (!file.originalname.endsWith('.xlsx')) {
       this.logger.warn(`Invalid file type: ${file.originalname}`);
-      throw new BadRequestException('Only CSV files are supported');
+      throw new BadRequestException('Only XLSX files are supported');
     }
 
     // Check if file has buffer property
@@ -202,11 +204,8 @@ export class StudentImportController {
     }
 
     this.logger.log(
-      `Processing CSV file: ${file.originalname}, size: ${file.size} bytes`,
+      `Processing XLSX file: ${file.originalname}, size: ${file.size} bytes`,
     );
-
-    const csvContent = file.buffer.toString('utf-8');
-    this.logger.log(`CSV content length: ${csvContent.length} characters`);
 
     const options = {
       skipDuplicates: skipDuplicates === 'true',
@@ -215,8 +214,56 @@ export class StudentImportController {
 
     this.logger.log(`Import options: ${JSON.stringify(options)}`);
 
-    return await this.studentImportService.importStudentsFromCSV(
-      csvContent,
+    const workbook = new (await import('exceljs')).Workbook();
+    const bufferSource = Buffer.isBuffer(file.buffer)
+      ? file.buffer
+      : Buffer.from(file.buffer as ArrayBuffer);
+    const arrayBuffer = Uint8Array.from(bufferSource).buffer;
+    const xlsxLoader = workbook.xlsx as unknown as {
+      load: (data: ArrayBuffer) => Promise<void>;
+    };
+    await xlsxLoader.load(arrayBuffer);
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      throw new BadRequestException('No worksheet found in XLSX file');
+    }
+
+    const headerRow = worksheet.getRow(1);
+    const headerValues = Array.isArray(headerRow.values)
+      ? headerRow.values
+      : [];
+    const headers = headerValues
+      .slice(1)
+      .map(value => String(value || '').trim());
+    if (!headers.length) {
+      throw new BadRequestException('XLSX header row is empty');
+    }
+
+    const records: Record<string, string>[] = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const rowValues = Array.isArray(row.values) ? row.values : [];
+      const values = rowValues.slice(1);
+      if (
+        values.every(
+          value => value === null || value === undefined || value === '',
+        )
+      ) {
+        return;
+      }
+      const record: Record<string, string> = {};
+      headers.forEach((header, index) => {
+        const cellValue = values[index];
+        record[header] =
+          cellValue === null || cellValue === undefined
+            ? ''
+            : String(cellValue);
+      });
+      records.push(record);
+    });
+
+    return await this.studentImportService.importStudentsFromRecords(
+      records,
       user?.id || 'system',
       options,
     );
@@ -228,25 +275,49 @@ export class StudentImportController {
   @Get('import/template')
   @RoleAccess.AdminLevel()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get CSV template for student import' })
+  @ApiOperation({ summary: 'Get XLSX template for student import' })
   @ApiResponse({
     status: 200,
-    description: 'CSV template content',
+    description: 'XLSX template file',
     schema: {
       type: 'string',
-      example:
-        'fullName,email,phone,rollNumber,classGrade,classSection,dateOfBirth,gender,primaryParentName,primaryParentPhone,primaryParentEmail,primaryParentRelation,secondaryParentName,secondaryParentPhone,secondaryParentEmail,secondaryParentRelation\nEmma Wilson,emma.wilson@example.com,9819677711,STU002,1,A,2008-04-15,Female,David Wilson,9819677712,david.wilson@example.com,Father,Lisa Wilson,9819677713,lisa.wilson@example.com,Mother',
+      format: 'binary',
     },
   })
   async getImportTemplate(@Res() res: Response) {
-    const template = await this.studentImportService.getImportTemplate();
+    const { headers, exampleRow } = getStudentImportTemplateData();
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Student Import Template');
+    worksheet.addRow(headers);
+    worksheet.addRow(exampleRow);
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF2563EB' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    res.setHeader('Content-Type', 'text/csv');
+    worksheet.columns = headers.map((header, index) => ({
+      header,
+      key: header,
+      width: Math.max(header.length + 4, exampleRow[index]?.length + 2, 16),
+    }));
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+    worksheet.getRow(2).alignment = { vertical: 'middle' };
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader(
       'Content-Disposition',
-      'attachment; filename="student_import_template.csv"',
+      'attachment; filename="student_import_template.xlsx"',
     );
-    res.send(template);
+    res.send(Buffer.from(buffer));
   }
 
   /**
@@ -255,10 +326,10 @@ export class StudentImportController {
   @Get('export')
   @RoleAccess.AdminLevel()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Export students to CSV' })
+  @ApiOperation({ summary: 'Export students to XLSX' })
   @ApiResponse({
     status: 200,
-    description: 'CSV file with student data',
+    description: 'XLSX file with student data',
     schema: {
       type: 'string',
       format: 'binary',
@@ -270,17 +341,41 @@ export class StudentImportController {
     @Query('search') search?: string,
     @Query('academicStatus') academicStatus?: string,
   ) {
-    const csvContent = await this.studentImportService.exportStudentsToCSV({
-      classId,
-      search,
-      academicStatus,
-    });
+    const { headers, rows } =
+      await this.studentImportService.exportStudentsToRows({
+        classId,
+        search,
+        academicStatus,
+      });
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Students Export');
+    worksheet.addRow(headers);
+    rows.forEach(row => worksheet.addRow(row));
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF2563EB' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    worksheet.columns = headers.map((header, index) => ({
+      header,
+      key: header,
+      width: Math.max(header.length + 4, 16),
+    }));
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
 
-    const filename = `students_export_${new Date().toISOString().split('T')[0]}.csv`;
+    const buffer = await workbook.xlsx.writeBuffer();
+    const filename = `students_export_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csvContent);
+    res.send(Buffer.from(buffer));
   }
 
   /**
@@ -307,6 +402,9 @@ export class StudentImportController {
               classSection: { type: 'string' },
               dateOfBirth: { type: 'string' },
               gender: { type: 'string', enum: ['Male', 'Female', 'Other'] },
+              motherTongue: { type: 'string' },
+              disabilityType: { type: 'string' },
+              address: { type: 'string' },
               primaryParentName: { type: 'string' },
               primaryParentPhone: { type: 'string' },
               primaryParentEmail: { type: 'string' },
@@ -351,6 +449,9 @@ export class StudentImportController {
         classSection: string;
         dateOfBirth: string;
         gender: string;
+        motherTongue?: string;
+        disabilityType?: string;
+        address?: string;
         primaryParentName: string;
         primaryParentPhone: string;
         primaryParentEmail: string;
@@ -364,57 +465,35 @@ export class StudentImportController {
       updateExisting?: boolean;
     },
   ) {
-    // Convert JSON data to CSV format for processing
-    const headers = [
-      'fullName',
-      'email',
-      'phone',
-      'rollNumber',
-      'classGrade',
-      'classSection',
-      'dateOfBirth',
-      'gender',
-      'primaryParentName',
-      'primaryParentPhone',
-      'primaryParentEmail',
-      'primaryParentRelation',
-      'secondaryParentName',
-      'secondaryParentPhone',
-      'secondaryParentEmail',
-      'secondaryParentRelation',
-    ];
-
-    const csvRows = importData.students.map(student => [
-      student.fullName,
-      student.email,
-      student.phone,
-      student.rollNumber,
-      student.classGrade,
-      student.classSection,
-      student.dateOfBirth,
-      student.gender,
-      student.primaryParentName,
-      student.primaryParentPhone,
-      student.primaryParentEmail,
-      student.primaryParentRelation,
-      student.secondaryParentName || '',
-      student.secondaryParentPhone || '',
-      student.secondaryParentEmail || '',
-      student.secondaryParentRelation || '',
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...csvRows.map(row => row.join(',')),
-    ].join('\n');
-
     const options = {
       skipDuplicates: importData.skipDuplicates || false,
       updateExisting: importData.updateExisting || false,
     };
 
-    return await this.studentImportService.importStudentsFromCSV(
-      csvContent,
+    const records = importData.students.map(student => ({
+      fullName: student.fullName,
+      email: student.email,
+      phone: student.phone,
+      rollNumber: student.rollNumber,
+      classGrade: String(student.classGrade),
+      classSection: student.classSection,
+      dateOfBirth: student.dateOfBirth,
+      gender: student.gender,
+      motherTongue: student.motherTongue || '',
+      disabilityType: student.disabilityType || '',
+      address: student.address || '',
+      primaryParentName: student.primaryParentName,
+      primaryParentPhone: student.primaryParentPhone,
+      primaryParentEmail: student.primaryParentEmail,
+      primaryParentRelation: student.primaryParentRelation,
+      secondaryParentName: student.secondaryParentName || '',
+      secondaryParentPhone: student.secondaryParentPhone || '',
+      secondaryParentEmail: student.secondaryParentEmail || '',
+      secondaryParentRelation: student.secondaryParentRelation || '',
+    }));
+
+    return await this.studentImportService.importStudentsFromRecords(
+      records,
       user?.id || 'system',
       options,
     );
