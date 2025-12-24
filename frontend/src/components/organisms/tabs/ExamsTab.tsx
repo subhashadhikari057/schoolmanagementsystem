@@ -1,104 +1,139 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import SectionTitle from '@/components/atoms/display/SectionTitle';
-import Label from '@/components/atoms/display/Label';
+import React, { useMemo, useState, useEffect } from 'react';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
-import Button from '@/components/atoms/form-controls/Button';
-import { Edit, Eye, Clock, Users, Calendar, BarChart3 } from 'lucide-react';
+import { Clock, Calendar, MapPin } from 'lucide-react';
+import { calendarService } from '@/api/services/calendar.service';
+import { CalendarEntryType } from '@sms/shared-types';
+import { ad2bs } from 'hamro-nepali-patro';
 
 interface Exam {
   id: string;
   title: string;
-  class: string;
-  subject: string;
-  examType: string;
+  examType?: string;
   date: string;
-  duration: string;
-  maxMarks: number;
-  totalStudents: number;
-  completed: number;
-  graded: number;
-  averageScore: number;
+  timeRange: string;
+  venue?: string;
+  details?: string;
   status: 'grading' | 'completed' | 'scheduled';
 }
 
 export default function ExamsTab() {
   const [query, setQuery] = useState('');
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'grading' | 'completed' | 'scheduled'
   >('all');
 
-  const exams: Exam[] = [
-    {
-      id: '1',
-      title: 'Mid-term Science Examination',
-      class: 'Class 7-B, Class 8-A',
-      subject: 'Science',
-      examType: 'written',
-      date: '8/25/2025',
-      duration: '2 hours',
-      maxMarks: 100,
-      totalStudents: 60,
-      completed: 45,
-      graded: 40,
-      averageScore: 78.5,
-      status: 'grading',
-    },
-    {
-      id: '2',
-      title: 'Optional Mathematics Unit Test',
-      class: 'Class 9-A',
-      subject: 'Optional Mathematics',
-      examType: 'written',
-      date: '8/20/2025',
-      duration: '1.5 hours',
-      maxMarks: 80,
-      totalStudents: 25,
-      completed: 25,
-      graded: 25,
-      averageScore: 82.3,
-      status: 'completed',
-    },
-    {
-      id: '3',
-      title: 'Physics Lab Practical Exam',
-      class: 'Class 11-A',
-      subject: 'Physics Lab',
-      examType: 'practical',
-      date: '8/30/2025',
-      duration: '3 hours',
-      maxMarks: 50,
-      totalStudents: 18,
-      completed: 0,
-      graded: 0,
-      averageScore: 0,
-      status: 'scheduled',
-    },
-    {
-      id: '4',
-      title: 'Chemistry Theory Final',
-      class: 'Class 12-B',
-      subject: 'Chemistry Theory',
-      examType: 'written',
-      date: '7/15/2025',
-      duration: '2.5 hours',
-      maxMarks: 100,
-      totalStudents: 22,
-      completed: 22,
-      graded: 22,
-      averageScore: 85.7,
-      status: 'completed',
-    },
-  ];
+  const formatExamType = (examType?: string) => {
+    if (!examType) return 'Exam';
+    return examType
+      .toLowerCase()
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const formatExamDate = (startDate: string, endDate: string) => {
+    const nepaliMonths = [
+      'बैशाख',
+      'जेठ',
+      'असार',
+      'साउन',
+      'भदौ',
+      'असोज',
+      'कार्तिक',
+      'मंसिर',
+      'पुष',
+      'माघ',
+      'फागुन',
+      'चैत',
+    ];
+
+    const formatNepaliDate = (dateStr: string) => {
+      try {
+        const date = new Date(dateStr);
+        const bsDate = ad2bs(
+          date.getFullYear(),
+          date.getMonth() + 1,
+          date.getDate(),
+        );
+        const nepaliMonth = nepaliMonths[bsDate.month - 1] || 'N/A';
+        return `${nepaliMonth} ${bsDate.date}, ${bsDate.year}`;
+      } catch (_error) {
+        return new Date(dateStr).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+      }
+    };
+
+    const startLabel = formatNepaliDate(startDate);
+    const endLabel = formatNepaliDate(endDate);
+    return startLabel === endLabel ? startLabel : `${startLabel} - ${endLabel}`;
+  };
+
+  const getStatusFromDates = (startDate: string, endDate: string) => {
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (end < now) return 'completed';
+    if (start > now) return 'scheduled';
+    return 'grading';
+  };
+
+  useEffect(() => {
+    const loadExams = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await calendarService.getCalendarEntries({
+          page: 1,
+          limit: 100,
+          type: CalendarEntryType.EXAM,
+        });
+        const mappedExams: Exam[] = response.entries.map(entry => {
+          const dateLabel = formatExamDate(entry.startDate, entry.endDate);
+          const timeRange =
+            entry.startTime && entry.endTime
+              ? `${entry.startTime} - ${entry.endTime}`
+              : entry.startTime || '';
+          return {
+            id: entry.id,
+            title: entry.name,
+            examType: entry.examType,
+            date: dateLabel,
+            timeRange,
+            venue: entry.venue || undefined,
+            details: entry.examDetails || undefined,
+            status: getStatusFromDates(entry.startDate, entry.endDate),
+          };
+        });
+        setExams(mappedExams);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to load exams';
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExams();
+  }, []);
 
   const filteredExams = useMemo(() => {
     return exams.filter(exam => {
       const matchesQuery =
         exam.title.toLowerCase().includes(query.toLowerCase()) ||
-        exam.class.toLowerCase().includes(query.toLowerCase()) ||
-        exam.subject.toLowerCase().includes(query.toLowerCase());
+        (exam.venue || '').toLowerCase().includes(query.toLowerCase()) ||
+        formatExamType(exam.examType)
+          .toLowerCase()
+          .includes(query.toLowerCase());
 
       const matchesStatus =
         statusFilter === 'all' || exam.status === statusFilter;
@@ -172,92 +207,75 @@ export default function ExamsTab() {
 
       {/* Exams List */}
       <div className='space-y-4'>
-        {filteredExams.map(exam => (
-          <div
-            key={exam.id}
-            className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm w-full'
-          >
-            <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4'>
-              <div className='flex-1 min-w-0'>
-                <div className='flex flex-wrap gap-2 mb-3'>
-                  <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(exam.status)}`}
-                  >
-                    {exam.status}
-                  </span>
-                  <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700'>
-                    {exam.subject}
-                  </span>
-                  <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700'>
-                    {exam.examType}
-                  </span>
+        {loading && (
+          <div className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'>
+            <p className='text-sm text-gray-600'>Loading exams...</p>
+          </div>
+        )}
+        {!loading && error && (
+          <div className='bg-white rounded-xl border border-red-200 p-6 shadow-sm'>
+            <p className='text-sm text-red-600'>{error}</p>
+          </div>
+        )}
+        {!loading && !error && filteredExams.length === 0 && (
+          <div className='bg-white rounded-xl border border-gray-200 p-6 shadow-sm'>
+            <p className='text-sm text-gray-600'>
+              No exams found for the selected filters.
+            </p>
+          </div>
+        )}
+        {!loading &&
+          !error &&
+          filteredExams.map(exam => (
+            <div
+              key={exam.id}
+              className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm w-full'
+            >
+              <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4'>
+                <div className='flex-1 min-w-0'>
+                  <div className='flex flex-wrap gap-2 mb-3'>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(exam.status)}`}
+                    >
+                      {exam.status}
+                    </span>
+                    <span className='inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700'>
+                      {formatExamType(exam.examType)}
+                    </span>
+                  </div>
+
+                  <h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words truncate'>
+                    {exam.title}
+                  </h3>
+
+                  <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6 text-xs sm:text-sm text-gray-600 mb-4'>
+                    <div className='flex items-center gap-2'>
+                      <Calendar className='w-4 h-4' />
+                      <span>{exam.date}</span>
+                    </div>
+                    {exam.timeRange && (
+                      <div className='flex items-center gap-2'>
+                        <Clock className='w-4 h-4' />
+                        <span>{exam.timeRange}</span>
+                      </div>
+                    )}
+                    {exam.venue && (
+                      <div className='flex items-center gap-2'>
+                        <MapPin className='w-4 h-4' />
+                        <span className='break-words'>{exam.venue}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {exam.details && (
+                    <p className='text-xs sm:text-sm text-gray-600'>
+                      {exam.details}
+                    </p>
+                  )}
                 </div>
-
-                <h3 className='text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words truncate'>
-                  {exam.title}
-                </h3>
-
-                <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6 text-xs sm:text-sm text-gray-600 mb-4'>
-                  <div className='flex items-center gap-2'>
-                    <Calendar className='w-4 h-4' />
-                    <span>{exam.date}</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Clock className='w-4 h-4' />
-                    <span>{exam.duration}</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <BarChart3 className='w-4 h-4' />
-                    <span>Max Marks: {exam.maxMarks}</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Users className='w-4 h-4' />
-                    <span className='break-words'>{exam.class}</span>
-                  </div>
-                </div>
-
-                {/* Statistics Row - horizontal scroll on mobile */}
-                <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 overflow-x-auto'>
-                  <div className='text-center min-w-[90px]'>
-                    <div className='text-base sm:text-lg font-semibold text-gray-900'>
-                      {exam.totalStudents}
-                    </div>
-                    <div className='text-xs text-gray-600'>Total Students</div>
-                  </div>
-                  <div className='text-center min-w-[90px]'>
-                    <div className='text-base sm:text-lg font-semibold text-gray-900'>
-                      {exam.completed}
-                    </div>
-                    <div className='text-xs text-gray-600'>Completed</div>
-                  </div>
-                  <div className='text-center min-w-[90px]'>
-                    <div className='text-base sm:text-lg font-semibold text-gray-900'>
-                      {exam.graded}
-                    </div>
-                    <div className='text-xs text-gray-600'>Graded</div>
-                  </div>
-                  <div className='text-center min-w-[90px]'>
-                    <div className='text-base sm:text-lg font-semibold text-gray-900'>
-                      {exam.averageScore > 0 ? `${exam.averageScore}%` : '-'}
-                    </div>
-                    <div className='text-xs text-gray-600'>Average Score</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className='flex gap-2 sm:gap-3 w-full sm:w-auto'>
-                <Button
-                  label='Edit'
-                  className='bg-gray-100 text-gray-700 px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-200 w-full sm:w-auto'
-                />
-                <Button
-                  label='View Details'
-                  className='bg-blue-600 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 w-full sm:w-auto'
-                />
               </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );
