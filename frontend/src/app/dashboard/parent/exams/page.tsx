@@ -1,31 +1,55 @@
 'use client';
 import { FiSearch } from 'react-icons/fi';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import StudentExamsTab from '@/components/organisms/tabs/StudentExamsTab';
 import { PageLoader } from '@/components/atoms/loading';
-
-const childrenList = [
-  { id: '1', name: 'John Doe' },
-  { id: '2', name: 'Jane Doe' },
-];
+import { parentService } from '@/api/services/parent.service';
 
 export default function ParentExamsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedChild, setSelectedChild] = useState(childrenList[0].id);
+  const [selectedChild, setSelectedChild] = useState<string>('');
+  const [children, setChildren] = useState<
+    Array<{
+      id: string;
+      studentId: string;
+      fullName: string;
+      className?: string;
+      classId?: string;
+    }>
+  >([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1200);
+    const loadChildren = async () => {
+      try {
+        setLoading(true);
+        const response = await parentService.getMyProfile();
+        const childList = response.data?.children || [];
+        setChildren(childList);
+        if (childList.length > 0) {
+          setSelectedChild(childList[0].studentId || childList[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to load children:', error);
+        setChildren([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    loadChildren();
   }, []);
+
+  const selectedChildClassId = useMemo(() => {
+    const match = children.find(
+      child => (child.studentId || child.id) === selectedChild,
+    );
+    return match?.classId;
+  }, [children, selectedChild]);
 
   if (loading) {
     return <PageLoader />;
@@ -43,7 +67,12 @@ export default function ParentExamsPage() {
       <div className='flex flex-col gap-4 mb-6 mt-8'>
         <div className='flex flex-row gap-4 w-full'>
           <Dropdown
-            options={childrenList.map(c => ({ label: c.name, value: c.id }))}
+            options={children.map(child => ({
+              label: child.className
+                ? `${child.fullName} (${child.className})`
+                : child.fullName,
+              value: child.studentId || child.id,
+            }))}
             selectedValue={selectedChild}
             onSelect={setSelectedChild}
             className='min-w-[180px] rounded-lg px-4 py-2'
@@ -88,6 +117,7 @@ export default function ParentExamsPage() {
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
         selectedChild={selectedChild}
+        selectedClassId={selectedChildClassId}
       />
     </div>
   );

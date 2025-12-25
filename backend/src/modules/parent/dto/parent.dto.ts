@@ -191,6 +191,7 @@ export const ParentResponseDto = z.object({
         studentId: z.string(),
         fullName: z.string(),
         className: z.string().optional(),
+        classId: z.string().optional(),
         rollNumber: z.string().optional(),
         relationship: z.string(),
         isPrimary: z.boolean(),

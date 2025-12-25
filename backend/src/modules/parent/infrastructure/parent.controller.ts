@@ -268,6 +268,23 @@ export class ParentController {
     );
   }
 
+  /**
+   * Get exam routine for a parent's child
+   */
+  @Get('me/children/:childId/exam-routine')
+  @Roles(UserRole.PARENT)
+  @ApiOperation({
+    summary: "Get child's exam routine",
+    description:
+      "Parents can view their child's exam schedule and routine details.",
+  })
+  async getChildExamRoutine(
+    @Param('childId') childId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.parentService.getChildExamRoutine(user.id, childId);
+  }
+
   @Get(':id')
   @Roles(
     UserRole.SUPER_ADMIN,

@@ -80,19 +80,36 @@ const formatDateBadge = (dateStr: string) => {
   }
 };
 
+const formatNepaliDate = (dateStr: string) => {
+  try {
+    const date = new Date(dateStr);
+    const bsDate = ad2bs(
+      date.getFullYear(),
+      date.getMonth() + 1,
+      date.getDate(),
+    );
+    const nepaliMonth = nepaliMonths[bsDate.month - 1] || 'N/A';
+    return `${nepaliMonth} ${bsDate.date}, ${bsDate.year}`;
+  } catch (error) {
+    console.error('Date conversion error:', error);
+    return new Date(dateStr).toLocaleDateString();
+  }
+};
+
+const formatNepaliDateRange = (startDate: string, endDate?: string) => {
+  if (!endDate || endDate === startDate) {
+    return formatNepaliDate(startDate);
+  }
+  const startLabel = formatNepaliDate(startDate);
+  const endLabel = formatNepaliDate(endDate);
+  return `${startLabel} - ${endLabel}`;
+};
+
 const formatEventDetails = (event: Event) => {
   const parts: string[] = [];
 
   // Format date(s)
-  if (event.endDate && event.endDate !== event.date) {
-    // Multi-day event
-    const startDate = new Date(event.date).toLocaleDateString();
-    const endDate = new Date(event.endDate).toLocaleDateString();
-    parts.push(`Date: ${startDate} - ${endDate}`);
-  } else {
-    // Single day event
-    parts.push(`Date: ${new Date(event.date).toLocaleDateString()}`);
-  }
+  parts.push(`Date: ${formatNepaliDateRange(event.date, event.endDate)}`);
 
   // Add time if available
   if (event.time && event.time.trim()) {
@@ -456,6 +473,9 @@ const UpcomingEventsPanel: React.FC<UpcomingEventsPanelProps> = ({
                               event.type.slice(1).replace('_', ' ')}
                           </span>
                         )}
+                      </div>
+                      <div className='text-xs text-gray-600 mt-1'>
+                        {formatNepaliDateRange(event.date, event.endDate)}
                       </div>
                       <div className='flex items-center justify-between mt-1'>
                         <div className='flex gap-4'>

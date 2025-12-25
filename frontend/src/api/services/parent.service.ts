@@ -18,6 +18,8 @@ const PARENT_ENDPOINTS = {
   LIST: 'api/v1/parents',
   GET_BY_ID: (id: string) => `api/v1/parents/${id}`,
   GET_ME: 'api/v1/parents/me',
+  GET_CHILD_EXAM_ROUTINE: (childId: string) =>
+    `api/v1/parents/me/children/${childId}/exam-routine`,
   UPDATE: (id: string) => `api/v1/parents/${id}`,
   DELETE: (id: string) => `api/v1/parents/${id}`,
   GET_CHILDREN: (id: string) => `api/v1/parents/${id}/children`,
@@ -299,6 +301,19 @@ export class ParentService {
   async getParentChildren(parentId: string): Promise<ApiResponse<any[]>> {
     return this.httpClient.get<any[]>(
       PARENT_ENDPOINTS.GET_CHILDREN(parentId),
+      undefined,
+      {
+        requiresAuth: true,
+      },
+    );
+  }
+
+  /**
+   * Get exam routine for a parent's child
+   */
+  async getChildExamRoutine(childId: string): Promise<ApiResponse<any>> {
+    return this.httpClient.get<any>(
+      PARENT_ENDPOINTS.GET_CHILD_EXAM_ROUTINE(childId),
       undefined,
       {
         requiresAuth: true,

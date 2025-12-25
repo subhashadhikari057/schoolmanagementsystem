@@ -481,6 +481,7 @@ export class ParentService {
         studentId: link.studentId,
         fullName: link.student.user.fullName,
         className: `${link.student.class.grade}-${link.student.class.section}`,
+        classId: link.student.classId,
         rollNumber: link.student.rollNumber,
         relationship: link.relationship,
         isPrimary: link.isPrimary,
@@ -609,6 +610,7 @@ export class ParentService {
       id: link.student.id,
       fullName: link.student.user.fullName,
       email: link.student.email,
+      classId: link.student.classId,
       class: {
         grade: link.student.class.grade,
         section: link.student.class.section,
@@ -1350,6 +1352,163 @@ export class ParentService {
         attachments: submission.attachments,
       },
       message: `Submission details for ${child.student.user.fullName}`,
+    };
+  }
+
+  /**
+   * Get exam routine for a parent's child
+   */
+  async getChildExamRoutine(userId: string, childId: string) {
+    const parent = await this.prisma.parent.findFirst({
+      where: { userId, deletedAt: null },
+      include: {
+        children: {
+          where: { studentId: childId },
+          include: {
+            student: {
+              include: {
+                user: {
+                  select: {
+                    fullName: true,
+                  },
+                },
+                class: {
+                  select: {
+                    id: true,
+                    name: true,
+                    grade: true,
+                    section: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!parent || parent.children.length === 0) {
+      throw new NotFoundException('Child not found or access denied');
+    }
+
+    const child = parent.children[0].student;
+    const classId = child.classId;
+
+    const schedules = await this.prisma.examSchedule.findMany({
+      where: {
+        classId,
+        deletedAt: null,
+      },
+      include: {
+        class: {
+          select: {
+            id: true,
+            name: true,
+            grade: true,
+            section: true,
+          },
+        },
+        calendarEntry: {
+          select: {
+            id: true,
+            name: true,
+            examType: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (schedules.length === 0) {
+      return {
+        child: {
+          id: child.id,
+          fullName: child.user.fullName,
+          classId: child.classId,
+          className:
+            child.class.name ||
+            `Grade ${child.class.grade} ${child.class.section}`,
+          rollNumber: child.rollNumber,
+        },
+        schedules: [],
+        message: 'No exam schedule found for this class',
+      };
+    }
+
+    const scheduleIds = schedules.map(schedule => schedule.id);
+    const slots = await this.prisma.examSlot.findMany({
+      where: {
+        examScheduleId: { in: scheduleIds },
+        deletedAt: null,
+      },
+      include: {
+        dateslot: {
+          select: {
+            id: true,
+            examDate: true,
+            startTime: true,
+            endTime: true,
+            label: true,
+            type: true,
+          },
+        },
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        room: {
+          select: {
+            id: true,
+            roomNo: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: [{ dateslot: { examDate: 'asc' } }],
+    });
+
+    const slotsBySchedule = new Map<string, typeof slots>();
+    for (const slot of slots) {
+      const list = slotsBySchedule.get(slot.examScheduleId) || [];
+      list.push(slot);
+      slotsBySchedule.set(slot.examScheduleId, list);
+    }
+
+    return {
+      child: {
+        id: child.id,
+        fullName: child.user.fullName,
+        classId: child.classId,
+        className:
+          child.class.name ||
+          `Grade ${child.class.grade} ${child.class.section}`,
+        rollNumber: child.rollNumber,
+      },
+      schedules: schedules.map(schedule => ({
+        id: schedule.id,
+        name: schedule.name,
+        academicYear: schedule.academicYear,
+        status: schedule.status,
+        class: schedule.class,
+        calendarEntry: schedule.calendarEntry,
+        slots:
+          slotsBySchedule.get(schedule.id)?.map(slot => ({
+            id: slot.id,
+            dateslot: slot.dateslot,
+            subject: slot.subject,
+            room: slot.room,
+            duration: slot.duration,
+            instructions: slot.instructions,
+          })) || [],
+      })),
+      message: 'Exam routine fetched successfully',
     };
   }
 }
