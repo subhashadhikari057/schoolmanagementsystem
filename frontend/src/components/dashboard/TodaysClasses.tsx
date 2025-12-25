@@ -113,6 +113,7 @@ export const TodaysClasses: React.FC<TodaysClassesProps> = ({
   const loadTodaysClasses = async () => {
     if (!classId) {
       setLoading(false);
+      setClasses([]);
       return;
     }
 
@@ -218,6 +219,25 @@ export const TodaysClasses: React.FC<TodaysClassesProps> = ({
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!classId) {
+    return (
+      <div className='space-y-2'>
+        <div className='flex items-center justify-between'>
+          <h3 className='text-sm font-semibold text-gray-700'>
+            Today's Classes
+          </h3>
+          <span className='text-xs text-blue-600 hover:text-blue-800 cursor-pointer'>
+            View All
+          </span>
+        </div>
+        <div className='bg-blue-50 border border-blue-200 rounded-lg p-6 text-center'>
+          <BookOpen className='w-8 h-8 text-blue-500 mx-auto mb-2' />
+          <p className='text-sm text-blue-600'>No class assigned yet</p>
         </div>
       </div>
     );

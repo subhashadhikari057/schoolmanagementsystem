@@ -360,37 +360,6 @@ export default function StudentClassesPage() {
               teacher.
             </p>
 
-            {/* Debug Information */}
-            {studentProfile && (
-              <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-lg mx-auto mb-6'>
-                <h4 className='font-semibold text-yellow-900 mb-2'>
-                  Debug Info:
-                </h4>
-                <div className='text-sm text-yellow-800 text-left space-y-1'>
-                  <p>
-                    <strong>Student ID:</strong> {studentProfile.id}
-                  </p>
-                  <p>
-                    <strong>Class ID:</strong>{' '}
-                    {studentProfile.classId || 'Not assigned'}
-                  </p>
-                  <p>
-                    <strong>Class Name:</strong>{' '}
-                    {studentProfile.className || 'Not assigned'}
-                  </p>
-                  <p>
-                    <strong>Roll Number:</strong> {studentProfile.rollNumber}
-                  </p>
-                </div>
-                <button
-                  onClick={loadStudentData}
-                  className='mt-3 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors text-sm'
-                >
-                  Refresh Data
-                </button>
-              </div>
-            )}
-
             <div className='bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-lg mx-auto'>
               <div className='flex items-start space-x-3'>
                 <BookOpen className='w-6 h-6 text-blue-600 mt-1' />

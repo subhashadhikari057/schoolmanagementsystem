@@ -402,12 +402,10 @@ export default function Page() {
           })()}
 
           {/* Today Classes - Real Data */}
-          {studentProfile?.classId && (
-            <TodaysClasses
-              classId={studentProfile.classId}
-              className={student.className}
-            />
-          )}
+          <TodaysClasses
+            classId={studentProfile?.classId || ''}
+            className={student.className}
+          />
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
               <SectionTitle
