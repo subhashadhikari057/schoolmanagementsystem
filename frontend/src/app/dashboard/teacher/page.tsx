@@ -57,6 +57,7 @@ export default function TeacherDashboard() {
     id: ev.id,
     title: ev.title || ev.name || 'Untitled Event',
     date: ev.date,
+    endDate: ev.endDate,
     time: ev.time || ev.startTime || '',
     location: ev.location || ev.venue || '',
     status: typeof ev.status === 'string' ? ev.status : 'Active',

@@ -18,8 +18,10 @@ interface StudentExam {
   roomLabel?: string;
   timeLabel?: string;
   instructions?: string;
-  status: 'upcoming' | 'today' | 'completed';
+  status: ExamStatus;
 }
+
+type ExamStatus = 'upcoming' | 'today' | 'completed';
 
 interface StudentExamsTabProps {
   statusFilter: string;
@@ -48,7 +50,7 @@ export default function StudentExamsTab({
       .join(' ');
   };
 
-  const getStatusFromDate = (dateValue?: Date | null) => {
+  const getStatusFromDate = (dateValue?: Date | null): ExamStatus => {
     if (!dateValue) return 'upcoming';
     const today = new Date();
     const dateOnly = new Date(
