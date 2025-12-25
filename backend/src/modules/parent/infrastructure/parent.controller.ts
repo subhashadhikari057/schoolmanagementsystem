@@ -285,6 +285,23 @@ export class ParentController {
     return this.parentService.getChildExamRoutine(user.id, childId);
   }
 
+  /**
+   * Get timetable for a parent's child
+   */
+  @Get('me/children/:childId/timetable')
+  @Roles(UserRole.PARENT)
+  @ApiOperation({
+    summary: "Get child's timetable",
+    description:
+      "Parents can view their child's class timetable for the selected class.",
+  })
+  async getChildTimetable(
+    @Param('childId') childId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.parentService.getChildTimetable(user.id, childId);
+  }
+
   @Get(':id')
   @Roles(
     UserRole.SUPER_ADMIN,

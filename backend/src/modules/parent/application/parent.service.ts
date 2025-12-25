@@ -428,6 +428,11 @@ export class ParentService {
           },
         },
         children: {
+          where: {
+            student: {
+              deletedAt: null,
+            },
+          },
           include: {
             student: {
               include: {
@@ -509,6 +514,11 @@ export class ParentService {
           },
         },
         children: {
+          where: {
+            student: {
+              deletedAt: null,
+            },
+          },
           include: {
             student: {
               include: {
@@ -580,6 +590,11 @@ export class ParentService {
       where: { id: parentId, deletedAt: null },
       include: {
         children: {
+          where: {
+            student: {
+              deletedAt: null,
+            },
+          },
           include: {
             student: {
               include: {
@@ -1509,6 +1524,162 @@ export class ParentService {
           })) || [],
       })),
       message: 'Exam routine fetched successfully',
+    };
+  }
+
+  /**
+   * Get timetable for a parent's child
+   */
+  async getChildTimetable(userId: string, childId: string) {
+    const parent = await this.prisma.parent.findFirst({
+      where: { userId, deletedAt: null },
+      include: {
+        children: {
+          where: {
+            studentId: childId,
+            student: {
+              deletedAt: null,
+            },
+          },
+          include: {
+            student: {
+              include: {
+                user: {
+                  select: {
+                    fullName: true,
+                  },
+                },
+                class: {
+                  select: {
+                    id: true,
+                    name: true,
+                    grade: true,
+                    section: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!parent || parent.children.length === 0) {
+      throw new NotFoundException('Child not found or access denied');
+    }
+
+    const child = parent.children[0].student;
+
+    const activeSchedule = await this.prisma.classSchedule.findFirst({
+      where: {
+        classId: child.classId,
+        status: 'active',
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+      },
+    });
+
+    if (!activeSchedule) {
+      return {
+        child: {
+          id: child.id,
+          fullName: child.user.fullName,
+          classId: child.classId,
+          className:
+            child.class.name ||
+            `Grade ${child.class.grade} ${child.class.section}`,
+          rollNumber: child.rollNumber,
+        },
+        schedule: null,
+        slots: [],
+        message: 'No active timetable found for this class',
+      };
+    }
+
+    const slots = await this.prisma.scheduleSlot.findMany({
+      where: {
+        scheduleId: activeSchedule.id,
+        deletedAt: null,
+      },
+      include: {
+        timeslot: {
+          select: {
+            id: true,
+            day: true,
+            startTime: true,
+            endTime: true,
+            type: true,
+            label: true,
+          },
+        },
+        subject: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        teacher: {
+          select: {
+            id: true,
+            designation: true,
+            user: {
+              select: {
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        room: {
+          select: {
+            id: true,
+            roomNo: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: [{ day: 'asc' }, { timeslot: { startTime: 'asc' } }],
+    });
+
+    return {
+      child: {
+        id: child.id,
+        fullName: child.user.fullName,
+        classId: child.classId,
+        className:
+          child.class.name ||
+          `Grade ${child.class.grade} ${child.class.section}`,
+        rollNumber: child.rollNumber,
+      },
+      schedule: activeSchedule,
+      slots: slots.map(slot => ({
+        id: slot.id,
+        day: slot.day,
+        type: slot.type,
+        timeslot: slot.timeslot,
+        subject: slot.subject,
+        teacher: slot.teacher
+          ? {
+              id: slot.teacher.id,
+              designation: slot.teacher.designation,
+              fullName: slot.teacher.user?.fullName || '',
+              email: slot.teacher.user?.email || '',
+            }
+          : null,
+        room: slot.room
+          ? {
+              id: slot.room.id,
+              name: slot.room.name || slot.room.roomNo,
+              roomNo: slot.room.roomNo,
+            }
+          : null,
+      })),
+      message: 'Timetable fetched successfully',
     };
   }
 }

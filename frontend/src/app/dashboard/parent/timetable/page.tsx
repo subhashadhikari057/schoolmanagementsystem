@@ -1,137 +1,365 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
+import Label from '@/components/atoms/display/Label';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import { CardGridLoader } from '@/components/atoms/loading';
+import GenericTabs from '@/components/organisms/tabs/GenericTabs';
+import { parentService } from '@/api/services/parent.service';
+import { TimetableSlotDto } from '@sms/shared-types';
+import { Clock, User, BookOpen, AlertCircle } from 'lucide-react';
 
-// Demo children data
-const children = [
-  { id: '1', name: 'Aarash Sharma', class: '10', section: 'A' },
-  { id: '2', name: 'Priya Sharma', class: '7', section: 'B' },
-];
+// Days of the week (Sunday to Friday for school)
+const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
-// Demo timetable data per child
-const timetableData: Record<
-  string,
-  Array<{ period: string; subject: string; teacher: string; time: string }>
-> = {
-  '1': [
-    {
-      period: '1',
-      subject: 'Mathematics',
-      teacher: 'Ram Bahadur',
-      time: '08:00 - 08:45',
-    },
-    {
-      period: '2',
-      subject: 'Science',
-      teacher: 'Hari Prasang',
-      time: '08:45 - 09:30',
-    },
-    {
-      period: '3',
-      subject: 'English',
-      teacher: 'Sita Devi',
-      time: '09:30 - 10:15',
-    },
-    {
-      period: '4',
-      subject: 'Social Studies',
-      teacher: 'Krishna Sharma',
-      time: '10:15 - 11:00',
-    },
-    {
-      period: '5',
-      subject: 'Nepali',
-      teacher: 'Maya Gurung',
-      time: '11:00 - 11:45',
-    },
-    {
-      period: '6',
-      subject: 'Computer',
-      teacher: 'Ramesh Shrestha',
-      time: '11:45 - 12:30',
-    },
-    {
-      period: '7',
-      subject: 'Health',
-      teacher: 'Sunita Karki',
-      time: '12:30 - 01:15',
-    },
-  ],
-  '2': [
-    {
-      period: '1',
-      subject: 'English',
-      teacher: 'Sita Devi',
-      time: '08:00 - 08:45',
-    },
-    {
-      period: '2',
-      subject: 'Mathematics',
-      teacher: 'Ram Bahadur',
-      time: '08:45 - 09:30',
-    },
-    {
-      period: '3',
-      subject: 'Science',
-      teacher: 'Hari Prasang',
-      time: '09:30 - 10:15',
-    },
-    {
-      period: '4',
-      subject: 'Nepali',
-      teacher: 'Maya Gurung',
-      time: '10:15 - 11:00',
-    },
-    {
-      period: '5',
-      subject: 'Social Studies',
-      teacher: 'Krishna Sharma',
-      time: '11:00 - 11:45',
-    },
-    {
-      period: '6',
-      subject: 'Computer',
-      teacher: 'Ramesh Shrestha',
-      time: '11:45 - 12:30',
-    },
-    {
-      period: '7',
-      subject: 'Health',
-      teacher: 'Sunita Karki',
-      time: '12:30 - 01:15',
-    },
-  ],
+interface ProcessedTimetable {
+  name: string;
+  periods: TimetableSlotDto[];
+}
+
+// Helper function to convert 24-hour time to 12-hour format
+const formatTime12Hour = (time24: string): string => {
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
+// Helper function to get random color for any subject
+const getSubjectColor = (subjectName: string) => {
+  let hash = 0;
+  for (let i = 0; i < subjectName.length; i++) {
+    const char = subjectName.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+
+  const colorIndex = Math.abs(hash) % 12;
+
+  const colors = [
+    'bg-blue-50 border-blue-200 text-blue-800',
+    'bg-green-50 border-green-200 text-green-800',
+    'bg-purple-50 border-purple-200 text-purple-800',
+    'bg-orange-50 border-orange-200 text-orange-800',
+    'bg-slate-50 border-slate-200 text-slate-800',
+    'bg-indigo-50 border-indigo-200 text-indigo-800',
+    'bg-red-50 border-red-200 text-red-800',
+    'bg-yellow-50 border-yellow-200 text-yellow-800',
+    'bg-teal-50 border-teal-200 text-teal-800',
+    'bg-cyan-50 border-cyan-200 text-cyan-800',
+    'bg-emerald-50 border-emerald-200 text-emerald-800',
+    'bg-violet-50 border-violet-200 text-violet-800',
+  ];
+
+  return colors[colorIndex];
 };
 
 export default function ParentTimetablePage() {
-  const [selectedChild, setSelectedChild] = useState(children[0].id);
+  const [children, setChildren] = useState<
+    Array<{
+      id: string;
+      studentId: string;
+      fullName: string;
+      className?: string;
+      classId?: string;
+    }>
+  >([]);
+  const [selectedChild, setSelectedChild] = useState<string>('');
+  const [timetable, setTimetable] = useState<ProcessedTimetable[]>([]);
+  const [hasSchedule, setHasSchedule] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [timetableLoading, setTimetableLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1100);
+    const loadChildren = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await parentService.getMyProfile();
+        const childList = response.data?.children || [];
+        setChildren(childList);
+        if (childList.length > 0) {
+          setSelectedChild(childList[0].studentId || childList[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to load children:', error);
+        setChildren([]);
+        setError('Failed to load children');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    loadChildren();
   }, []);
-  const childOptions = children.map(child => ({
-    value: child.id,
-    label: `${child.name} (Class ${child.class}${child.section})`,
+
+  useEffect(() => {
+    const loadTimetable = async () => {
+      if (!selectedChild) {
+        setTimetable([]);
+        setHasSchedule(false);
+        return;
+      }
+
+      try {
+        setTimetableLoading(true);
+        setError(null);
+        const response = await parentService.getChildTimetable(selectedChild);
+        if (!response.success || !response.data) {
+          throw new Error(response.message || 'Failed to load timetable');
+        }
+
+        const processedTimetable = processTimetableData(
+          response.data?.slots || [],
+        );
+        setTimetable(processedTimetable);
+        const hasAnySchedule = processedTimetable.some(
+          day => day.periods.length > 0,
+        );
+        setHasSchedule(hasAnySchedule);
+      } catch (error) {
+        console.error('Failed to load timetable:', error);
+        setTimetable([]);
+        setHasSchedule(false);
+        setError('Failed to load timetable');
+      } finally {
+        setTimetableLoading(false);
+      }
+    };
+
+    loadTimetable();
+  }, [selectedChild]);
+
+  const childOptions = useMemo(
+    () =>
+      children.map(child => ({
+        value: child.studentId || child.id,
+        label: child.className
+          ? `${child.fullName} (${child.className})`
+          : child.fullName,
+      })),
+    [children],
+  );
+
+  const processTimetableData = (
+    timetableData: TimetableSlotDto[],
+  ): ProcessedTimetable[] => {
+    const dayGroups: Record<string, TimetableSlotDto[]> = {};
+
+    days.forEach(day => {
+      dayGroups[day.toLowerCase()] = [];
+    });
+
+    timetableData.forEach(slot => {
+      const day =
+        slot.day.charAt(0).toUpperCase() + slot.day.slice(1).toLowerCase();
+      if (dayGroups[day.toLowerCase()]) {
+        dayGroups[day.toLowerCase()].push(slot);
+      }
+    });
+
+    Object.keys(dayGroups).forEach(day => {
+      dayGroups[day].sort((a, b) => {
+        const timeA = a.timeslot?.startTime || '00:00';
+        const timeB = b.timeslot?.startTime || '00:00';
+        return timeA.localeCompare(timeB);
+      });
+    });
+
+    return days.map(day => ({
+      name: day,
+      periods: dayGroups[day.toLowerCase()] || [],
+    }));
+  };
+
+  const renderPeriodCard = (
+    slot: TimetableSlotDto,
+    index: number,
+    allPeriods: TimetableSlotDto[],
+  ) => {
+    const subjectName = slot.subject?.name || 'No Subject';
+    const subjectCode = slot.subject?.code || '';
+    const teacherName = slot.teacher?.user?.fullName || 'TBA';
+    const startTime = slot.timeslot?.startTime || '00:00';
+    const endTime = slot.timeslot?.endTime || '00:00';
+    const slotType = slot.timeslot?.type || 'REGULAR';
+    const isBreak = slotType === 'BREAK' || subjectName === 'No Subject';
+
+    const getOrdinalSuffix = (num: number) => {
+      const j = num % 10;
+      const k = num % 100;
+      if (j === 1 && k !== 11) return num + 'st';
+      if (j === 2 && k !== 12) return num + 'nd';
+      if (j === 3 && k !== 13) return num + 'rd';
+      return num + 'th';
+    };
+
+    let periodNumber = 0;
+    for (let i = 0; i <= index; i++) {
+      const currentSlot = allPeriods[i];
+      const currentSlotType = currentSlot.timeslot?.type || 'REGULAR';
+      const currentSubjectName = currentSlot.subject?.name || 'No Subject';
+      const isCurrentBreak =
+        currentSlotType === 'BREAK' || currentSubjectName === 'No Subject';
+
+      if (!isCurrentBreak) {
+        periodNumber++;
+      }
+    }
+
+    return (
+      <div
+        key={slot.id || index}
+        className={`rounded-xl border shadow-sm p-4 min-h-[140px] flex flex-col justify-between transition-all duration-200 ${
+          isBreak
+            ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+            : getSubjectColor(subjectName)
+        }`}
+      >
+        <div className='flex items-center justify-between mb-3'>
+          <div className='flex items-center space-x-2'>
+            {!isBreak && (
+              <div className='px-2 py-1 rounded-full text-xs font-bold bg-white bg-opacity-80 text-gray-700'>
+                {getOrdinalSuffix(periodNumber)}
+              </div>
+            )}
+            <div className='flex items-center space-x-1 text-xs font-medium'>
+              <Clock className='w-3 h-3' />
+              <span>
+                {formatTime12Hour(startTime)} - {formatTime12Hour(endTime)}
+              </span>
+            </div>
+          </div>
+          {slotType !== 'REGULAR' && (
+            <span className='text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700'>
+              {slotType}
+            </span>
+          )}
+        </div>
+
+        {isBreak ? (
+          <div className='flex-1 flex items-center justify-center'>
+            <h3 className='text-2xl font-bold text-yellow-800'>BREAK</h3>
+          </div>
+        ) : (
+          <>
+            <div className='mb-3'>
+              <h3 className='text-lg font-semibold mb-1'>{subjectName}</h3>
+              {subjectCode && (
+                <p className='text-xs opacity-75 font-medium'>{subjectCode}</p>
+              )}
+            </div>
+
+            <div className='flex items-center text-sm mb-2'>
+              <User className='w-3 h-3 mr-1' />
+              <span className='font-medium'>{teacherName}</span>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const tabsWithNav = timetable.map(day => ({
+    name: day.name,
+    content: (
+      <div className='mt-4'>
+        {day.periods.length === 0 ? (
+          <div className='text-center py-12'>
+            <div className='text-gray-300 text-4xl mb-4'>📚</div>
+            <h3 className='text-lg font-medium text-gray-500 mb-2'>
+              No classes scheduled
+            </h3>
+            <p className='text-sm text-gray-400'>
+              No classes are scheduled for {day.name}
+            </p>
+          </div>
+        ) : (
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+            {day.periods.map((slot, index) =>
+              renderPeriodCard(slot, index, day.periods),
+            )}
+          </div>
+        )}
+      </div>
+    ),
   }));
-  const timetable = timetableData[selectedChild] || [];
 
   if (loading) {
     return (
       <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 lg:px-8 pt-8 pb-12'>
         <div className='max-w-8xl mx-auto'>
           <CardGridLoader
-            cards={7}
-            columns='grid-cols-1 sm:grid-cols-2'
-            cardHeight='h-24'
+            cards={18}
+            columns='grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+            cardHeight='h-36'
           />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 lg:px-8 pt-8 pb-12'>
+        <div className='w-full'>
+          <div className='text-center py-12'>
+            <AlertCircle className='w-16 h-16 text-red-500 mx-auto mb-4' />
+            <h3 className='text-xl font-semibold text-gray-900 mb-2'>
+              Failed to Load Timetable
+            </h3>
+            <p className='text-gray-600 mb-4'>{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasSchedule && !timetableLoading) {
+    return (
+      <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 lg:px-8 pt-8 pb-12'>
+        <div className='w-full'>
+          <div className='flex items-center justify-between mb-6'>
+            <SectionTitle
+              text='Class Routine'
+              className='text-xl font-bold text-gray-900'
+            />
+            <Dropdown
+              type='filter'
+              options={childOptions}
+              selectedValue={selectedChild}
+              onSelect={setSelectedChild}
+              className='min-w-[220px]'
+              placeholder='Select Child'
+            />
+          </div>
+          <div className='text-center py-16'>
+            <div className='text-6xl mb-4'>📅</div>
+            <h3 className='text-xl font-semibold text-gray-900 mb-2'>
+              Schedule Not Planned Yet
+            </h3>
+            <p className='text-gray-600 mb-6 max-w-md mx-auto'>
+              Your child&apos;s class timetable will appear here once it&apos;s
+              created by the school.
+            </p>
+
+            <div className='bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-lg mx-auto'>
+              <div className='flex items-start space-x-3'>
+                <BookOpen className='w-6 h-6 text-blue-600 mt-1' />
+                <div className='text-left'>
+                  <h4 className='font-semibold text-blue-900 mb-2'>
+                    What to expect:
+                  </h4>
+                  <ul className='text-sm text-blue-800 space-y-1'>
+                    <li>• Daily class schedule with subjects and teachers</li>
+                    <li>• Time slots for each period</li>
+                    <li>• Weekly view from Sunday to Friday</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -141,10 +369,15 @@ export default function ParentTimetablePage() {
     <div className='min-h-screen bg-[#f7f8fa] px-3 sm:px-4 lg:px-8 pt-8 pb-12'>
       <div className='w-full'>
         <div className='flex items-center justify-between mb-6'>
-          <SectionTitle
-            text='Class Timetable'
-            className='text-xl font-bold text-gray-900'
-          />
+          <div>
+            <SectionTitle
+              text='Class Routine'
+              className='text-xl font-bold text-gray-900'
+            />
+            <Label className='text-base text-gray-600'>
+              Your child&apos;s weekly class schedule.
+            </Label>
+          </div>
           <Dropdown
             type='filter'
             options={childOptions}
@@ -154,38 +387,21 @@ export default function ParentTimetablePage() {
             placeholder='Select Child'
           />
         </div>
-        <div className='bg-white rounded-xl shadow-sm p-6'>
-          <h3 className='font-semibold text-gray-800 mb-4'>
-            Today&apos;s Periods
-          </h3>
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-5'>
-            {timetable.length === 0 ? (
-              <div className='text-gray-500'>No timetable found.</div>
-            ) : (
-              timetable.map((period, idx) => (
-                <div
-                  key={idx}
-                  className='border border-gray-200 rounded-lg p-4 flex flex-col gap-2 bg-gray-50 hover:bg-blue-50 transition-all shadow group'
-                >
-                  <div className='flex items-center gap-2 mb-1'>
-                    <span className='text-xs font-bold text-blue-700 bg-blue-100 rounded-full px-2 py-1'>
-                      Period {period.period}
-                    </span>
-                    <span className='text-sm font-semibold text-gray-900 group-hover:text-blue-700'>
-                      {period.subject}
-                    </span>
-                  </div>
-                  <div className='text-xs text-gray-600'>
-                    Teacher:{' '}
-                    <span className='font-medium'>{period.teacher}</span>
-                  </div>
-                  <div className='text-xs text-gray-500'>
-                    Time: {period.time}
-                  </div>
-                </div>
-              ))
+        <div className='mb-8'>
+          <GenericTabs
+            tabs={tabsWithNav}
+            defaultIndex={Math.max(
+              0,
+              days.findIndex(
+                day =>
+                  day.toLowerCase() ===
+                  new Date()
+                    .toLocaleDateString('en-US', { weekday: 'long' })
+                    .toLowerCase(),
+              ),
             )}
-          </div>
+            className=''
+          />
         </div>
       </div>
     </div>
