@@ -7,6 +7,7 @@ import { classService, ClassResponse } from '@/api/services/class.service';
 import { subjectService } from '@/api/services/subject.service';
 import { SubjectResponse } from '@/api/types/subject';
 import { teacherService } from '@/api/services/teacher.service';
+import { timetableService } from '@/api/services/timetable.service';
 import {
   CreateAssignmentRequest,
   AssignmentResponse,
@@ -224,22 +225,33 @@ const CreateAssignmentModal: React.FC<CreateAssignmentModalProps> = ({
 
     try {
       if (isTeacher && user?.id) {
-        // For teachers: Load all classes and their assigned subjects
-        const [classesResponse, subjectsResponse, teacherResponse] =
-          await Promise.all([
-            classService.getAllClasses(),
-            teacherService.getMySubjects(),
-            teacherService.getCurrentTeacher(),
-          ]);
+        // For teachers: Load subjects and only classes present in their timetable
+        const [subjectsResponse, teacherResponse] = await Promise.all([
+          teacherService.getMySubjects(),
+          teacherService.getCurrentTeacher(),
+        ]);
 
-        // Transform all classes data (not just teacher's assigned classes)
-        const transformedClasses: ClassOption[] = classesResponse.data.map(
-          (cls: ClassResponse) => ({
-            id: cls.id,
-            label: `Grade ${cls.grade} - Section ${cls.section}`,
-            students: cls.currentEnrollment || 0,
-          }),
+        const timetableResponse = await timetableService.getTimetableByTeacher(
+          teacherResponse.data.id,
         );
+
+        const timetableClasses = timetableResponse.success
+          ? timetableResponse.data
+              .map(slot => slot.class)
+              .filter((cls): cls is NonNullable<typeof cls> => Boolean(cls?.id))
+          : [];
+
+        const uniqueClasses = new Map(
+          timetableClasses.map(cls => [cls.id, cls]),
+        );
+
+        const transformedClasses: ClassOption[] = Array.from(
+          uniqueClasses.values(),
+        ).map(cls => ({
+          id: cls.id,
+          label: cls.name || `Grade ${cls.grade} - Section ${cls.section}`,
+          students: 0,
+        }));
 
         // Transform teacher's subjects data
         const transformedSubjects: SubjectOption[] = subjectsResponse.data.map(
