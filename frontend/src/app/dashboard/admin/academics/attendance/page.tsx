@@ -29,8 +29,6 @@ import {
   UserCheck,
   UserCog,
   GraduationCap,
-  BarChart3,
-  Settings,
   FileText,
   RefreshCw,
 } from 'lucide-react';
@@ -48,7 +46,6 @@ interface ClassBlock {
 
 export default function AttendancePage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
 
   // Modal states
   const [isMarkAttendanceOpen, setIsMarkAttendanceOpen] = useState(false);
@@ -61,6 +58,7 @@ export default function AttendancePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attendanceStats, setAttendanceStats] = useState<{
+    date?: string;
     overall: {
       totalStudents: number;
       totalPresent: number;
@@ -69,8 +67,14 @@ export default function AttendancePage() {
     };
     classes: Array<{
       id: string;
+      grade?: string;
+      section?: string;
+      totalStudents?: number;
       present: number;
       absent: number;
+      late?: number;
+      excused?: number;
+      attendancePercentage?: number;
       status: string;
     }>;
   } | null>(null);
@@ -1289,19 +1293,6 @@ export default function AttendancePage() {
     </div>
   );
 
-  const renderTabContent = () => {
-    switch (activeTabIndex) {
-      case 0:
-        return renderDailyTab();
-      case 1:
-        return renderStaffTab();
-      case 2:
-        return renderReportsTab();
-      default:
-        return renderDailyTab();
-    }
-  };
-
   // Place tabItems just before return so it's in scope
   const tabItems = [
     {
@@ -1376,11 +1367,7 @@ export default function AttendancePage() {
 
       {/* Main Content Tabs */}
       <div className='space-y-6'>
-        <Tabs
-          tabs={tabItems}
-          defaultIndex={activeTabIndex}
-          className='w-full'
-        />
+        <Tabs tabs={tabItems} defaultIndex={0} className='w-full' />
       </div>
 
       {/* Modals */}

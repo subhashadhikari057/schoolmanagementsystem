@@ -606,6 +606,70 @@ export class StudentService {
     );
   }
 
+  async getGenderEthnicityStats(params?: { grade?: number }): Promise<
+    ApiResponse<{
+      scope: 'all' | 'grade';
+      grade?: number;
+      genders: Array<{
+        gender: 'male' | 'female' | 'other';
+        total: number;
+        breakdown: Array<{ ethnicity: string; count: number }>;
+      }>;
+    }>
+  > {
+    return this.httpClient.get(
+      `${STUDENT_ENDPOINTS.GET_STATS}/gender-ethnicity`,
+      params as Record<string, unknown>,
+      { requiresAuth: true },
+    );
+  }
+
+  async getGenderGradeStats(): Promise<
+    ApiResponse<{
+      overall: { male: number; female: number; other: number; total: number };
+      groups: {
+        ecd: { male: number; female: number; other: number; total: number };
+        basicLevel1to5: {
+          male: number;
+          female: number;
+          other: number;
+          total: number;
+        };
+        basicLevel6to8: {
+          male: number;
+          female: number;
+          other: number;
+          total: number;
+        };
+        secondary9to10: {
+          male: number;
+          female: number;
+          other: number;
+          total: number;
+        };
+        secondary11to12: {
+          male: number;
+          female: number;
+          other: number;
+          total: number;
+        };
+      };
+      grades: Array<{
+        grade: number;
+        male: number;
+        female: number;
+        other: number;
+        total: number;
+      }>;
+    }>
+  > {
+    return this.httpClient.get(
+      `${STUDENT_ENDPOINTS.GET_STATS}/gender-grade`,
+      undefined,
+      { requiresAuth: true },
+    );
+  }
+
   // Helper method to calculate next student ID (used in frontend)
   async getNextStudentId(): Promise<{
     success: boolean;

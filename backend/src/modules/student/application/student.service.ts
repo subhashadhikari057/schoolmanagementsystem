@@ -1038,6 +1038,170 @@ export class StudentService {
     };
   }
 
+  async getGenderEthnicityStats(grade?: number) {
+    const students = await this.prisma.student.findMany({
+      where: {
+        deletedAt: null,
+        ...(grade
+          ? {
+              class: {
+                grade,
+              },
+            }
+          : {}),
+      },
+      select: {
+        gender: true,
+        ethnicity: true,
+      },
+    });
+
+    const buckets: Record<'male' | 'female' | 'other', Map<string, number>> = {
+      male: new Map(),
+      female: new Map(),
+      other: new Map(),
+    };
+
+    students.forEach(s => {
+      const genderKey =
+        (s.gender || '').toLowerCase() === 'male'
+          ? 'male'
+          : (s.gender || '').toLowerCase() === 'female'
+            ? 'female'
+            : 'other';
+      const ethnicity =
+        s.ethnicity && s.ethnicity.trim().length > 0
+          ? s.ethnicity.trim()
+          : 'Unspecified';
+      const current = buckets[genderKey].get(ethnicity) || 0;
+      buckets[genderKey].set(ethnicity, current + 1);
+    });
+
+    const buildBreakdown = (gender: 'male' | 'female' | 'other') =>
+      Array.from(buckets[gender].entries())
+        .filter(([, count]) => count > 0)
+        .map(([ethnicity, count]) => ({ ethnicity, count }))
+        .sort((a, b) => b.count - a.count);
+
+    return {
+      scope: grade ? 'grade' : 'all',
+      grade,
+      genders: [
+        {
+          gender: 'male',
+          total: buildBreakdown('male').reduce(
+            (sum, item) => sum + item.count,
+            0,
+          ),
+          breakdown: buildBreakdown('male'),
+        },
+        {
+          gender: 'female',
+          total: buildBreakdown('female').reduce(
+            (sum, item) => sum + item.count,
+            0,
+          ),
+          breakdown: buildBreakdown('female'),
+        },
+        {
+          gender: 'other',
+          total: buildBreakdown('other').reduce(
+            (sum, item) => sum + item.count,
+            0,
+          ),
+          breakdown: buildBreakdown('other'),
+        },
+      ],
+    };
+  }
+
+  async getGenderGradeStats() {
+    const students = await this.prisma.student.findMany({
+      where: { deletedAt: null },
+      select: {
+        gender: true,
+        class: { select: { grade: true } },
+      },
+    });
+
+    const normalizeGender = (g?: string | null) => {
+      const val = (g || '').toLowerCase();
+      if (val === 'male') return 'male';
+      if (val === 'female') return 'female';
+      return 'other';
+    };
+
+    const gradeStats: Record<
+      number,
+      { male: number; female: number; other: number }
+    > = {};
+
+    students.forEach(s => {
+      const grade = s.class?.grade;
+      if (typeof grade !== 'number') return;
+      const gender = normalizeGender(s.gender);
+      if (!gradeStats[grade]) {
+        gradeStats[grade] = { male: 0, female: 0, other: 0 };
+      }
+      gradeStats[grade][gender] += 1;
+    });
+
+    const toTotals = (acc: {
+      male: number;
+      female: number;
+      other: number;
+    }) => ({
+      male: acc.male,
+      female: acc.female,
+      other: acc.other,
+      total: acc.male + acc.female + acc.other,
+    });
+
+    const groupRange = (start: number, end: number) => {
+      const agg = { male: 0, female: 0, other: 0 };
+      for (let g = start; g <= end; g++) {
+        if (gradeStats[g]) {
+          agg.male += gradeStats[g].male;
+          agg.female += gradeStats[g].female;
+          agg.other += gradeStats[g].other;
+        }
+      }
+      return toTotals(agg);
+    };
+
+    const groups = {
+      ecd: groupRange(0, 0), // assuming ECD stored as grade 0
+      basicLevel1to5: groupRange(1, 5),
+      basicLevel6to8: groupRange(6, 8),
+      secondary9to10: groupRange(9, 10),
+      secondary11to12: groupRange(11, 12),
+    };
+
+    const overall = toTotals(
+      Object.values(gradeStats).reduce(
+        (acc, val) => ({
+          male: acc.male + val.male,
+          female: acc.female + val.female,
+          other: acc.other + val.other,
+        }),
+        { male: 0, female: 0, other: 0 },
+      ),
+    );
+
+    const grades = Object.entries(gradeStats)
+      .map(([grade, val]) => ({
+        grade: Number(grade),
+        ...toTotals(val),
+      }))
+      .sort((a, b) => a.grade - b.grade);
+
+    return {
+      overall,
+      groups,
+      grades,
+    };
+  }
+
   async updateByAdmin(
     id: string,
     dto: UpdateStudentByAdminDtoType,

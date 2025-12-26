@@ -453,3 +453,20 @@ export const CreateStudentResponseDto = z.object({
 export type CreateStudentResponseDtoType = z.infer<
   typeof CreateStudentResponseDto
 >;
+
+// ---------------------------
+// Aggregated stats
+// ---------------------------
+export const GetGenderEthnicityStatsDto = z.object({
+  grade: z.coerce.number().min(1).max(12).optional(),
+});
+
+export type GetGenderEthnicityStatsDtoType = z.infer<
+  typeof GetGenderEthnicityStatsDto
+>;
+
+// ---------------------------
+// Grade/Gender stats (no params for now)
+// ---------------------------
+export const GetGenderGradeStatsDto = z.object({});
+export type GetGenderGradeStatsDtoType = z.infer<typeof GetGenderGradeStatsDto>;

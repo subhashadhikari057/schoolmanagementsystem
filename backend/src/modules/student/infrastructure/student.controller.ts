@@ -31,6 +31,10 @@ import {
   UpdateStudentSelfDtoType,
   GetAllStudentsDto,
   GetAllStudentsDtoType,
+  GetGenderEthnicityStatsDto,
+  GetGenderEthnicityStatsDtoType,
+  GetGenderGradeStatsDto,
+  GetGenderGradeStatsDtoType,
 } from '../dto/student.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
 import {
@@ -149,6 +153,24 @@ export class StudentController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async getStudentStats() {
     return this.studentService.getStudentStats();
+  }
+
+  @Get('stats/gender-ethnicity')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getGenderEthnicityStats(
+    @Query(new ZodValidationPipe(GetGenderEthnicityStatsDto))
+    query: GetGenderEthnicityStatsDtoType,
+  ) {
+    return this.studentService.getGenderEthnicityStats(query.grade);
+  }
+
+  @Get('stats/gender-grade')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getGenderGradeStats(
+    @Query(new ZodValidationPipe(GetGenderGradeStatsDto))
+    _query: GetGenderGradeStatsDtoType,
+  ) {
+    return this.studentService.getGenderGradeStats();
   }
 
   @Get('available-classes')
