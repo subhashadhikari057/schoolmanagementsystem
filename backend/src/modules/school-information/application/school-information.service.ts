@@ -21,6 +21,27 @@ import {
   SchoolInformationResponseDtoType,
 } from '../dto/school-information.dto';
 
+function normalizeSchoolInfoDto<
+  T extends CreateSchoolInformationDtoType | UpdateSchoolInformationDtoType,
+>(dto: T): T {
+  const dateFields: (keyof typeof dto)[] = [
+    'ecdApprovalDate',
+    'primaryApprovalDate',
+    'lowerSecondaryApprovalDate',
+  ];
+
+  const normalized: Record<string, any> = { ...dto };
+
+  for (const key of dateFields) {
+    const value = (dto as any)[key];
+    if (typeof value === 'string' && value.trim() !== '') {
+      (normalized as any)[key] = new Date(value);
+    }
+  }
+
+  return normalized as T;
+}
+
 @Injectable()
 export class SchoolInformationService {
   constructor(
@@ -57,9 +78,10 @@ export class SchoolInformationService {
     }
 
     try {
+      const data = normalizeSchoolInfoDto(dto);
       const schoolInformation = await this.prisma.schoolInformation.create({
         data: {
-          ...dto,
+          ...data,
           createdById,
         },
       });
@@ -128,11 +150,12 @@ export class SchoolInformationService {
     }
 
     try {
+      const data = normalizeSchoolInfoDto(dto);
       const updatedSchoolInformation =
         await this.prisma.schoolInformation.update({
           where: { id: existingSchool.id },
           data: {
-            ...dto,
+            ...data,
             updatedById,
           },
         });

@@ -1,11 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
-import { Express } from 'express';
+import { Express, json, urlencoded } from 'express';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module';
 import { PrismaService } from './infrastructure/database/prisma.service';
 export async function createApp() {
   const app = await NestFactory.create(AppModule);
+
+  // ✅ Increase body parser limits to handle larger JSON payloads (e.g., school info + logo)
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ extended: true, limit: '10mb' }));
 
   // ✅ Enable CORS for frontend communication
   app.enableCors({

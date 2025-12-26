@@ -17,6 +17,18 @@ import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
+async function ensureRole(name: string, description?: string) {
+  return prisma.role.upsert({
+    where: { name },
+    update: {},
+    create: {
+      name,
+      description: description || `${name} role`,
+      isSystemRole: true,
+    },
+  });
+}
+
 // Helper function to generate random dates
 function randomDate(start: Date, end: Date): Date {
   return new Date(
@@ -36,6 +48,91 @@ async function main() {
     );
     return;
   }
+
+  // Ensure core roles exist
+  const [teacherRole, staffRole, parentRole, studentRole] = await Promise.all([
+    ensureRole('TEACHER'),
+    ensureRole('STAFF'),
+    ensureRole('PARENT'),
+    ensureRole('STUDENT'),
+  ]);
+
+  // =========================================================================
+  // 0. CREATE SCHOOL INFORMATION
+  // =========================================================================
+  console.log('🏫 Creating school information...');
+
+  const schoolInfoData = {
+    schoolName: 'Evergreen Public School',
+    schoolCode: 'IEMIS-0001',
+    establishedYear: 1995,
+    address: 'Kathmandu Metropolitan City, Ward 1, Bagmati Province, Nepal',
+    website: 'https://evergreen.edu.np',
+    emails: ['info@evergreen.edu.np', 'contact@evergreen.edu.np'],
+    contactNumbers: ['9800000000', '9800000001'],
+    province: 'Bagmati',
+    district: 'Kathmandu',
+    municipality: 'Kathmandu Metropolitan City',
+    ward: '1',
+    schoolClassification: 'Community',
+    schoolType: 'Secondary',
+    classRegisteredUpto: 'Grade 12',
+    seeCode: 'SEE12345',
+    hsebCode: 'HSEB67890',
+    phoneNumber: '01-5555555',
+    email: 'office@evergreen.edu.np',
+    bank: 'Nepal Bank Limited',
+    accountNumber: '00123456789',
+    panNumber: '123456789',
+    headTeacherName: 'Dinesh Adhikari',
+    headTeacherContactNumber: '9801234567',
+    headTeacherQualification: 'M.Ed',
+    headTeacherGender: 'Male',
+    headTeacherIsTeaching: true,
+    headTeacherCaste: 'Brahmin',
+    grantReceivingFrom: 'Government of Nepal',
+    latitude: 27.7172,
+    longitude: 85.324,
+    elevation: 1400,
+    hasEcdLevel: true,
+    hasBasicLevel1To5: true,
+    hasBasicLevel6To8: true,
+    ecdApprovalDate: new Date('2000-04-01'),
+    primaryApprovalDate: new Date('2002-04-01'),
+    lowerSecondaryApprovalDate: new Date('2005-04-01'),
+    runningEcdPpc: true,
+    runningGrade1: true,
+    runningGrade2: true,
+    runningGrade3: true,
+    runningGrade4: true,
+    runningGrade5: true,
+    runningGrade6: true,
+    runningGrade7: true,
+    runningGrade8: true,
+    runningGrade9: true,
+    runningGrade10: true,
+    runningGrade11: true,
+    runningGrade12: true,
+    scienceSubjectTaughtIn11And12: true,
+    selectedForModelSchool: true,
+    complaintHearingMechanism: true,
+    foreignAffiliation: false,
+    informalSchool: false,
+    mobileSchool: false,
+    openSchool: false,
+    specialDisabilitySchool: false,
+    multilingualEducation: true,
+    mgmlImplemented: false,
+    residentialScholarshipProgram: false,
+    zeroPositionGrantBasicSchool: false,
+    technicalStreamRunning: true,
+  };
+
+  await prisma.schoolInformation.upsert({
+    where: { schoolCode: schoolInfoData.schoolCode },
+    update: { ...schoolInfoData },
+    create: { ...schoolInfoData },
+  });
 
   // =========================================================================
   // 1. CREATE CLASSROOMS AND ROOMS
@@ -180,9 +277,7 @@ async function main() {
   ];
 
   const teacherIds: string[] = [];
-  const teacherRole = await prisma.role.findUnique({
-    where: { name: 'TEACHER' },
-  });
+  const teacherRoleId = teacherRole.id;
 
   for (let i = 0; i < teachersData.length; i++) {
     const teacherData = teachersData[i];
@@ -198,7 +293,7 @@ async function main() {
         isActive: true,
         roles: {
           create: {
-            roleId: teacherRole!.id,
+            roleId: teacherRoleId,
           },
         },
       },
@@ -331,7 +426,7 @@ async function main() {
     },
   ];
 
-  const staffRole = await prisma.role.findUnique({ where: { name: 'STAFF' } });
+  const staffRoleId = staffRole.id;
 
   for (let i = 0; i < staffData.length; i++) {
     const staff = staffData[i];
@@ -348,7 +443,7 @@ async function main() {
           isActive: true,
           roles: {
             create: {
-              roleId: staffRole!.id,
+              roleId: staffRoleId,
             },
           },
         },
@@ -400,12 +495,8 @@ async function main() {
   // =========================================================================
   console.log('👨‍👩‍👧‍👦 Creating parents and students...');
 
-  const parentRole = await prisma.role.findUnique({
-    where: { name: 'PARENT' },
-  });
-  const studentRole = await prisma.role.findUnique({
-    where: { name: 'STUDENT' },
-  });
+  const parentRoleId = parentRole.id;
+  const studentRoleId = studentRole.id;
 
   const families = [
     {
@@ -563,7 +654,7 @@ async function main() {
             isActive: true,
             roles: {
               create: {
-                roleId: parentRole!.id,
+                roleId: parentRoleId,
               },
             },
           },
@@ -633,7 +724,7 @@ async function main() {
             isActive: true,
             roles: {
               create: {
-                roleId: studentRole!.id,
+                roleId: studentRoleId,
               },
             },
           },

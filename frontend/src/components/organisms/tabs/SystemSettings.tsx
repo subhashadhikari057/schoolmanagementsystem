@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import Icon from '@/components/atoms/display/Icon';
 import ReusableButton from '@/components/atoms/form-controls/Button';
@@ -145,36 +146,38 @@ const QuickActionItem = ({
 );
 
 export default function SystemSettings() {
+  const router = useRouter();
+
   const handleConfigureSettings = (settingType: string) => {
-    console.log(`Configure ${settingType} settings`);
-    // Handle navigation to specific settings
     if (settingType === 'system') {
-      window.location.href = '/dashboard/admin/settings/system';
+      router.push('/dashboard/admin/settings/system');
     }
     if (settingType === 'notifications') {
-      window.location.href = '/dashboard/admin/settings/notifications';
+      router.push('/dashboard/admin/settings/notifications');
     }
     if (settingType === 'backup') {
-      window.location.href = '/dashboard/admin/settings/backup';
+      router.push('/dashboard/admin/settings/backup');
     }
   };
 
   const handleQuickAction = (actionType: string) => {
-    console.log(`Execute ${actionType} action`);
-    // Handle quick actions
     if (actionType === 'backup') {
-      window.location.href = '/dashboard/admin/settings/backup?embedded=true';
+      router.push('/dashboard/admin/settings/backup?embedded=true');
+    }
+    if (actionType === 'export') {
+      router.push('/dashboard/admin/settings/backup');
+    }
+    if (actionType === 'logs') {
+      router.push('/dashboard/admin/settings/notifications');
     }
   };
 
   const handleContactSupport = () => {
-    console.log('Contact support');
-    // Handle support contact
+    router.push('/dashboard/admin/settings/notifications');
   };
 
   const handleViewDocumentation = () => {
-    console.log('View documentation');
-    // Handle documentation viewing
+    router.push('/dashboard/admin/settings/system');
   };
 
   return (

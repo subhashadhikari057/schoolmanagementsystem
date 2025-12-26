@@ -44,13 +44,13 @@ print_info "Current directory: $(pwd)"
 print_info "Starting deployment process..."
 
 # Step 1: Clean everything
-print_info "Step 1: Cleaning node_modules and package-lock.json files..."
-rm -rf */node_modules */package-lock.json node_modules package-lock.json
+print_info "Step 1: Cleaning node_modules..."
+rm -rf */node_modules node_modules
 print_status "Cleaned all dependencies"
 
-# Step 2: Install root dependencies
-print_info "Step 2: Installing root dependencies..."
-if npm install; then
+# Step 2: Install root dependencies (pnpm)
+print_info "Step 2: Installing root dependencies with pnpm..."
+if pnpm install; then
     print_status "Root dependencies installed"
 else
     print_error "Failed to install root dependencies"
@@ -60,7 +60,7 @@ fi
 # Step 3: Build shared-types
 print_info "Step 3: Building shared-types..."
 cd shared-types
-if npm install && npm run build; then
+if pnpm install && pnpm run build; then
     print_status "Shared-types built successfully"
 else
     print_error "Failed to build shared-types"
@@ -72,7 +72,7 @@ print_status "Returned to project root"
 # Step 4: Setup backend
 print_info "Step 4: Setting up backend..."
 cd backend
-if npm install; then
+if pnpm install; then
     print_status "Backend dependencies installed"
 else
     print_error "Failed to install backend dependencies"
@@ -81,24 +81,16 @@ fi
 
 # Step 5: Generate Prisma client
 print_info "Step 5: Generating Prisma client (CRITICAL)..."
-if npx prisma generate; then
+if pnpm exec prisma generate; then
     print_status "Prisma client generated"
 else
     print_error "Failed to generate Prisma client"
     exit 1
 fi
 
-# Step 6: Install TypeScript types
-print_info "Step 6: Installing TypeScript types..."
-if npm install --save-dev @types/node; then
-    print_status "@types/node installed"
-else
-    print_warning "@types/node install failed, but continuing..."
-fi
-
-# Step 7: Build backend
-print_info "Step 7: Building backend..."
-if npm run build; then
+# Step 6: Build backend
+print_info "Step 6: Building backend..."
+if pnpm run build; then
     print_status "Backend built successfully"
 else
     print_error "Failed to build backend"
@@ -107,10 +99,10 @@ fi
 cd ..
 print_status "Returned to project root"
 
-# Step 8: Build frontend
-print_info "Step 8: Building frontend..."
+# Step 7: Build frontend
+print_info "Step 7: Building frontend..."
 cd frontend
-if npm install && npm run build; then
+if pnpm install && pnpm run build; then
     print_status "Frontend built successfully"
 else
     print_error "Failed to build frontend"
@@ -125,7 +117,7 @@ cd backend
 
 # Run migrations
 print_info "Running database migrations..."
-if npx prisma migrate deploy; then
+if pnpm exec prisma migrate deploy; then
     print_status "Database migrations completed"
 else
     print_warning "Migration failed, but continuing..."
@@ -133,7 +125,7 @@ fi
 
 # Seed database
 print_info "Seeding database with demo data..."
-if npm run db:seed:comprehensive; then
+if pnpm run db:seed:comprehensive; then
     print_status "Database seeded with comprehensive demo data"
 else
     print_warning "Database seeding failed, but continuing..."

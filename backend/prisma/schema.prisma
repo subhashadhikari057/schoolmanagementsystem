@@ -2315,6 +2315,71 @@ model SchoolInformation {
   emails          String[]  @default([])
   contactNumbers  String[]  @default([])
   logo            String?
+  // Location & classification
+  province                        String?
+  district                        String?
+  municipality                    String?
+  ward                            String?
+  schoolClassification            String?
+  schoolType                      String?
+  schoolTypeNa                    String?
+  classRegisteredUpto             String?
+  seeCode                         String?
+  hsebCode                        String?
+  // Contact & finance
+  phoneNumber                     String?
+  email                           String?
+  bank                            String?
+  accountNumber                   String?
+  panNumber                       String?
+  // Head teacher
+  headTeacherName                 String?
+  headTeacherContactNumber        String?
+  headTeacherQualification        String?
+  headTeacherGender               String?
+  headTeacherIsTeaching           Boolean   @default(false)
+  headTeacherCaste                String?
+  // Grants & geography
+  grantReceivingFrom              String?
+  latitude                        Float?
+  longitude                       Float?
+  elevation                       Float?
+  // Levels
+  hasEcdLevel                     Boolean   @default(false)
+  hasBasicLevel1To5               Boolean   @default(false)
+  hasBasicLevel6To8               Boolean   @default(false)
+  // Approval dates
+  ecdApprovalDate                 DateTime?
+  primaryApprovalDate             DateTime?
+  lowerSecondaryApprovalDate      DateTime?
+  // Running grades
+  runningEcdPpc                   Boolean   @default(false)
+  runningGrade1                   Boolean   @default(false)
+  runningGrade2                   Boolean   @default(false)
+  runningGrade3                   Boolean   @default(false)
+  runningGrade4                   Boolean   @default(false)
+  runningGrade5                   Boolean   @default(false)
+  runningGrade6                   Boolean   @default(false)
+  runningGrade7                   Boolean   @default(false)
+  runningGrade8                   Boolean   @default(false)
+  runningGrade9                   Boolean   @default(false)
+  runningGrade10                  Boolean   @default(false)
+  runningGrade11                  Boolean   @default(false)
+  runningGrade12                  Boolean   @default(false)
+  // Status & indicators
+  scienceSubjectTaughtIn11And12   Boolean   @default(false)
+  selectedForModelSchool          Boolean   @default(false)
+  complaintHearingMechanism       Boolean   @default(false)
+  foreignAffiliation              Boolean   @default(false)
+  informalSchool                  Boolean   @default(false)
+  mobileSchool                    Boolean   @default(false)
+  openSchool                      Boolean   @default(false)
+  specialDisabilitySchool         Boolean   @default(false)
+  multilingualEducation           Boolean   @default(false)
+  mgmlImplemented                 Boolean   @default(false)
+  residentialScholarshipProgram   Boolean   @default(false)
+  zeroPositionGrantBasicSchool    Boolean   @default(false)
+  technicalStreamRunning          Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime? @updatedAt
   createdById     String?   @db.Uuid
