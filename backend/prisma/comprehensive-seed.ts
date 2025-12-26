@@ -939,6 +939,7 @@ async function main() {
   });
 
   const teacherSubjectPairs = new Set<string>();
+  const teacherLoad = teacherIds.map(() => 0);
 
   const subjectTeacherMap: Record<string, number[]> = {
     MATH: [2, 10],
@@ -963,19 +964,32 @@ async function main() {
     PE: [7],
   };
 
+  const pickTeacherForSubject = (subjectCode: string, idxHint: number) => {
+    const preferred = subjectTeacherMap[subjectCode] || [];
+    if (preferred.length) {
+      const teacherIndex = preferred[idxHint % preferred.length];
+      return teacherIds[teacherIndex % teacherIds.length];
+    }
+    // fallback: pick teacher with the lowest load to ensure everyone gets classes
+    let bestIndex = 0;
+    let bestLoad = teacherLoad[0];
+    for (let i = 1; i < teacherLoad.length; i++) {
+      if (teacherLoad[i] < bestLoad) {
+        bestLoad = teacherLoad[i];
+        bestIndex = i;
+      }
+    }
+    return teacherIds[bestIndex];
+  };
+
   for (let idx = 0; idx < classesWithMeta.length; idx++) {
     const classMeta = classesWithMeta[idx];
     const selectedSubjects = allSubjects; // attach every subject for richer demo
 
     for (let j = 0; j < selectedSubjects.length; j++) {
       const subject = selectedSubjects[j];
-      const preferredTeacherIndexes =
-        subjectTeacherMap[subject.code as keyof typeof subjectTeacherMap] || [];
-      const teacherIndex =
-        preferredTeacherIndexes.length > 0
-          ? preferredTeacherIndexes[(idx + j) % preferredTeacherIndexes.length]
-          : (idx + j) % teacherIds.length;
-      const teacherId = teacherIds[teacherIndex] || teacherIds[0];
+      const teacherId = pickTeacherForSubject(subject.code, idx + j);
+      const teacherIndex = teacherIds.indexOf(teacherId);
 
       await prisma.classSubject.create({
         data: {
@@ -985,6 +999,7 @@ async function main() {
         },
       });
       classSubjectCount++;
+      if (teacherIndex >= 0) teacherLoad[teacherIndex] += 1;
 
       const pairKey = `${teacherId}-${subject.id}`;
       if (!teacherSubjectPairs.has(pairKey)) {

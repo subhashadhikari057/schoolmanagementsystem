@@ -175,4 +175,26 @@ export class SchoolInformationController {
     });
     res.end(buffer);
   }
+
+  /**
+   * Get School Report Card data (JSON) for charts and page view.
+   */
+  @Get('report-card/data')
+  @RoleAccess.Authenticated()
+  async getReportCardData(
+    @Query('year') year?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const data = await this.schoolInformationService.getReportCardData({
+      year: year ? parseInt(year, 10) : undefined,
+      startDate,
+      endDate,
+    });
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'School report card data generated',
+      data,
+    };
+  }
 }

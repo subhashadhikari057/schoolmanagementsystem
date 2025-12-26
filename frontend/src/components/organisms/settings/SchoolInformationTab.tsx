@@ -373,14 +373,7 @@ export default function SchoolInformationTab() {
   const [logoPreview, setLogoPreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportYear, setReportYear] = useState<string>(
-    new Date().getFullYear().toString(),
-  );
-  const [reportStartDate, setReportStartDate] = useState<string>('');
-  const [reportEndDate, setReportEndDate] = useState<string>('');
-  const [reportUrl, setReportUrl] = useState<string | null>(null);
-  const [isReportLoading, setIsReportLoading] = useState(false);
+  // Legacy report modal state removed (report generation moved to dedicated page)
   const classService = new ClassService();
 
   // Load school information on component mount
@@ -820,7 +813,12 @@ export default function SchoolInformationTab() {
           <Button
             variant='outline'
             className='flex items-center gap-2'
-            onClick={() => setShowReportModal(true)}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.href =
+                  '/dashboard/admin/reports/school-report-card';
+              }
+            }}
           >
             <FileText className='h-4 w-4' />
             School Report Card
@@ -1600,97 +1598,7 @@ export default function SchoolInformationTab() {
         </Card>
       )}
 
-      {showReportModal && (
-        <div className='fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
-          <div className='bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4'>
-            <div className='flex items-center justify-between'>
-              <h3 className='text-lg font-semibold text-gray-900'>
-                Generate School Report Card
-              </h3>
-              <button
-                className='text-gray-500 hover:text-gray-700'
-                onClick={() => setShowReportModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-            <div className='grid grid-cols-1 gap-4'>
-              <div>
-                <label className='text-sm font-medium text-gray-700'>
-                  Year
-                </label>
-                <Input
-                  type='number'
-                  value={reportYear}
-                  onChange={e => setReportYear(e.target.value)}
-                  className='mt-1'
-                />
-              </div>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <div>
-                  <label className='text-sm font-medium text-gray-700'>
-                    Start Date
-                  </label>
-                  <Input
-                    type='date'
-                    value={reportStartDate}
-                    onChange={e => setReportStartDate(e.target.value)}
-                    className='mt-1'
-                  />
-                </div>
-                <div>
-                  <label className='text-sm font-medium text-gray-700'>
-                    End Date
-                  </label>
-                  <Input
-                    type='date'
-                    value={reportEndDate}
-                    onChange={e => setReportEndDate(e.target.value)}
-                    className='mt-1'
-                  />
-                </div>
-              </div>
-            </div>
-            <div className='flex items-center gap-3'>
-              <Button
-                className='flex items-center gap-2'
-                onClick={handleGenerateReport}
-                disabled={isReportLoading}
-              >
-                {isReportLoading ? (
-                  <Loader2 className='h-4 w-4 animate-spin' />
-                ) : (
-                  <FileText className='h-4 w-4' />
-                )}
-                {isReportLoading ? 'Generating...' : 'Generate Report'}
-              </Button>
-              {reportUrl && (
-                <>
-                  <Button
-                    variant='outline'
-                    onClick={() => {
-                      const a = document.createElement('a');
-                      a.href = reportUrl;
-                      a.download = 'school-report-card.pdf';
-                      a.click();
-                    }}
-                  >
-                    Download PDF
-                  </Button>
-                  <a
-                    href={reportUrl}
-                    target='_blank'
-                    rel='noreferrer'
-                    className='text-blue-600 underline text-sm'
-                  >
-                    View PDF
-                  </a>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Legacy report modal removed; use the dedicated School Report Card page */}
     </div>
   );
 }

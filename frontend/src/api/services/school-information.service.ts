@@ -301,6 +301,20 @@ export class SchoolInformationService {
       },
     );
   }
+
+  async getReportCardData(params: {
+    year?: number | string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiResponse<any>> {
+    return this.httpClient.get(
+      'api/v1/school-information/report-card/data',
+      params,
+      {
+        requiresAuth: true,
+      },
+    );
+  }
 }
 
 // Export singleton instance

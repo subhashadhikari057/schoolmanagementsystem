@@ -406,4 +406,515 @@ export class SchoolInformationService {
     doc.end();
     return done;
   }
+
+  /**
+   * Aggregate School Report Card data (JSON) using only available fields.
+   */
+  async getReportCardData(params: {
+    year?: number;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const schoolInfo = await this.prisma.schoolInformation.findFirst();
+    if (!schoolInfo) {
+      throw new NotFoundException('School information not found');
+    }
+
+    const now = new Date();
+    const year = params.year || now.getFullYear();
+    const rangeStart = params.startDate
+      ? new Date(params.startDate)
+      : new Date(year, 0, 1);
+    const rangeEnd = params.endDate
+      ? new Date(params.endDate)
+      : new Date(year, 11, 31);
+
+    // Fetch core entities
+    const [
+      students,
+      teachers,
+      scholarshipAssignments,
+      examResults,
+      promotions,
+    ] = await Promise.all([
+      this.prisma.student.findMany({
+        select: {
+          id: true,
+          gender: true,
+          ethnicity: true,
+          motherTongue: true,
+          disabilityType: true,
+          class: { select: { grade: true } },
+        },
+      }),
+      this.prisma.teacher.findMany({
+        select: {
+          id: true,
+          gender: true,
+          qualification: true,
+          designation: true,
+          department: true,
+          totalSalary: true,
+          classAssignments: {
+            select: {
+              class: {
+                select: {
+                  grade: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.scholarshipAssignment.findMany({
+        where: {
+          effectiveFrom: { lte: rangeEnd },
+          OR: [{ expiresAt: null }, { expiresAt: { gte: rangeStart } }],
+        },
+        select: {
+          scholarship: { select: { name: true, type: true } },
+          student: {
+            select: { gender: true, class: { select: { grade: true } } },
+          },
+        },
+      }),
+      this.prisma.examResult.findMany({
+        where: {
+          examSlot: {
+            dateslot: {
+              examDate: {
+                gte: rangeStart,
+                lte: rangeEnd,
+              },
+            },
+          },
+        },
+        select: {
+          studentId: true,
+          marksObtained: true,
+          isPassed: true,
+          student: {
+            select: {
+              gender: true,
+              class: { select: { grade: true } },
+            },
+          },
+          examSlot: {
+            select: {
+              subject: { select: { name: true } },
+              dateslot: { select: { examDate: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.promotionRecord.findMany({
+        where: {
+          batch: {
+            OR: [
+              { fromAcademicYear: { contains: year.toString() } },
+              { toAcademicYear: { contains: year.toString() } },
+            ],
+          },
+        },
+        select: {
+          promotionType: true,
+          student: {
+            select: {
+              gender: true,
+              class: { select: { grade: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Attendance coverage
+    const attendanceRecords = await this.prisma.attendanceRecord.findMany({
+      where: {
+        session: {
+          date: { gte: rangeStart, lte: rangeEnd },
+        },
+      },
+      select: {
+        status: true,
+        studentId: true,
+        session: {
+          select: {
+            class: { select: { grade: true } },
+          },
+        },
+      },
+    });
+
+    const uniqueAttendanceStudents = new Set<string>();
+    const attendanceByGrade: Record<
+      string,
+      { present: number; total: number }
+    > = {};
+    attendanceRecords.forEach(r => {
+      uniqueAttendanceStudents.add(r.studentId);
+      const grade = r.session.class?.grade ?? null;
+      const gradeKey = grade ? `Grade ${grade}` : 'Unknown';
+      if (!attendanceByGrade[gradeKey])
+        attendanceByGrade[gradeKey] = { present: 0, total: 0 };
+      attendanceByGrade[gradeKey].total += 1;
+      if (r.status === 'PRESENT') attendanceByGrade[gradeKey].present += 1;
+    });
+
+    // Student aggregates
+    const enrollmentByGrade: Record<string, { boys: number; girls: number }> =
+      {};
+    const ethnicityCounts: Record<string, number> = {};
+    const motherTongueCounts: Record<string, number> = {};
+    const disabilityTypeCounts: Record<string, number> = {};
+    const disabilityByGrade: Record<string, { boys: number; girls: number }> =
+      {};
+    const classSize: Record<string, number> = {};
+
+    students.forEach(s => {
+      const gradeKey = s.class?.grade ? `Grade ${s.class.grade}` : 'Unknown';
+      if (!enrollmentByGrade[gradeKey])
+        enrollmentByGrade[gradeKey] = { boys: 0, girls: 0 };
+      if (!classSize[gradeKey]) classSize[gradeKey] = 0;
+      const isMale = (s.gender || '').toLowerCase() === 'male';
+      if (isMale) enrollmentByGrade[gradeKey].boys += 1;
+      else enrollmentByGrade[gradeKey].girls += 1;
+      classSize[gradeKey] += 1;
+
+      if (s.ethnicity)
+        ethnicityCounts[s.ethnicity] = (ethnicityCounts[s.ethnicity] || 0) + 1;
+      if (s.motherTongue)
+        motherTongueCounts[s.motherTongue] =
+          (motherTongueCounts[s.motherTongue] || 0) + 1;
+      const disabilityKey = s.disabilityType || 'No Disability';
+      disabilityTypeCounts[disabilityKey] =
+        (disabilityTypeCounts[disabilityKey] || 0) + 1;
+      if (s.disabilityType) {
+        if (!disabilityByGrade[gradeKey])
+          disabilityByGrade[gradeKey] = { boys: 0, girls: 0 };
+        if (isMale) disabilityByGrade[gradeKey].boys += 1;
+        else disabilityByGrade[gradeKey].girls += 1;
+      }
+    });
+
+    // Scholarship aggregates
+    const scholarshipByType: Record<string, number> = {};
+    const scholarshipByGender: Record<string, number> = {};
+    scholarshipAssignments.forEach(sa => {
+      const type = sa.scholarship?.name || 'Unknown';
+      scholarshipByType[type] = (scholarshipByType[type] || 0) + 1;
+      const gender = (sa.student.gender || 'Unknown').toLowerCase();
+      scholarshipByGender[gender] = (scholarshipByGender[gender] || 0) + 1;
+    });
+
+    // Teacher aggregates
+    const teacherGender: Record<string, number> = {
+      male: 0,
+      female: 0,
+      other: 0,
+    };
+    const qualificationCounts: Record<string, number> = {};
+    const designationCounts: Record<string, number> = {};
+    const departmentCounts: Record<string, number> = {};
+    const levelCounts: Record<string, number> = {};
+    const salaryBuckets: Record<string, number> = {};
+
+    const bucketSalary = (val?: any) => {
+      const num = val ? Number(val) : 0;
+      if (!num) return 'Unknown';
+      if (num < 20000) return '<20k';
+      if (num < 40000) return '20k-40k';
+      if (num < 60000) return '40k-60k';
+      if (num < 80000) return '60k-80k';
+      return '80k+';
+    };
+
+    const gradeToLevel = (grade?: number | null) => {
+      if (grade === null || grade === undefined) return 'Unknown';
+      if (grade === 0) return 'ECD';
+      if (grade >= 1 && grade <= 5) return 'Basic (1-5)';
+      if (grade >= 6 && grade <= 8) return 'Lower Secondary (6-8)';
+      return 'Secondary (9-12)';
+    };
+
+    teachers.forEach(t => {
+      const g = (t.gender || 'Other').toLowerCase();
+      if (g === 'male') teacherGender.male += 1;
+      else if (g === 'female') teacherGender.female += 1;
+      else teacherGender.other += 1;
+
+      const q = t.qualification || 'Other';
+      qualificationCounts[q] = (qualificationCounts[q] || 0) + 1;
+      if (t.designation)
+        designationCounts[t.designation] =
+          (designationCounts[t.designation] || 0) + 1;
+      if (t.department)
+        departmentCounts[t.department] =
+          (departmentCounts[t.department] || 0) + 1;
+
+      const levelSet = new Set<string>();
+      t.classAssignments?.forEach(ca => {
+        levelSet.add(gradeToLevel(ca.class?.grade));
+      });
+      if (levelSet.size === 0) levelSet.add('Unknown');
+      levelSet.forEach(level => {
+        levelCounts[level] = (levelCounts[level] || 0) + 1;
+      });
+
+      const bucket = bucketSalary(t.totalSalary);
+      salaryBuckets[bucket] = (salaryBuckets[bucket] || 0) + 1;
+    });
+
+    // Exam aggregates
+    const averageBySubject: Record<
+      string,
+      { sum: number; count: number; male: number; female: number }
+    > = {};
+    const averageByGradeSubject: Record<
+      string,
+      Record<string, { sum: number; count: number }>
+    > = {};
+    const passFailBySubject: Record<string, { pass: number; fail: number }> =
+      {};
+    const scoreDistribution: Record<string, number> = {};
+
+    const scoreBucket = (mark: number) => {
+      if (mark < 20) return '0-20';
+      if (mark < 40) return '20-40';
+      if (mark < 60) return '40-60';
+      if (mark < 80) return '60-80';
+      return '80-100';
+    };
+
+    examResults.forEach(er => {
+      const subject = er.examSlot.subject?.name || 'Unknown';
+      const mark = er.marksObtained ? Number(er.marksObtained) : null;
+      const gender = (er.student.gender || 'Unknown').toLowerCase();
+      const gradeKey = er.student.class?.grade
+        ? `Grade ${er.student.class.grade}`
+        : 'Unknown';
+
+      if (!averageBySubject[subject])
+        averageBySubject[subject] = { sum: 0, count: 0, male: 0, female: 0 };
+      if (!averageByGradeSubject[gradeKey])
+        averageByGradeSubject[gradeKey] = {};
+      if (!averageByGradeSubject[gradeKey][subject])
+        averageByGradeSubject[gradeKey][subject] = { sum: 0, count: 0 };
+
+      if (mark !== null) {
+        averageBySubject[subject].sum += mark;
+        averageBySubject[subject].count += 1;
+        averageByGradeSubject[gradeKey][subject].sum += mark;
+        averageByGradeSubject[gradeKey][subject].count += 1;
+        const bucket = scoreBucket(mark);
+        scoreDistribution[bucket] = (scoreDistribution[bucket] || 0) + 1;
+        if (gender === 'male') averageBySubject[subject].male += mark;
+        else if (gender === 'female') averageBySubject[subject].female += mark;
+      }
+
+      if (!passFailBySubject[subject])
+        passFailBySubject[subject] = { pass: 0, fail: 0 };
+      if (er.isPassed) passFailBySubject[subject].pass += 1;
+      else passFailBySubject[subject].fail += 1;
+    });
+
+    // Promotion aggregates
+    const promotionOverall = { promoted: 0, retained: 0, graduated: 0 };
+    const promotionByGender: Record<
+      string,
+      { promoted: number; retained: number; graduated: number }
+    > = {};
+    const promotionByGrade: Record<
+      string,
+      { promoted: number; retained: number; graduated: number }
+    > = {};
+
+    promotions.forEach(p => {
+      const type = p.promotionType;
+      if (type === 'PROMOTED') promotionOverall.promoted += 1;
+      else if (type === 'RETAINED') promotionOverall.retained += 1;
+      else if (type === 'GRADUATED') promotionOverall.graduated += 1;
+
+      const gender = (p.student.gender || 'Unknown').toLowerCase();
+      if (!promotionByGender[gender])
+        promotionByGender[gender] = { promoted: 0, retained: 0, graduated: 0 };
+      if (type === 'PROMOTED') promotionByGender[gender].promoted += 1;
+      else if (type === 'RETAINED') promotionByGender[gender].retained += 1;
+      else if (type === 'GRADUATED') promotionByGender[gender].graduated += 1;
+
+      const gradeKey = p.student.class?.grade
+        ? `Grade ${p.student.class.grade}`
+        : 'Unknown';
+      if (!promotionByGrade[gradeKey])
+        promotionByGrade[gradeKey] = {
+          promoted: 0,
+          retained: 0,
+          graduated: 0,
+        };
+      if (type === 'PROMOTED') promotionByGrade[gradeKey].promoted += 1;
+      else if (type === 'RETAINED') promotionByGrade[gradeKey].retained += 1;
+      else if (type === 'GRADUATED') promotionByGrade[gradeKey].graduated += 1;
+    });
+
+    const totalStudents = students.length;
+    const totalTeachers = teachers.length;
+    const overallRatio =
+      totalTeachers > 0
+        ? Number((totalStudents / totalTeachers).toFixed(2))
+        : null;
+
+    const ratioByLevel = Object.entries(levelCounts).map(([label, count]) => {
+      if (!count) return { label, ratio: null };
+      // approximate student count per level from classSize
+      let studentCount = 0;
+      Object.entries(classSize).forEach(([gradeKey, value]) => {
+        if (
+          (label === 'ECD' && gradeKey.includes('0')) ||
+          (label === 'Basic (1-5)' && /Grade (1|2|3|4|5)/.test(gradeKey)) ||
+          (label === 'Lower Secondary (6-8)' &&
+            /Grade (6|7|8)/.test(gradeKey)) ||
+          (label === 'Secondary (9-12)' && /Grade (9|10|11|12)/.test(gradeKey))
+        ) {
+          studentCount += value;
+        }
+      });
+      return {
+        label,
+        ratio: count ? Number(((studentCount || 0) / count).toFixed(2)) : null,
+      };
+    });
+
+    return {
+      schoolInfo,
+      filters: {
+        year,
+        startDate: rangeStart,
+        endDate: rangeEnd,
+      },
+      students: {
+        enrollmentByGrade: Object.entries(enrollmentByGrade).map(
+          ([grade, val]) => ({ grade, ...val }),
+        ),
+        ethnicity: Object.entries(ethnicityCounts).map(([label, count]) => ({
+          label,
+          count,
+        })),
+        motherTongue: Object.entries(motherTongueCounts).map(
+          ([label, count]) => ({ label, count }),
+        ),
+        disabilityTypes: Object.entries(disabilityTypeCounts).map(
+          ([label, count]) => ({ label, count }),
+        ),
+        disabilityByGrade: Object.entries(disabilityByGrade).map(
+          ([grade, val]) => ({ grade, ...val }),
+        ),
+        scholarshipsByType: Object.entries(scholarshipByType).map(
+          ([label, count]) => ({ label, count }),
+        ),
+        scholarshipsByGender: Object.entries(scholarshipByGender).map(
+          ([label, count]) => ({ label, count }),
+        ),
+        classSize: Object.entries(classSize).map(([grade, total]) => ({
+          grade,
+          total,
+        })),
+        attendanceByGrade: Object.entries(attendanceByGrade).map(
+          ([grade, val]) => ({
+            grade,
+            rate: val.total ? Math.round((val.present / val.total) * 100) : 0,
+          }),
+        ),
+        totals: {
+          students: totalStudents,
+          scholarshipRecipients: scholarshipAssignments.length,
+          attendanceCoverage: uniqueAttendanceStudents.size,
+        },
+      },
+      teachers: {
+        gender: Object.entries(teacherGender).map(([label, count]) => ({
+          label,
+          count,
+        })),
+        qualification: Object.entries(qualificationCounts).map(
+          ([label, count]) => ({ label, count }),
+        ),
+        designation: Object.entries(designationCounts).map(
+          ([label, count]) => ({ label, count }),
+        ),
+        department: Object.entries(departmentCounts).map(([label, count]) => ({
+          label,
+          count,
+        })),
+        level: Object.entries(levelCounts).map(([label, count]) => ({
+          label,
+          count,
+        })),
+        salary: Object.entries(salaryBuckets).map(([label, count]) => ({
+          label,
+          count,
+        })),
+        ratios: {
+          overall: overallRatio,
+          byLevel: ratioByLevel,
+        },
+        totals: {
+          teachers: totalTeachers,
+        },
+      },
+      exams: {
+        averageBySubject: Object.entries(averageBySubject).map(
+          ([subject, val]) => ({
+            subject,
+            average: val.count ? Number((val.sum / val.count).toFixed(2)) : 0,
+            maleAverage:
+              val.count && val.male
+                ? Number((val.male / val.count).toFixed(2))
+                : 0,
+            femaleAverage:
+              val.count && val.female
+                ? Number((val.female / val.count).toFixed(2))
+                : 0,
+          }),
+        ),
+        averageByGrade: Object.entries(averageByGradeSubject).map(
+          ([grade, subjects]) => ({
+            grade,
+            subjects: Object.entries(subjects).map(([subject, val]) => ({
+              subject,
+              average: val.count ? Number((val.sum / val.count).toFixed(2)) : 0,
+            })),
+          }),
+        ),
+        passFailBySubject: Object.entries(passFailBySubject).map(
+          ([subject, val]) => ({ subject, ...val }),
+        ),
+        scoreDistribution: Object.entries(scoreDistribution).map(
+          ([bucket, count]) => ({ bucket, count }),
+        ),
+        coverage: {
+          resultsCount: examResults.length,
+          studentsWithResults: new Set(examResults.map(r => r.studentId)).size,
+          totalStudents,
+        },
+      },
+      promotions: {
+        overall: promotionOverall,
+        byGender: Object.entries(promotionByGender).map(([gender, val]) => ({
+          gender,
+          ...val,
+        })),
+        byGrade: Object.entries(promotionByGrade).map(([grade, val]) => ({
+          grade,
+          ...val,
+        })),
+      },
+      footer: {
+        totalStudents,
+        totalTeachers,
+        studentTeacherRatio: overallRatio,
+        examCoverage: examResults.length,
+        attendanceCoverage: uniqueAttendanceStudents.size,
+      },
+    };
+  }
 }
