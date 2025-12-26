@@ -7,6 +7,7 @@ export const StudentImportRowSchema = z.object({
   email: z.string().email('Invalid email format'),
   phone: z.string().min(1, 'Phone number is required'),
   rollNumber: z.string().min(1, 'Roll number is required'),
+  studentIemisCode: z.string().min(1, 'Student IEMIS code is required'),
   classGrade: z
     .number()
     .min(1, 'Class grade must be at least 1')

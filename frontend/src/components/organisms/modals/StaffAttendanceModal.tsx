@@ -23,8 +23,20 @@ import { staffAttendanceService } from '@/api/services/staff-attendance.service'
 interface StaffAttendanceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (payload?: StaffAttendanceSuccessPayload) => void;
   staffType: 'teacher' | 'staff';
+}
+
+interface StaffAttendanceSuccessPayload {
+  type: 'staff';
+  staffType: 'teacher' | 'staff';
+  date: string;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  total: number;
+  records: Array<{ id: string; status: AttendanceStatus }>;
 }
 
 // Extended interface for UI state management
@@ -257,8 +269,28 @@ export default function StaffAttendanceModal({
 
         if (response.success) {
           setShowSuccess(true);
+          const records = staffMembers
+            .filter(staff => staff.status)
+            .map(staff => ({ id: staff.id, status: staff.status! }));
+          const present = records.filter(r =>
+            ['PRESENT', 'LATE', 'EXCUSED'].includes(r.status),
+          ).length;
+          const absent = records.filter(r => r.status === 'ABSENT').length;
+          const late = records.filter(r => r.status === 'LATE').length;
+          const excused = records.filter(r => r.status === 'EXCUSED').length;
+
           // Call the success callback to refresh parent data
-          onSuccess?.();
+          onSuccess?.({
+            type: 'staff',
+            staffType: 'teacher',
+            date: attendanceDate,
+            present,
+            absent,
+            late,
+            excused,
+            total: staffMembers.length,
+            records,
+          });
           setTimeout(() => {
             setShowSuccess(false);
             onClose();
@@ -285,8 +317,28 @@ export default function StaffAttendanceModal({
 
         if (response.success) {
           setShowSuccess(true);
+          const records = staffMembers
+            .filter(staff => staff.status)
+            .map(staff => ({ id: staff.id, status: staff.status! }));
+          const present = records.filter(r =>
+            ['PRESENT', 'LATE', 'EXCUSED'].includes(r.status),
+          ).length;
+          const absent = records.filter(r => r.status === 'ABSENT').length;
+          const late = records.filter(r => r.status === 'LATE').length;
+          const excused = records.filter(r => r.status === 'EXCUSED').length;
+
           // Call the success callback to refresh parent data
-          onSuccess?.();
+          onSuccess?.({
+            type: 'staff',
+            staffType: 'staff',
+            date: attendanceDate,
+            present,
+            absent,
+            late,
+            excused,
+            total: staffMembers.length,
+            records,
+          });
           setTimeout(() => {
             setShowSuccess(false);
             onClose();

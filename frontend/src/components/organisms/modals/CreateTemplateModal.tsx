@@ -498,7 +498,7 @@ export default function CreateTemplateModal({
         {
           id: 'studentId',
           fieldType: TemplateFieldType.TEXT,
-          label: 'Student ID',
+          label: 'Student IEMIS ID',
           dataSource: 'database' as const,
           databaseField: 'Student ID',
           placeholder: 'STU-2025-001',

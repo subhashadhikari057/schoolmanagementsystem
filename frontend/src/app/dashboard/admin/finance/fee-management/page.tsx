@@ -45,6 +45,7 @@ interface FeeStructureDetailed {
 
 interface FeeStructureRow extends Record<string, unknown> {
   id: string;
+  mergedIds?: string[];
   name: string;
   academicYear: string;
   components: { label: string; amount: number }[];
@@ -223,11 +224,72 @@ const FeeManagementPage = () => {
         console.log('Structures data to process:', structuresData);
 
         // Convert service response to expected format
-        const rows: FeeStructureRow[] = structuresData.map((s: FeeStructure) =>
-          mapApiToRow(s),
+        const rows: FeeStructureRow[] = structuresData.map(
+          (s: FeeStructure) => {
+            const row = mapApiToRow(s);
+            return row;
+          },
         );
-        console.log('Converted rows:', rows.length);
-        setApiData(rows);
+
+        // Group same grade (class) across multiple sections into one row when name/year match
+        const gradeFromLabel = (label?: string) => {
+          if (!label) return null;
+          const match = label.match(/^(\d+)/);
+          return match ? Number(match[1]) : null;
+        };
+
+        const groupedMap = new Map<string, FeeStructureRow>();
+        const directRows: FeeStructureRow[] = [];
+
+        rows.forEach(row => {
+          const grade =
+            row.grade ??
+            gradeFromLabel(row.assignedClasses?.[0]?.label) ??
+            null;
+          const key =
+            grade !== null
+              ? `${row.name.toLowerCase()}|${row.academicYear}|${grade}`
+              : null;
+
+          // If we can't confidently group, push directly
+          if (!key) {
+            directRows.push(row);
+            return;
+          }
+
+          const existing = groupedMap.get(key);
+          if (!existing) {
+            groupedMap.set(key, { ...row, mergedIds: [row.id] });
+            return;
+          }
+
+          const mergedAssignments = [
+            ...existing.assignedClasses,
+            ...row.assignedClasses,
+          ].filter(
+            (c, idx, arr) =>
+              arr.findIndex(x => x.id === c.id || x.label === c.label) === idx,
+          );
+
+          groupedMap.set(key, {
+            ...existing,
+            mergedIds: [...(existing.mergedIds || []), row.id],
+            assignedClasses: mergedAssignments,
+            totalStudents: (existing.totalStudents || 0) + row.totalStudents,
+            studentCount: (existing.studentCount || 0) + row.studentCount,
+            // keep status if same, otherwise prefer ACTIVE if any active
+            status:
+              existing.status === row.status
+                ? row.status
+                : existing.status === 'ACTIVE' || row.status === 'ACTIVE'
+                  ? 'ACTIVE'
+                  : existing.status,
+          });
+        });
+
+        const groupedRows = [...groupedMap.values(), ...directRows];
+        console.log('Converted rows (grouped):', groupedRows.length);
+        setApiData(groupedRows);
       } catch (err) {
         console.error('Error fetching structures:', err);
 

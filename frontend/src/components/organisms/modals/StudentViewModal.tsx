@@ -371,7 +371,7 @@ const StudentViewModal: React.FC<StudentViewModalProps> = ({
                     </div>
                     <div>
                       <span className='text-xs text-gray-500 block'>
-                        Student ID
+                        Student IEMIS ID
                       </span>
                       <span className='text-sm font-medium text-gray-900'>
                         {studentDetails.studentId || 'N/A'}

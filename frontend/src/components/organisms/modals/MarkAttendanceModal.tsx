@@ -26,11 +26,21 @@ interface SelectedClass {
   students: number;
 }
 
+interface AttendanceSuccessPayload {
+  type: 'class';
+  classId: string;
+  date: string;
+  present: number;
+  absent: number;
+  total: number;
+  status: 'completed' | 'partial' | 'pending';
+}
+
 interface MarkAttendanceModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedClass?: SelectedClass;
-  onSuccess?: () => void; // Callback to refresh data after successful attendance marking
+  onSuccess?: (payload?: AttendanceSuccessPayload) => void; // Callback to refresh data after successful attendance marking
   restrictToToday?: boolean; // New prop to lock date to today only
 }
 
@@ -518,13 +528,34 @@ const MarkAttendanceModal: React.FC<MarkAttendanceModalProps> = ({
       if (isSuccess) {
         console.log('Attendance saved successfully:', response);
 
+        // Build a lightweight summary for optimistic UI updates
+        const presentCount = students.filter(student =>
+          ['present', 'late', 'excused'].includes(student.attendanceStatus),
+        ).length;
+        const absentCount = students.filter(
+          student => student.attendanceStatus === 'absent',
+        ).length;
+        const markedCount = students.filter(
+          student => student.attendanceStatus !== 'unmarked',
+        ).length;
+        const status =
+          markedCount === students.length ? 'completed' : 'partial';
+
         // Force reload attendance data to show updated status
         setAttendanceLoaded(false);
         await loadExistingAttendance(true);
 
         // Call the success callback to refresh parent component data
         if (onSuccess) {
-          onSuccess();
+          onSuccess({
+            type: 'class',
+            classId: selectedClass.id,
+            date: selectedDate,
+            present: presentCount,
+            absent: absentCount,
+            total: students.length,
+            status,
+          });
         }
 
         // Close modal after refresh

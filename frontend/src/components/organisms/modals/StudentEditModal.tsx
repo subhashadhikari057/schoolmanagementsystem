@@ -870,7 +870,7 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
                 {student.name}
               </h3>
               <p className='text-sm text-gray-600'>
-                Student ID: {student.studentId || student.rollNo}
+                Student IEMIS ID: {student.studentId || student.rollNo}
               </p>
               <p className='text-sm text-gray-600'>
                 {typeof student.class === 'string'
@@ -1089,11 +1089,11 @@ const StudentEditModal: React.FC<StudentEditModalProps> = ({
                 />
 
                 <LabeledInput
-                  label='Student ID'
+                  label='Student IEMIS ID'
                   name='studentId'
                   value={formData.studentId}
                   onChange={handleInputChange}
-                  placeholder='Enter student ID'
+                  placeholder='Enter student IEMIS ID'
                 />
               </div>
 

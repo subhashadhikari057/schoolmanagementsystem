@@ -10,7 +10,6 @@ import StatusBadge from '@/components/atoms/data/StatusBadge';
 import Tabs from '@/components/organisms/tabs/GenericTabs';
 import MarkAttendanceModal from '@/components/organisms/modals/MarkAttendanceModal';
 import StaffAttendanceModal from '@/components/organisms/modals/StaffAttendanceModal';
-import AttendanceReportsModal from '@/components/organisms/modals/AttendanceReportsModal';
 import WorkingDaysCounter from '@/components/organisms/attendance/WorkingDaysCounter';
 import { classService, type ClassResponse } from '@/api/services/class.service';
 import { attendanceService } from '@/api/services/attendance.service';
@@ -28,11 +27,11 @@ import {
   XCircle,
   TrendingUp,
   UserCheck,
-  GraduationCap,
   UserCog,
+  GraduationCap,
   BarChart3,
-  FileText,
   Settings,
+  FileText,
   RefreshCw,
 } from 'lucide-react';
 
@@ -54,7 +53,6 @@ export default function AttendancePage() {
   // Modal states
   const [isMarkAttendanceOpen, setIsMarkAttendanceOpen] = useState(false);
   const [isStaffAttendanceOpen, setIsStaffAttendanceOpen] = useState(false);
-  const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [staffType, setStaffType] = useState<'teacher' | 'staff'>('teacher');
   const [selectedClass, setSelectedClass] = useState<ClassBlock | null>(null);
 
@@ -81,52 +79,79 @@ export default function AttendancePage() {
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
   const [staff, setStaff] = useState<StaffForAttendance[]>([]);
   const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+  const [attendanceDate, setAttendanceDate] = useState(
+    () => new Date().toISOString().split('T')[0],
+  );
+  const [reportClassId, setReportClassId] = useState('');
+  const [reportStartDate, setReportStartDate] = useState(() => {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    return start.toISOString().split('T')[0];
+  });
+  const [reportEndDate, setReportEndDate] = useState(
+    () => new Date().toISOString().split('T')[0],
+  );
+  const [reportSummary, setReportSummary] = useState<{
+    classLabel: string;
+    startDate: string;
+    endDate: string;
+    totalStudents: number;
+    totalDays: number;
+    attendanceRate: number;
+    present: number;
+    absent: number;
+    status: string;
+  } | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
-  // Fetch today's teacher attendance
-  const fetchTodaysTeacherAttendance = async () => {
-    try {
-      setIsLoadingTeachers(true);
-      const today = new Date().toISOString().split('T')[0];
+  // Fetch teacher attendance for a specific date
+  const fetchTeacherAttendance = useCallback(
+    async (targetDate = attendanceDate) => {
+      try {
+        setIsLoadingTeachers(true);
+        const response =
+          await teacherAttendanceService.getTeachersForAttendance(targetDate);
 
-      const response =
-        await teacherAttendanceService.getTeachersForAttendance(today);
-
-      if (response.success && response.data) {
-        setTeachers(response.data);
-      } else {
-        console.error('Failed to load teacher attendance:', response.message);
+        if (response.success && response.data) {
+          setTeachers(response.data);
+        } else {
+          console.error('Failed to load teacher attendance:', response.message);
+          setTeachers([]);
+        }
+      } catch (error) {
+        console.error('Error fetching teacher attendance:', error);
         setTeachers([]);
+      } finally {
+        setIsLoadingTeachers(false);
       }
-    } catch (error) {
-      console.error('Error fetching teacher attendance:', error);
-      setTeachers([]);
-    } finally {
-      setIsLoadingTeachers(false);
-    }
-  };
+    },
+    [attendanceDate],
+  );
 
-  // Fetch today's staff attendance
-  const fetchTodaysStaffAttendance = async () => {
-    try {
-      setIsLoadingStaff(true);
-      const today = new Date().toISOString().split('T')[0];
+  // Fetch staff attendance for a specific date
+  const fetchStaffAttendance = useCallback(
+    async (targetDate = attendanceDate) => {
+      try {
+        setIsLoadingStaff(true);
 
-      const response =
-        await staffAttendanceService.getStaffForAttendance(today);
+        const response =
+          await staffAttendanceService.getStaffForAttendance(targetDate);
 
-      if (response.success && response.data) {
-        setStaff(response.data);
-      } else {
-        console.error('Failed to load staff attendance:', response.message);
+        if (response.success && response.data) {
+          setStaff(response.data);
+        } else {
+          console.error('Failed to load staff attendance:', response.message);
+          setStaff([]);
+        }
+      } catch (error) {
+        console.error('Error fetching staff attendance:', error);
         setStaff([]);
+      } finally {
+        setIsLoadingStaff(false);
       }
-    } catch (error) {
-      console.error('Error fetching staff attendance:', error);
-      setStaff([]);
-    } finally {
-      setIsLoadingStaff(false);
-    }
-  };
+    },
+    [attendanceDate],
+  );
 
   // Fetch real class data and attendance statistics
   useEffect(() => {
@@ -134,28 +159,33 @@ export default function AttendancePage() {
       try {
         setIsLoading(true);
 
-        // Get today's date in YYYY-MM-DD format
-        const today = new Date().toISOString().split('T')[0];
-        console.log('Fetching attendance stats for date:', today);
+        const targetDate = attendanceDate;
+        console.log('Fetching attendance stats for date:', targetDate);
 
-        // Fetch classes, attendance stats, and teacher attendance in parallel
+        // Fetch classes and attendance stats in parallel
         const [classesResponse, attendanceStatsResponse] = await Promise.all([
           classService.getAllClasses(),
-          attendanceService.getClassWiseAttendanceStats(today), // Pass today's date
+          attendanceService.getClassWiseAttendanceStats(targetDate),
         ]);
 
         // Also fetch teacher and staff attendance
-        fetchTodaysTeacherAttendance();
-        fetchTodaysStaffAttendance();
+        await Promise.all([
+          fetchTeacherAttendance(targetDate),
+          fetchStaffAttendance(targetDate),
+        ]);
 
         console.log('Classes response:', classesResponse);
         console.log('Attendance stats response:', attendanceStatsResponse);
 
         if (classesResponse.success && classesResponse.data) {
+          const attendanceStatsData =
+            (attendanceStatsResponse as { data?: any })?.data ||
+            attendanceStatsResponse;
+
           // Create a map of attendance data for quick lookup
           const attendanceMap = new Map();
-          if (attendanceStatsResponse?.classes) {
-            attendanceStatsResponse.classes.forEach(classStats => {
+          if (attendanceStatsData?.classes) {
+            attendanceStatsData.classes.forEach((classStats: any) => {
               attendanceMap.set(classStats.id, classStats);
             });
           }
@@ -178,8 +208,59 @@ export default function AttendancePage() {
             },
           );
 
-          setClassBlocks(transformedClasses);
-          setAttendanceStats(attendanceStatsResponse);
+          // Keep class cards stable and ordered by grade/section
+          const getGradeNumber = (block: ClassBlock) => {
+            if (block.classData && typeof block.classData.grade === 'number') {
+              return block.classData.grade;
+            }
+            const match = block.grade.match(/\d+/);
+            return match ? parseInt(match[0], 10) : 0;
+          };
+
+          transformedClasses.sort((a, b) => {
+            const gradeDiff = getGradeNumber(a) - getGradeNumber(b);
+            if (gradeDiff !== 0) return gradeDiff;
+            return a.section.localeCompare(b.section);
+          });
+
+          setClassBlocks(prev => {
+            const prevMap = new Map(prev.map(item => [item.id, item]));
+            return transformedClasses.map(tc => {
+              const prevBlock = prevMap.get(tc.id);
+              const hasStats = attendanceMap.has(tc.id);
+              const attendanceData = attendanceMap.get(tc.id);
+              const shouldKeepPrev =
+                hasStats &&
+                attendanceData &&
+                attendanceData.present === 0 &&
+                attendanceData.absent === 0 &&
+                attendanceData.status === 'pending' &&
+                prevBlock &&
+                (prevBlock.present > 0 ||
+                  prevBlock.absent > 0 ||
+                  prevBlock.status !== 'pending');
+
+              return {
+                ...tc,
+                present: shouldKeepPrev
+                  ? (prevBlock?.present ?? tc.present)
+                  : hasStats
+                    ? tc.present
+                    : (prevBlock?.present ?? tc.present),
+                absent: shouldKeepPrev
+                  ? (prevBlock?.absent ?? tc.absent)
+                  : hasStats
+                    ? tc.absent
+                    : (prevBlock?.absent ?? tc.absent),
+                status: shouldKeepPrev
+                  ? (prevBlock?.status ?? tc.status)
+                  : hasStats
+                    ? tc.status
+                    : (prevBlock?.status ?? tc.status),
+              };
+            });
+          });
+          setAttendanceStats(attendanceStatsData);
         } else {
           setError(classesResponse.message || 'Failed to fetch classes');
         }
@@ -192,7 +273,12 @@ export default function AttendancePage() {
     };
 
     fetchData();
-  }, [refreshKey]); // Re-fetch when refreshKey changes
+  }, [
+    attendanceDate,
+    fetchStaffAttendance,
+    fetchTeacherAttendance,
+    refreshKey,
+  ]); // Re-fetch when refreshKey or date changes
 
   // Function to refresh attendance data
   const refreshAttendanceData = useCallback(
@@ -208,13 +294,406 @@ export default function AttendancePage() {
     [isMarkAttendanceOpen],
   );
 
+  // New simplified class-wise attendance report (live data + dummy export layout)
+  const renderReportsTab = () => {
+    const selected = classBlocks.find(cls => cls.id === reportClassId);
+    const dummyExcelPath = '/attendance/attendance-report.xlsx'; // Place your Excel in frontend/public/attendance/
+
+    const getDateRangeList = (start: string, end: string) => {
+      const dates: string[] = [];
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      if (
+        Number.isNaN(startDate.getTime()) ||
+        Number.isNaN(endDate.getTime())
+      ) {
+        return dates;
+      }
+      const current = new Date(startDate);
+      while (current <= endDate) {
+        dates.push(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+      }
+      return dates;
+    };
+
+    const handleGenerate = async () => {
+      if (!selected) {
+        setReportSummary(null);
+        return;
+      }
+
+      setIsGeneratingReport(true);
+
+      try {
+        const datesInRange = getDateRangeList(reportStartDate, reportEndDate);
+
+        let presentCount = 0;
+        let absentCount = 0;
+
+        if (datesInRange.length === 0) {
+          presentCount = selected.present;
+          absentCount = selected.absent;
+        } else {
+          for (const date of datesInRange) {
+            try {
+              const attendanceForDay =
+                await attendanceService.getClassAttendance(
+                  selected.id,
+                  date,
+                  'daily',
+                );
+              const dayRecords =
+                (attendanceForDay as any)?.records ||
+                (attendanceForDay as any)?.data?.records ||
+                [];
+
+              dayRecords.forEach((record: any) => {
+                switch (record.status) {
+                  case 'PRESENT':
+                  case 'LATE':
+                  case 'EXCUSED':
+                    presentCount += 1;
+                    break;
+                  case 'ABSENT':
+                    absentCount += 1;
+                    break;
+                  default:
+                    break;
+                }
+              });
+            } catch (err) {
+              console.warn(
+                `Failed to fetch attendance for ${date} - skipping`,
+                err,
+              );
+            }
+          }
+        }
+
+        const totalDays = Math.max(datesInRange.length, 1);
+        const totalPossibleMarks = selected.students * totalDays;
+        const attendanceRate = totalPossibleMarks
+          ? Math.round((presentCount / totalPossibleMarks) * 100)
+          : 0;
+        const status =
+          presentCount + absentCount >= totalPossibleMarks
+            ? 'completed'
+            : presentCount + absentCount > 0
+              ? 'partial'
+              : selected.status;
+
+        setReportSummary({
+          classLabel: `${selected.grade} - Section ${selected.section}`,
+          startDate: reportStartDate,
+          endDate: reportEndDate,
+          totalStudents: selected.students,
+          totalDays,
+          attendanceRate,
+          present: presentCount,
+          absent: absentCount,
+          status,
+        });
+      } finally {
+        setIsGeneratingReport(false);
+      }
+    };
+
+    const exportDummyReport = () => {
+      const link = document.createElement('a');
+      link.href = dummyExcelPath;
+      link.setAttribute('download', 'attendance-report.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    return (
+      <div className='space-y-6'>
+        <Card className='bg-white shadow-sm border-0 rounded-xl'>
+          <div className='p-6 space-y-4'>
+            <SectionTitle
+              text='Class-wise Attendance Report'
+              level={3}
+              className='text-lg font-semibold text-gray-900'
+            />
+            <Label className='text-sm text-gray-600'>
+              Select a class/section to view attendance.
+            </Label>
+
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+              <div className='space-y-2'>
+                <Label className='text-sm text-gray-700'>Class & Section</Label>
+                <select
+                  value={reportClassId}
+                  onChange={e => setReportClassId(e.target.value)}
+                  className='w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500'
+                >
+                  <option value=''>Select class</option>
+                  {classBlocks.map(cls => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.grade} - Section {cls.section} ({cls.students}{' '}
+                      students)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className='space-y-2'>
+                <Label className='text-sm text-gray-700'>Date Range</Label>
+                <div className='grid grid-cols-2 gap-2'>
+                  <Input
+                    type='date'
+                    value={reportStartDate}
+                    onChange={e => setReportStartDate(e.target.value)}
+                  />
+                  <Input
+                    type='date'
+                    value={reportEndDate}
+                    min={reportStartDate}
+                    onChange={e => setReportEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className='flex items-end gap-2'>
+                <Button
+                  className='w-full bg-primary hover:bg-primary/90 text-white'
+                  onClick={handleGenerate}
+                  disabled={!reportClassId || isGeneratingReport}
+                >
+                  <FileText className='w-4 h-4 mr-2' />
+                  {isGeneratingReport ? 'Generating...' : 'Generate Report'}
+                </Button>
+                <Button
+                  type='button'
+                  variant='outline'
+                  className='w-full'
+                  onClick={exportDummyReport}
+                >
+                  <Download className='w-4 h-4 mr-2' />
+                  Download Excel
+                </Button>
+              </div>
+            </div>
+
+            {reportSummary ? (
+              <Card className='border border-gray-200 shadow-none'>
+                <div className='p-4 space-y-3'>
+                  <div className='flex flex-wrap gap-3 items-center justify-between'>
+                    <div>
+                      <p className='text-sm text-gray-500'>Class</p>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {reportSummary.classLabel}
+                      </p>
+                    </div>
+                    <div>
+                      <p className='text-sm text-gray-500'>Date Range</p>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {reportSummary.startDate} → {reportSummary.endDate}
+                      </p>
+                    </div>
+                    <StatusBadge
+                      label={reportSummary.status}
+                      variant={
+                        reportSummary.status === 'completed'
+                          ? 'success'
+                          : reportSummary.status === 'partial'
+                            ? 'warning'
+                            : 'default'
+                      }
+                    />
+                  </div>
+
+                  <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                    <div className='p-3 rounded-lg bg-blue-50 border border-blue-100'>
+                      <p className='text-xs text-blue-600'>Total Students</p>
+                      <p className='text-xl font-bold text-blue-900'>
+                        {reportSummary.totalStudents}
+                      </p>
+                    </div>
+                    <div className='p-3 rounded-lg bg-green-50 border border-green-100'>
+                      <p className='text-xs text-green-600'>Present</p>
+                      <p className='text-xl font-bold text-green-900'>
+                        {reportSummary.present}
+                      </p>
+                    </div>
+                    <div className='p-3 rounded-lg bg-red-50 border border-red-100'>
+                      <p className='text-xs text-red-600'>Absent</p>
+                      <p className='text-xl font-bold text-red-900'>
+                        {reportSummary.absent}
+                      </p>
+                    </div>
+                    <div className='p-3 rounded-lg bg-purple-50 border border-purple-100'>
+                      <p className='text-xs text-purple-600'>Attendance Rate</p>
+                      <p className='text-xl font-bold text-purple-900'>
+                        {`${reportSummary.attendanceRate}%`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className='text-sm text-gray-600'>
+                    Report data above is pulled live from class attendance.
+                  </div>
+                </div>
+              </Card>
+            ) : (
+              <div className='text-sm text-gray-500'>
+                Select a class and click Generate to view the live summary.
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
   // Function to handle successful attendance marking
-  const handleAttendanceSuccess = useCallback(() => {
-    console.log('Attendance marked successfully - forcing refresh');
-    refreshAttendanceData(true); // Force refresh after successful attendance marking
-    fetchTodaysTeacherAttendance(); // Refresh teacher attendance data
-    fetchTodaysStaffAttendance(); // Refresh staff attendance data
-  }, [refreshAttendanceData]);
+  const handleAttendanceSuccess = useCallback(
+    (
+      payload?:
+        | {
+            type: 'class';
+            classId: string;
+            date: string;
+            present: number;
+            absent: number;
+            total: number;
+            status: 'completed' | 'partial' | 'pending';
+          }
+        | {
+            type: 'staff';
+            staffType: 'teacher' | 'staff';
+            date: string;
+            present: number;
+            absent: number;
+            late: number;
+            excused: number;
+            total: number;
+            records: Array<{ id: string; status: string }>;
+          },
+    ) => {
+      console.log('Attendance marked successfully - forcing refresh');
+
+      if (payload?.date) {
+        setAttendanceDate(payload.date);
+        setReportStartDate(payload.date);
+        setReportEndDate(payload.date);
+      }
+
+      if (payload?.type === 'class') {
+        // Optimistically update the class card counts/status so UI reflects immediately
+        setClassBlocks(prev => {
+          const updated = prev.map(block =>
+            block.id === payload.classId
+              ? {
+                  ...block,
+                  present: payload.present,
+                  absent: payload.absent,
+                  students: payload.total || block.students,
+                  status: payload.status || block.status,
+                }
+              : block,
+          );
+
+          // Recalculate stats immediately so the header cards update
+          const totalStudents = updated.reduce(
+            (sum, block) => sum + block.students,
+            0,
+          );
+          const totalPresent = updated.reduce(
+            (sum, block) => sum + block.present,
+            0,
+          );
+          const totalAbsent = updated.reduce(
+            (sum, block) => sum + block.absent,
+            0,
+          );
+          const completedClasses = updated.filter(
+            block => block.status === 'completed',
+          ).length;
+          const partialClasses = updated.filter(
+            block => block.status === 'partial',
+          ).length;
+          const pendingClasses = updated.filter(
+            block => block.status === 'pending',
+          ).length;
+
+          const overallAttendanceRate = totalStudents
+            ? Math.round((totalPresent / totalStudents) * 100)
+            : 0;
+
+          setAttendanceStats(prev => ({
+            date: payload.date || attendanceDate,
+            classes: updated.map(block => ({
+              id: block.id,
+              grade: block.grade,
+              section: block.section,
+              totalStudents: block.students,
+              present: block.present,
+              absent: block.absent,
+              late: prev?.classes?.find(c => c.id === block.id)?.late ?? 0,
+              excused:
+                prev?.classes?.find(c => c.id === block.id)?.excused ?? 0,
+              attendancePercentage:
+                block.students > 0
+                  ? Math.round((block.present / block.students) * 100)
+                  : 0,
+              status: block.status as 'completed' | 'partial' | 'pending',
+            })),
+            overall: {
+              totalStudents,
+              totalPresent,
+              totalAbsent,
+              totalLate: prev?.overall?.totalLate ?? 0,
+              totalExcused: prev?.overall?.totalExcused ?? 0,
+              overallAttendanceRate,
+              completedClasses,
+              pendingClasses,
+              partialClasses,
+            },
+          }));
+
+          return updated;
+        });
+      }
+
+      if (payload?.type === 'staff') {
+        if (payload.staffType === 'teacher') {
+          setTeachers(prev =>
+            prev.map(teacher => {
+              const match = payload.records.find(r => r.id === teacher.id);
+              return match
+                ? {
+                    ...teacher,
+                    status: match.status as any,
+                    lastAttendance: payload.date,
+                  }
+                : teacher;
+            }),
+          );
+        } else {
+          setStaff(prev =>
+            prev.map(member => {
+              const match = payload.records.find(r => r.id === member.id);
+              return match
+                ? {
+                    ...member,
+                    status: match.status as any,
+                    lastAttendance: payload.date,
+                  }
+                : member;
+            }),
+          );
+        }
+      }
+
+      refreshAttendanceData(true); // Force refresh after successful attendance marking
+      fetchTeacherAttendance(payload?.date); // Refresh teacher attendance data
+      fetchStaffAttendance(payload?.date); // Refresh staff attendance data
+    },
+    [fetchStaffAttendance, fetchTeacherAttendance, refreshAttendanceData],
+  );
 
   // Auto-refresh data every 30 seconds to keep it current (paused when modal is open)
   useEffect(() => {
@@ -457,7 +936,9 @@ export default function AttendancePage() {
                         <span className='text-xs text-gray-600'>
                           {classBlock.status === 'pending'
                             ? 'Not started'
-                            : 'Completed'}
+                            : classBlock.status === 'partial'
+                              ? 'In progress'
+                              : 'Completed'}
                         </span>
                       </div>
                     </div>
@@ -808,143 +1289,6 @@ export default function AttendancePage() {
     </div>
   );
 
-  const renderReportsTab = () => (
-    <div className='space-y-6'>
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-        {/* Student Attendance Reports */}
-        <Card
-          className='bg-white shadow-sm border-0 rounded-xl hover:shadow-md transition-all cursor-pointer'
-          onClick={() => setIsReportsOpen(true)}
-        >
-          <div className='p-6'>
-            <div className='flex items-center space-x-3 mb-4'>
-              <div className='w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center'>
-                <GraduationCap className='w-6 h-6 text-blue-600' />
-              </div>
-              <div>
-                <SectionTitle
-                  text='Student Reports'
-                  level={3}
-                  className='font-semibold text-gray-900'
-                />
-                <Label className='text-sm text-gray-600'>
-                  Class-wise & individual reports
-                </Label>
-              </div>
-            </div>
-            <ul className='space-y-2 text-sm text-gray-600 mb-4'>
-              <li>• Daily attendance summaries</li>
-              <li>• Monthly class reports</li>
-              <li>• Individual student tracking</li>
-              <li>• Attendance trends</li>
-            </ul>
-            <Button className='w-full bg-primary hover:bg-primary/90 text-white px-3 py-2 rounded text-sm'>
-              <FileText className='w-4 h-4 mr-2' />
-              Generate Reports
-            </Button>
-          </div>
-        </Card>
-
-        {/* Staff Attendance Reports */}
-        <Card
-          className='bg-white shadow-sm border-0 rounded-xl hover:shadow-md transition-all cursor-pointer'
-          onClick={() => setIsReportsOpen(true)}
-        >
-          <div className='p-6'>
-            <div className='flex items-center space-x-3 mb-4'>
-              <div className='w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center'>
-                <UserCog className='w-6 h-6 text-purple-600' />
-              </div>
-              <div>
-                <SectionTitle
-                  text='Staff Reports'
-                  level={3}
-                  className='font-semibold text-gray-900'
-                />
-                <Label className='text-sm text-gray-600'>
-                  Teacher & staff attendance
-                </Label>
-              </div>
-            </div>
-            <ul className='space-y-2 text-sm text-gray-600 mb-4'>
-              <li>• Daily staff attendance</li>
-              <li>• Department-wise reports</li>
-              <li>• Late arrival tracking</li>
-              <li>• Leave pattern analysis</li>
-            </ul>
-            <Button className='w-full bg-primary hover:bg-primary/90 text-white px-3 py-2 rounded text-sm'>
-              <FileText className='w-4 h-4 mr-2' />
-              Generate Reports
-            </Button>
-          </div>
-        </Card>
-
-        {/* Analytics & Insights */}
-        <Card
-          className='bg-white shadow-sm border-0 rounded-xl hover:shadow-md transition-all cursor-pointer'
-          onClick={() => setIsReportsOpen(true)}
-        >
-          <div className='p-6'>
-            <div className='flex items-center space-x-3 mb-4'>
-              <div className='w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center'>
-                <BarChart3 className='w-6 h-6 text-green-600' />
-              </div>
-              <div>
-                <SectionTitle
-                  text='Analytics'
-                  level={3}
-                  className='font-semibold text-gray-900'
-                />
-                <Label className='text-sm text-gray-600'>
-                  Insights & trends
-                </Label>
-              </div>
-            </div>
-            <ul className='space-y-2 text-sm text-gray-600 mb-4'>
-              <li>• Attendance pattern analysis</li>
-              <li>• Performance correlations</li>
-              <li>• Predictive insights</li>
-              <li>• Custom dashboards</li>
-            </ul>
-            <Button className='w-full bg-primary hover:bg-primary/90 text-white px-3 py-2 rounded text-sm'>
-              <BarChart3 className='w-4 h-4 mr-2' />
-              View Analytics
-            </Button>
-          </div>
-        </Card>
-      </div>
-
-      {/* Quick Report Actions */}
-      <Card className='bg-white shadow-sm border-0 rounded-xl'>
-        <div className='p-6'>
-          <SectionTitle
-            text='Quick Report Actions'
-            level={3}
-            className='text-lg font-semibold text-gray-900 mb-4'
-          />
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-            <Button className='border border-gray-300 bg-white text-gray-700 h-auto p-4 flex flex-col items-center space-y-2 hover:bg-gray-50'>
-              <Calendar className='w-6 h-6 text-blue-600' />
-              <span className='text-sm'>Today&apos;s Summary</span>
-            </Button>
-            <Button className='border border-gray-300 bg-white text-gray-700 h-auto p-4 flex flex-col items-center space-y-2 hover:bg-gray-50'>
-              <Download className='w-6 h-6 text-green-600' />
-              <span className='text-sm'>Export CSV</span>
-            </Button>
-            <Button className='border border-gray-300 bg-white text-gray-700 h-auto p-4 flex flex-col items-center space-y-2 hover:bg-gray-50'>
-              <FileText className='w-6 h-6 text-purple-600' />
-              <span className='text-sm'>PDF Reports</span>
-            </Button>
-            <Button className='border border-gray-300 bg-white text-gray-700 h-auto p-4 flex flex-col items-center space-y-2 hover:bg-gray-50'>
-              <Settings className='w-6 h-6 text-gray-600' />
-              <span className='text-sm'>Configure</span>
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-
   const renderTabContent = () => {
     switch (activeTabIndex) {
       case 0:
@@ -1060,10 +1404,6 @@ export default function AttendancePage() {
         onClose={() => setIsStaffAttendanceOpen(false)}
         onSuccess={handleAttendanceSuccess}
         staffType={staffType}
-      />
-      <AttendanceReportsModal
-        isOpen={isReportsOpen}
-        onClose={() => setIsReportsOpen(false)}
       />
     </div>
   );

@@ -1455,7 +1455,7 @@ export default function AddStudentFormModal({
               <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mt-4'>
                 <div className='relative'>
                   <LabeledInput
-                    label='Student ID'
+                    label='Student IMEIS ID'
                     name='studentId'
                     value={formData.studentId || ''}
                     onChange={handleInputChange}

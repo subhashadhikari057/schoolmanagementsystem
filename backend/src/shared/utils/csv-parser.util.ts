@@ -324,6 +324,7 @@ export function getStudentImportTemplateData(): {
   exampleRow: string[];
 } {
   const headers = [
+    'studentIemisCode',
     'fullName',
     'email',
     'phone',
@@ -346,6 +347,7 @@ export function getStudentImportTemplateData(): {
   ];
 
   const exampleRow = [
+    'IEMIS-001',
     'Emma Wilson',
     'emma.wilson@example.com',
     '9819677711',

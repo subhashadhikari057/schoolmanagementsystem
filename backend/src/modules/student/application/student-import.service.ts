@@ -248,6 +248,7 @@ export class StudentImportService {
     fullName: string;
     email: string;
     rollNumber: string;
+    studentId: string;
     className: string;
   }> {
     return await this.prisma.$transaction(async tx => {
@@ -257,6 +258,7 @@ export class StudentImportService {
           OR: [
             { user: { email: studentData.email } },
             { rollNumber: studentData.rollNumber },
+            { studentId: studentData.studentIemisCode },
           ],
           deletedAt: null,
         },
@@ -267,7 +269,7 @@ export class StudentImportService {
         if (options.updateExisting) {
           // Update existing student logic would go here
           throw new ConflictException(
-            `Student with email ${studentData.email} or roll number ${studentData.rollNumber} already exists. Update functionality not implemented yet.`,
+            `Student with email ${studentData.email}, roll number ${studentData.rollNumber}, or IEMIS code ${studentData.studentIemisCode} already exists. Update functionality not implemented yet.`,
           );
         } else if (options.skipDuplicates) {
           this.logger.log(`Skipping duplicate student: ${studentData.email}`);
@@ -276,11 +278,12 @@ export class StudentImportService {
             fullName: existingStudent.user.fullName,
             email: existingStudent.user.email,
             rollNumber: existingStudent.rollNumber,
+            studentId: existingStudent.studentId || '',
             className: `${studentData.classGrade}-${studentData.classSection}`,
           };
         } else {
           throw new ConflictException(
-            `Student with email ${studentData.email} or roll number ${studentData.rollNumber} already exists.`,
+            `Student with email ${studentData.email}, roll number ${studentData.rollNumber}, or IEMIS code ${studentData.studentIemisCode} already exists.`,
           );
         }
       }
@@ -483,6 +486,7 @@ export class StudentImportService {
         fullName: studentData.fullName,
         email: studentData.email,
         rollNumber: studentData.rollNumber,
+        studentIemisCode: studentData.studentIemisCode,
         classId: existingClass.id,
         gender: studentData.gender.toLowerCase(),
         dob: parsedDateOfBirth,
@@ -494,6 +498,7 @@ export class StudentImportService {
           userId: studentUser.id,
           classId: existingClass.id,
           rollNumber: studentData.rollNumber,
+          studentId: studentData.studentIemisCode,
           admissionDate: new Date(),
           email: studentData.email,
           phone: studentData.phone, // Add student's phone number
@@ -586,6 +591,7 @@ export class StudentImportService {
         `📚 Class: ${studentData.classGrade}-${studentData.classSection}`,
       );
       this.logger.log(`🔢 Roll Number: ${studentData.rollNumber}`);
+      this.logger.log(`🆔 Student IEMIS Code: ${studentData.studentIemisCode}`);
       this.logger.log('=====================================');
 
       return {
@@ -593,6 +599,7 @@ export class StudentImportService {
         fullName: studentData.fullName,
         email: studentData.email,
         rollNumber: studentData.rollNumber,
+        studentId: studentData.studentIemisCode,
         className: `${studentData.classGrade}-${studentData.classSection}`,
       };
     });
@@ -707,6 +714,7 @@ export class StudentImportService {
 
       // Generate CSV content
       const headers = [
+        'studentIemisCode',
         'fullName',
         'email',
         'phone',
@@ -750,10 +758,11 @@ export class StudentImportService {
         const motherRelation = 'Mother';
 
         return [
+          student.studentId || '', // studentIemisCode (frontend label)
           student.user.fullName,
           student.user.email || '',
           student.user.phone || '',
-          student.rollNumber,
+          student.rollNumber, // rollNumber (backend field)
           student.class.grade,
           student.class.section,
           student.dob ? student.dob.toISOString().split('T')[0] : '',
