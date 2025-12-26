@@ -57,7 +57,10 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
             console.log('API Response:', response.data);
 
             // Extract bank details from response
-            const bankDetails = (response.data as any).bankDetails || {};
+            const bankDetails =
+              (response.data as any).bankDetails ||
+              (response.data as any).profile?.additionalData?.bankDetails ||
+              {};
             const personalDetails = (response.data as any).personal || {};
 
             // Extract name parts from API response
@@ -124,18 +127,22 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
               bankName:
                 response.data.bankName ||
                 bankDetails.bankName ||
+                bankDetails.bank_name ||
                 teacher.bankName,
               bankAccountNumber:
                 response.data.bankAccountNumber ||
                 bankDetails.accountNumber ||
+                bankDetails.bankAccountNumber ||
                 teacher.bankAccountNumber,
               bankBranch:
                 response.data.bankBranch ||
                 bankDetails.branch ||
+                bankDetails.bankBranch ||
                 teacher.bankBranch,
               panNumber:
                 response.data.panNumber ||
                 bankDetails.panNumber ||
+                bankDetails.pan_number ||
                 teacher.panNumber,
               citizenshipNumber:
                 response.data.citizenshipNumber ||

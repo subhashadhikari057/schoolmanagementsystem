@@ -37,7 +37,6 @@ import {
   MarkAttendanceDto,
   MarkAttendanceSchema,
   GetAttendanceQueryDto,
-  GetAttendanceQuerySchema,
   WorkingDaysCalculationDto,
   WorkingDaysCalculationSchema,
 } from '../dto/attendance.dto';
@@ -135,10 +134,42 @@ export class AttendanceController {
   })
   async getStudentAttendance(
     @Param('studentId') studentId: string,
-    @Query(new ZodValidationPipe(GetAttendanceQuerySchema))
-    query: GetAttendanceQueryDto,
+    @Query()
+    query: {
+      classId?: string;
+      studentId?: string;
+      startDate?: string;
+      endDate?: string;
+      month?: string | number;
+      year?: string | number;
+      page?: string | number;
+      limit?: string | number;
+    },
   ) {
-    return this.attendanceService.getStudentAttendance(studentId, query);
+    const normalizedQuery: GetAttendanceQueryDto = {
+      ...query,
+      month:
+        query.month !== undefined && query.month !== null
+          ? Number(query.month)
+          : undefined,
+      year:
+        query.year !== undefined && query.year !== null
+          ? Number(query.year)
+          : undefined,
+      page:
+        query.page !== undefined && query.page !== null
+          ? Number(query.page)
+          : 1,
+      limit:
+        query.limit !== undefined && query.limit !== null
+          ? Number(query.limit)
+          : 20,
+    };
+
+    return this.attendanceService.getStudentAttendance(
+      studentId,
+      normalizedQuery,
+    );
   }
 
   @Get('student/:studentId/stats')
@@ -161,9 +192,17 @@ export class AttendanceController {
   })
   @ApiQuery({ name: 'month', required: false, type: 'number' })
   @ApiQuery({ name: 'year', required: false, type: 'number' })
+  @ApiQuery({ name: 'startDate', required: false, type: 'string' })
+  @ApiQuery({ name: 'endDate', required: false, type: 'string' })
   async getStudentAttendanceStats(
     @Param('studentId') studentId: string,
-    @Query() query: { month?: string; year?: string },
+    @Query()
+    query: {
+      month?: string;
+      year?: string;
+      startDate?: string;
+      endDate?: string;
+    },
   ) {
     const month = query.month ? parseInt(query.month, 10) : undefined;
     const year = query.year ? parseInt(query.year, 10) : undefined;
@@ -172,6 +211,8 @@ export class AttendanceController {
       studentId,
       month,
       year,
+      query.startDate,
+      query.endDate,
     );
   }
 

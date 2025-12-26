@@ -111,6 +111,7 @@ export const StudentAttendanceResponseSchema = z.object({
   rollNumber: z.string(),
   className: z.string(),
   stats: AttendanceStatsSchema,
+  statistics: AttendanceStatsSchema.optional(), // alias for compatibility
   records: z.array(
     z.object({
       date: z.string(),

@@ -12,7 +12,12 @@
  */
 
 /* eslint-disable no-console */
-import { PrismaClient } from '@prisma/client';
+import {
+  DisabilityType,
+  MotherTongue,
+  PrismaClient,
+  AttendanceStatus,
+} from '@prisma/client';
 import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
@@ -38,6 +43,8 @@ function randomDate(start: Date, end: Date): Date {
 
 async function main() {
   console.log('🌱 Starting comprehensive secondary seed...');
+
+  const currentYear = new Date().getFullYear();
 
   // Check if data already exists
   const existingClassrooms = await prisma.classroom.count();
@@ -195,6 +202,21 @@ async function main() {
     { name: 'Biology', code: 'BIO', maxMarks: 100, passMarks: 35 },
     { name: 'Computer Science', code: 'CS', maxMarks: 100, passMarks: 35 },
     { name: 'Physical Education', code: 'PE', maxMarks: 50, passMarks: 20 },
+    { name: 'History', code: 'HIST', maxMarks: 100, passMarks: 35 },
+    { name: 'Geography', code: 'GEO', maxMarks: 100, passMarks: 35 },
+    { name: 'Economics', code: 'ECO', maxMarks: 100, passMarks: 35 },
+    { name: 'Accountancy', code: 'ACC', maxMarks: 100, passMarks: 35 },
+    { name: 'Business Studies', code: 'BUS', maxMarks: 100, passMarks: 35 },
+    { name: 'Health Education', code: 'HE', maxMarks: 100, passMarks: 35 },
+    {
+      name: 'Environmental Science',
+      code: 'ENV',
+      maxMarks: 100,
+      passMarks: 35,
+    },
+    { name: 'Music', code: 'MUS', maxMarks: 50, passMarks: 20 },
+    { name: 'Arts', code: 'ART', maxMarks: 50, passMarks: 20 },
+    { name: 'Optional Math', code: 'OMATH', maxMarks: 100, passMarks: 35 },
   ];
 
   const subjectIds: string[] = [];
@@ -215,64 +237,136 @@ async function main() {
 
   const teachersData = [
     {
-      name: 'Dr. Rajesh Sharma',
+      name: 'Rajesh Sharma',
       email: 'rajesh.sharma@school.edu',
       designation: 'Principal',
       department: 'Administration',
     },
     {
-      name: 'Prof. Sita Devi',
+      name: 'Sita Devi',
       email: 'sita.devi@school.edu',
       designation: 'Vice Principal',
       department: 'Academic',
     },
     {
-      name: 'Mr. Ramesh Thapa',
+      name: 'Ramesh Thapa',
       email: 'ramesh.thapa@school.edu',
       designation: 'Senior Teacher',
       department: 'Mathematics',
     },
     {
-      name: 'Ms. Geeta Acharya',
+      name: 'Geeta Acharya',
       email: 'geeta.acharya@school.edu',
       designation: 'Senior Teacher',
       department: 'English',
     },
     {
-      name: 'Dr. Krishna Bahadur',
+      name: 'Krishna Bahadur',
       email: 'krishna.bahadur@school.edu',
       designation: 'Head of Science',
       department: 'Science',
     },
     {
-      name: 'Mrs. Kamala Shrestha',
+      name: 'Kamala Shrestha',
       email: 'kamala.shrestha@school.edu',
       designation: 'Teacher',
       department: 'Science',
     },
     {
-      name: 'Mr. Bikash Koirala',
+      name: 'Bikash Koirala',
       email: 'bikash.koirala@school.edu',
       designation: 'Computer Teacher',
       department: 'Technology',
     },
     {
-      name: 'Ms. Sunita Rana',
+      name: 'Sunita Rana',
       email: 'sunita.rana@school.edu',
       designation: 'Teacher',
       department: 'Social Studies',
     },
     {
-      name: 'Mr. Nabin Ghimire',
+      name: 'Nabin Ghimire',
       email: 'nabin.ghimire@school.edu',
       designation: 'Teacher',
       department: 'Language',
     },
     {
-      name: 'Mrs. Asha Karki',
+      name: 'Asha Karki',
       email: 'asha.karki@school.edu',
       designation: 'Primary Teacher',
       department: 'Primary Education',
+    },
+    {
+      name: 'Deepak Poudel',
+      email: 'deepak.poudel@school.edu',
+      designation: 'Mathematics Teacher',
+      department: 'Mathematics',
+    },
+    {
+      name: 'Priyanka Lama',
+      email: 'priyanka.lama@school.edu',
+      designation: 'Physics Teacher',
+      department: 'Science',
+    },
+    {
+      name: 'Prakash Bista',
+      email: 'prakash.bista@school.edu',
+      designation: 'Chemistry Teacher',
+      department: 'Science',
+    },
+    {
+      name: 'Manisha Shahi',
+      email: 'manisha.shahi@school.edu',
+      designation: 'Biology Teacher',
+      department: 'Science',
+    },
+    {
+      name: 'Arun KC',
+      email: 'arun.kc@school.edu',
+      designation: 'Economics Teacher',
+      department: 'Economics',
+    },
+    {
+      name: 'Binita Gautam',
+      email: 'binita.gautam@school.edu',
+      designation: 'Accountancy Teacher',
+      department: 'Commerce',
+    },
+    {
+      name: 'Santosh Magar',
+      email: 'santosh.magar@school.edu',
+      designation: 'Business Studies Teacher',
+      department: 'Commerce',
+    },
+    {
+      name: 'Reshma Khan',
+      email: 'reshma.khan@school.edu',
+      designation: 'Health Education Teacher',
+      department: 'Health',
+    },
+    {
+      name: 'Ashok Gurung',
+      email: 'ashok.gurung@school.edu',
+      designation: 'Geography Teacher',
+      department: 'Social Studies',
+    },
+    {
+      name: 'Nirmala Panta',
+      email: 'nirmala.panta@school.edu',
+      designation: 'History Teacher',
+      department: 'Social Studies',
+    },
+    {
+      name: 'Sujan Shrestha',
+      email: 'sujan.shrestha@school.edu',
+      designation: 'Music Teacher',
+      department: 'Arts',
+    },
+    {
+      name: 'Alisha Rai',
+      email: 'alisha.rai@school.edu',
+      designation: 'Arts Teacher',
+      department: 'Arts',
     },
   ];
 
@@ -323,6 +417,8 @@ async function main() {
         bankAccountNumber: `123456789${i.toString().padStart(2, '0')}`,
         bankName: 'Nepal Bank Limited',
         bankBranch: 'Kathmandu Branch',
+        panNumber: `PAN${(1000 + i).toString().padStart(4, '0')}`,
+        citizenshipNumber: `CIT${(2000 + i).toString().padStart(4, '0')}`,
       },
     });
 
@@ -334,6 +430,15 @@ async function main() {
         contactInfo: {
           email: teacherData.email,
           phone: user.phone,
+        },
+        additionalData: {
+          bankDetails: {
+            bankName: 'Nepal Bank Limited',
+            bankAccountNumber: `123456789${i.toString().padStart(2, '0')}`,
+            bankBranch: 'Kathmandu Branch',
+            panNumber: `PAN${(1000 + i).toString().padStart(4, '0')}`,
+            citizenshipNumber: `CIT${(2000 + i).toString().padStart(4, '0')}`,
+          },
         },
       },
     });
@@ -427,6 +532,7 @@ async function main() {
   ];
 
   const staffRoleId = staffRole.id;
+  const staffIds: string[] = [];
 
   for (let i = 0; i < staffData.length; i++) {
     const staff = staffData[i];
@@ -473,8 +579,13 @@ async function main() {
         permissions: staff.hasAccount ? ['VIEW_REPORTS', 'MANAGE_DATA'] : [],
         employmentStatus: 'active',
         experienceYears: i + 2,
+        bankAccountNumber: `987654321${i.toString().padStart(2, '0')}`,
+        bankName: 'Nepal Bank Limited',
+        bankBranch: 'Kathmandu Branch',
+        panNumber: `PAN${(300 + i).toString().padStart(4, '0')}`,
       },
     });
+    staffIds.push(staffMember.id);
 
     if (staff.hasAccount) {
       await prisma.staffProfile.create({
@@ -498,316 +609,317 @@ async function main() {
   const parentRoleId = parentRole.id;
   const studentRoleId = studentRole.id;
 
-  const families = [
-    {
-      father: {
-        name: 'Bikram Singh Thapa',
-        email: 'bikram.thapa@gmail.com',
-        phone: '9841001001',
-        occupation: 'Engineer',
-      },
-      mother: {
-        name: 'Sunita Thapa',
-        email: 'sunita.thapa@gmail.com',
-        phone: '9841001002',
-        occupation: 'Teacher',
-      },
-      children: [
-        {
-          name: 'Arjun Thapa',
-          email: 'arjun.thapa@student.edu',
-          grade: 10,
-          section: 'A',
-          gender: 'Male',
-          dob: '2009-03-15',
-        },
-        {
-          name: 'Priya Thapa',
-          email: 'priya.thapa@student.edu',
-          grade: 7,
-          section: 'B',
-          gender: 'Female',
-          dob: '2012-07-22',
-        },
-      ],
-    },
-    {
-      father: {
-        name: 'Rajesh Sharma',
-        email: 'rajesh.sharma.parent@gmail.com',
-        phone: '9841002001',
-        occupation: 'Doctor',
-      },
-      mother: {
-        name: 'Gita Sharma',
-        email: 'gita.sharma@gmail.com',
-        phone: '9841002002',
-        occupation: 'Nurse',
-      },
-      children: [
-        {
-          name: 'Anish Sharma',
-          email: 'anish.sharma@student.edu',
-          grade: 9,
-          section: 'A',
-          gender: 'Male',
-          dob: '2010-11-08',
-        },
-      ],
-    },
-    {
-      father: {
-        name: 'Krishna Gurung',
-        email: 'krishna.gurung@gmail.com',
-        phone: '9841003001',
-        occupation: 'Business Owner',
-      },
-      mother: {
-        name: 'Maya Gurung',
-        email: 'maya.gurung@gmail.com',
-        phone: '9841003002',
-        occupation: 'Housewife',
-      },
-      children: [
-        {
-          name: 'Sagar Gurung',
-          email: 'sagar.gurung@student.edu',
-          grade: 8,
-          section: 'A',
-          gender: 'Male',
-          dob: '2011-01-20',
-        },
-        {
-          name: 'Shreya Gurung',
-          email: 'shreya.gurung@student.edu',
-          grade: 6,
-          section: 'B',
-          gender: 'Female',
-          dob: '2013-09-14',
-        },
-      ],
-    },
-    {
-      father: {
-        name: 'Narayan Poudel',
-        email: 'narayan.poudel@gmail.com',
-        phone: '9841004001',
-        occupation: 'Farmer',
-      },
-      children: [
-        {
-          name: 'Bibek Poudel',
-          email: 'bibek.poudel@student.edu',
-          grade: 5,
-          section: 'B',
-          gender: 'Male',
-          dob: '2014-05-03',
-        },
-      ],
-    },
-    {
-      mother: {
-        name: 'Laxmi Tamang',
-        email: 'laxmi.tamang@gmail.com',
-        phone: '9841006001',
-        occupation: 'Shop Owner',
-      },
-      children: [
-        {
-          name: 'Samjhana Tamang',
-          email: 'samjhana.tamang@student.edu',
-          grade: 4,
-          section: 'A',
-          gender: 'Female',
-          dob: '2015-08-11',
-        },
-      ],
-    },
+  const motherTongueOptions: MotherTongue[] = [
+    MotherTongue.NEPALI,
+    MotherTongue.TAMANG,
+    MotherTongue.MAITHILI,
+    MotherTongue.MAGAR_KHAM,
+    MotherTongue.GURUNG,
   ];
 
-  for (let familyIndex = 0; familyIndex < families.length; familyIndex++) {
-    const family = families[familyIndex];
-    const familyParentIds: string[] = [];
+  const disabilityTypeOptions: DisabilityType[] = [
+    DisabilityType.NO_DISABILITY,
+    DisabilityType.PHYSICAL,
+    DisabilityType.LOW_VISION,
+    DisabilityType.HARD_OF_HEARING,
+    DisabilityType.NO_DISABILITY,
+  ];
 
-    // Create parents
-    for (const parentType of ['father', 'mother']) {
-      const parentData = family[parentType as keyof typeof family];
-      if (
-        parentData &&
-        typeof parentData === 'object' &&
-        'name' in parentData
-      ) {
-        const parent = parentData as {
-          name: string;
-          email: string;
-          phone: string;
-          occupation: string;
-        };
+  const firstNamesMale = [
+    'Arjun',
+    'Bibek',
+    'Prakash',
+    'Rohan',
+    'Sujan',
+    'Niraj',
+    'Aayush',
+    'Sagar',
+    'Ritesh',
+    'Kiran',
+  ];
+  const firstNamesFemale = [
+    'Priya',
+    'Anita',
+    'Samjhana',
+    'Shristi',
+    'Nisha',
+    'Sita',
+    'Aarati',
+    'Maya',
+    'Kabita',
+    'Sneha',
+  ];
+  const lastNames = [
+    'Thapa',
+    'Gurung',
+    'Shrestha',
+    'Rai',
+    'BK',
+    'Tamang',
+    'Magar',
+    'Karki',
+    'Poudel',
+    'Basnet',
+    'KC',
+    'Yadav',
+  ];
+  const occupations = [
+    'Engineer',
+    'Teacher',
+    'Doctor',
+    'Nurse',
+    'Farmer',
+    'Shop Owner',
+    'Business Owner',
+    'Driver',
+    'Accountant',
+    'Civil Servant',
+  ];
 
-        const passwordHash = await argon2.hash('parent123');
-        const parentUser = await prisma.user.create({
+  let globalStudentCounter = 0;
+  for (let classIndex = 0; classIndex < classIds.length; classIndex++) {
+    const classId = classIds[classIndex];
+    const classRecord = await prisma.class.findUnique({
+      where: { id: classId },
+    });
+    if (!classRecord) continue;
+
+    for (let i = 0; i < 20; i++) {
+      const gender = i % 2 === 0 ? 'Male' : 'Female';
+      const firstName =
+        gender === 'Male'
+          ? firstNamesMale[(classIndex + i) % firstNamesMale.length]
+          : firstNamesFemale[(classIndex + i) % firstNamesFemale.length];
+      const lastName = lastNames[(classIndex + i) % lastNames.length];
+      const studentFullName = `${firstName} ${lastName}`;
+      const sanitizedName = `${firstName}.${lastName}`.toLowerCase();
+      const studentEmail = `${sanitizedName}.${classRecord.grade}${classRecord.section}${(
+        i + 1
+      )
+        .toString()
+        .padStart(2, '0')}@student.edu`;
+
+      const fatherName = `${firstNamesMale[(i + 2) % firstNamesMale.length]} ${lastName}`;
+      const motherName = `${firstNamesFemale[(i + 3) % firstNamesFemale.length]} ${lastName}`;
+      const fatherEmail = `${sanitizedName}.father.${classRecord.grade}${classRecord.section}${(
+        i + 1
+      )
+        .toString()
+        .padStart(2, '0')}@parent.edu`;
+      const motherEmail = `${sanitizedName}.mother.${classRecord.grade}${classRecord.section}${(
+        i + 1
+      )
+        .toString()
+        .padStart(2, '0')}@parent.edu`;
+
+      const parentPhoneBase = `98${(60 + classIndex).toString().padStart(2, '0')}${(
+        i + 1
+      )
+        .toString()
+        .padStart(2, '0')}`;
+      const fatherPhone = `${parentPhoneBase}1`;
+      const motherPhone = `${parentPhoneBase}2`;
+
+      // Create father
+      const parentPasswordHash = await argon2.hash('parent123');
+      const fatherUser = await prisma.user.create({
+        data: {
+          email: fatherEmail,
+          fullName: fatherName,
+          passwordHash: parentPasswordHash,
+          phone: fatherPhone,
+          isActive: true,
+          roles: {
+            create: { roleId: parentRoleId },
+          },
+        },
+      });
+
+      const fatherRecord = await prisma.parent.create({
+        data: {
+          userId: fatherUser.id,
+          dateOfBirth: randomDate(
+            new Date('1970-01-01'),
+            new Date('1990-12-31'),
+          ),
+          gender: 'Male',
+          occupation: occupations[(i + classIndex) % occupations.length],
+          workPhone: fatherPhone,
+          emergencyContactName: motherName,
+          emergencyContactPhone: motherPhone,
+          emergencyContactRelationship: 'Spouse',
+          street: `Street ${classRecord.grade}-${classRecord.section}-${i + 1}`,
+          city: 'Kathmandu',
+          state: 'Bagmati',
+          pinCode: `4460${classRecord.grade}`,
+          country: 'Nepal',
+        },
+      });
+
+      await prisma.parentProfile.create({
+        data: {
+          parentId: fatherRecord.id,
+          bio: `Parent of student in Grade ${classRecord.grade}${classRecord.section}`,
+        },
+      });
+
+      // Create mother
+      const motherUser = await prisma.user.create({
+        data: {
+          email: motherEmail,
+          fullName: motherName,
+          passwordHash: parentPasswordHash,
+          phone: motherPhone,
+          isActive: true,
+          roles: {
+            create: { roleId: parentRoleId },
+          },
+        },
+      });
+
+      const motherRecord = await prisma.parent.create({
+        data: {
+          userId: motherUser.id,
+          dateOfBirth: randomDate(
+            new Date('1972-01-01'),
+            new Date('1992-12-31'),
+          ),
+          gender: 'Female',
+          occupation: occupations[(i + classIndex + 1) % occupations.length],
+          workPhone: motherPhone,
+          emergencyContactName: fatherName,
+          emergencyContactPhone: fatherPhone,
+          emergencyContactRelationship: 'Spouse',
+          street: `Street ${classRecord.grade}-${classRecord.section}-${i + 1}`,
+          city: 'Kathmandu',
+          state: 'Bagmati',
+          pinCode: `4460${classRecord.grade}`,
+          country: 'Nepal',
+        },
+      });
+
+      await prisma.parentProfile.create({
+        data: {
+          parentId: motherRecord.id,
+          bio: `Parent of student in Grade ${classRecord.grade}${classRecord.section}`,
+        },
+      });
+
+      const studentPasswordHash = await argon2.hash('student123');
+      const studentUser = await prisma.user.create({
+        data: {
+          email: studentEmail,
+          fullName: studentFullName,
+          passwordHash: studentPasswordHash,
+          phone: `98${(70 + classIndex).toString().padStart(2, '0')}${(i + 1)
+            .toString()
+            .padStart(2, '0')}9`,
+          isActive: true,
+          roles: { create: { roleId: studentRoleId } },
+        },
+      });
+
+      const student = await prisma.student.create({
+        data: {
+          userId: studentUser.id,
+          classId: classId,
+          rollNumber: `${classRecord.grade}${classRecord.section}${(i + 1).toString().padStart(2, '0')}`,
+          admissionDate: randomDate(
+            new Date('2023-04-01'),
+            new Date('2024-04-01'),
+          ),
+          email: studentEmail,
+          dob: randomDate(new Date('2007-01-01'), new Date('2018-12-31')),
+          gender,
+          motherTongue:
+            motherTongueOptions[(classIndex + i) % motherTongueOptions.length],
+          disabilityType:
+            disabilityTypeOptions[
+              (classIndex + i) % disabilityTypeOptions.length
+            ],
+          bloodGroup: ['A+', 'B+', 'O+', 'AB+'][(classIndex + i) % 4],
+          ethnicity: ['Brahmin', 'Chhetri', 'Gurung', 'Tamang', 'Magar'][
+            (classIndex + i) % 5
+          ],
+          academicStatus: 'active',
+          feeStatus: (classIndex + i) % 4 === 0 ? 'paid' : 'pending',
+          address: `Street ${classRecord.grade}-${classRecord.section}-${i + 1}, Kathmandu`,
+          street: `Street ${classRecord.grade}-${classRecord.section}-${i + 1}`,
+          city: 'Kathmandu',
+          state: 'Bagmati',
+          pinCode: `4460${classRecord.grade}`,
+          fatherPhone: fatherPhone,
+          motherPhone: motherPhone,
+          fatherEmail: fatherEmail,
+          motherEmail: motherEmail,
+          fatherOccupation: occupations[(i + classIndex) % occupations.length],
+          motherOccupation:
+            occupations[(i + classIndex + 1) % occupations.length],
+          fatherFirstName: fatherName.split(' ')[0],
+          fatherLastName: fatherName.split(' ')[1] ?? lastName,
+          motherFirstName: motherName.split(' ')[0],
+          motherLastName: motherName.split(' ')[1] ?? lastName,
+          studentId: `STU${(globalStudentCounter + 1).toString().padStart(5, '0')}`,
+          transportMode: ['School Bus', 'Private', 'Walking'][
+            (classIndex + i) % 3
+          ],
+          phone: studentUser.phone,
+        },
+      });
+
+      await prisma.studentProfile.create({
+        data: {
+          studentId: student.id,
+          emergencyContact: {
+            name: fatherName,
+            phone: fatherPhone,
+            relationship: 'Father',
+          },
+          interests: ['Sports', 'Reading', 'Music', 'Art'][
+            (classIndex + i) % 4
+          ],
+        },
+      });
+
+      // Link students to parents
+      for (const parentId of [fatherRecord.id, motherRecord.id]) {
+        await prisma.parentStudentLink.create({
           data: {
-            email: parent.email,
-            fullName: parent.name,
-            passwordHash,
-            phone: parent.phone,
-            isActive: true,
-            roles: {
-              create: {
-                roleId: parentRoleId,
-              },
-            },
+            parentId,
+            studentId: student.id,
+            relationship: parentId === fatherRecord.id ? 'father' : 'mother',
+            isPrimary: parentId === fatherRecord.id,
           },
         });
-
-        const parentRecord = await prisma.parent.create({
-          data: {
-            userId: parentUser.id,
-            dateOfBirth: randomDate(
-              new Date('1975-01-01'),
-              new Date('1990-01-01'),
-            ),
-            gender: parentType === 'father' ? 'Male' : 'Female',
-            occupation: parent.occupation,
-            workPhone: parent.phone,
-            emergencyContactName: 'Family Contact',
-            emergencyContactPhone: `984100${familyIndex}999`,
-            emergencyContactRelationship: 'Relative',
-            street: `Family Street ${familyIndex + 1}`,
-            city: 'Kathmandu',
-            state: 'Bagmati',
-            pinCode: `44600${familyIndex}`,
-            country: 'Nepal',
-          },
-        });
-
-        await prisma.parentProfile.create({
-          data: {
-            parentId: parentRecord.id,
-            bio: `${parent.occupation} and parent of students at our school`,
-          },
-        });
-
-        familyParentIds.push(parentRecord.id);
       }
-    }
 
-    // Create children (students)
-    if ('children' in family && Array.isArray(family.children)) {
-      for (const childData of family.children) {
-        const child = childData as {
-          name: string;
-          email: string;
-          grade: number;
-          section: string;
-          gender: string;
-          dob: string;
-        };
-
-        // Find the appropriate class
-        const studentClass = await prisma.class.findFirst({
-          where: {
-            grade: child.grade,
-            section: child.section,
-          },
-        });
-
-        if (!studentClass) continue;
-
-        const passwordHash = await argon2.hash('student123');
-        const studentUser = await prisma.user.create({
-          data: {
-            email: child.email,
-            fullName: child.name,
-            passwordHash,
-            phone: `984100${familyIndex}${child.grade}${child.section.charCodeAt(0)}`,
-            isActive: true,
-            roles: {
-              create: {
-                roleId: studentRoleId,
-              },
-            },
-          },
-        });
-
-        const student = await prisma.student.create({
-          data: {
-            userId: studentUser.id,
-            classId: studentClass.id,
-            rollNumber: `${child.grade}${child.section}${(familyIndex + 1).toString().padStart(2, '0')}`,
-            admissionDate: randomDate(
-              new Date('2023-04-01'),
-              new Date('2024-04-01'),
-            ),
-            email: child.email,
-            dob: new Date(child.dob),
-            gender: child.gender,
-            bloodGroup: ['A+', 'B+', 'O+', 'AB+'][familyIndex % 4],
-            ethnicity: ['Brahmin', 'Chhetri', 'Gurung', 'Tamang', 'Magar'][
-              familyIndex % 5
-            ],
-            academicStatus: 'active',
-            feeStatus: familyIndex % 3 === 0 ? 'paid' : 'pending',
-            address: `Family Street ${familyIndex + 1}, Kathmandu`,
-            city: 'Kathmandu',
-            state: 'Bagmati',
-            pinCode: `44600${familyIndex}`,
-            studentId: `STU${(familyIndex * 10 + family.children.indexOf(childData) + 1).toString().padStart(4, '0')}`,
-            transportMode: ['School Bus', 'Private', 'Walking'][
-              familyIndex % 3
-            ],
-            phone: studentUser.phone,
-          },
-        });
-
-        // Create student profile
-        await prisma.studentProfile.create({
+      // Guardians for every 5th student
+      if ((i + classIndex) % 5 === 0) {
+        await prisma.guardian.create({
           data: {
             studentId: student.id,
-            emergencyContact: {
-              name: 'Emergency Contact',
-              phone: `984100${familyIndex}999`,
-              relationship: 'Parent',
-            },
-            interests: ['Sports', 'Reading', 'Music', 'Art'][familyIndex % 4],
-          },
-        });
-
-        // Link students to parents
-        for (const parentId of familyParentIds) {
-          await prisma.parentStudentLink.create({
-            data: {
-              parentId: parentId,
-              studentId: student.id,
-              relationship: 'parent',
-              isPrimary: familyParentIds.indexOf(parentId) === 0,
-            },
-          });
-        }
-
-        // Create guardians for some students
-        if (familyIndex % 3 === 0) {
-          await prisma.guardian.create({
-            data: {
-              studentId: student.id,
-              fullName: `Guardian of ${child.name}`,
-              phone: `984100${familyIndex}888`,
-              email: `guardian.${child.name.toLowerCase().replace(' ', '.')}@gmail.com`,
-              relation: 'Uncle',
-            },
-          });
-        }
-
-        // Update class enrollment
-        await prisma.class.update({
-          where: { id: studentClass.id },
-          data: {
-            currentEnrollment: {
-              increment: 1,
-            },
+            fullName: `Guardian of ${studentFullName}`,
+            phone: `98${(40 + classIndex).toString().padStart(2, '0')}${(i + 1)
+              .toString()
+              .padStart(2, '0')}8`,
+            email: `guardian.${sanitizedName}.${classRecord.grade}${classRecord.section}${(
+              i + 1
+            )
+              .toString()
+              .padStart(2, '0')}@gmail.com`,
+            relation: 'Uncle',
           },
         });
       }
+
+      await prisma.class.update({
+        where: { id: classId },
+        data: {
+          currentEnrollment: { increment: 1 },
+        },
+      });
+
+      globalStudentCounter++;
     }
   }
 
@@ -816,53 +928,452 @@ async function main() {
   // =========================================================================
   console.log('📖 Assigning subjects to classes and teachers...');
 
-  // Get some subjects and teachers for assignments
-  const mathSubject = await prisma.subject.findFirst({
-    where: { code: 'MATH' },
+  let classSubjectCount = 0;
+  const allSubjects = await prisma.subject.findMany({
+    select: { id: true, code: true, name: true },
+    orderBy: { name: 'asc' },
   });
-  const englishSubject = await prisma.subject.findFirst({
-    where: { code: 'ENG' },
+  const classesWithMeta = await prisma.class.findMany({
+    select: { id: true, grade: true, section: true },
+    orderBy: [{ grade: 'asc' }, { section: 'asc' }],
   });
 
-  // Assign subjects to classes
-  for (const classId of classIds.slice(0, 10)) {
-    if (mathSubject) {
-      await prisma.classSubject.create({
-        data: {
-          classId,
-          subjectId: mathSubject.id,
-          teacherId: teacherIds[0],
-        },
-      });
-    }
+  const teacherSubjectPairs = new Set<string>();
 
-    if (englishSubject) {
+  const subjectTeacherMap: Record<string, number[]> = {
+    MATH: [2, 10],
+    OMATH: [2, 10],
+    ENG: [3],
+    NEP: [8],
+    SCI: [4, 5],
+    PHY: [11],
+    CHEM: [12],
+    BIO: [13],
+    CS: [6],
+    SOC: [7, 18],
+    HIST: [19],
+    GEO: [18],
+    ECO: [14],
+    ACC: [15],
+    BUS: [16],
+    HE: [17],
+    ENV: [4, 5, 17],
+    MUS: [20],
+    ART: [21],
+    PE: [7],
+  };
+
+  for (let idx = 0; idx < classesWithMeta.length; idx++) {
+    const classMeta = classesWithMeta[idx];
+    const selectedSubjects = allSubjects; // attach every subject for richer demo
+
+    for (let j = 0; j < selectedSubjects.length; j++) {
+      const subject = selectedSubjects[j];
+      const preferredTeacherIndexes =
+        subjectTeacherMap[subject.code as keyof typeof subjectTeacherMap] || [];
+      const teacherIndex =
+        preferredTeacherIndexes.length > 0
+          ? preferredTeacherIndexes[(idx + j) % preferredTeacherIndexes.length]
+          : (idx + j) % teacherIds.length;
+      const teacherId = teacherIds[teacherIndex] || teacherIds[0];
+
       await prisma.classSubject.create({
         data: {
-          classId,
-          subjectId: englishSubject.id,
-          teacherId: teacherIds[1],
+          classId: classMeta.id,
+          subjectId: subject.id,
+          teacherId,
         },
       });
+      classSubjectCount++;
+
+      const pairKey = `${teacherId}-${subject.id}`;
+      if (!teacherSubjectPairs.has(pairKey)) {
+        await prisma.teacherSubject.create({
+          data: {
+            teacherId,
+            subjectId: subject.id,
+          },
+        });
+        teacherSubjectPairs.add(pairKey);
+      }
     }
   }
 
-  // Assign teachers to subjects
-  if (mathSubject) {
-    await prisma.teacherSubject.create({
+  // =========================================================================
+  // 7B. CREATE CLASS SCHEDULES WITH TIMESLOTS (CONFLICT-FREE TEACHER ASSIGNMENTS)
+  // =========================================================================
+  console.log('⏰ Building class schedules and timeslots...');
+
+  // Classes run Sunday–Friday; Saturday is off
+  const scheduleDays = [
+    'SUNDAY',
+    'MONDAY',
+    'TUESDAY',
+    'WEDNESDAY',
+    'THURSDAY',
+    'FRIDAY',
+  ];
+  const periodTimes = [
+    { start: '09:00', end: '09:45' },
+    { start: '09:50', end: '10:35' },
+    { start: '10:40', end: '11:25' },
+    { start: '12:15', end: '13:00' },
+    { start: '13:05', end: '13:50' },
+    { start: '13:55', end: '14:40' },
+  ];
+
+  const academicYearLabel = `${currentYear}-${currentYear + 1}`;
+
+  const classSubjects = await prisma.classSubject.findMany({
+    include: { subject: true },
+  });
+  const classSubjectsByClass: Record<string, typeof classSubjects> = {};
+  for (const cs of classSubjects) {
+    if (!classSubjectsByClass[cs.classId])
+      classSubjectsByClass[cs.classId] = [];
+    classSubjectsByClass[cs.classId].push(cs);
+  }
+
+  const teacherSubjects = await prisma.teacherSubject.findMany({
+    select: { teacherId: true, subjectId: true },
+  });
+  const teacherIdsBySubject: Record<string, string[]> = {};
+  for (const ts of teacherSubjects) {
+    if (!teacherIdsBySubject[ts.subjectId])
+      teacherIdsBySubject[ts.subjectId] = [];
+    teacherIdsBySubject[ts.subjectId].push(ts.teacherId);
+  }
+
+  const teacherAvailability = new Set<string>(); // key: `${teacherId}-${day}-${periodIndex}`
+  let timeslotCount = 0;
+  let scheduleCount = 0;
+  let scheduleSlotCount = 0;
+
+  for (let idx = 0; idx < classesWithMeta.length; idx++) {
+    const classMeta = classesWithMeta[idx];
+    const subjectsForClass = classSubjectsByClass[classMeta.id] || [];
+    if (subjectsForClass.length === 0) continue;
+
+    const classRoom = await prisma.class.findUnique({
+      where: { id: classMeta.id },
+      select: { roomId: true },
+    });
+
+    const schedule = await prisma.classSchedule.create({
       data: {
-        teacherId: teacherIds[0],
-        subjectId: mathSubject.id,
+        classId: classMeta.id,
+        name: `Regular Schedule ${classMeta.grade}${classMeta.section}`,
+        academicYear: academicYearLabel,
+        startDate: new Date(`${currentYear}-04-01`),
+        endDate: new Date(`${currentYear + 1}-03-31`),
+        effectiveFrom: new Date(`${currentYear}-04-01`),
+        status: 'active',
       },
     });
+    scheduleCount++;
+
+    for (let dayIdx = 0; dayIdx < scheduleDays.length; dayIdx++) {
+      const day = scheduleDays[dayIdx];
+      for (let periodIdx = 0; periodIdx < periodTimes.length; periodIdx++) {
+        const period = periodTimes[periodIdx];
+        const timeslot = await prisma.classTimeslot.create({
+          data: {
+            classId: classMeta.id,
+            day: day,
+            startTime: period.start,
+            endTime: period.end,
+            type: 'REGULAR',
+          },
+        });
+        timeslotCount++;
+
+        const subject =
+          subjectsForClass[
+            (dayIdx * periodTimes.length + periodIdx) % subjectsForClass.length
+          ];
+
+        // Prefer the teacher assigned in classSubject; if unavailable, fall back to other teachers for the subject.
+        const preferredTeachers: string[] = [];
+        if (subject.teacherId) preferredTeachers.push(subject.teacherId);
+        const subjectTeacherPool = teacherIdsBySubject[subject.subjectId] || [];
+        for (const t of subjectTeacherPool) {
+          if (!preferredTeachers.includes(t)) preferredTeachers.push(t);
+        }
+        // Final fallback rotation across all teachers
+        preferredTeachers.push(...teacherIds);
+
+        let selectedTeacherId = teacherIds[0];
+        for (const tId of preferredTeachers) {
+          const availabilityKey = `${tId}-${day}-${periodIdx}`;
+          if (!teacherAvailability.has(availabilityKey)) {
+            selectedTeacherId = tId;
+            teacherAvailability.add(availabilityKey);
+            break;
+          }
+        }
+
+        await prisma.scheduleSlot.create({
+          data: {
+            scheduleId: schedule.id,
+            timeslotId: timeslot.id,
+            day,
+            subjectId: subject.subjectId,
+            teacherId: selectedTeacherId,
+            roomId: classRoom?.roomId ?? classroomIds[0],
+            type: 'REGULAR',
+          },
+        });
+        scheduleSlotCount++;
+      }
+    }
+  }
+
+  // =========================================================================
+  // 7C. CREATE ASSIGNMENTS WITH SUBMISSIONS
+  // =========================================================================
+  console.log('📝 Creating assignments and submissions...');
+
+  const studentsForAssignments = await prisma.student.findMany({
+    select: { id: true, classId: true },
+  });
+  const studentsByClassForAssignments: Record<string, string[]> = {};
+  for (const s of studentsForAssignments) {
+    if (!studentsByClassForAssignments[s.classId])
+      studentsByClassForAssignments[s.classId] = [];
+    studentsByClassForAssignments[s.classId].push(s.id);
+  }
+
+  const assignmentMonths = [
+    { year: 2025, month: 10, label: 'November' }, // 0-based month
+    { year: 2025, month: 11, label: 'December' },
+    { year: 2026, month: 0, label: 'January' },
+  ];
+
+  let assignmentCount = 0;
+  let submissionCount = 0;
+
+  for (const classMeta of classesWithMeta) {
+    const subjectsForClass = classSubjectsByClass[classMeta.id] || [];
+    const studentsInClass = studentsByClassForAssignments[classMeta.id] || [];
+    if (!subjectsForClass.length || !studentsInClass.length) continue;
+
+    const selectedSubjects = subjectsForClass.slice(0, 4);
+    for (const subject of selectedSubjects) {
+      const teacherId = subject.teacherId || teacherIds[0];
+
+      for (const monthInfo of assignmentMonths) {
+        const dueDay = 5 + Math.floor(Math.random() * 20); // between 5-24
+        const dueDate = new Date(monthInfo.year, monthInfo.month, dueDay);
+
+        const assignment = await prisma.assignment.create({
+          data: {
+            title: `${subject.subject.name} Assignment - ${monthInfo.label}`,
+            description: `Complete the ${subject.subject.name} tasks for ${monthInfo.label}.`,
+            classId: classMeta.id,
+            subjectId: subject.subjectId,
+            teacherId,
+            dueDate,
+            additionalMetadata: {
+              difficulty: ['easy', 'medium', 'hard'][assignmentCount % 3],
+            },
+          },
+        });
+        assignmentCount++;
+
+        const submissionsStudents = studentsInClass.slice(0, 12);
+        for (let idx = 0; idx < submissionsStudents.length; idx++) {
+          const studentId = submissionsStudents[idx];
+          const isCompleted = idx % 4 !== 0; // some missed
+          await prisma.submission.create({
+            data: {
+              assignmentId: assignment.id,
+              studentId,
+              isCompleted,
+              submittedAt: isCompleted
+                ? new Date(
+                    dueDate.getFullYear(),
+                    dueDate.getMonth(),
+                    Math.max(1, dueDate.getDate() - 2),
+                  )
+                : null,
+              feedback: isCompleted ? 'Good effort' : null,
+              studentNotes: isCompleted ? 'Submitted on time' : null,
+            },
+          });
+          submissionCount++;
+        }
+      }
+    }
+  }
+
+  // =========================================================================
+  // 7C. CREATE ATTENDANCE RECORDS (30-DAY WINDOW)
+  // =========================================================================
+  console.log('📝 Creating attendance records for 30-day window...');
+
+  let attendanceMarker = await prisma.user.findUnique({
+    where: { email: 'admin@gmail.com' },
+  });
+  if (!attendanceMarker) {
+    const passwordHash = await argon2.hash('admin123');
+    attendanceMarker = await prisma.user.create({
+      data: {
+        email: 'admin@gmail.com',
+        fullName: 'System Admin',
+        passwordHash,
+        phone: '9800009999',
+        isActive: true,
+        roles: {
+          create: {
+            roleId: staffRole.id,
+          },
+        },
+      },
+    });
+  }
+
+  const studentsByClassRaw = await prisma.student.findMany({
+    select: { id: true, classId: true },
+  });
+  const studentsByClass: Record<string, string[]> = {};
+  for (const s of studentsByClassRaw) {
+    if (!studentsByClass[s.classId]) studentsByClass[s.classId] = [];
+    studentsByClass[s.classId].push(s.id);
+  }
+
+  const attendanceStart = new Date(2025, 11, 1); // December 1, 2025
+  const rawAttendanceDays = Array.from(
+    { length: 29 },
+    (_, i) =>
+      new Date(
+        attendanceStart.getFullYear(),
+        attendanceStart.getMonth(),
+        i + 1,
+      ),
+  );
+  const attendanceDays = rawAttendanceDays.filter(
+    d => d.getDay() !== 6, // skip Saturdays
+  );
+
+  const statusCycle: AttendanceStatus[] = [
+    AttendanceStatus.PRESENT,
+    AttendanceStatus.PRESENT,
+    AttendanceStatus.PRESENT,
+    AttendanceStatus.PRESENT,
+    AttendanceStatus.PRESENT,
+    AttendanceStatus.LATE,
+    AttendanceStatus.ABSENT,
+    AttendanceStatus.EXCUSED,
+  ];
+  const pickStatus = (seed: number) => statusCycle[seed % statusCycle.length];
+
+  let studentAttendanceSessionCount = 0;
+  let studentAttendanceRecordCount = 0;
+  let teacherAttendanceSessionCount = 0;
+  let teacherAttendanceRecordCount = 0;
+  let staffAttendanceSessionCount = 0;
+  let staffAttendanceRecordCount = 0;
+
+  // Students
+  for (let dayIdx = 0; dayIdx < attendanceDays.length; dayIdx++) {
+    const day = attendanceDays[dayIdx];
+    for (const classMeta of classesWithMeta) {
+      const students = studentsByClass[classMeta.id] || [];
+      if (students.length === 0) continue;
+
+      const session = await prisma.attendanceSession.create({
+        data: {
+          classId: classMeta.id,
+          date: day,
+          sessionType: 'daily',
+          markedBy: attendanceMarker.id,
+          isCompleted: true,
+          notes: 'Auto-seeded attendance',
+        },
+      });
+      studentAttendanceSessionCount++;
+
+      await prisma.attendanceRecord.createMany({
+        data: students.map((studentId, idx) => {
+          const status = pickStatus(dayIdx + idx);
+          return {
+            sessionId: session.id,
+            studentId,
+            status,
+            markedAt: day,
+            remarks:
+              status === AttendanceStatus.ABSENT ? 'Absent (seed)' : undefined,
+          };
+        }),
+      });
+      studentAttendanceRecordCount += students.length;
+    }
+  }
+
+  // Teachers
+  for (let dayIdx = 0; dayIdx < attendanceDays.length; dayIdx++) {
+    const day = attendanceDays[dayIdx];
+    const session = await prisma.teacherAttendanceSession.create({
+      data: {
+        date: day,
+        sessionType: 'daily',
+        markedBy: attendanceMarker.id,
+        isCompleted: true,
+        notes: 'Auto-seeded attendance',
+      },
+    });
+    teacherAttendanceSessionCount++;
+
+    await prisma.teacherAttendanceRecord.createMany({
+      data: teacherIds.map((teacherId, idx) => {
+        const status = pickStatus(dayIdx + idx + 3); // slight offset
+        return {
+          sessionId: session.id,
+          teacherId,
+          status,
+          markedAt: day,
+          remarks:
+            status === AttendanceStatus.ABSENT ? 'Absent (seed)' : undefined,
+        };
+      }),
+    });
+    teacherAttendanceRecordCount += teacherIds.length;
+  }
+
+  // Staff
+  for (let dayIdx = 0; dayIdx < attendanceDays.length; dayIdx++) {
+    const day = attendanceDays[dayIdx];
+    const session = await prisma.staffAttendanceSession.create({
+      data: {
+        date: day,
+        sessionType: 'daily',
+        markedBy: attendanceMarker.id,
+        isCompleted: true,
+        notes: 'Auto-seeded attendance',
+      },
+    });
+    staffAttendanceSessionCount++;
+
+    await prisma.staffAttendanceRecord.createMany({
+      data: staffIds.map((staffId, idx) => {
+        const status = pickStatus(dayIdx + idx + 5); // offset
+        return {
+          sessionId: session.id,
+          staffId,
+          status,
+          markedAt: day,
+          remarks:
+            status === AttendanceStatus.ABSENT ? 'Absent (seed)' : undefined,
+        };
+      }),
+    });
+    staffAttendanceRecordCount += staffIds.length;
   }
 
   // =========================================================================
   // 8. CREATE CALENDAR EVENTS OF ALL TYPES
   // =========================================================================
   console.log('📅 Creating calendar events...');
-
-  const currentYear = new Date().getFullYear();
 
   // Create holidays
   await prisma.calendarEntry.create({
@@ -921,6 +1432,27 @@ async function main() {
     where: { email: 'admin@gmail.com' },
   });
 
+  let noticeCreatorId = adminUser?.id;
+  if (!noticeCreatorId) {
+    const passwordHash = await argon2.hash('admin123');
+    const fallbackAdmin = await prisma.user.create({
+      data: {
+        email: 'admin@gmail.com',
+        fullName: 'System Admin',
+        passwordHash,
+        phone: '9800009999',
+        isActive: true,
+        roles: {
+          create: {
+            roleId: staffRole.id,
+          },
+        },
+      },
+    });
+
+    noticeCreatorId = fallbackAdmin.id;
+  }
+
   const notices = [
     {
       title: 'School Reopening Notice',
@@ -933,7 +1465,7 @@ async function main() {
       expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       status: 'PUBLISHED' as const,
       sendEmailNotification: true,
-      createdById: adminUser!.id,
+      createdById: noticeCreatorId,
     },
     {
       title: 'Parent-Teacher Conference',
@@ -946,7 +1478,7 @@ async function main() {
       expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
       status: 'PUBLISHED' as const,
       sendEmailNotification: false,
-      createdById: adminUser!.id,
+      createdById: noticeCreatorId,
     },
   ];
 
@@ -964,7 +1496,25 @@ async function main() {
   console.log(`🎓 ${classIds.length} Classes`);
   console.log(`👨‍🏫 ${teacherIds.length} Teachers`);
   console.log(`👥 ${staffData.length} Staff Members`);
-  console.log(`👨‍👩‍👧‍👦 ${families.length} Families`);
+  console.log(`👨‍🎓 ${globalStudentCounter} Students`);
+  console.log(`👨‍👩‍👧 ${globalStudentCounter * 2} Parents`);
+  console.log(`📖 ${classSubjectCount} Class-Subject assignments`);
+  console.log(`👩‍🏫 ${teacherSubjectPairs.size} Teacher-Subject assignments`);
+  console.log(`🗓️ ${scheduleCount} Class Schedules`);
+  console.log(`⏱️ ${timeslotCount} Timeslots`);
+  console.log(`📅 ${scheduleSlotCount} Schedule Slots`);
+  console.log(
+    `📝 ${assignmentCount} Assignments with ${submissionCount} Submissions`,
+  );
+  console.log(
+    `🧑‍🎓 Attendance: ${studentAttendanceSessionCount} student sessions / ${studentAttendanceRecordCount} records`,
+  );
+  console.log(
+    `🧑‍🏫 Attendance: ${teacherAttendanceSessionCount} teacher sessions / ${teacherAttendanceRecordCount} records`,
+  );
+  console.log(
+    `🧑‍💼 Attendance: ${staffAttendanceSessionCount} staff sessions / ${staffAttendanceRecordCount} records`,
+  );
   console.log(`📅 4 Calendar Events`);
   console.log(`📢 ${notices.length} Notices`);
   console.log('');

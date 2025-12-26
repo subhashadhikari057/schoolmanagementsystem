@@ -226,39 +226,70 @@ export class AttendanceService {
     studentId: string,
     month?: number,
     year?: number,
+    startDateStr?: string,
+    endDateStr?: string,
   ): Promise<AttendanceStatsDto> {
     try {
-      // Default to current month/year if not provided
-      const now = new Date();
-      const targetMonth = month || now.getMonth() + 1;
-      const targetYear = year || now.getFullYear();
+      let totalWorkingDays = 0;
+      let attendanceRecords: AttendanceRecord[] = [];
 
-      // Get working days for the period
-      const totalWorkingDays =
-        await this.workingDaysService.calculateWorkingDays(
+      // If a custom date range is provided, use it; otherwise fall back to month/year.
+      if (startDateStr && endDateStr) {
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr);
+
+        const dayDiff =
+          Math.floor(
+            (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+          ) + 1;
+        totalWorkingDays = Math.max(dayDiff, 0);
+
+        attendanceRecords = await this.prisma.attendanceRecord.findMany({
+          where: {
+            studentId,
+            session: {
+              date: {
+                gte: startDate,
+                lte: endDate,
+              },
+            },
+          },
+          include: {
+            session: true,
+          },
+        });
+      } else {
+        // Default to current month/year if not provided
+        const now = new Date();
+        const targetMonth = month || now.getMonth() + 1;
+        const targetYear = year || now.getFullYear();
+
+        // Get working days for the period
+        totalWorkingDays = await this.workingDaysService.calculateWorkingDays(
           targetMonth,
           targetYear,
         );
 
-      // Build date range for the month
-      const startDate = new Date(targetYear, targetMonth - 1, 1);
-      const endDate = new Date(targetYear, targetMonth, 0);
+        // Build date range for the month
+        const startDate = new Date(targetYear, targetMonth - 1, 1);
+        const endDate = new Date(targetYear, targetMonth, 0);
 
-      // Get attendance records for the student in the period
-      const attendanceRecords = await this.prisma.attendanceRecord.findMany({
-        where: {
-          studentId,
-          session: {
-            date: {
-              gte: startDate,
-              lte: endDate,
+        // Get attendance records for the student in the period
+        attendanceRecords = await this.prisma.attendanceRecord.findMany({
+          where: {
+            studentId,
+            session: {
+              date: {
+                gte: startDate,
+                lte: endDate,
+              },
             },
           },
-        },
-        include: {
-          session: true,
-        },
-      });
+          include: {
+            session: true,
+          },
+        });
+      }
 
       // Calculate statistics
       const presentDays = attendanceRecords.filter(
@@ -366,7 +397,7 @@ export class AttendanceService {
         },
         orderBy: {
           session: {
-            date: 'desc',
+            date: 'asc',
           },
         },
         skip: (query.page - 1) * query.limit,
@@ -378,6 +409,8 @@ export class AttendanceService {
         studentId,
         query.month,
         query.year,
+        query.startDate,
+        query.endDate,
       );
 
       return {
@@ -386,6 +419,7 @@ export class AttendanceService {
         rollNumber: student.rollNumber,
         className: `Grade ${student.class?.grade} ${student.class?.section}`,
         stats,
+        statistics: stats, // alias for frontend compatibility
         records: attendanceRecords.map(record => ({
           date: record.session.date.toISOString().split('T')[0],
           status: record.status,

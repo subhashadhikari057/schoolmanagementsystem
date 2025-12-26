@@ -17,6 +17,9 @@ import {
   UseGuards,
   Req,
   HttpStatus,
+  Res,
+  Header,
+  Query,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
@@ -33,6 +36,7 @@ import {
   CreateSchoolInformationDtoType,
   UpdateSchoolInformationDtoType,
 } from '../dto/school-information.dto';
+import { Response } from 'express';
 
 @Controller('api/v1/school-information')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -146,5 +150,29 @@ export class SchoolInformationController {
       message: 'School information existence check completed',
       data: { exists },
     };
+  }
+
+  /**
+   * Generate School Report Card PDF (server-side)
+   */
+  @Get('report-card')
+  @RoleAccess.Authenticated()
+  @Header('Content-Type', 'application/pdf')
+  @Header(
+    'Content-Disposition',
+    'attachment; filename="school-report-card.pdf"',
+  )
+  async getReportCardPdf(
+    @Res() res: Response,
+    @Query('year') year?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const buffer = await this.schoolInformationService.generateReportCardPdf({
+      year: year ? parseInt(year, 10) : undefined,
+      startDate,
+      endDate,
+    });
+    res.end(buffer);
   }
 }

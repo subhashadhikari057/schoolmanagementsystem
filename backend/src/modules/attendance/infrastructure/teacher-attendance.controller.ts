@@ -30,12 +30,10 @@ import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { Roles } from '../../../shared/decorators/roles.decorator';
 import { UserRole } from '@sms/shared-types';
 import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
-import { ZodValidationPipe } from 'nestjs-zod';
 import {
   MarkTeacherAttendanceDto,
   MarkTeacherAttendanceSchema,
   GetTeacherAttendanceQueryDto,
-  GetTeacherAttendanceQuerySchema,
 } from '../dto/teacher-attendance.dto';
 
 @ApiTags('Teacher Attendance')
@@ -93,8 +91,7 @@ export class TeacherAttendanceController {
     description: 'Teacher not found',
   })
   async markAttendance(
-    @Body(new ZodValidationPipe(MarkTeacherAttendanceSchema))
-    dto: MarkTeacherAttendanceDto,
+    @Body() dto: MarkTeacherAttendanceDto,
     @CurrentUser() user: { id: string },
   ) {
     return this.teacherAttendanceService.markAttendance(dto, user.id);
@@ -186,11 +183,40 @@ export class TeacherAttendanceController {
   })
   async getTeacherAttendance(
     @Param('teacherId') teacherId: string,
-    @Query(new ZodValidationPipe(GetTeacherAttendanceQuerySchema))
-    query: GetTeacherAttendanceQueryDto,
+    @Query()
+    query: {
+      startDate?: string;
+      endDate?: string;
+      month?: string | number;
+      year?: string | number;
+      page?: string | number;
+      limit?: string | number;
+    },
   ) {
-    const data = await this.teacherAttendanceService.getTeacherAttendance({
+    const normalizedQuery: GetTeacherAttendanceQueryDto = {
       ...query,
+      startDate: query.startDate,
+      endDate: query.endDate,
+      month:
+        query.month !== undefined && query.month !== null
+          ? Number(query.month)
+          : undefined,
+      year:
+        query.year !== undefined && query.year !== null
+          ? Number(query.year)
+          : undefined,
+      page:
+        query.page !== undefined && query.page !== null
+          ? Number(query.page)
+          : 1,
+      limit:
+        query.limit !== undefined && query.limit !== null
+          ? Number(query.limit)
+          : 20,
+    };
+
+    const data = await this.teacherAttendanceService.getTeacherAttendance({
+      ...normalizedQuery,
       teacherId,
     });
 

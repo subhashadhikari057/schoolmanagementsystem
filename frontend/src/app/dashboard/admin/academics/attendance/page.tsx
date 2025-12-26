@@ -63,7 +63,12 @@ export default function AttendancePage() {
       totalStudents: number;
       totalPresent: number;
       totalAbsent: number;
+      totalLate?: number;
+      totalExcused?: number;
       overallAttendanceRate: number;
+      completedClasses?: number;
+      pendingClasses?: number;
+      partialClasses?: number;
     };
     classes: Array<{
       id: string;
@@ -497,16 +502,7 @@ export default function AttendancePage() {
                         {reportSummary.startDate} → {reportSummary.endDate}
                       </p>
                     </div>
-                    <StatusBadge
-                      label={reportSummary.status}
-                      variant={
-                        reportSummary.status === 'completed'
-                          ? 'success'
-                          : reportSummary.status === 'partial'
-                            ? 'warning'
-                            : 'default'
-                      }
-                    />
+                    <StatusBadge status={reportSummary.status} />
                   </div>
 
                   <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>

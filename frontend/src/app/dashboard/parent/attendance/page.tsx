@@ -131,21 +131,32 @@ export default function ParentAttendancePage() {
         );
 
         // Transform attendance records to events format (same as student page)
-        const events: AttendanceEvent[] = (
-          attendanceResponse.records || []
-        ).map((record: any) => ({
+        const records = attendanceResponse.records || [];
+        const events: AttendanceEvent[] = records.map((record: any) => ({
           id: record.date,
           date: record.date,
           status:
-            record.status.toLowerCase() === 'late' ||
-            record.status.toLowerCase() === 'absent' ||
-            record.status.toLowerCase() === 'excused'
-              ? 'absent'
-              : (record.status.toLowerCase() as 'present' | 'absent'),
+            record.status.toLowerCase() === 'absent' ? 'absent' : 'present',
         }));
 
         setAttendanceData(events);
-        setAttendanceStats(attendanceResponse.stats);
+
+        const totalDays = records.length;
+        const presentDays = records.filter(
+          (r: any) => r.status && r.status.toUpperCase() !== 'ABSENT',
+        ).length;
+        const absentDays = totalDays - presentDays;
+        const attendancePercentage =
+          totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+
+        setAttendanceStats({
+          totalWorkingDays: totalDays,
+          presentDays,
+          absentDays,
+          lateDays: 0,
+          excusedDays: 0,
+          attendancePercentage,
+        });
       } catch (error: any) {
         console.error('Error fetching attendance data:', error);
         setAttendanceData([]);

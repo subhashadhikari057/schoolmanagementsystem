@@ -344,8 +344,7 @@ export default function AdminDashboard() {
                               {chart.gender}
                             </p>
                             <StatusBadge
-                              status='info'
-                              label={`${chart.data.length} ethnicities`}
+                              status={`${chart.data.length} ethnicities`}
                               className='bg-blue-50 text-blue-700 border border-blue-100'
                             />
                           </div>

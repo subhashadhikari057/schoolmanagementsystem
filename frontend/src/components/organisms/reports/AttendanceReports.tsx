@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -20,7 +20,14 @@ import {
   UserCog,
   BarChart3,
 } from 'lucide-react';
-import { AttendanceService } from '@/api/services/attendance.service';
+import {
+  AttendanceService,
+  StudentAttendanceResponse,
+} from '@/api/services/attendance.service';
+import { TeacherAttendanceService } from '@/api/services/teacher-attendance.service';
+import { TeacherAttendanceResponse } from '@/api/types/teacher-attendance';
+import { StaffAttendanceService } from '@/api/services/staff-attendance.service';
+import { StaffAttendanceResponse } from '@/api/types/staff-attendance';
 import { httpClient } from '@/api/client';
 import { debounce } from 'lodash';
 
@@ -37,6 +44,8 @@ interface Person {
 
 // Initialize attendance service
 const attendanceService = new AttendanceService();
+const teacherAttendanceService = new TeacherAttendanceService();
+const staffAttendanceService = new StaffAttendanceService();
 
 export default function AttendanceReports() {
   // Report data states
@@ -89,7 +98,19 @@ export default function AttendanceReports() {
   const [isSearchingTeacher, setIsSearchingTeacher] = useState(false);
   const [isSearchingStaff, setIsSearchingStaff] = useState(false);
 
+  // Result state
+  const [studentReportResult, setStudentReportResult] =
+    useState<StudentAttendanceResponse | null>(null);
+  const [teacherReportResult, setTeacherReportResult] =
+    useState<TeacherAttendanceResponse | null>(null);
+  const [staffReportResult, setStaffReportResult] =
+    useState<StaffAttendanceResponse | null>(null);
+
   // Stats data
+  const generatedCount =
+    (studentReportResult ? 1 : 0) +
+    (teacherReportResult ? 1 : 0) +
+    (staffReportResult ? 1 : 0);
   const reportStats = [
     {
       icon: FileText,
@@ -104,7 +125,7 @@ export default function AttendanceReports() {
       icon: GraduationCap,
       bgColor: 'bg-green-500',
       iconColor: 'text-white',
-      value: '0',
+      value: `${generatedCount}`,
       label: 'Generated Today',
       change: '',
       isPositive: true,
@@ -113,7 +134,7 @@ export default function AttendanceReports() {
       icon: Download,
       bgColor: 'bg-purple-500',
       iconColor: 'text-white',
-      value: '0',
+      value: `${generatedCount}`,
       label: 'Downloads',
       change: '',
       isPositive: true,
@@ -300,51 +321,165 @@ export default function AttendanceReports() {
         },
       );
 
-      const reportContent = `
-STUDENT ATTENDANCE REPORT
-========================
+      setStudentReportResult(attendanceData);
 
-Student Information:
-- Name: ${studentReportData.personName}
-- Roll Number: ${studentReportData.rollNumber}
-- Class: ${studentReportData.class}
+      // Build CSV for download
+      const headers = ['Date', 'Status', 'Session Type', 'Remarks'];
+      const csvRows = attendanceData.records.map(record =>
+        [
+          `="${record.date}"`,
+          record.status,
+          record.sessionType,
+          record.remarks || '',
+        ].join(','),
+      );
+      const stats = attendanceData.stats || (attendanceData as any).statistics;
+      const summaryRows = [
+        [],
+        ['Summary'],
+        [
+          'Total Days',
+          stats?.totalWorkingDays ?? '',
+          'Present',
+          stats?.presentDays ?? '',
+        ],
+        ['Absent', stats?.absentDays ?? '', 'Late', stats?.lateDays ?? ''],
+        [
+          'Excused',
+          stats?.excusedDays ?? '',
+          'Attendance %',
+          stats?.attendancePercentage ?? '',
+        ],
+      ].map(row => row.join(','));
 
-Report Period: ${studentReportData.fromDate} to ${studentReportData.toDate}
-
-Attendance Statistics:
-- Total Days: ${(attendanceData as any).statistics?.totalDays || 0}
-- Present Days: ${(attendanceData as any).statistics?.presentDays || 0}
-- Absent Days: ${(attendanceData as any).statistics?.absentDays || 0}
-- Attendance Percentage: ${(attendanceData as any).statistics?.attendancePercentage || 0}%
-
-Generated on: ${new Date().toLocaleString()}
-      `;
-
-      const blob = new Blob([reportContent], { type: 'text/plain' });
+      const csvContent = [headers.join(','), ...csvRows, ...summaryRows].join(
+        '\n',
+      );
+      const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `student-attendance-${studentReportData.personName.replace(/\s+/g, '-')}-${studentReportData.fromDate}-to-${studentReportData.toDate}.txt`;
+      a.download = `student-attendance-${studentReportData.personName.replace(/\s+/g, '-')}-${studentReportData.fromDate}-to-${studentReportData.toDate}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      alert('Student attendance report generated and downloaded successfully!');
+      alert('Student attendance report generated, downloaded, and displayed.');
     } catch (error) {
       console.error('Error generating student report:', error);
-      alert('Error generating student report. Please try again.');
     } finally {
       setIsGeneratingStudent(false);
     }
   };
 
   const generateTeacherReport = async () => {
-    alert('Teacher attendance reports will be available in a future update.');
+    if (
+      !teacherReportData.personId ||
+      !teacherReportData.fromDate ||
+      !teacherReportData.toDate
+    )
+      return;
+
+    setTeacherReportResult(null);
+    try {
+      const res = await teacherAttendanceService.getTeacherAttendance(
+        String(teacherReportData.personId),
+        {
+          startDate: teacherReportData.fromDate,
+          endDate: teacherReportData.toDate,
+          page: 1,
+          limit: 1000,
+        },
+      );
+      const data = ((res as any).data ?? res) as TeacherAttendanceResponse;
+      setTeacherReportResult(data);
+      // CSV
+      const stats = data.stats;
+      const headers = ['Date', 'Status', 'Session Type', 'Remarks'];
+      const rows = data.records.map(
+        (r: TeacherAttendanceResponse['records'][number]) =>
+          [`="${r.date}"`, r.status, r.sessionType, r.remarks || ''].join(','),
+      );
+      const summary = [
+        [],
+        ['Summary'],
+        ['Total Days', stats.totalWorkingDays, 'Present', stats.presentDays],
+        ['Absent', stats.absentDays, 'Late', stats.lateDays],
+        [
+          'Excused',
+          stats.excusedDays,
+          'Attendance %',
+          stats.attendancePercentage,
+        ],
+      ].map(r => r.join(','));
+      const csv = [headers.join(','), ...rows, ...summary].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `teacher-attendance-${teacherReportData.personName.replace(/\s+/g, '-')}-${teacherReportData.fromDate}-to-${teacherReportData.toDate}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating teacher report:', error);
+    }
   };
 
   const generateStaffReport = async () => {
-    alert('Staff attendance reports will be available in a future update.');
+    if (
+      !staffReportData.personId ||
+      !staffReportData.fromDate ||
+      !staffReportData.toDate
+    )
+      return;
+
+    setStaffReportResult(null);
+    try {
+      const res = await staffAttendanceService.getStaffAttendance(
+        String(staffReportData.personId),
+        {
+          startDate: staffReportData.fromDate,
+          endDate: staffReportData.toDate,
+          page: '1',
+          limit: '1000',
+        },
+      );
+      const data = ((res as any).data ?? res) as StaffAttendanceResponse;
+      setStaffReportResult(data);
+      const stats = data.stats;
+      const headers = ['Date', 'Status', 'Session Type', 'Remarks'];
+      const rows = data.records.map(
+        (r: StaffAttendanceResponse['records'][number]) =>
+          [`="${r.date}"`, r.status, r.sessionType, r.remarks || ''].join(','),
+      );
+      const summary = [
+        [],
+        ['Summary'],
+        ['Total Days', stats.totalWorkingDays, 'Present', stats.presentDays],
+        ['Absent', stats.absentDays, 'Late', stats.lateDays],
+        [
+          'Excused',
+          stats.excusedDays,
+          'Attendance %',
+          stats.attendancePercentage,
+        ],
+      ].map(r => r.join(','));
+      const csv = [headers.join(','), ...rows, ...summary].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `staff-attendance-${staffReportData.personName.replace(/\s+/g, '-')}-${staffReportData.fromDate}-to-${staffReportData.toDate}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating staff report:', error);
+    }
   };
 
   return (
@@ -553,6 +688,125 @@ Generated on: ${new Date().toLocaleString()}
                           </>
                         )}
                       </Button>
+                      {studentReportResult && (
+                        <div className='mt-6 space-y-4'>
+                          <div className='p-4 rounded-xl border border-blue-100 bg-blue-50/60 shadow-sm'>
+                            <h4 className='font-semibold text-blue-900 mb-2'>
+                              Report Summary
+                            </h4>
+                            <div className='grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-blue-800'>
+                              <div>
+                                <p className='text-xs text-blue-600'>
+                                  Total Days
+                                </p>
+                                <p className='font-semibold'>
+                                  {studentReportResult.stats
+                                    ?.totalWorkingDays ??
+                                    (studentReportResult as any).statistics
+                                      ?.totalWorkingDays ??
+                                    0}
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-xs text-blue-600'>Present</p>
+                                <p className='font-semibold'>
+                                  {studentReportResult.stats?.presentDays ??
+                                    (studentReportResult as any).statistics
+                                      ?.presentDays ??
+                                    0}
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-xs text-blue-600'>Absent</p>
+                                <p className='font-semibold'>
+                                  {studentReportResult.stats?.absentDays ??
+                                    (studentReportResult as any).statistics
+                                      ?.absentDays ??
+                                    0}
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-xs text-blue-600'>
+                                  Attendance %
+                                </p>
+                                <p className='font-semibold'>
+                                  {studentReportResult.stats
+                                    ?.attendancePercentage ??
+                                    (studentReportResult as any).statistics
+                                      ?.attendancePercentage ??
+                                    0}
+                                  %
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className='border rounded-xl border-blue-100 shadow-sm overflow-hidden'>
+                            <div className='bg-blue-50 px-4 py-2 border-b border-blue-100'>
+                              <h5 className='font-semibold text-blue-900 text-sm'>
+                                Attendance Records
+                              </h5>
+                              <p className='text-xs text-blue-600'>
+                                {studentReportResult.records.length} records
+                                from {studentReportData.fromDate} to{' '}
+                                {studentReportData.toDate}
+                              </p>
+                            </div>
+                            <div className='max-h-80 overflow-y-auto'>
+                              <table className='min-w-full text-sm'>
+                                <thead className='bg-blue-50 text-blue-800 uppercase text-xs'>
+                                  <tr>
+                                    <th className='px-4 py-2 text-left'>
+                                      Date
+                                    </th>
+                                    <th className='px-4 py-2 text-left'>
+                                      Status
+                                    </th>
+                                    <th className='px-4 py-2 text-left'>
+                                      Session
+                                    </th>
+                                    <th className='px-4 py-2 text-left'>
+                                      Remarks
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {studentReportResult.records.map(record => (
+                                    <tr
+                                      key={`${record.date}-${record.sessionType}`}
+                                      className='border-b border-blue-50'
+                                    >
+                                      <td className='px-4 py-2'>
+                                        {record.date}
+                                      </td>
+                                      <td className='px-4 py-2'>
+                                        <span
+                                          className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                            record.status === 'PRESENT'
+                                              ? 'bg-green-100 text-green-800'
+                                              : record.status === 'ABSENT'
+                                                ? 'bg-red-100 text-red-800'
+                                                : record.status === 'LATE'
+                                                  ? 'bg-yellow-100 text-yellow-800'
+                                                  : 'bg-gray-100 text-gray-800'
+                                          }`}
+                                        >
+                                          {record.status}
+                                        </span>
+                                      </td>
+                                      <td className='px-4 py-2'>
+                                        {record.sessionType}
+                                      </td>
+                                      <td className='px-4 py-2'>
+                                        {record.remarks || '—'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ),
@@ -737,6 +991,116 @@ Generated on: ${new Date().toLocaleString()}
                           </>
                         )}
                       </Button>
+                      {teacherReportResult && (
+                        <div className='mt-6 space-y-4'>
+                          <div className='p-4 rounded-xl border border-green-100 bg-green-50/60 shadow-sm'>
+                            <h4 className='font-semibold text-green-900 mb-2'>
+                              Report Summary
+                            </h4>
+                            <div className='grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-green-800'>
+                              <div>
+                                <p className='text-xs text-green-600'>
+                                  Total Days
+                                </p>
+                                <p className='font-semibold'>
+                                  {teacherReportResult.stats.totalWorkingDays}
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-xs text-green-600'>
+                                  Present
+                                </p>
+                                <p className='font-semibold'>
+                                  {teacherReportResult.stats.presentDays}
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-xs text-green-600'>Absent</p>
+                                <p className='font-semibold'>
+                                  {teacherReportResult.stats.absentDays}
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-xs text-green-600'>
+                                  Attendance %
+                                </p>
+                                <p className='font-semibold'>
+                                  {
+                                    teacherReportResult.stats
+                                      .attendancePercentage
+                                  }
+                                  %
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className='border rounded-xl border-green-100 shadow-sm overflow-hidden'>
+                            <div className='bg-green-50 px-4 py-2 border-b border-green-100'>
+                              <h5 className='font-semibold text-green-900 text-sm'>
+                                Attendance Records
+                              </h5>
+                              <p className='text-xs text-green-600'>
+                                {teacherReportResult.records.length} records
+                                from {teacherReportData.fromDate} to{' '}
+                                {teacherReportData.toDate}
+                              </p>
+                            </div>
+                            <div className='max-h-80 overflow-y-auto'>
+                              <table className='min-w-full text-sm'>
+                                <thead className='bg-green-50 text-green-800 uppercase text-xs'>
+                                  <tr>
+                                    <th className='px-4 py-2 text-left'>
+                                      Date
+                                    </th>
+                                    <th className='px-4 py-2 text-left'>
+                                      Status
+                                    </th>
+                                    <th className='px-4 py-2 text-left'>
+                                      Session
+                                    </th>
+                                    <th className='px-4 py-2 text-left'>
+                                      Remarks
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {teacherReportResult.records.map(record => (
+                                    <tr
+                                      key={`${record.date}-${record.sessionType}`}
+                                      className='border-b border-green-50'
+                                    >
+                                      <td className='px-4 py-2'>
+                                        {record.date}
+                                      </td>
+                                      <td className='px-4 py-2'>
+                                        <span
+                                          className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                            record.status === 'PRESENT'
+                                              ? 'bg-green-100 text-green-800'
+                                              : record.status === 'ABSENT'
+                                                ? 'bg-red-100 text-red-800'
+                                                : record.status === 'LATE'
+                                                  ? 'bg-yellow-100 text-yellow-800'
+                                                  : 'bg-gray-100 text-gray-800'
+                                          }`}
+                                        >
+                                          {record.status}
+                                        </span>
+                                      </td>
+                                      <td className='px-4 py-2'>
+                                        {record.sessionType}
+                                      </td>
+                                      <td className='px-4 py-2'>
+                                        {record.remarks || '—'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ),
@@ -921,6 +1285,115 @@ Generated on: ${new Date().toLocaleString()}
                           </>
                         )}
                       </Button>
+                      {staffReportResult && (
+                        <div className='mt-6 space-y-4'>
+                          <div className='p-4 rounded-xl border border-purple-100 bg-purple-50/60 shadow-sm'>
+                            <h4 className='font-semibold text-purple-900 mb-2'>
+                              Report Summary
+                            </h4>
+                            <div className='grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-purple-800'>
+                              <div>
+                                <p className='text-xs text-purple-600'>
+                                  Total Days
+                                </p>
+                                <p className='font-semibold'>
+                                  {staffReportResult.stats.totalWorkingDays}
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-xs text-purple-600'>
+                                  Present
+                                </p>
+                                <p className='font-semibold'>
+                                  {staffReportResult.stats.presentDays}
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-xs text-purple-600'>
+                                  Absent
+                                </p>
+                                <p className='font-semibold'>
+                                  {staffReportResult.stats.absentDays}
+                                </p>
+                              </div>
+                              <div>
+                                <p className='text-xs text-purple-600'>
+                                  Attendance %
+                                </p>
+                                <p className='font-semibold'>
+                                  {staffReportResult.stats.attendancePercentage}
+                                  %
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className='border rounded-xl border-purple-100 shadow-sm overflow-hidden'>
+                            <div className='bg-purple-50 px-4 py-2 border-b border-purple-100'>
+                              <h5 className='font-semibold text-purple-900 text-sm'>
+                                Attendance Records
+                              </h5>
+                              <p className='text-xs text-purple-600'>
+                                {staffReportResult.records.length} records from{' '}
+                                {staffReportData.fromDate} to{' '}
+                                {staffReportData.toDate}
+                              </p>
+                            </div>
+                            <div className='max-h-80 overflow-y-auto'>
+                              <table className='min-w-full text-sm'>
+                                <thead className='bg-purple-50 text-purple-800 uppercase text-xs'>
+                                  <tr>
+                                    <th className='px-4 py-2 text-left'>
+                                      Date
+                                    </th>
+                                    <th className='px-4 py-2 text-left'>
+                                      Status
+                                    </th>
+                                    <th className='px-4 py-2 text-left'>
+                                      Session
+                                    </th>
+                                    <th className='px-4 py-2 text-left'>
+                                      Remarks
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {staffReportResult.records.map(record => (
+                                    <tr
+                                      key={`${record.date}-${record.sessionType}`}
+                                      className='border-b border-purple-50'
+                                    >
+                                      <td className='px-4 py-2'>
+                                        {record.date}
+                                      </td>
+                                      <td className='px-4 py-2'>
+                                        <span
+                                          className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                            record.status === 'PRESENT'
+                                              ? 'bg-green-100 text-green-800'
+                                              : record.status === 'ABSENT'
+                                                ? 'bg-red-100 text-red-800'
+                                                : record.status === 'LATE'
+                                                  ? 'bg-yellow-100 text-yellow-800'
+                                                  : 'bg-gray-100 text-gray-800'
+                                          }`}
+                                        >
+                                          {record.status}
+                                        </span>
+                                      </td>
+                                      <td className='px-4 py-2'>
+                                        {record.sessionType}
+                                      </td>
+                                      <td className='px-4 py-2'>
+                                        {record.remarks || '—'}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ),
