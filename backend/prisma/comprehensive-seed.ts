@@ -1426,7 +1426,7 @@ async function main() {
   });
 
   // Create exams
-  await prisma.calendarEntry.create({
+  const examCalendarEntry = await prisma.calendarEntry.create({
     data: {
       name: 'First Term Examination',
       type: 'EXAM' as const,
@@ -1437,6 +1437,167 @@ async function main() {
       examDetails: 'First terminal examination for all students',
     },
   });
+
+  // Exam schedules and slots per class
+  console.log('🧪 Creating exam schedules and slots...');
+  let examScheduleCount = 0;
+  let examSlotCount = 0;
+
+  const examDateslots: string[] = [];
+  const baseExamDate = new Date(examCalendarEntry.startDate);
+  const examDays = [0, 1, 3, 5, 7]; // spread across the window
+  for (let i = 0; i < examDays.length; i++) {
+    const d = new Date(baseExamDate);
+    d.setDate(d.getDate() + examDays[i]);
+    const dateslot = await prisma.examDateslot.create({
+      data: {
+        calendarEntryId: examCalendarEntry.id,
+        examDate: d,
+        startTime: '09:00',
+        endTime: '11:00',
+        label: `Exam Day ${i + 1}`,
+        type: 'EXAM',
+      },
+    });
+    examDateslots.push(dateslot.id);
+  }
+
+  const classRooms = await prisma.class.findMany({
+    select: { id: true, roomId: true, grade: true, section: true },
+  });
+  const roomByClass: Record<string, string | null> = {};
+  classRooms.forEach(c => {
+    roomByClass[c.id] = c.roomId;
+  });
+
+  for (const classMeta of classesWithMeta) {
+    const schedule = await prisma.examSchedule.create({
+      data: {
+        classId: classMeta.id,
+        calendarEntryId: examCalendarEntry.id,
+        name: `Grade ${classMeta.grade} Term Exam`,
+        academicYear: `${currentYear}-${currentYear + 1}`,
+        status: 'scheduled',
+      },
+    });
+    examScheduleCount++;
+
+    const subjectsForClass = classSubjectsByClass[classMeta.id] || [];
+    const subjects = subjectsForClass.slice(
+      0,
+      Math.min(5, subjectsForClass.length),
+    );
+    for (let i = 0; i < subjects.length; i++) {
+      const subject = subjects[i];
+      const dateslotId = examDateslots[i % examDateslots.length];
+      await prisma.examSlot.create({
+        data: {
+          examScheduleId: schedule.id,
+          dateslotId,
+          subjectId: subject.subjectId,
+          roomId: roomByClass[classMeta.id],
+          duration: 90,
+          instructions: `Answer all questions for ${subject.subject.name}`,
+        },
+      });
+      examSlotCount++;
+    }
+  }
+
+  // Create a past exam (previous year) with marks for every student/subject
+  console.log('🧪 Creating past exam schedules, slots, and results...');
+  let examResultCount = 0;
+  const previousYear = currentYear - 1;
+  const pastExamEntry = await prisma.calendarEntry.create({
+    data: {
+      name: 'Past Final Examination',
+      type: 'EXAM' as const,
+      eventScope: 'SCHOOL_WIDE' as const,
+      startDate: new Date(`${previousYear}-11-01`),
+      endDate: new Date(`${previousYear}-11-15`),
+      examType: 'FINAL' as const,
+      examDetails: 'Past final examination seeded for analytics',
+    },
+  });
+
+  const pastExamDateslots: string[] = [];
+  const pastBase = new Date(pastExamEntry.startDate);
+  const pastDays = [0, 2, 4, 6, 8];
+  for (let i = 0; i < pastDays.length; i++) {
+    const d = new Date(pastBase);
+    d.setDate(d.getDate() + pastDays[i]);
+    const slot = await prisma.examDateslot.create({
+      data: {
+        calendarEntryId: pastExamEntry.id,
+        examDate: d,
+        startTime: '09:00',
+        endTime: '11:00',
+        label: `Past Exam Day ${i + 1}`,
+        type: 'EXAM',
+      },
+    });
+    pastExamDateslots.push(slot.id);
+  }
+
+  const studentsByClassForExams = await prisma.student.findMany({
+    select: { id: true, classId: true },
+  });
+  const studentsByClassMap: Record<string, string[]> = {};
+  for (const s of studentsByClassForExams) {
+    if (!studentsByClassMap[s.classId]) studentsByClassMap[s.classId] = [];
+    studentsByClassMap[s.classId].push(s.id);
+  }
+
+  for (const classMeta of classesWithMeta) {
+    const schedule = await prisma.examSchedule.create({
+      data: {
+        classId: classMeta.id,
+        calendarEntryId: pastExamEntry.id,
+        name: `Grade ${classMeta.grade} Final Exam (${previousYear})`,
+        academicYear: `${previousYear}-${previousYear + 1}`,
+        status: 'completed',
+      },
+    });
+    examScheduleCount++;
+
+    const subjectsForClass = classSubjectsByClass[classMeta.id] || [];
+    const selectedSubjects = subjectsForClass.slice(
+      0,
+      Math.min(5, subjectsForClass.length),
+    );
+    const studentsInClass = studentsByClassMap[classMeta.id] || [];
+
+    for (let i = 0; i < selectedSubjects.length; i++) {
+      const subject = selectedSubjects[i];
+      const dateslotId = pastExamDateslots[i % pastExamDateslots.length];
+      const examSlot = await prisma.examSlot.create({
+        data: {
+          examScheduleId: schedule.id,
+          dateslotId,
+          subjectId: subject.subjectId,
+          roomId: roomByClass[classMeta.id],
+          duration: 90,
+          instructions: `Final exam for ${subject.subject.name}`,
+        },
+      });
+      examSlotCount++;
+
+      for (const studentId of studentsInClass) {
+        const marks = 45 + Math.floor(Math.random() * 46); // 45-90
+        await prisma.examResult.create({
+          data: {
+            examSlotId: examSlot.id,
+            studentId,
+            marksObtained: marks,
+            isPassed: marks >= subject.subject.passMarks,
+            status: 'PUBLISHED',
+            gradedAt: new Date(`${previousYear}-11-20`),
+          },
+        });
+        examResultCount++;
+      }
+    }
+  }
 
   // =========================================================================
   // 9. CREATE NOTICES
@@ -1519,8 +1680,12 @@ async function main() {
   console.log(`⏱️ ${timeslotCount} Timeslots`);
   console.log(`📅 ${scheduleSlotCount} Schedule Slots`);
   console.log(
+    `🧪 ${examScheduleCount} Exam Schedules / ${examSlotCount} Exam Slots`,
+  );
+  console.log(
     `📝 ${assignmentCount} Assignments with ${submissionCount} Submissions`,
   );
+  console.log(`🧾 ${examResultCount} Exam Results`);
   console.log(
     `🧑‍🎓 Attendance: ${studentAttendanceSessionCount} student sessions / ${studentAttendanceRecordCount} records`,
   );
