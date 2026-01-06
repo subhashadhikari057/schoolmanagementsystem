@@ -45,6 +45,7 @@ import { Roles } from '../../../shared/decorators/roles.decorator';
 import { UserRole } from '@sms/shared-types';
 import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
+import { EmailService } from '../../../shared/email/email.service';
 
 @ApiTags('Students')
 @ApiBearerAuth('JWT-auth')
@@ -54,7 +55,10 @@ import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
   description: 'Unauthorized - Invalid or missing JWT token',
 })
 export class StudentController {
-  constructor(private readonly studentService: StudentService) {}
+  constructor(
+    private readonly studentService: StudentService,
+    private readonly emailService: EmailService,
+  ) {}
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
@@ -110,6 +114,48 @@ export class StudentController {
         req.ip,
         req.headers['user-agent'],
       );
+
+      const welcomePassword =
+        validatedData.user?.password ?? result.temporaryPassword;
+      if (result.student.email) {
+        try {
+          await this.emailService.sendWelcomeUserEmail({
+            to: result.student.email,
+            name: result.student.fullName,
+            role: 'Student',
+            email: result.student.email,
+            password: welcomePassword,
+          });
+        } catch {
+          console.log('Student Email failed to send');
+          // Ignore email failures to avoid blocking student creation.
+        }
+      }
+
+      if (result.parentCredentials?.length) {
+        await Promise.all(
+          result.parentCredentials.map(async credential => {
+            if (!credential.email || !credential.temporaryPassword) {
+              return;
+            }
+            const roleLabel = credential.relationship
+              ? `Parent (${credential.relationship})`
+              : 'Parent';
+            try {
+              await this.emailService.sendWelcomeUserEmail({
+                to: credential.email,
+                name: credential.fullName,
+                role: roleLabel,
+                email: credential.email,
+                password: credential.temporaryPassword,
+              });
+            } catch {
+              console.log('Parent Email failed to send');
+              // Ignore email failures to avoid blocking student creation.
+            }
+          }),
+        );
+      }
 
       return {
         message: 'Student created successfully',

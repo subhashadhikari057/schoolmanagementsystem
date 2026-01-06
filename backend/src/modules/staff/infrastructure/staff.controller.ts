@@ -36,10 +36,14 @@ import {
 import { Roles } from '../../../shared/decorators/roles.decorator';
 import { UserRole } from '@sms/shared-types';
 import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
+import { EmailService } from '../../../shared/email/email.service';
 
 @Controller('api/v1/staff')
 export class StaffController {
-  constructor(private readonly staffService: StaffService) {}
+  constructor(
+    private readonly staffService: StaffService,
+    private readonly emailService: EmailService,
+  ) {}
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
@@ -91,6 +95,22 @@ export class StaffController {
         ip,
         userAgent,
       );
+
+      const welcomePassword =
+        validatedData.user?.password ?? (result.data as any)?.temporaryPassword;
+      if (result.data?.staff?.hasLoginAccount && welcomePassword) {
+        try {
+          await this.emailService.sendWelcomeUserEmail({
+            to: validatedData.user.email,
+            name: result.data.staff.fullName,
+            role: 'Staff',
+            email: validatedData.user.email,
+            password: welcomePassword,
+          });
+        } catch {
+          // Ignore email failures to avoid blocking staff creation.
+        }
+      }
 
       return result;
     } catch (error) {
