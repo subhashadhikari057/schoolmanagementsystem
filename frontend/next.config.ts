@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   // Production optimizations
-  output: 'standalone',
+  // output: 'standalone',
   compress: true,
   images: {
     remotePatterns: [
