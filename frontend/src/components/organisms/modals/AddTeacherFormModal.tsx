@@ -1,25 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { classService } from '@/api/services/class.service';
+import { subjectService } from '@/api/services/subject.service';
+import { teacherService } from '@/api/services/teacher.service';
 import {
-  X,
-  User,
-  GraduationCap,
+  BookOpen,
   Briefcase,
+  Camera,
   DollarSign,
+  GraduationCap,
   Landmark,
   Plus,
-  Upload,
-  Camera,
-  BookOpen,
-  Calendar,
-  Mail,
-  Phone,
+  User,
+  X,
 } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { teacherService } from '@/api/services/teacher.service';
-import { subjectService } from '@/api/services/subject.service';
-import { classService } from '@/api/services/class.service';
 
 interface AddTeacherFormModalProps {
   isOpen: boolean;

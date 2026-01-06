@@ -41,6 +41,7 @@ import { PromotionModule } from './modules/promotion/promotion.module';
 import { BackupModule } from './modules/backup/backup.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'node:path';
+import { EmailModule } from './shared/email/email.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { join } from 'node:path';
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',
     }),
+    EmailModule,
     DatabaseModule,
     SharedAuditModule,
     ErrorHandlingModule,

@@ -17,6 +17,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 import { TeacherService } from '../application/teacher.service';
+import { EmailService } from '../../../shared/email/email.service';
 import {
   CreateTeacherDto,
   CreateTeacherDtoType,
@@ -44,7 +45,10 @@ import { CurrentUser } from '../../../shared/decorators/current-user.decorator';
 
 @Controller('api/v1/teachers')
 export class TeacherController {
-  constructor(private readonly teacherService: TeacherService) {}
+  constructor(
+    private readonly teacherService: TeacherService,
+    private readonly emailService: EmailService,
+  ) {}
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
@@ -92,6 +96,22 @@ export class TeacherController {
         req.ip,
         req.headers['user-agent'],
       );
+
+      const welcomePassword =
+        validatedData.user?.password ?? result.temporaryPassword;
+      if (result.teacher.email) {
+        try {
+          await this.emailService.sendWelcomeUserEmail({
+            to: result.teacher.email,
+            name: result.teacher.fullName,
+            role: 'Teacher',
+            email: result.teacher.email,
+            password: welcomePassword,
+          });
+        } catch {
+          // Ignore email failures to avoid blocking teacher creation.
+        }
+      }
 
       return {
         message: 'Teacher created successfully',
@@ -170,6 +190,21 @@ export class TeacherController {
       req.ip,
       req.headers['user-agent'],
     );
+
+    const welcomePassword = body.user?.password ?? result.temporaryPassword;
+    if (result.teacher.email) {
+      try {
+        await this.emailService.sendWelcomeUserEmail({
+          to: result.teacher.email,
+          name: result.teacher.fullName,
+          role: 'Teacher',
+          email: result.teacher.email,
+          password: welcomePassword,
+        });
+      } catch {
+        // Ignore email failures to avoid blocking teacher creation.
+      }
+    }
 
     return {
       message: 'Teacher created successfully',

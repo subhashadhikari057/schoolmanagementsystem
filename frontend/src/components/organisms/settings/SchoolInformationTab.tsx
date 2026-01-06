@@ -750,27 +750,28 @@ export default function SchoolInformationTab() {
   };
 
   const handleGenerateReport = async () => {
-    try {
-      setIsReportLoading(true);
-      setReportUrl(null);
-      const qs = new URLSearchParams();
-      if (reportYear) qs.append('year', reportYear);
-      if (reportStartDate) qs.append('startDate', reportStartDate);
-      if (reportEndDate) qs.append('endDate', reportEndDate);
-      const res = await fetch(
-        `/api/v1/school-information/report-card?${qs.toString()}`,
-      );
-      if (!res.ok) throw new Error('Failed to generate report');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setReportUrl(url);
-      toast.success('Report generated');
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to generate report');
-    } finally {
-      setIsReportLoading(false);
-    }
+    return;
+    // try {
+    //   setIsReportLoading(true);
+    //   setReportUrl(null);
+    //   const qs = new URLSearchParams();
+    //   if (reportYear) qs.append('year', reportYear);
+    //   if (reportStartDate) qs.append('startDate', reportStartDate);
+    //   if (reportEndDate) qs.append('endDate', reportEndDate);
+    //   const res = await fetch(
+    //     `/api/v1/school-information/report-card?${qs.toString()}`,
+    //   );
+    //   if (!res.ok) throw new Error('Failed to generate report');
+    //   const blob = await res.blob();
+    //   const url = URL.createObjectURL(blob);
+    //   setReportUrl(url);
+    //   toast.success('Report generated');
+    // } catch (err) {
+    //   console.error(err);
+    //   toast.error('Failed to generate report');
+    // } finally {
+    //   setIsReportLoading(false);
+    // }
   };
 
   if (isLoading) {

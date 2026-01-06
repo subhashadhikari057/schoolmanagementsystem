@@ -50,7 +50,6 @@
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/throttler": "^6.4.0",
     "@prisma/client": "6.12.0",
-    "@react-email/render": "^2.0.0",
     "@sms/shared-types": "file:../shared-types",
     "@types/multer": "^2.0.0",
     "@types/pdfkit": "^0.17.2",

@@ -69,18 +69,23 @@ const envSchema = z.object({
     .default('development')
     .describe('Node.js environment'),
 
-  // Optional Future Configurations (commented out for now)
-  // EMAIL Configuration
-  SMTP_HOST: z.string().optional().describe('SMTP server hostname'),
-  SMTP_PORT: z
+  EMAIL_SMTP_HOST: z.string().optional().describe('SMTP server hostname'),
+  EMAIL_SMTP_PORT: z
     .string()
     .regex(/^\d+$/)
     .transform(Number)
     .optional()
     .describe('SMTP server port'),
-  SMTP_USER: z.string().optional().describe('SMTP username'),
-  SMTP_PASS: z.string().optional().describe('SMTP password'),
-  SMTP_FROM: z.string().optional().describe('Default from email address'),
+  EMAIL_SMTP_SECURE: z
+    .string()
+    .optional()
+    .describe('SMTP secure flag (true/false)'),
+  EMAIL_SMTP_USER: z.string().optional().describe('SMTP username'),
+  EMAIL_SMTP_PASSWORD: z.string().optional().describe('SMTP password'),
+  EMAIL_DEFAULT_FROM: z
+    .string()
+    .optional()
+    .describe('Default from email address'),
 
   // File Upload Configuration
   MAX_FILE_SIZE: z

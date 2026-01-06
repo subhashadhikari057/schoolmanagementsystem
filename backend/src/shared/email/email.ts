@@ -7,7 +7,6 @@ import type {
   EmailSendResult,
 } from './types.js';
 
-import { render } from '@react-email/render';
 import { createTransport, type Transporter } from 'nodemailer';
 import { escapeHtml, normalizeAddresses, stripHtml } from './utils';
 
@@ -18,6 +17,7 @@ export class EmailClient {
 
   constructor(private readonly options: EmailClientOptions = {}) {
     this.defaultFrom = options.defaultFrom ?? options.smtp?.from;
+    this.logger = options.logger ?? (() => undefined);
     this.transporter = this.createTransporter();
   }
 
