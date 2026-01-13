@@ -1,6 +1,6 @@
 'use client';
 import { FiSearch } from 'react-icons/fi';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import StudentExamsTab from '@/components/organisms/tabs/StudentExamsTab';
@@ -43,13 +43,6 @@ export default function ParentExamsPage() {
 
     loadChildren();
   }, []);
-
-  const selectedChildClassId = useMemo(() => {
-    const match = children.find(
-      child => (child.studentId || child.id) === selectedChild,
-    );
-    return match?.classId;
-  }, [children, selectedChild]);
 
   if (loading) {
     return <PageLoader />;
@@ -117,7 +110,6 @@ export default function ParentExamsPage() {
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
         selectedChild={selectedChild}
-        selectedClassId={selectedChildClassId}
       />
     </div>
   );

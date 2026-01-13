@@ -244,6 +244,12 @@ export class StudentController {
     return this.studentService.findByUserId(userId);
   }
 
+  @Get('me/exam-routine')
+  @Roles(UserRole.STUDENT)
+  async getMyExamRoutine(@CurrentUser() user: { id: string }) {
+    return this.studentService.getMyExamRoutine(user.id);
+  }
+
   @Get(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async findOne(@Param('id') id: string) {

@@ -4,9 +4,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import { Calendar } from 'lucide-react';
-import { examScheduleService } from '@/api/services/exam-timetable.service';
-import { examTimetableService } from '@/api/services/exam-timetable.service';
 import { parentService } from '@/api/services/parent.service';
+import { studentService } from '@/api/services/student.service';
 
 interface StudentExam {
   id: string;
@@ -27,13 +26,11 @@ interface StudentExamsTabProps {
   statusFilter: string;
   setStatusFilter?: (value: string) => void;
   selectedChild?: string;
-  selectedClassId?: string;
 }
 export default function StudentExamsTab({
   statusFilter,
   setStatusFilter,
   selectedChild,
-  selectedClassId,
 }: StudentExamsTabProps) {
   const [query, setQuery] = useState('');
   const [exams, setExams] = useState<StudentExam[]>([]);
@@ -70,7 +67,7 @@ export default function StudentExamsTab({
 
   useEffect(() => {
     const loadExamSchedules = async () => {
-      if (!selectedChild && !selectedClassId) {
+      if (selectedChild !== undefined && !selectedChild) {
         setExams([]);
         setHasSchedule(false);
         return;
@@ -137,14 +134,12 @@ export default function StudentExamsTab({
           return;
         }
 
-        const response = await examScheduleService.getExamSchedulesByClass(
-          selectedClassId as string,
-        );
+        const response = await studentService.getMyExamRoutine();
         if (!response.success) {
-          throw new Error(response.message || 'Failed to load exam schedules');
+          throw new Error(response.message || 'Failed to load exam routine');
         }
 
-        const schedules = response.data || [];
+        const schedules = response.data?.schedules || [];
         if (schedules.length === 0) {
           setHasSchedule(false);
           setExams([]);
@@ -153,30 +148,15 @@ export default function StudentExamsTab({
 
         setHasSchedule(true);
 
-        const timetableResults = await Promise.all(
-          schedules.map(async schedule => {
-            const calendarEntryId = schedule.calendarEntry?.id;
-            if (!calendarEntryId) {
-              return [] as StudentExam[];
-            }
-
-            const timetableResponse =
-              await examTimetableService.getExamTimetable(
-                selectedClassId as string,
-                calendarEntryId,
-                schedule.id,
-              );
-            if (!timetableResponse.success) {
-              return [] as StudentExam[];
-            }
-
+        const mappedExams: StudentExam[] = schedules.flatMap(
+          (schedule: any) => {
             const classLabel =
               schedule.class?.name ||
               (schedule.class
                 ? `Grade ${schedule.class.grade} - Section ${schedule.class.section}`
-                : '');
+                : response.data?.child?.className);
 
-            return (timetableResponse.data || []).map(slot => {
+            return (schedule.slots || []).map((slot: any) => {
               const examDate = slot.dateslot?.examDate
                 ? new Date(slot.dateslot.examDate)
                 : null;
@@ -202,21 +182,13 @@ export default function StudentExamsTab({
                 status,
               };
             });
-          }),
+          },
         );
 
-        const flattened = timetableResults.flat();
-        const sorted = flattened.sort((a, b) => {
-          const dateA = new Date(a.date).getTime();
-          const dateB = new Date(b.date).getTime();
-          if (Number.isNaN(dateA) || Number.isNaN(dateB)) return 0;
-          return dateA - dateB;
-        });
-
-        setExams(sorted);
+        setExams(mappedExams);
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : 'Failed to load exam schedules';
+          err instanceof Error ? err.message : 'Failed to load exam routine';
         setError(message);
         setExams([]);
         setHasSchedule(null);
@@ -226,7 +198,7 @@ export default function StudentExamsTab({
     };
 
     loadExamSchedules();
-  }, [selectedChild, selectedClassId]);
+  }, [selectedChild]);
 
   const filteredExams = useMemo(() => {
     return exams.filter(exam => {

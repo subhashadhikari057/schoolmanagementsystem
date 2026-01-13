@@ -7,6 +7,7 @@ export const STUDENT_ENDPOINTS = {
   GET_ALL: 'api/v1/students',
   GET_BY_ID: (id: string) => `api/v1/students/${id}`,
   GET_BY_USER_ID: (userId: string) => `api/v1/students/user/${userId}`,
+  GET_MY_EXAM_ROUTINE: 'api/v1/students/me/exam-routine',
   UPDATE_BY_ADMIN: (id: string) => `api/v1/students/${id}`,
   UPDATE_SELF: 'api/v1/students/profile/self',
   DELETE: (id: string) => `api/v1/students/${id}`,
@@ -353,6 +354,49 @@ export interface GuardianInfo {
   createdAt: string;
 }
 
+export interface StudentExamRoutineResponse {
+  child: {
+    id: string;
+    fullName: string;
+    classId: string | null;
+    className: string | null;
+    rollNumber?: string | null;
+  };
+  schedules: Array<{
+    id: string;
+    name: string;
+    academicYear: string;
+    status: string;
+    class?: {
+      id: string;
+      name?: string | null;
+      grade?: number | null;
+      section?: string | null;
+    };
+    calendarEntry?: {
+      id: string;
+      name: string;
+      examType?: string | null;
+      startDate?: string | Date | null;
+      endDate?: string | Date | null;
+    };
+    slots: Array<{
+      id: string;
+      dateslot?: {
+        id: string;
+        examDate?: string | Date | null;
+        startTime?: string | null;
+        endTime?: string | null;
+      } | null;
+      subject?: { id: string; name?: string | null; code?: string | null } | null;
+      room?: { id: string; roomNo?: string | null; name?: string | null } | null;
+      duration?: number | null;
+      instructions?: string | null;
+    }>;
+  }>;
+  message?: string;
+}
+
 export class StudentService {
   private httpClient: HttpClient;
 
@@ -445,6 +489,14 @@ export class StudentService {
   ): Promise<ApiResponse<StudentResponse>> {
     return this.httpClient.get<StudentResponse>(
       STUDENT_ENDPOINTS.GET_BY_USER_ID(userId),
+      undefined,
+      { requiresAuth: true },
+    );
+  }
+
+  async getMyExamRoutine(): Promise<ApiResponse<StudentExamRoutineResponse>> {
+    return this.httpClient.get<StudentExamRoutineResponse>(
+      STUDENT_ENDPOINTS.GET_MY_EXAM_ROUTINE,
       undefined,
       { requiresAuth: true },
     );

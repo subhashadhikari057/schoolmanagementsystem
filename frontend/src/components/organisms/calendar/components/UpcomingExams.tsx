@@ -96,18 +96,18 @@ const UpcomingExams: React.FC<UpcomingExamsProps> = ({
     }
   };
 
-  // Calculate days remaining until exam
-  const getDaysRemaining = (examDate: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const startOfDay = (date: Date) => {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  };
 
-    const examStartDate = new Date(examDate);
-    examStartDate.setHours(0, 0, 0, 0);
-
-    const diffTime = examStartDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    return diffDays;
+  const parseCalendarDate = (value?: string) => {
+    if (!value) return null;
+    const normalized = value.includes('T') ? value : `${value}T00:00:00`;
+    const parsed = new Date(normalized);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return startOfDay(parsed);
   };
 
   // Get exam type display label
@@ -125,7 +125,6 @@ const UpcomingExams: React.FC<UpcomingExamsProps> = ({
 
   // Get countdown color based on days remaining
   const getCountdownColor = (daysRemaining: number) => {
-    if (daysRemaining <= 0) return 'text-red-600 bg-red-100';
     if (daysRemaining <= 3) return 'text-orange-600 bg-orange-100';
     if (daysRemaining <= 7) return 'text-yellow-600 bg-yellow-100';
     return 'text-green-600 bg-green-100';
@@ -141,26 +140,30 @@ const UpcomingExams: React.FC<UpcomingExamsProps> = ({
     setError(null);
 
     try {
-      const now = new Date();
-      const endDate = new Date();
-      endDate.setDate(now.getDate() + daysAhead);
+      const today = startOfDay(new Date());
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + daysAhead);
 
       const response = await calendarService.getCalendarEntries({
         page: 1,
         limit: 50,
         type: CalendarEntryType.EXAM,
-        startDate: now.toISOString().split('T')[0],
+        startDate: today.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
       });
 
       const upcomingExams = response.entries
         .map(entry => calendarService.toCalendarEvent(entry))
         .filter(exam => {
-          const examDate = new Date(exam.date);
-          return examDate >= now && examDate <= endDate;
+          const examStart = parseCalendarDate(exam.date);
+          const examEnd = parseCalendarDate(exam.endDate || exam.date);
+          if (!examStart || !examEnd) return false;
+          return examStart <= endDate && examEnd >= today;
         })
         .sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+          (a, b) =>
+            (parseCalendarDate(a.date)?.getTime() || 0) -
+            (parseCalendarDate(b.date)?.getTime() || 0),
         );
 
       setExams(upcomingExams);
@@ -189,9 +192,7 @@ const UpcomingExams: React.FC<UpcomingExamsProps> = ({
     }
   }, [fetchUpcomingExams, onRefresh]);
 
-  // Process exams (either external or fetched)
-  const processedExams = externalExams || exams;
-  const displayedExams = processedExams.slice(0, initialLimit);
+  const displayedExams = exams.slice(0, initialLimit);
 
   // Fetch exams on mount ONLY if no external exams prop is provided
   useEffect(() => {
@@ -203,18 +204,22 @@ const UpcomingExams: React.FC<UpcomingExamsProps> = ({
   // Update exams when external exams change
   useEffect(() => {
     if (externalExams) {
-      const now = new Date();
-      const endDate = new Date();
-      endDate.setDate(now.getDate() + daysAhead);
+      const today = startOfDay(new Date());
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + daysAhead);
 
       const filteredExams = externalExams
         .filter(exam => exam.type === 'exam')
         .filter(exam => {
-          const examDate = new Date(exam.date);
-          return examDate >= now && examDate <= endDate;
+          const examStart = parseCalendarDate(exam.date);
+          const examEnd = parseCalendarDate(exam.endDate || exam.date);
+          if (!examStart || !examEnd) return false;
+          return examStart <= endDate && examEnd >= today;
         })
         .sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+          (a, b) =>
+            (parseCalendarDate(a.date)?.getTime() || 0) -
+            (parseCalendarDate(b.date)?.getTime() || 0),
         );
 
       setExams(filteredExams);
@@ -299,8 +304,36 @@ const UpcomingExams: React.FC<UpcomingExamsProps> = ({
               const endDateInfo = exam.endDate
                 ? formatDateBadge(exam.endDate)
                 : null;
-              const daysRemaining = getDaysRemaining(exam.date);
               const isMultiDay = exam.endDate && exam.date !== exam.endDate;
+              const today = startOfDay(new Date());
+              const examStart = parseCalendarDate(exam.date);
+              const examEnd = parseCalendarDate(exam.endDate || exam.date);
+              const isPast = !!examEnd && examEnd < today;
+              const isOngoing =
+                !!examStart &&
+                !!examEnd &&
+                examStart <= today &&
+                examEnd >= today;
+              const daysRemaining =
+                examStart &&
+                Math.ceil(
+                  (examStart.getTime() - today.getTime()) /
+                    (1000 * 60 * 60 * 24),
+                );
+              const countdownLabel = isPast
+                ? 'Past'
+                : isOngoing
+                  ? 'Today'
+                  : daysRemaining !== null && daysRemaining !== undefined
+                    ? `${daysRemaining}d`
+                    : 'TBD';
+              const countdownClass = isPast
+                ? 'text-gray-600 bg-gray-100'
+                : isOngoing
+                  ? 'text-red-600 bg-red-100'
+                  : daysRemaining !== null && daysRemaining !== undefined
+                    ? getCountdownColor(daysRemaining)
+                    : 'text-gray-600 bg-gray-100';
 
               return (
                 <div
@@ -322,9 +355,9 @@ const UpcomingExams: React.FC<UpcomingExamsProps> = ({
                       <div className='flex gap-1 flex-shrink-0'>
                         {/* Countdown Badge */}
                         <span
-                          className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${getCountdownColor(daysRemaining)}`}
+                          className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${countdownClass}`}
                         >
-                          {daysRemaining <= 0 ? 'Today' : `${daysRemaining}d`}
+                          {countdownLabel}
                         </span>
                         {/* Exam Type Badge */}
                         {exam.examType && (
