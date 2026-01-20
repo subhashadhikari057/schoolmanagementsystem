@@ -182,7 +182,8 @@ const getActionButtonsConfig = (
             const backendUrl =
               process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
             const response = await fetch(
-              `${backendUrl}/api/v1/student-import/import/template`,
+              // `${backendUrl}/api/v1/student-import/import/template`,
+              `/api/v1/student-import/import/template`,
               {
                 method: 'GET',
                 credentials: 'include',
@@ -351,12 +352,10 @@ const getActionButtonsConfig = (
             const academicStatus = urlParams.get('academicStatus') || '';
 
             // Build export URL with filters
-            const backendUrl =
-              process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-            const exportUrl = new URL(
-              '/api/v1/student-import/export',
-              backendUrl,
-            );
+            const origin =
+              typeof window !== 'undefined' ? window.location.origin : '';
+            const base = origin || '';
+            const exportUrl = new URL('/api/v1/student-import/export', base);
             if (classId) exportUrl.searchParams.set('classId', classId);
             if (search) exportUrl.searchParams.set('search', search);
             if (academicStatus)

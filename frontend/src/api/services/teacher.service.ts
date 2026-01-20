@@ -247,8 +247,9 @@ export class TeacherService {
     const url = `api/v1/teacher-import/export${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
     // For blob responses, we need to use fetch directly
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    const fullUrl = `${baseURL}/${url}`;
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    const normalizedBase = base ? base.replace(/\/$/, '') : '';
+    const fullUrl = normalizedBase ? `${normalizedBase}/${url}` : `/${url}`;
 
     // Get CSRF token
     const { csrfService } = await import('../services/csrf.service');
@@ -277,8 +278,11 @@ export class TeacherService {
    */
   async getImportTemplate(): Promise<Blob> {
     // For blob responses, we need to use fetch directly
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    const fullUrl = `${baseURL}/api/v1/teacher-import/import/template`;
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    const normalizedBase = base ? base.replace(/\/$/, '') : '';
+    const fullUrl = normalizedBase
+      ? `${normalizedBase}/api/v1/teacher-import/import/template`
+      : `/api/v1/teacher-import/import/template`;
 
     // Get CSRF token
     const { csrfService } = await import('../services/csrf.service');

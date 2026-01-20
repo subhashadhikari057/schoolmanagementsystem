@@ -388,8 +388,16 @@ export interface StudentExamRoutineResponse {
         startTime?: string | null;
         endTime?: string | null;
       } | null;
-      subject?: { id: string; name?: string | null; code?: string | null } | null;
-      room?: { id: string; roomNo?: string | null; name?: string | null } | null;
+      subject?: {
+        id: string;
+        name?: string | null;
+        code?: string | null;
+      } | null;
+      room?: {
+        id: string;
+        roomNo?: string | null;
+        name?: string | null;
+      } | null;
       duration?: number | null;
       instructions?: string | null;
     }>;
@@ -846,11 +854,12 @@ export class StudentService {
       queryParams.set('academicStatus', params.academicStatus);
     }
 
-    const url = `api/v1/student-import/export${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-
-    // For blob responses, we need to use fetch directly
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    const fullUrl = `${baseURL}/${url}`;
+    const url = `api/v1/student-import/export${
+      queryParams.toString() ? `?${queryParams.toString()}` : ''
+    }`;
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    const normalizedBase = base ? base.replace(/\/$/, '') : '';
+    const fullUrl = normalizedBase ? `${normalizedBase}/${url}` : `/${url}`;
 
     // Get CSRF token
     const { csrfService } = await import('../services/csrf.service');
@@ -878,9 +887,11 @@ export class StudentService {
    * Get XLSX template for student import
    */
   async getImportTemplate(): Promise<Blob> {
-    // For blob responses, we need to use fetch directly
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    const fullUrl = `${baseURL}/api/v1/student-import/import/template`;
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    const normalizedBase = base ? base.replace(/\/$/, '') : '';
+    const fullUrl = normalizedBase
+      ? `${normalizedBase}/api/v1/student-import/import/template`
+      : `/api/v1/student-import/import/template`;
 
     // Get CSRF token
     const { csrfService } = await import('../services/csrf.service');

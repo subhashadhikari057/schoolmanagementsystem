@@ -391,12 +391,14 @@ export class StaffService {
       queryParams.append('employmentStatus', params.employmentStatus);
     }
 
-    // For blob responses, we need to use fetch directly
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     const endpoint = queryParams.toString()
       ? `${STAFF_ENDPOINTS.EXPORT_CSV}?${queryParams.toString()}`
       : STAFF_ENDPOINTS.EXPORT_CSV;
-    const fullUrl = `${baseURL}/${endpoint}`;
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    const normalizedBase = base ? base.replace(/\/$/, '') : '';
+    const fullUrl = normalizedBase
+      ? `${normalizedBase}/${endpoint}`
+      : `/${endpoint}`;
 
     // Get CSRF token
     const { csrfService } = await import('../services/csrf.service');
@@ -424,9 +426,11 @@ export class StaffService {
    * Download XLSX template for staff import
    */
   async downloadImportTemplate(): Promise<Blob> {
-    // For blob responses, we need to use fetch directly
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    const fullUrl = `${baseURL}/${STAFF_ENDPOINTS.GET_IMPORT_TEMPLATE}`;
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    const normalizedBase = base ? base.replace(/\/$/, '') : '';
+    const fullUrl = normalizedBase
+      ? `${normalizedBase}/${STAFF_ENDPOINTS.GET_IMPORT_TEMPLATE}`
+      : `/${STAFF_ENDPOINTS.GET_IMPORT_TEMPLATE}`;
 
     // Get CSRF token
     const { csrfService } = await import('../services/csrf.service');

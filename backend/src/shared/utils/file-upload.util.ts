@@ -3,27 +3,50 @@ import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { BadRequestException } from '@nestjs/common';
 
-const UPLOAD_BASE = process.env.UPLOAD_BASE || process.cwd();
+// Resolve a writable root for uploads. Prefer UPLOAD_BASE, fall back to cwd.
+const resolveUploadRoot = () => {
+  const candidates = [
+    process.env.UPLOAD_BASE,
+    join(process.cwd(), 'uploads'),
+  ].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    try {
+      if (!existsSync(candidate)) {
+        mkdirSync(candidate, { recursive: true });
+      }
+      return candidate;
+    } catch (err) {
+      // Try next candidate
+    }
+  }
+
+  // Last resort: cwd
+  const fallback = join(process.cwd(), 'uploads');
+  if (!existsSync(fallback)) {
+    mkdirSync(fallback, { recursive: true });
+  }
+  return fallback;
+};
+
+const UPLOAD_ROOT = resolveUploadRoot();
 
 export const UPLOAD_PATHS = {
-  TEACHER_PROFILES: join(UPLOAD_BASE, 'uploads/teachers/profiles'),
-  STUDENT_PROFILES: join(UPLOAD_BASE, 'uploads/students/profiles'),
-  STAFF_PROFILES: join(UPLOAD_BASE, 'uploads/staff/profiles'),
-  PARENT_PROFILES: join(UPLOAD_BASE, 'uploads/parents/profiles'),
-  DOCUMENTS: join(UPLOAD_BASE, 'uploads/documents'),
-  NOTICE_ATTACHMENTS: join(UPLOAD_BASE, 'uploads/notices/attachments'),
-  COMPLAINT_ATTACHMENTS: join(UPLOAD_BASE, 'uploads/complaints/attachments'),
-  LEAVE_REQUEST_ATTACHMENTS: join(
-    UPLOAD_BASE,
-    'uploads/leave-requests/attachments',
-  ),
+  TEACHER_PROFILES: join(UPLOAD_ROOT, 'teachers/profiles'),
+  STUDENT_PROFILES: join(UPLOAD_ROOT, 'students/profiles'),
+  STAFF_PROFILES: join(UPLOAD_ROOT, 'staff/profiles'),
+  PARENT_PROFILES: join(UPLOAD_ROOT, 'parents/profiles'),
+  DOCUMENTS: join(UPLOAD_ROOT, 'documents'),
+  NOTICE_ATTACHMENTS: join(UPLOAD_ROOT, 'notices/attachments'),
+  COMPLAINT_ATTACHMENTS: join(UPLOAD_ROOT, 'complaints/attachments'),
+  LEAVE_REQUEST_ATTACHMENTS: join(UPLOAD_ROOT, 'leave-requests/attachments'),
   TEACHER_LEAVE_REQUEST_ATTACHMENTS: join(
-    UPLOAD_BASE,
-    'uploads/teacher-leave-requests/attachments',
+    UPLOAD_ROOT,
+    'teacher-leave-requests/attachments',
   ),
-  ASSIGNMENT_ATTACHMENTS: join(UPLOAD_BASE, 'uploads/assignments/attachments'),
-  SUBMISSION_ATTACHMENTS: join(UPLOAD_BASE, 'uploads/submissions/attachments'),
-  SCHOOL_INFO_LOGOS: join(UPLOAD_BASE, 'uploads/school-info/logos'),
+  ASSIGNMENT_ATTACHMENTS: join(UPLOAD_ROOT, 'assignments/attachments'),
+  SUBMISSION_ATTACHMENTS: join(UPLOAD_ROOT, 'submissions/attachments'),
+  SCHOOL_INFO_LOGOS: join(UPLOAD_ROOT, 'school-info/logos'),
 } as const;
 
 // Ensure upload directories exist
