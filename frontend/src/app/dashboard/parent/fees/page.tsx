@@ -15,7 +15,6 @@ import {
 export default function ParentFeesPage() {
   const [children, setChildren] = useState<ParentResponse['children']>([]);
   const [selectedChild, setSelectedChild] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState('All');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feeLoading, setFeeLoading] = useState(false);
@@ -49,31 +48,6 @@ export default function ParentFeesPage() {
     fetchChildren();
   }, []);
 
-  const childOptions = (children || []).map(child => ({
-    value: child.studentId || child.id,
-    label: `${child.fullName} ${child.className ? `(${child.className})` : ''}`,
-  }));
-  const statusOptions = [
-    { value: 'All', label: 'All' },
-    { value: 'Paid', label: 'Paid' },
-    { value: 'Due', label: 'Due' },
-  ];
-  const feesRaw =
-    currentFee && currentFee.computedFee
-      ? [
-          {
-            month: currentFee.currentMonth,
-            amount: currentFee.computedFee.finalPayable,
-            status: 'Due',
-            dueDate: '',
-          },
-        ]
-      : [];
-  const fees =
-    statusFilter === 'All'
-      ? feesRaw
-      : feesRaw.filter(fee => fee.status === statusFilter);
-
   useEffect(() => {
     const fetchFees = async () => {
       if (!selectedChild) {
@@ -98,6 +72,18 @@ export default function ParentFeesPage() {
 
     fetchFees();
   }, [selectedChild]);
+
+  const childOptions = (children || []).map(child => ({
+    value: child.studentId || child.id,
+    label: `${child.fullName} ${child.className ? `(${child.className})` : ''}`,
+  }));
+
+  const structureItems = (() => {
+    const breakdown = currentFee?.computedFee?.breakdown as any;
+    if (Array.isArray(breakdown?.items)) return breakdown.items;
+    if (Array.isArray(breakdown)) return breakdown;
+    return [];
+  })();
 
   if (loading) {
     return <PageLoader />;
@@ -136,55 +122,110 @@ export default function ParentFeesPage() {
               className='min-w-[220px]'
               placeholder='Select Child'
             />
-            <Dropdown
-              type='filter'
-              options={statusOptions}
-              selectedValue={statusFilter}
-              onSelect={setStatusFilter}
-              className='min-w-[120px]'
-              placeholder='Status'
-            />
           </div>
         </div>
-        <div className='bg-white rounded-xl shadow-sm p-4'>
-          <h3 className='font-semibold text-gray-800 mb-4'>Fee Notices</h3>
-          <div className='space-y-3'>
-            {feeLoading ? (
-              <div className='text-gray-500'>Loading fees...</div>
-            ) : feeError ? (
-              <div className='text-red-600'>{feeError}</div>
-            ) : fees.length === 0 ? (
-              <div className='text-gray-500'>No fee data found.</div>
-            ) : (
-              fees.map((fee, idx) => (
-                <div
-                  key={idx}
-                  className='border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-50 hover:bg-blue-50 transition-all'
-                >
-                  <div>
-                    <div className='font-medium text-gray-900'>{fee.month}</div>
-                    <div className='text-xs text-gray-500'>
-                      Due Date: {fee.dueDate || '—'}
-                    </div>
-                  </div>
-                  <div className='flex flex-col sm:flex-row sm:items-center gap-2 mt-2 sm:mt-0'>
-                    <span className='text-base font-bold text-blue-700'>
-                      {typeof fee.amount === 'number'
-                        ? `₹${fee.amount.toLocaleString()}`
-                        : fee.amount}
-                    </span>
-                    <span
-                      className={`text-xs font-semibold px-2 py-1 rounded-full ${fee.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-                    >
-                      {fee.status}
-                    </span>
-                  </div>
+        <div className='bg-white rounded-xl shadow-sm p-4 space-y-4'>
+          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+            <div>
+              <h3 className='font-semibold text-gray-800'>Fee Structure</h3>
+              <p className='text-sm text-gray-500'>
+                Showing the current fee structure for the selected child&apos;s
+                class.
+              </p>
+            </div>
+            {currentFee?.computedFee && (
+              <div className='text-right'>
+                <div className='text-xs uppercase text-gray-500'>
+                  Total Payable (per current period)
                 </div>
-              ))
+                <div className='text-xl font-bold text-blue-700'>
+                  ₹{currentFee.computedFee.finalPayable.toLocaleString()}
+                </div>
+              </div>
             )}
           </div>
+
+          {feeLoading ? (
+            <div className='text-gray-500'>Loading fee structure...</div>
+          ) : feeError ? (
+            <div className='text-red-600'>{feeError}</div>
+          ) : !currentFee ? (
+            <div className='text-gray-500'>Select a child to view fees.</div>
+          ) : structureItems.length === 0 ? (
+            <div className='text-gray-500'>
+              No fee structure is assigned for this class yet.
+            </div>
+          ) : (
+            <div className='space-y-3'>
+              {structureItems.map((item: any, idx: number) => (
+                <div
+                  key={item.id || idx}
+                  className='border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-50'
+                >
+                  <div>
+                    <div className='font-medium text-gray-900'>
+                      {item.label || item.category || 'Item'}
+                    </div>
+                    {item.frequency && (
+                      <div className='text-xs text-gray-500'>
+                        {item.frequency}
+                      </div>
+                    )}
+                  </div>
+                  <div className='text-base font-semibold text-blue-700'>
+                    ₹{Number(item.amount || 0).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {currentFee?.computedFee && (
+            <div className='grid sm:grid-cols-2 gap-3 pt-2 border-t border-gray-100'>
+              <SummaryRow
+                label='Base Amount'
+                value={currentFee.computedFee.baseAmount}
+              />
+              <SummaryRow
+                label='Scholarship Deduction'
+                value={currentFee.computedFee.scholarshipDeduction}
+                valueClass='text-green-700'
+                prefix='-'
+              />
+              <SummaryRow
+                label='Extra Charges'
+                value={currentFee.computedFee.extraCharges}
+              />
+              <SummaryRow
+                label='Final Payable'
+                value={currentFee.computedFee.finalPayable}
+                valueClass='text-blue-700 font-bold'
+              />
+            </div>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  valueClass,
+  prefix = '',
+}: {
+  label: string;
+  value: number;
+  valueClass?: string;
+  prefix?: string;
+}) {
+  return (
+    <div className='flex items-center justify-between text-sm text-gray-700'>
+      <span>{label}</span>
+      <span className={`font-semibold ${valueClass ?? ''}`}>
+        {prefix}₹{Number(value || 0).toLocaleString()}
+      </span>
     </div>
   );
 }

@@ -237,7 +237,6 @@ const getActionButtonsConfig = (
         className: 'bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-lg',
         icon: <Upload size={16} />,
         onClick: () => {
-          // Create a file input element for Excel upload
           const input = document.createElement('input');
           input.type = 'file';
           input.accept = '.xlsx';
@@ -254,53 +253,27 @@ const getActionButtonsConfig = (
                   button.setAttribute('disabled', 'true');
                 }
 
-                // Create FormData for upload
-                const formData = new FormData();
-                formData.append('file', file);
-
-                // Get CSRF token and add to headers
-                const csrfToken = await csrfService.getToken();
-                const headers: Record<string, string> = {
-                  'X-CSRF-Token': csrfToken,
-                };
-
-                // Upload to backend with CSRF token
-                const backendUrl =
-                  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-                const response = await fetch(
-                  `${backendUrl}/api/v1/student-import/import`,
-                  {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'include',
-                    headers,
-                  },
+                // Upload through student service (hits /api on current origin)
+                const { studentService } =
+                  await import('@/api/services/student.service');
+                const result = await studentService.importStudentsFromCSV(
+                  file,
+                  { skipDuplicates: true, updateExisting: false },
                 );
 
-                if (response.ok) {
-                  const result = await response.json();
-                  if (result.success) {
-                    toast.success(
-                      `Import successful. ${result.successfulImports} students imported successfully.`,
-                      {
-                        description:
-                          'Check the backend console for student and parent passwords.',
-                        duration: 6000,
-                      },
-                    );
-                    // Refresh the page to show new students
-                    window.location.reload();
-                  } else {
-                    toast.error(`Import failed: ${result.message}`, {
-                      description: `${result.failedImports} students failed to import.`,
-                      duration: 5000,
-                    });
-                  }
+                if (result.success) {
+                  toast.success(
+                    `Import successful. ${result.data.successfulImports} students imported successfully.`,
+                    {
+                      description:
+                        'Check the backend console for student and parent passwords.',
+                      duration: 6000,
+                    },
+                  );
+                  window.location.reload();
                 } else {
-                  const error = await response.text();
-                  toast.error(`Import failed: ${error}`, {
-                    description:
-                      'Please check your Excel format and try again.',
+                  toast.error(`Import failed: ${result.message}`, {
+                    description: `${result.data.failedImports} students failed to import.`,
                     duration: 5000,
                   });
                 }

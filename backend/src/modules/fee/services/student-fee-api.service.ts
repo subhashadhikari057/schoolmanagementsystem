@@ -35,14 +35,22 @@ export class StudentFeeApiService {
       1,
     );
 
-    // Get latest fee history for current month
-    const feeHistory = await this.prisma.studentFeeHistory.findFirst({
+    // Get the latest fee history up to (and including) the current month
+    let feeHistory = await this.prisma.studentFeeHistory.findFirst({
       where: {
         studentId,
-        periodMonth: currentMonth,
+        periodMonth: { lte: currentMonth },
       },
-      orderBy: { version: 'desc' },
+      orderBy: [{ periodMonth: 'desc' }, { version: 'desc' }],
     });
+
+    // Fallback: grab the most recent record even if it's ahead of the current month
+    if (!feeHistory) {
+      feeHistory = await this.prisma.studentFeeHistory.findFirst({
+        where: { studentId },
+        orderBy: [{ periodMonth: 'desc' }, { version: 'desc' }],
+      });
+    }
 
     if (!feeHistory) {
       return {
