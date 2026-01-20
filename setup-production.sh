@@ -20,7 +20,7 @@ echo ""
 
 # Generate JWT keys
 echo "🔐 Generating JWT keys..."
-openssl genpkey -algorithm RSA -out private.pem -pkcs8 -aes256
+openssl genpkey -algorithm RSA -out private.pem -pkcs8
 openssl rsa -pubout -in private.pem -out public.pem
 
 PRIVATE_KEY_B64=$(cat private.pem | base64 -w 0)
