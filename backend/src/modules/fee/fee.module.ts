@@ -7,6 +7,7 @@ import { ChargeController } from './controllers/charge.controller';
 import { ChargeManagementController } from './controllers/charge-management.controller';
 import { FeeComputationController } from './controllers/fee-computation.controller';
 import { StudentFeeApiController } from './controllers/student-fee-api.controller';
+import { ParentFeeController } from './controllers/parent-fee.controller';
 import { FeeStructureService } from './services/fee-structure.service';
 import { ScholarshipManagementService } from './services/scholarship-management.service';
 import { ChargeService } from './services/charge.service';
@@ -25,6 +26,7 @@ import { StudentLookupController } from './controllers/student-lookup.controller
     ChargeManagementController,
     FeeComputationController,
     StudentFeeApiController,
+    ParentFeeController,
   ],
   providers: [
     PrismaService,

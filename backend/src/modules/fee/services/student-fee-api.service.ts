@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 
@@ -74,6 +75,31 @@ export class StudentFeeApiService {
       },
       createdAt: feeHistory.createdAt,
     };
+  }
+
+  /**
+   * Parent-safe wrapper: verify parent-child link before returning current month fees
+   */
+  async getCurrentStudentFeesForParent(
+    parentUserId: string,
+    studentId: string,
+  ) {
+    const parent = await this.prisma.parent.findFirst({
+      where: {
+        userId: parentUserId,
+        deletedAt: null,
+        children: {
+          some: { studentId, deletedAt: null },
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!parent) {
+      throw new ForbiddenException('Access denied: child not linked to parent');
+    }
+
+    return this.getCurrentStudentFees(studentId);
   }
 
   /**

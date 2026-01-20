@@ -149,6 +149,27 @@ export interface ScholarshipAssignment {
   };
 }
 
+export interface StudentFeeBreakdown {
+  version: number;
+  baseAmount: number;
+  scholarshipDeduction: number;
+  extraCharges: number;
+  finalPayable: number;
+  breakdown?: unknown;
+}
+
+export interface CurrentStudentFeeResponse {
+  studentId: string;
+  currentMonth: string; // YYYY-MM
+  student: {
+    fullName: string;
+    rollNumber: string;
+    class: { id: string; name?: string | null };
+  };
+  computedFee?: StudentFeeBreakdown;
+  message?: string;
+}
+
 export const feeService = {
   async listStructures(params: FeeStructureListParams) {
     const qp = new URLSearchParams();
@@ -284,5 +305,13 @@ export const feeService = {
       );
       throw new Error('Scholarship assignment toggle endpoint not available');
     }
+  },
+  async getCurrentFeesForParentChild(
+    studentId: string,
+  ): Promise<CurrentStudentFeeResponse> {
+    const response = await apiClient.get<CurrentStudentFeeResponse>(
+      `/api/v1/fees/parent/children/${studentId}/current`,
+    );
+    return response.data;
   },
 };

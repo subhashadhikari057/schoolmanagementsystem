@@ -3,78 +3,120 @@ import React, { useState, useEffect } from 'react';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import { PageLoader } from '@/components/atoms/loading';
-
-// Demo children data
-const children = [
-  { id: '1', name: 'Aarav Sharma', class: '10', section: 'A' },
-  { id: '2', name: 'Priya Sharma', class: '7', section: 'B' },
-];
-
-// Demo fee data per child
-const feeData: Record<
-  string,
-  Array<{ month: string; amount: string; status: string; dueDate: string }>
-> = {
-  '1': [
-    {
-      month: 'August 2025',
-      amount: '₹2,500',
-      status: 'Paid',
-      dueDate: '2025-08-05',
-    },
-    {
-      month: 'September 2025',
-      amount: '₹2,500',
-      status: 'Due',
-      dueDate: '2025-09-05',
-    },
-  ],
-  '2': [
-    {
-      month: 'August 2025',
-      amount: '₹2,000',
-      status: 'Paid',
-      dueDate: '2025-08-05',
-    },
-    {
-      month: 'September 2025',
-      amount: '₹2,000',
-      status: 'Due',
-      dueDate: '2025-09-05',
-    },
-  ],
-};
+import {
+  parentService,
+  type ParentResponse,
+} from '@/api/services/parent.service';
+import {
+  feeService,
+  type CurrentStudentFeeResponse,
+} from '@/api/services/fee.service';
 
 export default function ParentFeesPage() {
-  const [selectedChild, setSelectedChild] = useState(children[0].id);
+  const [children, setChildren] = useState<ParentResponse['children']>([]);
+  const [selectedChild, setSelectedChild] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [feeLoading, setFeeLoading] = useState(false);
+  const [feeError, setFeeError] = useState<string | null>(null);
+  const [currentFee, setCurrentFee] =
+    useState<CurrentStudentFeeResponse | null>(null);
 
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1100);
+    const fetchChildren = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await parentService.getMyProfile();
+        if (!res.success || !res.data) {
+          throw new Error(res.message || 'Failed to load children');
+        }
+        const kids = res.data.children || [];
+        setChildren(kids);
+        setSelectedChild(kids[0]?.studentId || kids[0]?.id || null);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to load children';
+        setError(message);
+        setChildren([]);
+        setSelectedChild(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    fetchChildren();
   }, []);
-  const childOptions = children.map(child => ({
-    value: child.id,
-    label: `${child.name} (Class ${child.class}${child.section})`,
+
+  const childOptions = (children || []).map(child => ({
+    value: child.studentId || child.id,
+    label: `${child.fullName} ${child.className ? `(${child.className})` : ''}`,
   }));
   const statusOptions = [
     { value: 'All', label: 'All' },
     { value: 'Paid', label: 'Paid' },
     { value: 'Due', label: 'Due' },
   ];
-  const feesRaw = feeData[selectedChild] || [];
+  const feesRaw =
+    currentFee && currentFee.computedFee
+      ? [
+          {
+            month: currentFee.currentMonth,
+            amount: currentFee.computedFee.finalPayable,
+            status: 'Due',
+            dueDate: '',
+          },
+        ]
+      : [];
   const fees =
     statusFilter === 'All'
       ? feesRaw
       : feesRaw.filter(fee => fee.status === statusFilter);
 
+  useEffect(() => {
+    const fetchFees = async () => {
+      if (!selectedChild) {
+        setCurrentFee(null);
+        return;
+      }
+      try {
+        setFeeLoading(true);
+        setFeeError(null);
+        const res =
+          await feeService.getCurrentFeesForParentChild(selectedChild);
+        setCurrentFee(res);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to load fees';
+        setFeeError(message);
+        setCurrentFee(null);
+      } finally {
+        setFeeLoading(false);
+      }
+    };
+
+    fetchFees();
+  }, [selectedChild]);
+
   if (loading) {
     return <PageLoader />;
+  }
+
+  if (error) {
+    return (
+      <div className='min-h-screen flex items-center justify-center text-red-600'>
+        {error}
+      </div>
+    );
+  }
+
+  if (!children || children.length === 0) {
+    return (
+      <div className='min-h-screen flex items-center justify-center text-gray-600'>
+        No children found for this parent account.
+      </div>
+    );
   }
 
   return (
@@ -89,8 +131,8 @@ export default function ParentFeesPage() {
             <Dropdown
               type='filter'
               options={childOptions}
-              selectedValue={selectedChild}
-              onSelect={setSelectedChild}
+              selectedValue={selectedChild ?? undefined}
+              onSelect={value => setSelectedChild(value)}
               className='min-w-[220px]'
               placeholder='Select Child'
             />
@@ -107,7 +149,11 @@ export default function ParentFeesPage() {
         <div className='bg-white rounded-xl shadow-sm p-4'>
           <h3 className='font-semibold text-gray-800 mb-4'>Fee Notices</h3>
           <div className='space-y-3'>
-            {fees.length === 0 ? (
+            {feeLoading ? (
+              <div className='text-gray-500'>Loading fees...</div>
+            ) : feeError ? (
+              <div className='text-red-600'>{feeError}</div>
+            ) : fees.length === 0 ? (
               <div className='text-gray-500'>No fee data found.</div>
             ) : (
               fees.map((fee, idx) => (
@@ -118,12 +164,14 @@ export default function ParentFeesPage() {
                   <div>
                     <div className='font-medium text-gray-900'>{fee.month}</div>
                     <div className='text-xs text-gray-500'>
-                      Due Date: {fee.dueDate}
+                      Due Date: {fee.dueDate || '—'}
                     </div>
                   </div>
                   <div className='flex flex-col sm:flex-row sm:items-center gap-2 mt-2 sm:mt-0'>
                     <span className='text-base font-bold text-blue-700'>
-                      {fee.amount}
+                      {typeof fee.amount === 'number'
+                        ? `₹${fee.amount.toLocaleString()}`
+                        : fee.amount}
                     </span>
                     <span
                       className={`text-xs font-semibold px-2 py-1 rounded-full ${fee.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
