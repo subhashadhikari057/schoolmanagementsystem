@@ -240,6 +240,33 @@ export class StudentImportController {
     }
 
     const records: Record<string, string>[] = [];
+    const normalizeCellValue = (value: unknown): string => {
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'string' || typeof value === 'number') {
+        return String(value);
+      }
+      if (value instanceof Date) {
+        return value.toISOString().split('T')[0];
+      }
+      if (typeof value === 'object') {
+        const v = value as {
+          text?: string;
+          hyperlink?: string;
+          richText?: Array<{ text?: string }>;
+          result?: unknown;
+        };
+        if (typeof v.text === 'string') return v.text;
+        if (Array.isArray(v.richText)) {
+          const joined = v.richText.map(part => part.text || '').join('');
+          if (joined) return joined;
+        }
+        if (typeof v.result === 'string' || typeof v.result === 'number') {
+          return String(v.result);
+        }
+        if (typeof v.hyperlink === 'string') return v.hyperlink;
+      }
+      return String(value);
+    };
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
       const rowValues = Array.isArray(row.values) ? row.values : [];
@@ -254,10 +281,7 @@ export class StudentImportController {
       const record: Record<string, string> = {};
       headers.forEach((header, index) => {
         const cellValue = values[index];
-        record[header] =
-          cellValue === null || cellValue === undefined
-            ? ''
-            : String(cellValue);
+        record[header] = normalizeCellValue(cellValue);
       });
       records.push(record);
     });
