@@ -15,12 +15,13 @@ export const TeacherImportRowSchema = z.object({
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
   joiningDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .optional(),
   experienceYears: z
     .string()
     .regex(/^\d+$/, 'Experience years must be a number')
     .optional(),
-  highestQualification: z.string().min(1, 'Highest qualification is required'),
+  highestQualification: z.string().optional(),
   specialization: z.string().optional(),
   designation: z.string().optional(),
   department: z.string().optional(),
@@ -35,6 +36,10 @@ export const TeacherImportRowSchema = z.object({
   bankName: z.string().optional(),
   bankAccountNumber: z.string().optional(),
   bankBranch: z.string().optional(),
+  panNumber: z.string().optional(),
+  citizenshipNumber: z.string().optional(),
+  ssfNumber: z.string().optional(),
+  citNumber: z.string().optional(),
   subjects: z.string().optional(), // Comma-separated subject codes
   classes: z.string().optional(), // Comma-separated class sections (e.g., "10-A,11-B")
 });

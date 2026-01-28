@@ -148,6 +148,14 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
                 response.data.citizenshipNumber ||
                 bankDetails.citizenshipNumber ||
                 teacher.citizenshipNumber,
+              ssfNumber:
+                (response.data as any).ssfNumber ||
+                bankDetails.ssfNumber ||
+                (teacher as any).ssfNumber,
+              citNumber:
+                (response.data as any).citNumber ||
+                bankDetails.citNumber ||
+                (teacher as any).citNumber,
               contactInfo: response.data.contactInfo || {
                 phone: response.data.phone || teacher.phone,
                 email: response.data.email || teacher.email,
@@ -519,6 +527,22 @@ const TeacherViewModal: React.FC<TeacherViewModalProps> = ({
                   </span>
                   <span className='text-sm font-medium text-gray-900'>
                     {teacherDetails.citizenshipNumber || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    SSF Number
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {String((teacherDetails as any).ssfNumber ?? 'N/A')}
+                  </span>
+                </div>
+                <div>
+                  <span className='text-xs text-gray-500 block'>
+                    CIT Number
+                  </span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {String((teacherDetails as any).citNumber ?? 'N/A')}
                   </span>
                 </div>
               </div>

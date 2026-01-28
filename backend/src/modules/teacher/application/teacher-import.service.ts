@@ -225,6 +225,10 @@ export class TeacherImportService {
         bankName: row.bankName || '',
         bankAccountNumber: row.bankAccountNumber || '',
         bankBranch: row.bankBranch || '',
+        panNumber: row.panNumber || '',
+        citizenshipNumber: row.citizenshipNumber || '',
+        ssfNumber: row.ssfNumber || '',
+        citNumber: row.citNumber || '',
       },
     };
 
@@ -294,12 +298,18 @@ export class TeacherImportService {
 
     // Update subject and class assignments
     if (row.subjects) {
-      const subjectCodes = row.subjects.split(',').map(s => s.trim());
+      const subjectCodes = row.subjects
+        .split(',')
+        .map(s => s.trim().toUpperCase())
+        .filter(Boolean);
       await this.assignSubjectsToTeacher(teacherId, subjectCodes, updatedBy);
     }
 
     if (row.classes) {
-      const classSections = row.classes.split(',').map(c => c.trim());
+      const classSections = row.classes
+        .split(',')
+        .map(c => c.trim().toUpperCase())
+        .filter(Boolean);
       await this.assignClassesToTeacher(teacherId, classSections, updatedBy);
     }
   }
@@ -350,7 +360,8 @@ export class TeacherImportService {
       // Parse class sections (e.g., "10-A" -> grade: 10, section: "A")
       const classData = classSections
         .map(cs => {
-          const match = cs.match(/^(\d+)-([A-Z])$/);
+          const normalized = cs.trim().toUpperCase();
+          const match = normalized.match(/^(\d+)-([A-Z])$/);
           if (match) {
             return {
               grade: parseInt(match[1]),
@@ -509,9 +520,9 @@ export class TeacherImportService {
    */
   getImportTemplateData(): { headers: string[]; sampleRow: string[] } {
     const headers = [
-      'fullName',
-      'email',
-      'phone',
+      'fullName*',
+      'email*',
+      'phone*',
       'employeeId',
       'dateOfBirth',
       'gender',
@@ -526,6 +537,10 @@ export class TeacherImportService {
       'bankName',
       'bankAccountNumber',
       'bankBranch',
+      'panNumber',
+      'citizenshipNumber',
+      'ssfNumber',
+      'citNumber',
       'subjects',
       'classes',
     ];
@@ -548,6 +563,10 @@ export class TeacherImportService {
       'Nabil Bank',
       '1234567890',
       'Kathmandu',
+      'PAN-123456',
+      'CITIZEN-987654',
+      'SSF-001',
+      'CIT-001',
       'MATH101,PHY101',
       '10-A,11-B',
     ];

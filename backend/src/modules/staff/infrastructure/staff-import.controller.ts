@@ -196,7 +196,10 @@ export class StaffImportController {
       : [];
     const headers = headerValues
       .slice(1)
-      .map(value => String(value || '').trim());
+      .map(value => String(value || '').trim())
+      .map(header =>
+        header.replace(/\s*\*$/, '').replace(/\s*\(required\)$/i, ''),
+      );
     if (!headers.length) {
       throw new BadRequestException('XLSX header row is empty');
     }

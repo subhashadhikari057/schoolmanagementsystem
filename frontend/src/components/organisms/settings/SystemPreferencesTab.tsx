@@ -126,7 +126,7 @@ export default function SystemPreferencesTab({
     { value: 'US Dollar ($)', label: 'US Dollar ($)' },
     { value: 'Euro (€)', label: 'Euro (€)' },
     { value: 'British Pound (£)', label: 'British Pound (£)' },
-    { value: 'Indian Rupee (₹)', label: 'Indian Rupee (₹)' },
+    { value: 'Indian Rupee (रु )', label: 'Indian Rupee (रु )' },
   ];
 
   const DropdownGroup = ({

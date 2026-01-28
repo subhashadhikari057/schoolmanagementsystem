@@ -395,7 +395,9 @@ export class TeacherService {
       data.bankAccountNumber ||
       data.bankBranch ||
       data.panNumber ||
-      data.citizenshipNumber
+      data.citizenshipNumber ||
+      data.ssfNumber ||
+      data.citNumber
     ) {
       const bankData: Record<string, string> = {};
       if (data.bankName) bankData.bankName = data.bankName;
@@ -405,6 +407,8 @@ export class TeacherService {
       if (data.panNumber) bankData.panNumber = data.panNumber;
       if (data.citizenshipNumber)
         bankData.citizenshipNumber = data.citizenshipNumber;
+      if (data.ssfNumber) bankData.ssfNumber = data.ssfNumber;
+      if (data.citNumber) bankData.citNumber = data.citNumber;
       formData.append('bankDetails', JSON.stringify(bankData));
     }
 

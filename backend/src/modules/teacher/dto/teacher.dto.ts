@@ -92,6 +92,8 @@ export const CreateTeacherBankSchema = z.object({
   bankBranch: z.string().optional(),
   panNumber: z.string().optional(),
   citizenshipNumber: z.string().optional(),
+  ssfNumber: z.string().optional(),
+  citNumber: z.string().optional(),
 });
 
 // ---------------------------

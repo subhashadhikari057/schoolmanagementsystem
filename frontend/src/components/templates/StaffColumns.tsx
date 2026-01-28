@@ -80,7 +80,7 @@ export const getStaffColumns = (
     render: (item: Staff) => (
       <div className='text-sm'>
         <div className='font-medium'>
-          ₹{item.totalSalary || item.basicSalary || item.salary || 0}
+          रु {item.totalSalary || item.basicSalary || item.salary || 0}
         </div>
         <div className='text-gray-500'>
           {item.experienceYears ? `${item.experienceYears} years` : 'N/A'}

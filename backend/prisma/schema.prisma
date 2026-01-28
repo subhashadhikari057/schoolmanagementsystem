@@ -564,6 +564,8 @@ model Teacher {
   bankBranch                     String?
   bankName                       String?
   citizenshipNumber              String?
+  ssfNumber                      String?
+  citNumber                      String?
   panNumber                      String?
   assignments                    Assignment[]
   classesAsTeacher               Class[]                         @relation("ClassTeacher")

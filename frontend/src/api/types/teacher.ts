@@ -70,6 +70,8 @@ export interface CreateTeacherBankData {
   branch?: string;
   panNumber?: string;
   citizenshipNumber?: string;
+  ssfNumber?: string;
+  citNumber?: string;
 }
 
 export interface CreateTeacherRequest {
@@ -144,6 +146,8 @@ export interface TeacherListResponse {
   bankBranch?: string;
   panNumber?: string;
   citizenshipNumber?: string;
+  ssfNumber?: string;
+  citNumber?: string;
 
   // Class Teacher Status
   isClassTeacher: boolean;
@@ -286,6 +290,8 @@ export interface TeacherFormData {
   bankBranch?: string;
   panNumber?: string;
   citizenshipNumber?: string;
+  ssfNumber?: string;
+  citNumber?: string;
 
   // Additional Information
   languagesKnown?: string[];

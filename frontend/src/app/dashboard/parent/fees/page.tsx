@@ -139,7 +139,7 @@ export default function ParentFeesPage() {
                   Total Payable (per current period)
                 </div>
                 <div className='text-xl font-bold text-blue-700'>
-                  ₹{currentFee.computedFee.finalPayable.toLocaleString()}
+                  रु {currentFee.computedFee.finalPayable.toLocaleString()}
                 </div>
               </div>
             )}
@@ -173,7 +173,7 @@ export default function ParentFeesPage() {
                     )}
                   </div>
                   <div className='text-base font-semibold text-blue-700'>
-                    ₹{Number(item.amount || 0).toLocaleString()}
+                    रु {Number(item.amount || 0).toLocaleString()}
                   </div>
                 </div>
               ))}
@@ -224,7 +224,7 @@ function SummaryRow({
     <div className='flex items-center justify-between text-sm text-gray-700'>
       <span>{label}</span>
       <span className={`font-semibold ${valueClass ?? ''}`}>
-        {prefix}₹{Number(value || 0).toLocaleString()}
+        {prefix}रु {Number(value || 0).toLocaleString()}
       </span>
     </div>
   );

@@ -272,6 +272,10 @@ function processRecord(record: any): any {
   for (const [key, value] of Object.entries(record)) {
     if (typeof value === 'string') {
       const trimmedValue = value.trim();
+      if (trimmedValue === '') {
+        processed[key] = undefined;
+        continue;
+      }
 
       // Convert classGrade to number
       if (key === 'classGrade') {
@@ -280,6 +284,10 @@ function processRecord(record: any): any {
           throw new Error(`Invalid class grade: ${trimmedValue}`);
         }
       }
+      // Normalize classSection to uppercase (e.g., "a" -> "A")
+      else if (key === 'classSection') {
+        processed[key] = trimmedValue.toUpperCase();
+      }
       // Validate date format but keep as string for validation
       else if (key === 'dateOfBirth') {
         const date = new Date(trimmedValue);
@@ -287,6 +295,14 @@ function processRecord(record: any): any {
           throw new Error(`Invalid date format: ${trimmedValue}`);
         }
         processed[key] = trimmedValue; // Keep as string for validation, will be converted to Date later
+      }
+      // Normalize gender case to match enum
+      else if (key === 'gender') {
+        const g = trimmedValue.toLowerCase();
+        if (g === 'male') processed[key] = 'Male';
+        else if (g === 'female') processed[key] = 'Female';
+        else if (g === 'other') processed[key] = 'Other';
+        else processed[key] = trimmedValue;
       }
       // Normalize enum labels for import
       else if (key === 'motherTongue') {
@@ -324,15 +340,15 @@ export function getStudentImportTemplateData(): {
   exampleRow: string[];
 } {
   const headers = [
-    'studentIemisCode',
-    'fullName',
-    'email',
-    'phone',
-    'rollNumber',
-    'classGrade',
-    'classSection',
-    'dateOfBirth',
-    'gender',
+    'studentIemisCode*',
+    'fullName*',
+    'email*',
+    'phone*',
+    'rollNumber*',
+    'classGrade*',
+    'classSection*',
+    'dateOfBirth*',
+    'gender*',
     'motherTongue',
     'disabilityType',
     'address',

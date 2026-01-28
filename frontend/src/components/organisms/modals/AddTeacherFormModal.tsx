@@ -65,6 +65,8 @@ interface TeacherFormData {
   bankBranch?: string;
   panNumber?: string;
   citizenshipNumber?: string;
+  ssfNumber?: string;
+  citNumber?: string;
 
   // Additional Information
   languagesKnown?: string[];
@@ -107,6 +109,8 @@ const initialFormData: TeacherFormData = {
   bankBranch: '',
   panNumber: '',
   citizenshipNumber: '',
+  ssfNumber: '',
+  citNumber: '',
   languagesKnown: [],
   certifications: '',
   previousExperience: '',
@@ -584,6 +588,8 @@ export default function AddTeacherFormModal({
         bankBranch: formData.bankBranch?.trim() || undefined,
         panNumber: formData.panNumber?.trim() || undefined,
         citizenshipNumber: formData.citizenshipNumber?.trim() || undefined,
+        ssfNumber: formData.ssfNumber?.trim() || undefined,
+        citNumber: formData.citNumber?.trim() || undefined,
 
         // Additional fields (flat)
         languagesKnown: Array.isArray(formData.languagesKnown)
@@ -1097,7 +1103,7 @@ export default function AddTeacherFormModal({
                     <span className='text-xs text-blue-600 flex items-center'>
                       🧮 Auto-calculated:{' '}
                       <strong className='ml-1'>
-                        ₹{calculatedSalary.toLocaleString()}
+                        रु {calculatedSalary.toLocaleString()}
                       </strong>
                     </span>
                     {(formData.basicSalary || formData.allowances) && (
@@ -1151,6 +1157,23 @@ export default function AddTeacherFormModal({
                   value={formData.citizenshipNumber || ''}
                   onChange={handleInputChange}
                   placeholder='Enter citizenship number'
+                />
+              </div>
+
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
+                <LabeledInput
+                  label='SSF Number'
+                  name='ssfNumber'
+                  value={formData.ssfNumber || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter SSF number'
+                />
+                <LabeledInput
+                  label='CIT Number'
+                  name='citNumber'
+                  value={formData.citNumber || ''}
+                  onChange={handleInputChange}
+                  placeholder='Enter CIT number'
                 />
               </div>
             </FormSection>

@@ -195,7 +195,7 @@ export class StaffImportService {
    */
   private async createNewStaff(row: StaffImportRow, createdBy: string) {
     // Calculate total salary
-    const basicSalary = parseFloat(row.basicSalary) || 0;
+    const basicSalary = parseFloat(row.basicSalary ?? '0') || 0;
     const allowances = 0; // No allowances in simplified version
     const totalSalary = basicSalary + allowances;
 
@@ -216,11 +216,11 @@ export class StaffImportService {
         middleName: null,
         lastName,
         employeeId,
-        dob: new Date(row.dob),
-        gender: row.gender,
+        dob: row.dob ? new Date(row.dob) : new Date(),
+        gender: row.gender ?? 'Not Specified',
         bloodGroup: null,
         phone: row.phone,
-        emergencyContact: row.emergencyContact,
+        emergencyContact: row.emergencyContact ?? '',
         maritalStatus: null,
         designation: row.designation || 'Staff',
         department: row.department || 'General',
@@ -255,7 +255,7 @@ export class StaffImportService {
     updatedBy: string,
   ) {
     // Calculate total salary
-    const basicSalary = parseFloat(row.basicSalary) || 0;
+    const basicSalary = parseFloat(row.basicSalary ?? '0') || 0;
     const allowances = 0;
     const totalSalary = basicSalary + allowances;
 
@@ -273,10 +273,10 @@ export class StaffImportService {
         firstName,
         middleName: null,
         lastName,
-        dob: new Date(row.dob),
-        gender: row.gender,
+        dob: row.dob ? new Date(row.dob) : new Date(),
+        gender: row.gender ?? 'Not Specified',
         phone: row.phone,
-        emergencyContact: row.emergencyContact,
+        emergencyContact: row.emergencyContact ?? '',
         designation: row.designation || 'Staff',
         department: row.department || 'General',
         employmentDate: new Date(),
@@ -318,7 +318,7 @@ export class StaffImportService {
     updatedBy: string,
   ) {
     // Calculate total salary
-    const basicSalary = parseFloat(row.basicSalary) || 0;
+    const basicSalary = parseFloat(row.basicSalary ?? '0') || 0;
     const allowances = 0;
     const totalSalary = basicSalary + allowances;
 
@@ -334,10 +334,10 @@ export class StaffImportService {
         fullName: row.fullName,
         firstName,
         lastName,
-        dob: new Date(row.dob),
-        gender: row.gender,
+        dob: row.dob ? new Date(row.dob) : new Date(),
+        gender: row.gender ?? 'Not Specified',
         phone: row.phone,
-        emergencyContact: row.emergencyContact,
+        emergencyContact: row.emergencyContact ?? '',
         designation: row.designation || 'Staff',
         department: row.department || 'General',
         basicSalary,
@@ -462,9 +462,9 @@ export class StaffImportService {
    */
   getImportTemplateData(): { headers: string[]; sampleRow: string[] } {
     const headers = [
-      'fullName',
-      'email',
-      'phone',
+      'fullName*',
+      'email*',
+      'phone*',
       'dob',
       'gender',
       'emergencyContact',

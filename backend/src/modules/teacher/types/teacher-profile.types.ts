@@ -26,6 +26,8 @@ export interface TeacherAdditionalData {
     bankBranch?: string;
     panNumber?: string;
     citizenshipNumber?: string;
+    ssfNumber?: string;
+    citNumber?: string;
   };
   [key: string]: any; // Allow for other properties
 }

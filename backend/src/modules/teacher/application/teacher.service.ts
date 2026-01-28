@@ -186,6 +186,8 @@ export class TeacherService {
             bankBranch: bankDetails?.bankBranch,
             panNumber: bankDetails?.panNumber,
             citizenshipNumber: bankDetails?.citizenshipNumber,
+            ssfNumber: bankDetails?.ssfNumber,
+            citNumber: bankDetails?.citNumber,
 
             // Class Teacher Assignment
             isClassTeacher: subjects?.isClassTeacher || false,
@@ -219,6 +221,8 @@ export class TeacherService {
                         bankBranch: bankDetails.bankBranch,
                         panNumber: bankDetails.panNumber,
                         citizenshipNumber: bankDetails.citizenshipNumber,
+                        ssfNumber: bankDetails.ssfNumber,
+                        citNumber: bankDetails.citNumber,
                       }
                     : undefined,
                 },
@@ -407,6 +411,8 @@ export class TeacherService {
         bankBranch: bankDetails.branch,
         panNumber: bankDetails.panNumber,
         citizenshipNumber: bankDetails.citizenshipNumber,
+        ssfNumber: bankDetails.ssfNumber,
+        citNumber: bankDetails.citNumber,
 
         // Class Teacher Status
         isClassTeacher: teacher.isClassTeacher,
@@ -503,6 +509,8 @@ export class TeacherService {
       bankBranch: bankDetails.bankBranch,
       panNumber: bankDetails.panNumber,
       citizenshipNumber: bankDetails.citizenshipNumber,
+      ssfNumber: bankDetails.ssfNumber,
+      citNumber: bankDetails.citNumber,
 
       assignedClasses: teacher.classAssignments,
     };
@@ -773,6 +781,14 @@ export class TeacherService {
         profileUpdate.additionalData.bankDetails.citizenshipNumber =
           dto.bankDetails.citizenshipNumber;
       }
+      if (dto.bankDetails.ssfNumber) {
+        profileUpdate.additionalData.bankDetails.ssfNumber =
+          dto.bankDetails.ssfNumber;
+      }
+      if (dto.bankDetails.citNumber) {
+        profileUpdate.additionalData.bankDetails.citNumber =
+          dto.bankDetails.citNumber;
+      }
 
       await this.prisma.teacherProfile.update({
         where: { teacherId: id },
@@ -906,6 +922,8 @@ export class TeacherService {
         bankBranch: bankDetails.bankBranch,
         panNumber: bankDetails.panNumber,
         citizenshipNumber: bankDetails.citizenshipNumber,
+        ssfNumber: bankDetails.ssfNumber,
+        citNumber: bankDetails.citNumber,
         // Related data
         subjects:
           updatedTeacher.subjectAssignments?.map(ts => ({

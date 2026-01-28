@@ -997,7 +997,7 @@ export default function AddStaffFormModal({
                     <span className='text-xs text-blue-600 flex items-center'>
                       🧮 Auto-calculated:{' '}
                       <strong className='ml-1'>
-                        ₹{calculatedSalary.toLocaleString()}
+                        रु {calculatedSalary.toLocaleString()}
                       </strong>
                     </span>
                     {(formData.basicSalary || formData.allowances) && (

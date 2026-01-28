@@ -427,7 +427,7 @@ export default function ScholarshipDetailsPage() {
                   <p className='text-2xl font-bold text-blue-900 mt-1'>
                     {scholarship.valueType === 'PERCENTAGE'
                       ? `${scholarship.value}%`
-                      : `₹${scholarship.value.toLocaleString()}`}
+                      : `रु ${scholarship.value.toLocaleString()}`}
                   </p>
                 </div>
                 <div className='p-3 bg-blue-600 rounded-lg'>
@@ -524,7 +524,7 @@ export default function ScholarshipDetailsPage() {
                   <span className='text-gray-900 font-semibold text-lg'>
                     {scholarship.valueType === 'PERCENTAGE'
                       ? `${scholarship.value}%`
-                      : `₹${scholarship.value.toLocaleString()}`}
+                      : `रु ${scholarship.value.toLocaleString()}`}
                   </span>
                   <p className='text-gray-500 text-xs'>
                     {scholarship.valueType === 'PERCENTAGE'

@@ -9,13 +9,14 @@ export const StaffImportRowSchema = z.object({
   phone: z.string().min(1, 'Phone number is required'),
   dob: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
-  gender: z.enum(['Male', 'Female', 'Other']),
-  emergencyContact: z.string().min(1, 'Emergency contact is required'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+    .optional(),
+  gender: z.enum(['Male', 'Female', 'Other']).optional(),
+  emergencyContact: z.string().optional(),
   basicSalary: z
     .string()
-    .regex(/^\d+(\.\d+)?$/, 'Basic salary must be a number'),
-  // Optional fields
+    .regex(/^\d+(\.\d+)?$/, 'Basic salary must be a number')
+    .optional(),
   employeeId: z.string().optional(),
   designation: z.string().optional(),
   department: z.string().optional(),
