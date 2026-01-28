@@ -19,12 +19,13 @@ export const StudentImportRowSchema = z.object({
   disabilityType: z.nativeEnum(DisabilityType).optional(),
   address: z.string().optional(),
   // Parent information
-  primaryParentName: z.string().min(1, 'Primary parent name is required'),
-  primaryParentPhone: z.string().min(1, 'Primary parent phone is required'),
-  primaryParentEmail: z.string().email('Invalid primary parent email format'),
-  primaryParentRelation: z
+  primaryParentName: z.string().optional(),
+  primaryParentPhone: z.string().optional(),
+  primaryParentEmail: z
     .string()
-    .min(1, 'Primary parent relation is required'),
+    .email('Invalid primary parent email format')
+    .optional(),
+  primaryParentRelation: z.string().optional(),
   secondaryParentName: z.string().optional(),
   secondaryParentPhone: z.string().optional(),
   secondaryParentEmail: z

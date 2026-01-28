@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
-import { generateRandomPassword } from '../../../shared/utils/password.util';
+import { DEFAULT_PARENT_PASSWORD } from '../../../shared/utils/password.util';
 import { hashPassword } from '../../../shared/auth/hash.util';
 import {
   CreateParentDtoType,
@@ -87,7 +87,7 @@ export class ParentService {
       }
 
       // Generate password if not provided
-      const password = data.user.password || generateRandomPassword();
+      const password = data.user.password || DEFAULT_PARENT_PASSWORD;
       const passwordHash = await hashPassword(password);
 
       const result = await this.prisma.$transaction(async tx => {

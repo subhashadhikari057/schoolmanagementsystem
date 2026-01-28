@@ -7,3 +7,8 @@ export function generateRandomPassword(length = 12): string {
   }
   return password;
 }
+
+export const DEFAULT_STUDENT_PASSWORD = 'student123';
+export const DEFAULT_PARENT_PASSWORD = 'parent123';
+export const DEFAULT_TEACHER_PASSWORD = 'teacher123';
+export const DEFAULT_STAFF_PASSWORD = 'staff123';

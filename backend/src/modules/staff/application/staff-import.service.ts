@@ -51,11 +51,6 @@ export class StaffImportService {
     options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
   ): Promise<StaffImportResult> {
     try {
-      this.logger.log(`Raw CSV content length: ${csvContent.length}`);
-      this.logger.log(
-        `Raw CSV content preview: ${csvContent.substring(0, 200)}...`,
-      );
-
       // Parse and validate CSV
       const parseResult = parseCSV<StaffImportRow>(
         csvContent,
@@ -100,18 +95,8 @@ export class StaffImportService {
     options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
   ): Promise<StaffImportResult> {
     this.logger.log(
-      `Data parsed successfully. Total rows: ${parseResult.data.length}`,
+      `CSV parsed. Total rows: ${parseResult.totalRows}, valid: ${parseResult.validRows}, invalid: ${parseResult.invalidRows}`,
     );
-    this.logger.log(`Parse result:`, {
-      totalRows: parseResult.totalRows,
-      validRows: parseResult.validRows,
-      invalidRows: parseResult.invalidRows,
-      errors: parseResult.errors,
-    });
-
-    if (parseResult.errors.length > 0) {
-      this.logger.warn(`Parsing errors:`, parseResult.errors);
-    }
 
     const result: StaffImportResult = {
       success: true,
@@ -128,8 +113,6 @@ export class StaffImportService {
       const rowNumber = i + 1;
 
       try {
-        this.logger.log(`Processing row ${rowNumber}: ${row.fullName}`);
-
         const existingStaff = await this.prisma.staff.findFirst({
           where: {
             email: row.email,
@@ -156,13 +139,11 @@ export class StaffImportService {
               designation: row.designation || 'Staff',
             });
           } else if (options.skipDuplicates) {
-            this.logger.log(`Skipping duplicate staff: ${row.fullName}`);
             continue;
           } else {
             throw new Error(`Staff with email ${row.email} already exists`);
           }
         } else if (deletedStaff) {
-          this.logger.log(`Restoring deleted staff: ${row.fullName}`);
           const restoredStaff = await this.restoreDeletedStaff(
             deletedStaff.id,
             row,
@@ -188,7 +169,7 @@ export class StaffImportService {
           });
         }
       } catch (error) {
-        this.logger.error(`Error processing row ${rowNumber}:`, error);
+        this.logger.error(`Error processing row ${rowNumber}`);
         result.failedImports++;
         result.errors.push({
           row: rowNumber,
@@ -203,7 +184,9 @@ export class StaffImportService {
       result.success = false;
     }
 
-    this.logger.log(`Import completed:`, result);
+    this.logger.log(
+      `Import completed. Processed: ${result.totalProcessed}, successful: ${result.successfulImports}, failed: ${result.failedImports}`,
+    );
     return result;
   }
 
@@ -258,13 +241,7 @@ export class StaffImportService {
       },
     });
 
-    // Log staff account details to console
-    this.logger.log(`=== STAFF ACCOUNT CREATED ===`);
-    this.logger.log(`Name: ${row.fullName}`);
-    this.logger.log(`Email: ${row.email}`);
-    this.logger.log(`Phone: ${row.phone}`);
-    this.logger.log(`Employee ID: ${employeeId}`);
-    this.logger.log(`================================`);
+    // Intentionally do not log credentials or PII
 
     return newStaff;
   }
@@ -327,12 +304,7 @@ export class StaffImportService {
       },
     });
 
-    this.logger.log(`=== STAFF ACCOUNT RESTORED ===`);
-    this.logger.log(`Name: ${row.fullName}`);
-    this.logger.log(`Email: ${row.email}`);
-    this.logger.log(`Phone: ${row.phone}`);
-    this.logger.log(`Employee ID: ${restoredStaff.employeeId}`);
-    this.logger.log(`=================================`);
+    // Intentionally do not log credentials or PII
 
     return restoredStaff;
   }

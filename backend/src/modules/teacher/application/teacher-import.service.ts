@@ -57,11 +57,6 @@ export class TeacherImportService {
     options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
   ): Promise<TeacherImportResult> {
     try {
-      this.logger.log(`Raw CSV content length: ${csvContent.length}`);
-      this.logger.log(
-        `Raw CSV content preview: ${csvContent.substring(0, 200)}...`,
-      );
-
       // Parse and validate CSV
       const parseResult = parseCSV<TeacherImportRow>(
         csvContent,
@@ -106,18 +101,8 @@ export class TeacherImportService {
     options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
   ): Promise<TeacherImportResult> {
     this.logger.log(
-      `Data parsed successfully. Total rows: ${parseResult.data.length}`,
+      `CSV parsed. Total rows: ${parseResult.totalRows}, valid: ${parseResult.validRows}, invalid: ${parseResult.invalidRows}`,
     );
-    this.logger.log(`Parse result:`, {
-      totalRows: parseResult.totalRows,
-      validRows: parseResult.validRows,
-      invalidRows: parseResult.invalidRows,
-      errors: parseResult.errors,
-    });
-
-    if (parseResult.errors.length > 0) {
-      this.logger.warn(`Parsing errors:`, parseResult.errors);
-    }
 
     const result: TeacherImportResult = {
       success: true,
@@ -134,8 +119,6 @@ export class TeacherImportService {
       const rowNumber = i + 1;
 
       try {
-        this.logger.log(`Processing row ${rowNumber}: ${row.fullName}`);
-
         const existingTeacher = await this.prisma.teacher.findFirst({
           where: {
             user: {
@@ -164,7 +147,6 @@ export class TeacherImportService {
               designation: row.designation || 'Teacher',
             });
           } else if (options.skipDuplicates) {
-            this.logger.log(`Skipping duplicate teacher: ${row.fullName}`);
             continue;
           } else {
             throw new Error(`Teacher with email ${row.email} already exists`);
@@ -181,7 +163,7 @@ export class TeacherImportService {
           });
         }
       } catch (error) {
-        this.logger.error(`Error processing row ${rowNumber}:`, error);
+        this.logger.error(`Error processing row ${rowNumber}`);
         result.failedImports++;
         result.errors.push({
           row: rowNumber,
@@ -196,7 +178,9 @@ export class TeacherImportService {
       result.success = false;
     }
 
-    this.logger.log(`Import completed:`, result);
+    this.logger.log(
+      `Import completed. Processed: ${result.totalProcessed}, successful: ${result.successfulImports}, failed: ${result.failedImports}`,
+    );
     return result;
   }
 
@@ -253,15 +237,7 @@ export class TeacherImportService {
       'CSV Import', // Default user agent for import
     );
 
-    // Log teacher account details to console
-    if (result.temporaryPassword) {
-      this.logger.log(`=== TEACHER ACCOUNT CREATED ===`);
-      this.logger.log(`Name: ${row.fullName}`);
-      this.logger.log(`Email: ${row.email}`);
-      this.logger.log(`Phone: ${row.phone}`);
-      this.logger.log(`Password: ${result.temporaryPassword}`);
-      this.logger.log(`================================`);
-    }
+    // Intentionally do not log credentials
 
     // Assign subjects if provided
     if (subjectCodes.length > 0) {

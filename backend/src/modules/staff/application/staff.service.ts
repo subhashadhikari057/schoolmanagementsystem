@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
 import { hashPassword } from '../../../shared/auth/hash.util';
-import { generateRandomPassword } from '../../../shared/utils/password.util';
+import { DEFAULT_STAFF_PASSWORD } from '../../../shared/utils/password.util';
 import {
   getFileUrl,
   UPLOAD_PATHS,
@@ -94,7 +94,7 @@ export class StaffService {
     // Generate temporary password for user account if needed
     let temporaryPassword: string | undefined;
     if (user.createLoginAccount) {
-      temporaryPassword = user.password || generateRandomPassword();
+      temporaryPassword = user.password || DEFAULT_STAFF_PASSWORD;
     }
 
     // Generate employeeId if not provided

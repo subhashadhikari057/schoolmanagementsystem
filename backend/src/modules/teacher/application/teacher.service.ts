@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { hashPassword } from '../../../shared/auth/hash.util';
 import { AuditService } from '../../../shared/logger/audit.service';
-import { generateRandomPassword } from '../../../shared/utils/password.util';
+import { DEFAULT_TEACHER_PASSWORD } from '../../../shared/utils/password.util';
 import { getFileUrl } from '../../../shared/utils/file-upload.util';
 import {
   CreateTeacherDtoType,
@@ -116,7 +116,7 @@ export class TeacherService {
       professional.employeeId = `T-${currentYear}-${(teacherCount + 1).toString().padStart(4, '0')}`;
     }
 
-    const rawPassword = user.password || generateRandomPassword();
+    const rawPassword = user.password || DEFAULT_TEACHER_PASSWORD;
     const passwordHash = await hashPassword(rawPassword);
     // Include middle name in full name if provided
     const fullName = user.middleName

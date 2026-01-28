@@ -8,7 +8,10 @@ import {
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
 import { hashPassword } from '../../../shared/auth/hash.util';
-import { generateRandomPassword } from '../../../shared/utils/password.util';
+import {
+  DEFAULT_PARENT_PASSWORD,
+  DEFAULT_STUDENT_PASSWORD,
+} from '../../../shared/utils/password.util';
 import {
   parseCSV,
   parseRecords,
@@ -40,12 +43,6 @@ export class StudentImportService {
     options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
   ): Promise<StudentImportResult> {
     try {
-      // Log the raw CSV content for debugging
-      this.logger.log(`Raw CSV content length: ${csvContent.length}`);
-      this.logger.log(
-        `Raw CSV content preview: ${csvContent.substring(0, 200)}...`,
-      );
-
       // Parse and validate CSV
       const parseResult = parseCSV<StudentImportRow>(
         csvContent,
@@ -102,33 +99,14 @@ export class StudentImportService {
     options: { skipDuplicates?: boolean; updateExisting?: boolean } = {},
   ): Promise<StudentImportResult> {
     try {
-      // Log the parsed data for debugging
       this.logger.log(
-        `CSV parsed successfully. Total rows: ${parseResult.data.length}`,
+        `CSV parsed. Total rows: ${parseResult.totalRows}, valid: ${parseResult.validRows}, invalid: ${parseResult.invalidRows}`,
       );
-      this.logger.log(`Parse result:`, {
-        totalRows: parseResult.totalRows,
-        validRows: parseResult.validRows,
-        invalidRows: parseResult.invalidRows,
-        errors: parseResult.errors,
-      });
-
-      if (parseResult.data.length > 0) {
-        const firstRow = parseResult.data[0];
-        this.logger.log(`First row sample:`, {
-          fullName: firstRow.fullName,
-          dateOfBirth: firstRow.dateOfBirth,
-          dateOfBirthType: typeof firstRow.dateOfBirth,
-          parsedDate: new Date(firstRow.dateOfBirth),
-          isValidDate: !isNaN(new Date(firstRow.dateOfBirth).getTime()),
-          classGrade: firstRow.classGrade,
-          classSection: firstRow.classSection,
-          gender: firstRow.gender,
-        });
-      }
 
       if (parseResult.errors.length > 0) {
-        this.logger.error(`CSV validation errors:`, parseResult.errors);
+        this.logger.error(
+          `CSV validation failed. Invalid rows: ${parseResult.errors.length}`,
+        );
         return {
           success: false,
           message: `CSV validation failed. ${parseResult.errors.length} rows have errors.`,
@@ -209,10 +187,6 @@ export class StudentImportService {
     for (let i = 0; i < students.length; i++) {
       try {
         const studentData = students[i];
-        this.logger.log(
-          `Processing student ${i + 1}/${students.length}: ${studentData.fullName}`,
-        );
-
         const result = await this.importSingleStudent(
           studentData,
           createdBy,
@@ -272,7 +246,6 @@ export class StudentImportService {
             `Student with email ${studentData.email}, roll number ${studentData.rollNumber}, or IEMIS code ${studentData.studentIemisCode} already exists. Update functionality not implemented yet.`,
           );
         } else if (options.skipDuplicates) {
-          this.logger.log(`Skipping duplicate student: ${studentData.email}`);
           return {
             id: existingStudent.id,
             fullName: existingStudent.user.fullName,
@@ -303,79 +276,77 @@ export class StudentImportService {
         );
       }
 
-      // 3. Check if primary parent already exists
-      let primaryParent = await tx.parent.findFirst({
-        where: {
-          user: { email: studentData.primaryParentEmail },
-          deletedAt: null,
-        },
-      });
+      // 3. Check if primary parent already exists (optional)
+      let primaryParent: { id: string } | null = null;
+      const hasPrimaryParentInfo =
+        !!studentData.primaryParentEmail &&
+        !!studentData.primaryParentName &&
+        !!studentData.primaryParentPhone &&
+        !!studentData.primaryParentRelation;
 
-      if (!primaryParent) {
-        // Check if a user with the same phone number already exists
-        const existingUser = await tx.user.findFirst({
+      if (hasPrimaryParentInfo) {
+        primaryParent = await tx.parent.findFirst({
           where: {
-            OR: [
-              { email: studentData.primaryParentEmail },
-              { phone: studentData.primaryParentPhone },
-            ],
+            user: { email: studentData.primaryParentEmail },
             deletedAt: null,
           },
+          select: { id: true },
         });
 
-        if (existingUser) {
-          // Reuse existing user if they have the same phone or email
-          this.logger.log(
-            `Reusing existing user for parent: ${existingUser.email} (phone: ${existingUser.phone})`,
-          );
-          this.logger.log(
-            `🔄 Reusing existing parent: ${existingUser.fullName} (${existingUser.email})`,
-          );
-
-          // Check if they already have a parent record
-          const existingParentRecord = await tx.parent.findFirst({
-            where: { userId: existingUser.id, deletedAt: null },
+        if (!primaryParent) {
+          // Check if a user with the same phone number already exists
+          const existingUser = await tx.user.findFirst({
+            where: {
+              OR: [
+                { email: studentData.primaryParentEmail },
+                { phone: studentData.primaryParentPhone },
+              ],
+              deletedAt: null,
+            },
           });
 
-          if (!existingParentRecord) {
-            // Create parent record for existing user
-            primaryParent = await tx.parent.create({
+          if (existingUser) {
+            // Check if they already have a parent record
+            const existingParentRecord = await tx.parent.findFirst({
+              where: { userId: existingUser.id, deletedAt: null },
+              select: { id: true },
+            });
+
+            if (!existingParentRecord) {
+              // Create parent record for existing user
+              primaryParent = await tx.parent.create({
+                data: {
+                  userId: existingUser.id,
+                  createdById: createdBy,
+                },
+                select: { id: true },
+              });
+            } else {
+              primaryParent = existingParentRecord;
+            }
+          } else {
+            // Create new parent account
+            const parentPassword = DEFAULT_PARENT_PASSWORD;
+            const parentUser = await tx.user.create({
               data: {
-                userId: existingUser.id,
+                email: studentData.primaryParentEmail!,
+                phone: studentData.primaryParentPhone!,
+                fullName: studentData.primaryParentName!,
+                passwordHash: await hashPassword(parentPassword),
+                roles: { create: { role: { connect: { name: 'PARENT' } } } },
+                needPasswordChange: true,
                 createdById: createdBy,
               },
             });
-          } else {
-            primaryParent = existingParentRecord;
+
+            primaryParent = await tx.parent.create({
+              data: {
+                userId: parentUser.id,
+                createdById: createdBy,
+              },
+              select: { id: true },
+            });
           }
-        } else {
-          // Create new parent account (no user login)
-          const parentPassword = generateRandomPassword();
-          const parentUser = await tx.user.create({
-            data: {
-              email: studentData.primaryParentEmail,
-              phone: studentData.primaryParentPhone,
-              fullName: studentData.primaryParentName,
-              passwordHash: await hashPassword(parentPassword),
-              roles: { create: { role: { connect: { name: 'PARENT' } } } },
-              needPasswordChange: false, // No login account needed
-              createdById: createdBy,
-            },
-          });
-
-          primaryParent = await tx.parent.create({
-            data: {
-              userId: parentUser.id,
-              createdById: createdBy,
-            },
-          });
-
-          // Log parent credentials to console
-          this.logger.log('👨‍👩‍👧‍👦 PARENT CREDENTIALS:');
-          this.logger.log(`👤 Parent: ${studentData.primaryParentName}`);
-          this.logger.log(`📧 Email: ${studentData.primaryParentEmail}`);
-          this.logger.log(`🔑 Password: ${parentPassword}`);
-          this.logger.log('---');
         }
       }
 
@@ -390,20 +361,20 @@ export class StudentImportService {
         // For secondary parents, we don't create user accounts, just store the information
         // This will be used to populate the student's mother/father fields
         secondaryParentInfo = {
-          name: studentData.secondaryParentName,
-          email: studentData.secondaryParentEmail,
+          name: studentData.secondaryParentName!,
+          email: studentData.secondaryParentEmail!,
           phone: studentData.secondaryParentPhone || '',
           relation: studentData.secondaryParentRelation || 'Guardian',
         };
       }
 
       // 6. Create student account
-      const studentPassword = generateRandomPassword();
+      const studentPassword = DEFAULT_STUDENT_PASSWORD;
       const studentUser = await tx.user.create({
         data: {
-          email: studentData.email,
-          phone: studentData.phone,
-          fullName: studentData.fullName,
+          email: studentData.email!,
+          phone: studentData.phone!,
+          fullName: studentData.fullName!,
           passwordHash: await hashPassword(studentPassword),
           roles: { create: { role: { connect: { name: 'STUDENT' } } } },
           needPasswordChange: true, // Student must change password on first login
@@ -411,32 +382,22 @@ export class StudentImportService {
         },
       });
 
-      // Log student credentials to console (not returned in API)
-      this.logger.log('🔐 STUDENT CREDENTIALS:');
-      this.logger.log(`👨‍🎓 Student: ${studentData.fullName}`);
-      this.logger.log(`📧 Email: ${studentData.email}`);
-      this.logger.log(`🔑 Password: ${studentPassword}`);
-      this.logger.log('---');
+      // Intentionally do not log credentials
 
-      // Log date information for debugging
-      this.logger.log(`Creating student with date info:`, {
-        originalDateOfBirth: studentData.dateOfBirth,
-        dateType: typeof studentData.dateOfBirth,
-        parsedDate: new Date(studentData.dateOfBirth),
-        isValidDate: !isNaN(new Date(studentData.dateOfBirth).getTime()),
-        timestamp: new Date(studentData.dateOfBirth).getTime(),
-      });
+      // Avoid logging PII for imports
 
       // Determine which parent is father and which is mother based on relation
-      const isPrimaryParentFather = studentData.primaryParentRelation
-        .toLowerCase()
-        .includes('father');
+      const isPrimaryParentFather =
+        studentData.primaryParentRelation?.toLowerCase().includes('father') ??
+        false;
       const isSecondaryParentMother =
         secondaryParentInfo &&
         secondaryParentInfo.relation.toLowerCase().includes('mother');
 
       // Split primary parent name into parts
-      const primaryParentNameParts = studentData.primaryParentName.split(' ');
+      const primaryParentNameParts = hasPrimaryParentInfo
+        ? (studentData.primaryParentName || '').split(' ')
+        : [''];
       const primaryParentFirstName = primaryParentNameParts[0] || '';
       const primaryParentMiddleName =
         primaryParentNameParts.length > 2
@@ -481,17 +442,7 @@ export class StudentImportService {
         );
       }
 
-      // Log the student data being created
-      this.logger.log(`Creating student with data:`, {
-        fullName: studentData.fullName,
-        email: studentData.email,
-        rollNumber: studentData.rollNumber,
-        studentIemisCode: studentData.studentIemisCode,
-        classId: existingClass.id,
-        gender: studentData.gender.toLowerCase(),
-        dob: parsedDateOfBirth,
-        phone: studentData.phone,
-      });
+      // Avoid logging PII for imports
 
       const newStudent = await tx.student.create({
         data: {
@@ -512,62 +463,65 @@ export class StudentImportService {
           feeStatus: 'pending',
           createdById: createdBy,
 
-          // Populate parent fields based on relation
-          ...(isPrimaryParentFather
-            ? {
-                // Primary parent is father
-                fatherFirstName: primaryParentFirstName,
-                fatherMiddleName: primaryParentMiddleName,
-                fatherLastName: primaryParentLastName,
-                fatherPhone: studentData.primaryParentPhone,
-                fatherEmail: studentData.primaryParentEmail,
-                fatherOccupation: '', // Could be added to CSV if needed
+          ...(hasPrimaryParentInfo
+            ? isPrimaryParentFather
+              ? {
+                  // Primary parent is father
+                  fatherFirstName: primaryParentFirstName,
+                  fatherMiddleName: primaryParentMiddleName,
+                  fatherLastName: primaryParentLastName,
+                  fatherPhone: studentData.primaryParentPhone!,
+                  fatherEmail: studentData.primaryParentEmail!,
+                  fatherOccupation: '',
 
-                // Secondary parent is mother (if exists)
-                ...(isSecondaryParentMother && secondaryParentInfo
-                  ? {
-                      motherFirstName: secondaryParentFirstName,
-                      motherMiddleName: secondaryParentMiddleName,
-                      motherLastName: secondaryParentLastName,
-                      motherPhone: secondaryParentInfo.phone,
-                      motherEmail: secondaryParentInfo.email,
-                      motherOccupation: '', // Could be added to CSV if needed
-                    }
-                  : {}),
-              }
-            : {
-                // Primary parent is mother
-                motherFirstName: primaryParentFirstName,
-                motherMiddleName: primaryParentMiddleName,
-                motherLastName: primaryParentLastName,
-                motherPhone: studentData.primaryParentPhone,
-                motherEmail: studentData.primaryParentEmail,
-                motherOccupation: '', // Could be added to CSV if needed
+                  // Secondary parent is mother (if exists)
+                  ...(isSecondaryParentMother && secondaryParentInfo
+                    ? {
+                        motherFirstName: secondaryParentFirstName,
+                        motherMiddleName: secondaryParentMiddleName,
+                        motherLastName: secondaryParentLastName,
+                        motherPhone: secondaryParentInfo.phone,
+                        motherEmail: secondaryParentInfo.email,
+                        motherOccupation: '',
+                      }
+                    : {}),
+                }
+              : {
+                  // Primary parent is mother
+                  motherFirstName: primaryParentFirstName,
+                  motherMiddleName: primaryParentMiddleName,
+                  motherLastName: primaryParentLastName,
+                  motherPhone: studentData.primaryParentPhone!,
+                  motherEmail: studentData.primaryParentEmail!,
+                  motherOccupation: '',
 
-                // Secondary parent is father (if exists)
-                ...(secondaryParentInfo && !isSecondaryParentMother
-                  ? {
-                      fatherFirstName: secondaryParentFirstName,
-                      fatherMiddleName: secondaryParentMiddleName,
-                      fatherLastName: secondaryParentLastName,
-                      fatherPhone: secondaryParentInfo.phone,
-                      fatherEmail: secondaryParentInfo.email,
-                      fatherOccupation: '', // Could be added to CSV if needed
-                    }
-                  : {}),
-              }),
+                  // Secondary parent is father (if exists)
+                  ...(secondaryParentInfo && !isSecondaryParentMother
+                    ? {
+                        fatherFirstName: secondaryParentFirstName,
+                        fatherMiddleName: secondaryParentMiddleName,
+                        fatherLastName: secondaryParentLastName,
+                        fatherPhone: secondaryParentInfo.phone,
+                        fatherEmail: secondaryParentInfo.email,
+                        fatherOccupation: '',
+                      }
+                    : {}),
+                }
+            : {}),
         },
       });
 
-      // 7. Link primary parent to student (secondary parent is not linked via ParentStudentLink)
-      await tx.parentStudentLink.create({
-        data: {
-          parentId: primaryParent.id,
-          studentId: newStudent.id,
-          relationship: studentData.primaryParentRelation,
-          isPrimary: true,
-        },
-      });
+      // 7. Link primary parent to student (optional)
+      if (primaryParent && studentData.primaryParentRelation) {
+        await tx.parentStudentLink.create({
+          data: {
+            parentId: primaryParent.id,
+            studentId: newStudent.id,
+            relationship: studentData.primaryParentRelation!,
+            isPrimary: true,
+          },
+        });
+      }
 
       // 8. Audit log
       await this.auditService.record({
@@ -579,25 +533,10 @@ export class StudentImportService {
         userAgent: 'Student Import Service', // This should come from request context
       });
 
-      this.logger.log(
-        `Successfully created student: ${studentData.fullName} with ID: ${newStudent.id}`,
-      );
-
-      // Log success summary to console
-      this.logger.log(
-        `✅ Successfully imported: ${studentData.fullName} (${studentData.email})`,
-      );
-      this.logger.log(
-        `📚 Class: ${studentData.classGrade}-${studentData.classSection}`,
-      );
-      this.logger.log(`🔢 Roll Number: ${studentData.rollNumber}`);
-      this.logger.log(`🆔 Student IEMIS Code: ${studentData.studentIemisCode}`);
-      this.logger.log('=====================================');
-
       return {
         id: newStudent.id,
-        fullName: studentData.fullName,
-        email: studentData.email,
+        fullName: studentData.fullName!,
+        email: studentData.email!,
         rollNumber: studentData.rollNumber,
         studentId: studentData.studentIemisCode,
         className: `${studentData.classGrade}-${studentData.classSection}`,

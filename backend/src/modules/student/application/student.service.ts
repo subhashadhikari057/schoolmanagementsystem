@@ -9,7 +9,10 @@ import {
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { hashPassword } from '../../../shared/auth/hash.util';
 import { AuditService } from '../../../shared/logger/audit.service';
-import { generateRandomPassword } from '../../../shared/utils/password.util';
+import {
+  DEFAULT_PARENT_PASSWORD,
+  DEFAULT_STUDENT_PASSWORD,
+} from '../../../shared/utils/password.util';
 import { getFileUrl } from '../../../shared/utils/file-upload.util';
 import {
   CreateStudentDtoType,
@@ -188,7 +191,7 @@ export class StudentService {
       academic.studentId = `S-${currentYear}-${(studentCount + 1).toString().padStart(4, '0')}`;
     }
 
-    const rawPassword = user.password || generateRandomPassword();
+    const rawPassword = user.password || DEFAULT_STUDENT_PASSWORD;
     const passwordHash = await hashPassword(rawPassword);
     const fullName = user.middleName
       ? `${user.firstName} ${user.middleName} ${user.lastName}`
@@ -344,7 +347,7 @@ export class StudentService {
               parentUser = existingParentUser;
             } else {
               // Create new parent user
-              parentPassword = generateRandomPassword();
+              parentPassword = DEFAULT_PARENT_PASSWORD;
               const parentPasswordHash = await hashPassword(parentPassword);
 
               // Build full name from first, middle, last
@@ -463,7 +466,7 @@ export class StudentService {
               guardianUser = existingGuardianUser;
             } else {
               // Create new guardian user
-              guardianPassword = generateRandomPassword();
+              guardianPassword = DEFAULT_PARENT_PASSWORD;
               const guardianPasswordHash = await hashPassword(guardianPassword);
 
               guardianUser = await tx.user.create({
@@ -1825,7 +1828,7 @@ export class StudentService {
               guardianUser = existingGuardianUser;
             } else {
               // Create new guardian user
-              guardianPassword = generateRandomPassword();
+              guardianPassword = DEFAULT_PARENT_PASSWORD;
               const guardianPasswordHash = await hashPassword(guardianPassword);
 
               guardianUser = await tx.user.create({
