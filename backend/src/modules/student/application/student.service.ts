@@ -1652,6 +1652,19 @@ export class StudentService {
     if (!student || student.deletedAt)
       throw new NotFoundException('Student not found or already deleted');
 
+    const parentLinks = await this.prisma.parentStudentLink.findMany({
+      where: { studentId: id },
+      include: {
+        parent: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    let parentsSoftDeleted = 0;
+
     await this.prisma.$transaction(async tx => {
       // Update student record
       await tx.student.update({
@@ -1690,6 +1703,70 @@ export class StudentService {
         },
       });
 
+      // Unlink parents from this student (hard delete links)
+      if (parentLinks.length > 0) {
+        await tx.parentStudentLink.deleteMany({
+          where: { studentId: id },
+        });
+
+        const processedParents = new Set<string>();
+
+        for (const link of parentLinks) {
+          const parentId = link.parentId;
+
+          if (processedParents.has(parentId)) {
+            continue;
+          }
+
+          processedParents.add(parentId);
+
+          if (!link.parent || link.parent.deletedAt) {
+            continue;
+          }
+
+          const hasOtherActiveChild = await tx.parentStudentLink.findFirst({
+            where: {
+              parentId,
+              student: {
+                deletedAt: null,
+              },
+            },
+          });
+
+          if (hasOtherActiveChild) {
+            continue;
+          }
+
+          await tx.parent.update({
+            where: { id: parentId },
+            data: {
+              deletedAt: new Date(),
+              deletedById: deletedBy,
+            },
+          });
+
+          await tx.user.update({
+            where: { id: link.parent.userId },
+            data: {
+              deletedAt: new Date(),
+              deletedById: deletedBy,
+              isActive: false,
+              email: `deleted_${link.parent.userId}_${Date.now()}@deleted.local`,
+              phone: link.parent.user?.phone
+                ? `deleted_${link.parent.userId}_${Date.now()}`
+                : null,
+            },
+          });
+
+          await tx.userSession.updateMany({
+            where: { userId: link.parent.userId, revokedAt: null },
+            data: { revokedAt: new Date() },
+          });
+
+          parentsSoftDeleted += 1;
+        }
+      }
+
       // Revoke user sessions
       await tx.userSession.updateMany({
         where: { userId: student.userId, revokedAt: null },
@@ -1702,7 +1779,11 @@ export class StudentService {
       action: 'DELETE_STUDENT',
       module: 'student',
       status: 'SUCCESS',
-      details: { id },
+      details: {
+        id,
+        parentsUnlinked: parentLinks.length,
+        parentsSoftDeleted,
+      },
       ipAddress: ip,
       userAgent,
     });
