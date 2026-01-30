@@ -169,13 +169,16 @@ export const TodaysClasses: React.FC<TodaysClassesProps> = ({
       } else {
         const errorMessage = response.error || "Failed to load today's classes";
         const normalizedMessage = errorMessage.toLowerCase();
-        const isNoRoutineError =
+        const isNoRoutineError = response.statusCode === 404;
+
+        const isKnownNoRoutine =
           normalizedMessage.includes('no active schedule') ||
           normalizedMessage.includes('no active timetable') ||
           normalizedMessage.includes('timetable not found') ||
-          normalizedMessage.includes('schedule not found');
+          normalizedMessage.includes('schedule not found') ||
+          normalizedMessage.includes('no schedule found');
 
-        if (isNoRoutineError) {
+        if (isNoRoutineError || isKnownNoRoutine) {
           setClasses([]);
           setNoRoutine(true);
         } else {
@@ -185,8 +188,14 @@ export const TodaysClasses: React.FC<TodaysClassesProps> = ({
       }
     } catch (err: any) {
       console.error("Error loading today's classes:", err);
-      setError(err.message || "Failed to load today's classes");
-      setClasses([]);
+      if (err?.statusCode === 404) {
+        setClasses([]);
+        setNoRoutine(true);
+        setError(null);
+      } else {
+        setError(err?.message || "Failed to load today's classes");
+        setClasses([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -272,7 +281,7 @@ export const TodaysClasses: React.FC<TodaysClassesProps> = ({
         </div>
         <div className='bg-blue-50 border border-blue-200 rounded-lg p-6 text-center'>
           <BookOpen className='w-8 h-8 text-blue-500 mx-auto mb-2' />
-          <p className='text-sm text-blue-600'>No routine found yet</p>
+          <p className='text-sm text-blue-600'>Timetable not created</p>
           <p className='text-xs text-blue-500 mt-1'>
             Timetable is not set for {className || 'your class'}.
           </p>

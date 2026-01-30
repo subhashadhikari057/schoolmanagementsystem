@@ -7,6 +7,7 @@ import {
   AssignTeacherToSlotDto,
   TimetableSlotDto,
 } from '@sms/shared-types';
+import { ApiError } from '../types/common';
 
 // Define response types for teacher timetable
 interface TimetableResponse {
@@ -37,24 +38,33 @@ export const timetableService = {
    */
   async getTimetable(params: GetTimetableDto) {
     try {
-      const response = await apiClient.get('/api/v1/timetable', {
-        params: {
-          classId: params.classId,
-          scheduleId: params.scheduleId,
-          includeConflicts: params.includeConflicts,
+      const response = await apiClient.get(
+        '/api/v1/timetable',
+        {
+          params: {
+            classId: params.classId,
+            scheduleId: params.scheduleId,
+            includeConflicts: params.includeConflicts,
+          },
         },
-      });
+        {
+          retries: 0,
+        },
+      );
       return {
         success: true,
         data: response.data as TimetableSlotDto[],
       };
     } catch (error: unknown) {
       console.error('Error fetching timetable:', error);
+      const apiError = error as ApiError;
+      const fallbackMessage =
+        (error as Error | undefined)?.message || 'Failed to fetch timetable';
       return {
         success: false,
-        error:
-          (error as { response?: { data?: { message?: string } } })?.response
-            ?.data?.message || 'Failed to fetch timetable',
+        error: apiError?.message || apiError?.error || fallbackMessage,
+        statusCode: apiError?.statusCode,
+        code: apiError?.code,
       };
     }
   },

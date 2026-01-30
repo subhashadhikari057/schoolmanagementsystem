@@ -7,11 +7,16 @@
  */
 
 import { httpClient } from './http-client';
+import { RequestConfig } from '../types/common';
 
 // Create a simple API client wrapper
 export const apiClient = {
-  get: async <T>(url: string, params?: Record<string, unknown>) => {
-    const response = await httpClient.get<T>(url, params);
+  get: async <T>(
+    url: string,
+    params?: Record<string, unknown>,
+    config?: RequestConfig,
+  ) => {
+    const response = await httpClient.get<T>(url, params, config);
     return response;
   },
 

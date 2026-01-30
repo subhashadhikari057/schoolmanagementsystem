@@ -209,7 +209,7 @@ export class HttpClient {
     }
 
     let lastError: Error | null = null;
-    const maxRetries = config.retries || this.config.retries;
+    const maxRetries = config.retries ?? this.config.retries;
 
     // Retry logic
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
