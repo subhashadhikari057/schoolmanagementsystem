@@ -355,6 +355,13 @@ export class TeacherService {
             },
           },
         },
+        classesAsTeacher: {
+          select: {
+            id: true,
+            grade: true,
+            section: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -443,12 +450,41 @@ export class TeacherService {
           code: ts.subject.code,
         })),
 
-        // Class assignments (if class teacher)
-        classAssignments: teacher.classAssignments.map(ca => ({
-          id: ca.id,
-          className: `Grade ${ca.class.grade} Section ${ca.class.section}`,
-          section: ca.class.section,
-        })),
+        // Class assignments (explicit + class teacher)
+        classAssignments: (() => {
+          const explicitAssignments = teacher.classAssignments.map(ca => ({
+            id: ca.id,
+            classId: ca.class.id,
+            className: `Grade ${ca.class.grade} Section ${ca.class.section}`,
+            section: ca.class.section,
+          }));
+
+          const classTeacherAssignments = (teacher.classesAsTeacher || []).map(
+            cls => ({
+              id: `class-teacher-${cls.id}`,
+              classId: cls.id,
+              className: `Grade ${cls.grade} Section ${cls.section}`,
+              section: cls.section,
+            }),
+          );
+
+          const merged = new Map<
+            string,
+            (typeof explicitAssignments)[number]
+          >();
+          for (const assignment of explicitAssignments) {
+            if (assignment.classId) {
+              merged.set(assignment.classId, assignment);
+            }
+          }
+          for (const assignment of classTeacherAssignments) {
+            if (assignment.classId && !merged.has(assignment.classId)) {
+              merged.set(assignment.classId, assignment);
+            }
+          }
+
+          return Array.from(merged.values());
+        })(),
       };
     });
   }

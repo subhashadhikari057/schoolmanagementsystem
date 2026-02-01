@@ -88,6 +88,26 @@ const TeachersPage = () => {
 
   const itemsPerPage = 10;
 
+  const formatClassAssignment = (assignment: any) => {
+    const base = (assignment?.className || '').trim();
+    const section = (assignment?.section || '').toString().trim();
+
+    if (!base) return section;
+    if (!section) return base;
+
+    const normalizedBase = base.toLowerCase();
+    const normalizedSection = section.toLowerCase();
+
+    if (
+      normalizedBase.includes('section') ||
+      normalizedBase.endsWith(` ${normalizedSection}`)
+    ) {
+      return base;
+    }
+
+    return `${base} ${section}`;
+  };
+
   // Calculate stats from real data
   const calculateStats = (teachersData: Teacher[]) => {
     const total = teachersData.length;
@@ -199,7 +219,8 @@ const TeachersPage = () => {
               subjects: teacher.subjects?.map((s: any) => s.name) || [],
               classTeacher:
                 teacher.classAssignments
-                  ?.map((ca: any) => `${ca.className} ${ca.section}`)
+                  ?.map((ca: any) => formatClassAssignment(ca))
+                  .filter(Boolean)
                   .join(', ') || '',
               status:
                 teacher.employmentStatus === 'active'
