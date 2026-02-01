@@ -73,6 +73,7 @@ export interface CreateParentRequest {
 export interface UpdateParentRequest {
   user?: {
     fullName?: string;
+    email?: string;
     phone?: string;
   };
   profile?: {

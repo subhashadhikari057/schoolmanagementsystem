@@ -67,6 +67,7 @@ export const UpdateParentByAdminDto = z.object({
   user: z
     .object({
       fullName: z.string().min(1).optional(),
+      email: z.string().email('Invalid email format').optional(),
       phone: z.string().optional(),
       isActive: z.boolean().optional(),
     })

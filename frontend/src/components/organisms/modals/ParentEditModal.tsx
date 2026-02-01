@@ -189,15 +189,13 @@ const ParentEditModal: React.FC<ParentEditModalProps> = ({
       const updateData: UpdateParentRequest = {
         user: {
           fullName: formData.fullName,
+          email: formData.email,
           phone: formData.phone,
         },
         profile: {
           occupation: formData.occupation || undefined,
         },
       };
-
-      // Handle email update through backend directly
-      // Since email is part of User model but not exposed in the UpdateParentRequest interface
 
       // Send update request
       const response = await parentService.updateParent(parent.id, updateData);
