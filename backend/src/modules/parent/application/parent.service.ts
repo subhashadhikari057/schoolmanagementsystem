@@ -669,6 +669,55 @@ export class ParentService {
           });
         }
 
+        const updatedEmail = data.user?.email?.trim();
+        if (updatedEmail) {
+          const parentLinks = await tx.parentStudentLink.findMany({
+            where: {
+              parentId: id,
+              deletedAt: null,
+              student: {
+                deletedAt: null,
+              },
+            },
+            select: {
+              studentId: true,
+              relationship: true,
+            },
+          });
+
+          const emailUpdates: Array<Promise<unknown>> = [];
+
+          for (const link of parentLinks) {
+            const relationship = link.relationship?.toLowerCase();
+            if (relationship === 'father') {
+              emailUpdates.push(
+                tx.student.update({
+                  where: { id: link.studentId },
+                  data: {
+                    fatherEmail: updatedEmail,
+                    updatedById,
+                  },
+                }),
+              );
+            }
+            if (relationship === 'mother') {
+              emailUpdates.push(
+                tx.student.update({
+                  where: { id: link.studentId },
+                  data: {
+                    motherEmail: updatedEmail,
+                    updatedById,
+                  },
+                }),
+              );
+            }
+          }
+
+          if (emailUpdates.length > 0) {
+            await Promise.all(emailUpdates);
+          }
+        }
+
         // Update parent profile if provided
         if (data.profile) {
           await tx.parent.update({
