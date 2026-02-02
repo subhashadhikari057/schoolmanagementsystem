@@ -1,6 +1,5 @@
-import { Button as HeadlessButton } from '@headlessui/react';
-
 import { Button } from '@headlessui/react';
+import { cn } from '@/lib/utils';
 
 type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -65,7 +64,11 @@ export default function ReusableButton({
     return (
       <div
         onClick={isDisabled ? undefined : onClick}
-        className={`${baseClasses} ${isDisabled ? '' : 'cursor-pointer'} ${className || ''}`}
+        className={cn(
+          baseClasses,
+          isDisabled ? '' : 'cursor-pointer',
+          className,
+        )}
         role='button'
         tabIndex={isDisabled ? -1 : 0}
         onKeyDown={e => {
@@ -74,7 +77,9 @@ export default function ReusableButton({
           }
         }}
       >
-        <span className='truncate'>{children ? children : label}</span>
+        <span className='inline-flex items-center gap-2 truncate'>
+          {children ? children : label}
+        </span>
       </div>
     );
   }
@@ -82,7 +87,7 @@ export default function ReusableButton({
   return (
     <Button
       onClick={onClick}
-      className={`${baseClasses} ${className || ''}`}
+      className={cn(baseClasses, className)}
       type={type}
       disabled={isDisabled}
     >
@@ -108,7 +113,9 @@ export default function ReusableButton({
           />
         </svg>
       )}
-      <span className='truncate'>{children ? children : label}</span>
+      <span className='inline-flex items-center gap-2 truncate'>
+        {children ? children : label}
+      </span>
     </Button>
   );
 }
