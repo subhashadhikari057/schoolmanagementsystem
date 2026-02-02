@@ -19,6 +19,7 @@ import {
 import { noticeService, type Notice } from '@/api/services/notice.service';
 import { toast } from 'sonner';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
+import CreateNoticeModal from '@/components/organisms/modals/CreateNoticeModal';
 
 type Row = BaseItem & {
   id: string;
@@ -56,6 +57,7 @@ const NoticeManagement: React.FC = () => {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   // Calculate stats from the data
   const statsConfig = useMemo(() => {
@@ -247,11 +249,15 @@ const NoticeManagement: React.FC = () => {
     const handleRefresh = () => {
       fetchData();
     };
+    const handleCreate = () => {
+      setCreateModalOpen(true);
+    };
     if (typeof window !== 'undefined') {
       window.addEventListener(
         'notices:refresh',
         handleRefresh as EventListener,
       );
+      window.addEventListener('notices:create', handleCreate as EventListener);
     }
     const intervalId = setInterval(() => {
       fetchData();
@@ -261,6 +267,10 @@ const NoticeManagement: React.FC = () => {
         window.removeEventListener(
           'notices:refresh',
           handleRefresh as EventListener,
+        );
+        window.removeEventListener(
+          'notices:create',
+          handleCreate as EventListener,
         );
       }
       clearInterval(intervalId);
@@ -466,12 +476,7 @@ const NoticeManagement: React.FC = () => {
         onSecondaryFilterChange={setPriorityFilter}
         customActions={
           <button
-            onClick={() => {
-              // Trigger notice create modal
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('notices:create'));
-              }
-            }}
+            onClick={() => setCreateModalOpen(true)}
             className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
           >
             <svg
@@ -502,6 +507,18 @@ const NoticeManagement: React.FC = () => {
           onClose={() => {
             setEditing(null);
             fetchData();
+          }}
+        />
+      )}
+      {createModalOpen && (
+        <CreateNoticeModal
+          open={createModalOpen}
+          onClose={() => {
+            setCreateModalOpen(false);
+            fetchData();
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('notices:refresh'));
+            }
           }}
         />
       )}

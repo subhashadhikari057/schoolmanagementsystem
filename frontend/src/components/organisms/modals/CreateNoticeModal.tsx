@@ -226,6 +226,23 @@ export default function CreateNoticeModal({
     }),
   );
 
+  const toISOStartOfDay = (value?: string) => {
+    if (!value) return new Date().toISOString();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return new Date(`${value}T00:00:00`).toISOString();
+    }
+    return new Date(value).toISOString();
+  };
+
+  const toISOEndOfDay = (value?: string) => {
+    if (!value)
+      return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return new Date(`${value}T23:59:59`).toISOString();
+    }
+    return new Date(value).toISOString();
+  };
+
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -261,21 +278,8 @@ export default function CreateNoticeModal({
     try {
       setLoading(true);
 
-      // Normalize dates to ISO and ensure expiry > publish
-      const publishISO = form.publishDate
-        ? new Date(form.publishDate).toISOString()
-        : new Date().toISOString();
-      const expiryISO = form.expiryDate
-        ? (() => {
-            // If only a date string (YYYY-MM-DD), set to end of day 23:59:59
-            // Input type 'date' returns 'YYYY-MM-DD'
-            if (/^\d{4}-\d{2}-\d{2}$/.test(form.expiryDate)) {
-              const end = new Date(form.expiryDate + 'T23:59:59');
-              return end.toISOString();
-            }
-            return new Date(form.expiryDate).toISOString();
-          })()
-        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const publishISO = toISOStartOfDay(form.publishDate);
+      const expiryISO = toISOEndOfDay(form.expiryDate);
 
       const noticeData = {
         title: form.title.trim(),
@@ -390,21 +394,8 @@ export default function CreateNoticeModal({
         }
       }
 
-      // Normalize dates to ISO and ensure expiry > publish
-      const publishISO = form.publishDate
-        ? new Date(form.publishDate).toISOString()
-        : new Date().toISOString();
-      const expiryISO = form.expiryDate
-        ? (() => {
-            // If only a date string (YYYY-MM-DD), set to end of day 23:59:59
-            // Input type 'date' returns 'YYYY-MM-DD'
-            if (/^\d{4}-\d{2}-\d{2}$/.test(form.expiryDate)) {
-              const end = new Date(form.expiryDate + 'T23:59:59');
-              return end.toISOString();
-            }
-            return new Date(form.expiryDate).toISOString();
-          })()
-        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const publishISO = toISOStartOfDay(form.publishDate);
+      const expiryISO = toISOEndOfDay(form.expiryDate);
 
       const noticeData = {
         title: form.title.trim(),
@@ -508,16 +499,16 @@ export default function CreateNoticeModal({
 
   return (
     <div className='fixed inset-0 z-50 h-screen flex items-center justify-center bg-black/20 overflow-y-auto'>
-      <div className='bg-white rounded-xl shadow-xl w-full max-w-4xl p-0 mx-2 my-6 max-h-[90vh] overflow-auto'>
+      <div className='bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-4xl p-0 mx-2 my-6 max-h-[90vh] overflow-auto'>
         {/* Header */}
-        <div className='flex items-center justify-between px-4 sm:px-6 pt-6 pb-2 border-b'>
-          <SectionTitle text='Create New Notice' />
+        <div className='flex items-center justify-between px-4 sm:px-6 pt-6 pb-2 border-b border-slate-200 bg-slate-50'>
+          <SectionTitle text='Create New Notice' className='text-xl' />
           <button
             onClick={() => {
               resetForm(); // Reset form when closing
               onClose();
             }}
-            className='text-gray-400 hover:text-gray-700 text-xl'
+            className='text-slate-400 hover:text-slate-700 text-xl'
             aria-label='Close'
             type='button'
           >
@@ -567,7 +558,7 @@ export default function CreateNoticeModal({
                 <div>
                   <Label>Publish Date</Label>
                   <Input
-                    type='datetime-local'
+                    type='date'
                     value={form.publishDate}
                     onChange={e =>
                       setForm(f => ({ ...f, publishDate: e.target.value }))
@@ -816,7 +807,7 @@ export default function CreateNoticeModal({
                   <input
                     type='file'
                     multiple
-                    className='block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100'
+                    className='block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-blue-200 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
                     onChange={e =>
                       setForm(f => ({
                         ...f,
@@ -826,32 +817,25 @@ export default function CreateNoticeModal({
                       }))
                     }
                   />
-                  <Button
-                    type='button'
-                    className='bg-gray-100 text-gray-700 px-3 py-2 rounded'
-                    onClick={() => {
-                      // Optional: open file picker programmatically
-                    }}
-                  >
-                    Add Files
-                  </Button>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Actions */}
-          <div className='flex flex-col xs:flex-row justify-end gap-2 mt-8 pt-4 border-t'>
+          <div className='flex flex-row items-center justify-end gap-3 mt-8 pt-4 border-t border-slate-200'>
             <Button
               type='button'
-              className={`px-4 py-2 rounded ${loading ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gray-100 text-gray-700'}`}
+              className='px-4 py-2 rounded border border-blue-700 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed'
               onClick={loading ? undefined : handleSaveDraft}
+              disabled={loading}
             >
               {loading ? 'Saving...' : 'Save as Draft'}
             </Button>
             <Button
               type='submit'
-              className={`px-4 py-2 rounded flex items-center gap-2 ${loading ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white'}`}
+              className='px-4 py-2 rounded flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed'
+              disabled={loading}
             >
               {loading ? 'Publishing...' : 'Publish Notice'}{' '}
               <span className='ml-1'>✈️</span>
