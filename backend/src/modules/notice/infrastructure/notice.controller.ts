@@ -63,7 +63,10 @@ export class NoticeController {
 
       const result = await this.noticeService.create(
         validatedData,
-        user.id as string,
+        {
+          id: user.id as string,
+          role: user.role as UserRole,
+        },
         files,
         req.ip,
         req.headers['user-agent'] as string,
@@ -100,22 +103,34 @@ export class NoticeController {
     return this.noticeService.getNoticesForUser(user.id as string, query);
   }
 
+  @Get('created-by-me')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getMyCreatedNotices(
+    @Query(new ZodValidationPipe(NoticeQuerySchema)) query: NoticeQueryDtoType,
+    @CurrentUser() user: Record<string, unknown>,
+  ) {
+    return this.noticeService.getCreatedNoticesForUser(
+      user.id as string,
+      query,
+    );
+  }
+
   @Get('classes')
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
-  async getAvailableClasses() {
-    return this.noticeService.getAvailableClasses();
+  async getAvailableClasses(@CurrentUser() user: Record<string, unknown>) {
+    return this.noticeService.getAvailableClasses({
+      id: user.id as string,
+      role: user.role as UserRole,
+    });
   }
 
   @Get('students-with-parents')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  async getStudentsWithParents() {
-    return this.noticeService.getStudentsWithParents();
-  }
-
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    // No role checks here - simply retrieve the notice by ID
-    return await this.noticeService.findOne(id);
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  async getStudentsWithParents(@CurrentUser() user: Record<string, unknown>) {
+    return this.noticeService.getStudentsWithParents({
+      id: user.id as string,
+      role: user.role as UserRole,
+    });
   }
 
   @Patch(':id')
@@ -129,7 +144,10 @@ export class NoticeController {
     const result = await this.noticeService.update(
       id,
       body,
-      user.id as string,
+      {
+        id: user.id as string,
+        role: user.role as UserRole,
+      },
       req.ip,
       req.headers['user-agent'] as string,
     );
@@ -142,7 +160,7 @@ export class NoticeController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: Record<string, unknown>,
@@ -150,10 +168,19 @@ export class NoticeController {
   ) {
     return this.noticeService.remove(
       id,
-      user.id as string,
+      {
+        id: user.id as string,
+        role: user.role as UserRole,
+      },
       req.ip,
       req.headers['user-agent'] as string,
     );
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    // No role checks here - simply retrieve the notice by ID
+    return await this.noticeService.findOne(id);
   }
 
   @Post(':id/read')

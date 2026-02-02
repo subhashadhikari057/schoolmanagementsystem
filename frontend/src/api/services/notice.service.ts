@@ -9,6 +9,7 @@ export const NOTICE_ENDPOINTS = {
   UPDATE: (id: string) => `/api/v1/notices/${id}`,
   DELETE: (id: string) => `/api/v1/notices/${id}`,
   GET_MY_NOTICES: '/api/v1/notices/my-notices',
+  GET_MY_CREATED_NOTICES: '/api/v1/notices/created-by-me',
   GET_AVAILABLE_CLASSES: '/api/v1/notices/classes',
   GET_STUDENTS_WITH_PARENTS: '/api/v1/notices/students-with-parents',
   MARK_AS_READ: (id: string) => `/api/v1/notices/${id}/read`,
@@ -344,6 +345,33 @@ export class NoticeService {
       return await this.httpClient.get<NoticeListResponse>(url);
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch your notices');
+    }
+  }
+
+  /**
+   * Get notices created by the current user
+   */
+  async getMyCreatedNotices(
+    params?: NoticeQueryParams,
+  ): Promise<ApiResponse<NoticeListResponse>> {
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            queryParams.append(key, value.toString());
+          }
+        });
+      }
+
+      const url = queryParams.toString()
+        ? `${NOTICE_ENDPOINTS.GET_MY_CREATED_NOTICES}?${queryParams.toString()}`
+        : NOTICE_ENDPOINTS.GET_MY_CREATED_NOTICES;
+
+      return await this.httpClient.get<NoticeListResponse>(url);
+    } catch (error) {
+      throw this.handleError(error, 'Failed to fetch your created notices');
     }
   }
 

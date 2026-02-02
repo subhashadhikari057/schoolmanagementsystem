@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../infrastructure/database/prisma.service';
 import { AuditService } from '../../../shared/logger/audit.service';
@@ -11,6 +12,7 @@ import {
   NoticeQueryDtoType,
 } from '../dto/notice.dto';
 import { NoticeRecipientType } from '@prisma/client';
+import { UserRole } from '@sms/shared-types';
 import { getFileUrl } from '../../../shared/utils/file-upload.util';
 
 @Injectable()
@@ -25,11 +27,71 @@ export class NoticeService {
    */
   async create(
     dto: CreateNoticeDtoType,
-    createdBy: string,
+    user: { id: string; role: UserRole },
     files?: Express.Multer.File[],
     ip?: string,
     userAgent?: string,
   ) {
+    const createdBy = user.id;
+
+    if (user.role === UserRole.TEACHER) {
+      if (
+        dto.recipientType !== NoticeRecipientType.CLASS &&
+        dto.recipientType !== NoticeRecipientType.SPECIFIC_PARENT
+      ) {
+        throw new BadRequestException(
+          'Teachers can only send notices to a class or a specific parent',
+        );
+      }
+
+      const teacherClassIds = await this.getTeacherClassIds(createdBy);
+      if (teacherClassIds.length === 0) {
+        throw new BadRequestException(
+          'You are not assigned as a class teacher to any class',
+        );
+      }
+
+      if (dto.recipientType === NoticeRecipientType.CLASS) {
+        if (!dto.selectedClassId) {
+          throw new BadRequestException(
+            'Class ID is required for class recipients',
+          );
+        }
+        if (!teacherClassIds.includes(dto.selectedClassId)) {
+          throw new BadRequestException(
+            'You can only send notices to your assigned class',
+          );
+        }
+      }
+
+      if (dto.recipientType === NoticeRecipientType.SPECIFIC_PARENT) {
+        if (!dto.selectedClassId || !dto.selectedStudentId) {
+          throw new BadRequestException(
+            'Class ID and Student ID are required for specific parent recipients',
+          );
+        }
+        if (!teacherClassIds.includes(dto.selectedClassId)) {
+          throw new BadRequestException(
+            'You can only select students from your assigned class',
+          );
+        }
+
+        const studentInClass = await this.prisma.student.findFirst({
+          where: {
+            id: dto.selectedStudentId,
+            classId: dto.selectedClassId,
+            deletedAt: null,
+          },
+          select: { id: true },
+        });
+
+        if (!studentInClass) {
+          throw new BadRequestException(
+            'Selected student does not belong to the selected class',
+          );
+        }
+      }
+    }
     // Validate class exists if recipient type is CLASS
     if (
       dto.recipientType === NoticeRecipientType.CLASS &&
@@ -275,16 +337,76 @@ export class NoticeService {
   async update(
     id: string,
     dto: UpdateNoticeDtoType,
-    updatedBy: string,
+    user: { id: string; role: UserRole },
     ip?: string,
     userAgent?: string,
   ) {
+    const updatedBy = user.id;
     const existingNotice = await this.prisma.notice.findFirst({
       where: { id, deletedAt: null },
     });
 
     if (!existingNotice) {
       throw new NotFoundException('Notice not found');
+    }
+
+    if (
+      user.role === UserRole.TEACHER &&
+      existingNotice.createdById !== user.id
+    ) {
+      throw new ForbiddenException('You can only update notices you created');
+    }
+
+    if (user.role === UserRole.TEACHER) {
+      const recipientType = dto.recipientType || existingNotice.recipientType;
+      if (
+        recipientType !== NoticeRecipientType.CLASS &&
+        recipientType !== NoticeRecipientType.SPECIFIC_PARENT
+      ) {
+        throw new BadRequestException(
+          'Teachers can only send notices to a class or a specific parent',
+        );
+      }
+
+      const selectedClassId =
+        dto.selectedClassId || existingNotice.selectedClassId;
+      if (!selectedClassId) {
+        throw new BadRequestException(
+          'Class ID is required for teacher notices',
+        );
+      }
+
+      const teacherClassIds = await this.getTeacherClassIds(user.id);
+      if (!teacherClassIds.includes(selectedClassId)) {
+        throw new BadRequestException(
+          'You can only target your assigned class',
+        );
+      }
+
+      if (recipientType === NoticeRecipientType.SPECIFIC_PARENT) {
+        const selectedStudentId =
+          dto.selectedStudentId || existingNotice.selectedStudentId;
+        if (!selectedStudentId) {
+          throw new BadRequestException(
+            'Student ID is required for specific parent recipients',
+          );
+        }
+
+        const studentInClass = await this.prisma.student.findFirst({
+          where: {
+            id: selectedStudentId,
+            classId: selectedClassId,
+            deletedAt: null,
+          },
+          select: { id: true },
+        });
+
+        if (!studentInClass) {
+          throw new BadRequestException(
+            'Selected student does not belong to the selected class',
+          );
+        }
+      }
     }
 
     // Validate class exists if recipient type is CLASS
@@ -332,6 +454,17 @@ export class NoticeService {
         dto.selectedClassId,
         dto.selectedStudentId,
       );
+    } else if (dto.selectedClassId || dto.selectedStudentId) {
+      const selectedClassId =
+        dto.selectedClassId ?? existingNotice.selectedClassId ?? undefined;
+      const selectedStudentId =
+        dto.selectedStudentId ?? existingNotice.selectedStudentId ?? undefined;
+      await this.reassignRecipients(
+        id,
+        dto.recipientType || existingNotice.recipientType,
+        selectedClassId,
+        selectedStudentId,
+      );
     }
 
     // Audit log
@@ -356,13 +489,23 @@ export class NoticeService {
   /**
    * Soft delete a notice
    */
-  async remove(id: string, deletedBy: string, ip?: string, userAgent?: string) {
+  async remove(
+    id: string,
+    user: { id: string; role: UserRole },
+    ip?: string,
+    userAgent?: string,
+  ) {
+    const deletedBy = user.id;
     const notice = await this.prisma.notice.findFirst({
       where: { id, deletedAt: null },
     });
 
     if (!notice) {
       throw new NotFoundException('Notice not found');
+    }
+
+    if (user.role === UserRole.TEACHER && notice.createdById !== user.id) {
+      throw new ForbiddenException('You can only delete notices you created');
     }
 
     await this.prisma.notice.update({
@@ -455,6 +598,80 @@ export class NoticeService {
     };
   }
 
+  async getCreatedNoticesForUser(userId: string, query: NoticeQueryDtoType) {
+    const {
+      page,
+      limit,
+      search,
+      priority,
+      category,
+      status,
+      startDate,
+      endDate,
+    } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Record<string, unknown> = {
+      deletedAt: null,
+      createdById: userId,
+    };
+
+    if (search) {
+      (where as any).OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (priority) (where as any).priority = priority;
+    if (category) (where as any).category = category;
+    if (status) (where as any).status = status;
+
+    if (startDate || endDate) {
+      (where as any).publishDate = {};
+      if (startDate) (where as any).publishDate.gte = startDate;
+      if (endDate) (where as any).publishDate.lte = endDate;
+    }
+
+    const [notices, total] = await Promise.all([
+      this.prisma.notice.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          selectedClass: {
+            select: { id: true, name: true, grade: true, section: true },
+          },
+          createdBy: {
+            select: { id: true, fullName: true, email: true },
+          },
+          attachments: {
+            orderBy: { uploadedAt: 'desc' },
+          },
+          _count: {
+            select: { recipients: true },
+          },
+        },
+      }),
+      this.prisma.notice.count({ where }),
+    ]);
+
+    return {
+      notices: notices.map(notice => ({
+        ...notice,
+        recipientCount: notice._count.recipients,
+        _count: undefined,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   /**
    * Mark a notice as read for a user
    */
@@ -476,7 +693,26 @@ export class NoticeService {
   /**
    * Get available classes for notice recipients
    */
-  async getAvailableClasses() {
+  async getAvailableClasses(user?: { id: string; role: UserRole }) {
+    if (user?.role === UserRole.TEACHER) {
+      const teacherClassIds = await this.getTeacherClassIds(user.id);
+      if (teacherClassIds.length === 0) {
+        return [];
+      }
+      return this.prisma.class.findMany({
+        where: { id: { in: teacherClassIds }, deletedAt: null },
+        select: {
+          id: true,
+          name: true,
+          grade: true,
+          section: true,
+          shift: true,
+          currentEnrollment: true,
+        },
+        orderBy: [{ grade: 'asc' }, { section: 'asc' }],
+      });
+    }
+
     return this.prisma.class.findMany({
       where: { deletedAt: null },
       select: {
@@ -494,9 +730,21 @@ export class NoticeService {
   /**
    * Get students with their parent information for notice targeting
    */
-  async getStudentsWithParents() {
+  async getStudentsWithParents(user?: { id: string; role: UserRole }) {
+    let classIds: string[] | undefined;
+
+    if (user?.role === UserRole.TEACHER) {
+      classIds = await this.getTeacherClassIds(user.id);
+      if (classIds.length === 0) {
+        return [];
+      }
+    }
+
     return this.prisma.student.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        ...(classIds ? { classId: { in: classIds } } : {}),
+      },
       select: {
         id: true,
         rollNumber: true,
@@ -538,6 +786,24 @@ export class NoticeService {
         { rollNumber: 'asc' },
       ],
     });
+  }
+
+  private async getTeacherClassIds(userId: string) {
+    const teacher = await this.prisma.teacher.findFirst({
+      where: { userId, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (!teacher) {
+      return [] as string[];
+    }
+
+    const classes = await this.prisma.class.findMany({
+      where: { classTeacherId: teacher.id, deletedAt: null },
+      select: { id: true },
+    });
+
+    return classes.map(cls => cls.id);
   }
 
   /**

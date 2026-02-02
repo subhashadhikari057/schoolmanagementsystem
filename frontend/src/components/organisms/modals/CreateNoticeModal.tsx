@@ -8,7 +8,7 @@ import Button from '@/components/atoms/form-controls/Button';
 import Input from '@/components/atoms/form-controls/Input';
 import Checkbox from '@/components/atoms/form-controls/Checkbox';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
-import { classService } from '@/api/services/class.service';
+import { useAuth } from '@/hooks/useAuth';
 import {
   noticeService,
   StudentWithParents,
@@ -57,11 +57,16 @@ export default function CreateNoticeModal({
   open: boolean;
   onClose: () => void;
 }) {
+  const { user } = useAuth();
+  const isTeacher = user?.role === 'TEACHER';
+  const defaultRecipientType = isTeacher
+    ? NoticeRecipientType.CLASS
+    : NoticeRecipientType.ALL;
   const [form, setForm] = useState<FormState>({
     title: '',
     content: '',
     priority: NoticePriority.MEDIUM,
-    recipientType: NoticeRecipientType.ALL,
+    recipientType: defaultRecipientType,
     selectedClassId: undefined,
     selectedStudentId: undefined,
     category: undefined,
@@ -78,7 +83,7 @@ export default function CreateNoticeModal({
       title: '',
       content: '',
       priority: NoticePriority.MEDIUM,
-      recipientType: NoticeRecipientType.ALL,
+      recipientType: defaultRecipientType,
       selectedClassId: undefined,
       selectedStudentId: undefined,
       category: undefined,
@@ -106,6 +111,23 @@ export default function CreateNoticeModal({
       resetForm(); // Reset form when modal opens
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!isTeacher) return;
+    if (
+      form.recipientType === NoticeRecipientType.CLASS ||
+      form.recipientType === NoticeRecipientType.SPECIFIC_PARENT
+    ) {
+      return;
+    }
+
+    setForm(f => ({
+      ...f,
+      recipientType: NoticeRecipientType.CLASS,
+      selectedClassId: undefined,
+      selectedStudentId: undefined,
+    }));
+  }, [isTeacher, form.recipientType]);
 
   // Filter students when class selection or search term changes
   useEffect(() => {
@@ -145,7 +167,7 @@ export default function CreateNoticeModal({
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const response = await classService.getAllClasses();
+      const response = await noticeService.getAvailableClasses();
       if (response.success && response.data) {
         const classOptions: ClassOption[] = response.data.map(cls => ({
           value: cls.id,
@@ -218,6 +240,15 @@ export default function CreateNoticeModal({
       label,
     }),
   );
+
+  const allowedRecipientTypeOptions = isTeacher
+    ? recipientTypeOptions.filter(option =>
+        [
+          NoticeRecipientType.CLASS,
+          NoticeRecipientType.SPECIFIC_PARENT,
+        ].includes(option.value),
+      )
+    : recipientTypeOptions;
 
   const categoryOptions = Object.entries(NoticeCategoryLabels).map(
     ([value, label]) => ({
@@ -584,7 +615,7 @@ export default function CreateNoticeModal({
                   <Dropdown
                     type='filter'
                     placeholder='Select Recipient Type'
-                    options={recipientTypeOptions}
+                    options={allowedRecipientTypeOptions}
                     selectedValue={form.recipientType}
                     onSelect={value =>
                       handleRecipientTypeChange(value as NoticeRecipientType)
@@ -837,8 +868,7 @@ export default function CreateNoticeModal({
               className='px-4 py-2 rounded flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed'
               disabled={loading}
             >
-              {loading ? 'Publishing...' : 'Publish Notice'}{' '}
-              <span className='ml-1'>✈️</span>
+              {loading ? 'Publishing...' : 'Publish Notice'}
             </Button>
           </div>
         </form>

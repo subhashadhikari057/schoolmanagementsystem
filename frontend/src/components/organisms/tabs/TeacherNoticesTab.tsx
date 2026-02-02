@@ -5,7 +5,7 @@ import { noticeService, Notice } from '@/api/services/notice.service';
 import LabeledInputField from '@/components/molecules/forms/LabeledInputField';
 import Dropdown from '@/components/molecules/interactive/Dropdown';
 import Button from '@/components/atoms/form-controls/Button';
-import { Bell, Eye, FileText } from 'lucide-react';
+import { Bell, Eye, FileText, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { NoticePriority, NoticePriorityLabels } from '@sms/shared-types';
 
@@ -278,6 +278,127 @@ const NoticeViewModal: React.FC<NoticeViewModalProps> = ({
   );
 };
 
+interface NoticeEditModalProps {
+  notice: Notice;
+  onClose: () => void;
+}
+
+const NoticeEditModal: React.FC<NoticeEditModalProps> = ({
+  notice,
+  onClose,
+}) => {
+  const [title, setTitle] = useState(notice.title);
+  const [content, setContent] = useState(notice.content);
+  const [priority, setPriority] = useState<NoticePriority>(
+    notice.priority as NoticePriority,
+  );
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async (status: 'DRAFT' | 'PUBLISHED') => {
+    try {
+      setSaving(true);
+      const response = await noticeService.updateNotice(notice.id, {
+        title,
+        content,
+        priority,
+        status,
+        publishDate:
+          status === 'PUBLISHED'
+            ? new Date().toISOString()
+            : notice.publishDate,
+        expiryDate:
+          notice.expiryDate ||
+          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+      if (response.success) {
+        toast.success(
+          status === 'PUBLISHED'
+            ? 'Notice published successfully'
+            : 'Notice saved as draft',
+        );
+        onClose();
+      } else {
+        toast.error(response.message || 'Failed to update notice');
+      }
+    } catch (e) {
+      console.error('Failed to update notice:', e);
+      toast.error(e instanceof Error ? e.message : 'Failed to update notice');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className='fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4'>
+      <div className='bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden'>
+        <div className='bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-white flex items-center justify-between'>
+          <div className='font-semibold text-base'>Edit Notice</div>
+          <button onClick={onClose} className='text-white/90 hover:text-white'>
+            ✕
+          </button>
+        </div>
+
+        <div className='p-6 space-y-6 overflow-y-auto max-h-[calc(85vh-120px)]'>
+          <div className='space-y-2'>
+            <div className='text-xs font-medium text-gray-500 uppercase tracking-wide'>
+              Title
+            </div>
+            <input
+              className='w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+            />
+          </div>
+
+          <div className='space-y-2'>
+            <div className='text-xs font-medium text-gray-500 uppercase tracking-wide'>
+              Priority
+            </div>
+            <select
+              className='w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              value={priority}
+              onChange={e => setPriority(e.target.value as NoticePriority)}
+            >
+              {Object.entries(NoticePriorityLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className='space-y-2'>
+            <div className='text-xs font-medium text-gray-500 uppercase tracking-wide'>
+              Content
+            </div>
+            <textarea
+              className='w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[160px]'
+              value={content}
+              onChange={e => setContent(e.target.value)}
+            />
+          </div>
+
+          <div className='flex justify-end gap-3'>
+            <Button
+              label='Save Draft'
+              onClick={() => handleSave('DRAFT')}
+              className='bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50'
+              disabled={saving}
+            />
+            <Button
+              label='Publish'
+              onClick={() => handleSave('PUBLISHED')}
+              className='bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700'
+              disabled={saving}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function TeacherNoticesTab() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -287,6 +408,9 @@ export default function TeacherNoticesTab() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
+  const [viewMode, setViewMode] = useState<'received' | 'created'>('received');
+  const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
+  const [deleteNotice, setDeleteNotice] = useState<Notice | null>(null);
 
   // Fetch notices from the backend
   useEffect(() => {
@@ -301,8 +425,10 @@ export default function TeacherNoticesTab() {
           params.priority = priorityFilter.toUpperCase();
         if (categoryFilter !== 'all') params.category = categoryFilter;
 
-        // Fetch notices
-        const response = await noticeService.getMyNotices(params);
+        const response =
+          viewMode === 'created'
+            ? await noticeService.getMyCreatedNotices(params)
+            : await noticeService.getMyNotices(params);
 
         if (response.success && response.data) {
           setNotices(response.data.notices);
@@ -319,7 +445,11 @@ export default function TeacherNoticesTab() {
     };
 
     fetchNotices();
-  }, [page, query, priorityFilter, categoryFilter]);
+  }, [page, query, priorityFilter, categoryFilter, viewMode]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [viewMode]);
 
   // Priority options for filter dropdown
   const priorityOptions = [
@@ -366,10 +496,54 @@ export default function TeacherNoticesTab() {
     setSelectedNotice(notice);
   };
 
+  const handleEditNotice = (notice: Notice) => {
+    setEditingNotice(notice);
+  };
+
+  const handleDeleteNotice = async (notice: Notice) => {
+    try {
+      const response = await noticeService.deleteNotice(notice.id);
+      if (response.success) {
+        toast.success('Notice deleted successfully');
+        setDeleteNotice(null);
+        setPage(1);
+      } else {
+        toast.error(response.message || 'Failed to delete notice');
+      }
+    } catch (error) {
+      console.error('Error deleting notice:', error);
+      toast.error('Failed to delete notice');
+    }
+  };
+
   return (
     <div className='space-y-6'>
       {/* Search and Filters */}
       <div className='flex items-center justify-between gap-3 flex-wrap'>
+        <div className='flex items-center gap-2'>
+          <button
+            type='button'
+            onClick={() => setViewMode('received')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              viewMode === 'received'
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            Received
+          </button>
+          <button
+            type='button'
+            onClick={() => setViewMode('created')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              viewMode === 'created'
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            Created by Me
+          </button>
+        </div>
         <div className='w-full sm:flex-1'>
           <LabeledInputField
             type='search'
@@ -484,6 +658,26 @@ export default function TeacherNoticesTab() {
                     <Eye className='w-4 h-4' />
                     <span>View</span>
                   </Button>
+                  {viewMode === 'created' && (
+                    <>
+                      <Button
+                        label='Edit'
+                        onClick={() => handleEditNotice(notice)}
+                        className='bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50 flex items-center gap-2'
+                      >
+                        <Pencil className='w-4 h-4' />
+                        <span>Edit</span>
+                      </Button>
+                      <Button
+                        label='Delete'
+                        onClick={() => setDeleteNotice(notice)}
+                        className='bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-rose-700 flex items-center gap-2'
+                      >
+                        <Trash2 className='w-4 h-4' />
+                        <span>Delete</span>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -533,6 +727,49 @@ export default function TeacherNoticesTab() {
           notice={selectedNotice}
           onClose={() => setSelectedNotice(null)}
         />
+      )}
+      {editingNotice && (
+        <NoticeEditModal
+          notice={editingNotice}
+          onClose={() => {
+            setEditingNotice(null);
+            setPage(1);
+          }}
+        />
+      )}
+      {deleteNotice && (
+        <div className='fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4'>
+          <div className='bg-white rounded-xl shadow-xl w-full max-w-md'>
+            <div className='px-5 py-4 border-b border-gray-200 flex items-center justify-between'>
+              <div className='text-sm font-semibold text-gray-900'>
+                Delete Notice
+              </div>
+              <button
+                type='button'
+                className='text-gray-400 hover:text-gray-600'
+                onClick={() => setDeleteNotice(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className='px-5 py-4 text-sm text-gray-700'>
+              Are you sure you want to delete “{deleteNotice.title}”? This
+              action cannot be undone.
+            </div>
+            <div className='px-5 py-4 border-t border-gray-200 flex justify-end gap-2'>
+              <Button
+                label='Cancel'
+                onClick={() => setDeleteNotice(null)}
+                className='bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50'
+              />
+              <Button
+                label='Delete'
+                onClick={() => handleDeleteNotice(deleteNotice)}
+                className='bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-rose-700'
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
