@@ -7,7 +7,12 @@ import Dropdown from '@/components/molecules/interactive/Dropdown';
 import Button from '@/components/atoms/form-controls/Button';
 import { Bell, Eye, FileText, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { NoticePriority, NoticePriorityLabels } from '@sms/shared-types';
+const noticePriorityLabels = {
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+  URGENT: 'Urgent',
+} as const;
 
 // Modal for viewing a notice
 interface NoticeViewModalProps {
@@ -289,9 +294,7 @@ const NoticeEditModal: React.FC<NoticeEditModalProps> = ({
 }) => {
   const [title, setTitle] = useState(notice.title);
   const [content, setContent] = useState(notice.content);
-  const [priority, setPriority] = useState<NoticePriority>(
-    notice.priority as NoticePriority,
-  );
+  const [priority, setPriority] = useState<Notice['priority']>(notice.priority);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async (status: 'DRAFT' | 'PUBLISHED') => {
@@ -358,9 +361,9 @@ const NoticeEditModal: React.FC<NoticeEditModalProps> = ({
             <select
               className='w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent'
               value={priority}
-              onChange={e => setPriority(e.target.value as NoticePriority)}
+              onChange={e => setPriority(e.target.value as Notice['priority'])}
             >
-              {Object.entries(NoticePriorityLabels).map(([value, label]) => (
+              {Object.entries(noticePriorityLabels).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
@@ -454,7 +457,7 @@ export default function TeacherNoticesTab() {
   // Priority options for filter dropdown
   const priorityOptions = [
     { value: 'all', label: 'All Priorities' },
-    ...Object.entries(NoticePriorityLabels).map(([value, label]) => ({
+    ...Object.entries(noticePriorityLabels).map(([value, label]) => ({
       value,
       label,
     })),

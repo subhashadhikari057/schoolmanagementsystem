@@ -14,12 +14,9 @@ import {
   Eye,
   MessageSquare,
   ExternalLink,
-  Download,
   CheckCircle,
 } from 'lucide-react';
 import Button from '@/components/atoms/form-controls/Button';
-import StatusBadge from '@/components/atoms/data/StatusBadge';
-import { useRouter } from 'next/navigation';
 import { PageLoader } from '@/components/atoms/loading';
 import { useAuth } from '@/hooks/useAuth';
 import { complaintService } from '@/api/services/complaint.service';
@@ -34,26 +31,6 @@ import LeaveRequestModal from '@/components/organisms/modals/LeaveRequestModal';
 import TeacherComplaintModal from '@/components/organisms/modals/TeacherComplaintModal';
 import LeaveRequestDetailModal from '@/components/organisms/modals/LeaveRequestDetailModal';
 import { useLeaveRequests } from '@/hooks/useLeaveRequests';
-
-// Mock data for leave requests (keeping unchanged)
-const mockLeaveRequests = [
-  {
-    id: '1',
-    title: 'Annual Leave',
-    date: '2023-08-20',
-    time: '3 days',
-    location: 'Family wedding celebration',
-    status: 'approved',
-  },
-  {
-    id: '2',
-    title: 'Sick Leave',
-    date: '2023-08-15',
-    time: '1 day',
-    location: 'Doctor appointment for routine checkup',
-    status: 'pending',
-  },
-];
 
 // Enhanced Modal for submitting complaint with full backend integration
 interface ComplaintModalProps {
@@ -733,13 +710,7 @@ const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
   ) : null;
 };
 
-interface ComplaintsAndLeavePageProps {
-  showLeaveRequestAction?: boolean;
-}
-
-const ComplaintsAndLeavePage = ({
-  showLeaveRequestAction = true,
-}: ComplaintsAndLeavePageProps) => {
+const ComplaintsAndLeavePage = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [complaintModalOpen, setComplaintModalOpen] = useState(false);
   const [complaintDetailModalOpen, setComplaintDetailModalOpen] =
@@ -764,7 +735,6 @@ const ComplaintsAndLeavePage = ({
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const {
     leaveRequests: realLeaveRequests,
@@ -778,7 +748,7 @@ const ComplaintsAndLeavePage = ({
   } = useLeaveRequests();
 
   const { user } = useAuth();
-  const router = useRouter();
+  const showLeaveRequestAction = true;
 
   useEffect(() => {
     loadComplaints();
@@ -904,10 +874,6 @@ const ComplaintsAndLeavePage = ({
 
   const refreshLeaveRequests = () => {
     loadLeaveRequests();
-  };
-
-  const handleLeaveRequestSuccess = () => {
-    window.location.reload();
   };
 
   const handleSubmitComplaint = async (
@@ -1220,12 +1186,6 @@ const ComplaintsAndLeavePage = ({
       </div>
     </div>
   );
-
-  const handleParentAction = (id: string, newStatus: string) => {
-    setLeaveRequests(prev =>
-      prev.map(l => (l.id === id ? { ...l, status: newStatus } : l)),
-    );
-  };
 
   const tabs = [
     {
