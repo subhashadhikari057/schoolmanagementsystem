@@ -280,6 +280,8 @@ export const ViewMySubmissionModal = ({
                                     onClick={() =>
                                       window.open(attachment.url, '_blank')
                                     }
+                                    variant='ghost'
+                                    size='sm'
                                     className='p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors'
                                   >
                                     <Eye className='w-4 h-4' />
@@ -292,6 +294,8 @@ export const ViewMySubmissionModal = ({
                                           attachment.filename,
                                       )
                                     }
+                                    variant='ghost'
+                                    size='sm'
                                     className='p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md transition-colors'
                                   >
                                     <Download className='w-4 h-4' />

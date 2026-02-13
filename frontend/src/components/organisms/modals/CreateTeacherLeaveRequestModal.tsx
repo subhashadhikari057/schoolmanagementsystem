@@ -17,6 +17,7 @@ import {
   teacherLeaveService,
   CreateTeacherLeaveRequestDto,
 } from '@/api/services/teacher-leave.service';
+import { teacherService } from '@/api/services/teacher.service';
 import { toast } from 'sonner';
 
 interface CreateTeacherLeaveRequestModalProps {
@@ -30,6 +31,11 @@ interface LeaveType {
   name: string;
   description?: string;
   isPaid: boolean;
+  paidDays?: number;
+  maxDays?: number;
+  limitPeriod?: 'YEAR' | 'WEEK' | 'LIFETIME';
+  eligibilityGender?: 'ANY' | 'MALE' | 'FEMALE';
+  requiresSubstituteCredit?: boolean;
 }
 
 interface FormData {
@@ -61,6 +67,29 @@ export default function CreateTeacherLeaveRequestModal({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dragActive, setDragActive] = useState(false);
+  const [teacherGender, setTeacherGender] = useState<
+    'MALE' | 'FEMALE' | 'ANY' | null
+  >(null);
+
+  const formatLeaveTypeLabel = (type: LeaveType) => {
+    const tagParts: string[] = [];
+    if (type.limitPeriod === 'WEEK') {
+      tagParts.push(
+        `Weekly ${type.maxDays} day${type.maxDays === 1 ? '' : 's'}`,
+      );
+    } else if (type.limitPeriod === 'LIFETIME') {
+      tagParts.push(`Lifetime ${type.maxDays} days`);
+    } else if (typeof type.maxDays === 'number') {
+      tagParts.push(`Yearly ${type.maxDays} days`);
+    }
+
+    if (type.requiresSubstituteCredit) {
+      tagParts.push('Credit required');
+    }
+
+    const suffix = tagParts.length > 0 ? ` - ${tagParts.join(', ')}` : '';
+    return `${type.name} ${type.isPaid ? '(Paid)' : '(Unpaid)'}${suffix}`;
+  };
 
   // Load leave types on mount
   useEffect(() => {
@@ -119,7 +148,21 @@ export default function CreateTeacherLeaveRequestModal({
 
   const loadLeaveTypes = async () => {
     try {
-      const response = await teacherLeaveService.getLeaveTypes();
+      const teacherResponse = await teacherService.getCurrentTeacher();
+      const genderValue =
+        (teacherResponse.data as any)?.gender?.toString()?.toUpperCase() ||
+        undefined;
+      const eligibilityGender =
+        genderValue === 'MALE' || genderValue === 'FEMALE'
+          ? genderValue
+          : undefined;
+      if (eligibilityGender) {
+        setTeacherGender(eligibilityGender);
+      }
+
+      const response = await teacherLeaveService.getLeaveTypes(
+        eligibilityGender ? { eligibilityGender } : undefined,
+      );
       if (response && response.leaveTypes) {
         setLeaveTypes(response.leaveTypes);
       } else {
@@ -333,7 +376,7 @@ export default function CreateTeacherLeaveRequestModal({
       onClick={onClose}
     >
       <div
-        className='bg-white rounded-xl w-full max-w-2xl shadow-2xl animate-in fade-in duration-300 max-h-[90vh] overflow-y-auto'
+        className='bg-white rounded-xl w-full max-w-4xl shadow-2xl animate-in fade-in duration-300 max-h-[90vh] overflow-y-auto'
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -363,20 +406,63 @@ export default function CreateTeacherLeaveRequestModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className='p-6 space-y-6'>
-          {/* Title */}
-          <LabeledInputField
-            label='Title'
-            type='text'
-            value={formData.title}
-            onChange={e =>
-              setFormData(prev => ({ ...prev, title: e.target.value }))
-            }
-            placeholder='Enter leave request title'
-            error={errors.title}
-            required
-          />
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+            <LabeledInputField
+              label='Title'
+              type='text'
+              value={formData.title}
+              onChange={e =>
+                setFormData(prev => ({ ...prev, title: e.target.value }))
+              }
+              placeholder='Enter leave request title'
+              error={errors.title}
+              required
+            />
 
-          {/* Description */}
+            <div className='space-y-2'>
+              <label className='block text-sm font-medium text-gray-700'>
+                Leave Type <span className='text-red-500'>*</span>
+              </label>
+              <select
+                value={formData.leaveTypeId}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    leaveTypeId: e.target.value,
+                  }))
+                }
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.leaveTypeId
+                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                    : 'border-gray-300'
+                }`}
+                required
+              >
+                <option value=''>Select leave type</option>
+                {leaveTypes && leaveTypes.length > 0 ? (
+                  leaveTypes.map(type => (
+                    <option key={type.id} value={type.id}>
+                      {formatLeaveTypeLabel(type)}
+                    </option>
+                  ))
+                ) : (
+                  <option value='' disabled>
+                    Loading leave types...
+                  </option>
+                )}
+              </select>
+              {errors.leaveTypeId && (
+                <p className='text-sm text-red-600'>{errors.leaveTypeId}</p>
+              )}
+              {teacherGender === null && (
+                <p className='text-xs text-amber-600'>
+                  Your profile is missing gender. Some leave types may be hidden
+                  or restricted until this is updated.
+                </p>
+              )}
+            </div>
+          </div>
+
           <LabeledTextareaField
             label='Description'
             value={formData.description}
@@ -388,43 +474,8 @@ export default function CreateTeacherLeaveRequestModal({
             error={errors.description}
           />
 
-          {/* Leave Type */}
-          <div className='space-y-2'>
-            <label className='block text-sm font-medium text-gray-700'>
-              Leave Type <span className='text-red-500'>*</span>
-            </label>
-            <select
-              value={formData.leaveTypeId}
-              onChange={e =>
-                setFormData(prev => ({ ...prev, leaveTypeId: e.target.value }))
-              }
-              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.leaveTypeId
-                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                  : 'border-gray-300'
-              }`}
-              required
-            >
-              <option value=''>Select leave type</option>
-              {leaveTypes && leaveTypes.length > 0 ? (
-                leaveTypes.map(type => (
-                  <option key={type.id} value={type.id}>
-                    {type.name} {type.isPaid && '(Paid)'}
-                  </option>
-                ))
-              ) : (
-                <option value='' disabled>
-                  Loading leave types...
-                </option>
-              )}
-            </select>
-            {errors.leaveTypeId && (
-              <p className='text-sm text-red-600'>{errors.leaveTypeId}</p>
-            )}
-          </div>
-
           {/* Date Range */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-4'>
             <div>
               <label className='block text-sm font-medium text-gray-700'>
                 Start Date <span className='text-red-500'>*</span>
@@ -467,19 +518,30 @@ export default function CreateTeacherLeaveRequestModal({
                 <p className='mt-1 text-sm text-red-600'>{errors.endDate}</p>
               )}
             </div>
-          </div>
-
-          {/* Duration Display */}
-          {formData.days > 0 && (
-            <div className='bg-blue-50 border border-blue-200 rounded-lg p-3'>
-              <div className='flex items-center gap-2 text-blue-800'>
-                <Calendar className='h-4 w-4' />
-                <span className='font-medium'>
-                  Duration: {formData.days} day{formData.days !== 1 ? 's' : ''}
-                </span>
+            <div>
+              <label className='block text-sm font-medium text-gray-700'>
+                Duration
+              </label>
+              <div
+                className={`mt-1 rounded-lg border p-3 ${
+                  formData.days > 0
+                    ? 'border-blue-200 bg-blue-50 text-blue-800'
+                    : 'border-gray-200 bg-gray-50 text-gray-500'
+                }`}
+              >
+                <div className='flex items-center gap-2'>
+                  <Calendar className='h-4 w-4' />
+                  <span className='text-sm font-medium'>
+                    {formData.days > 0
+                      ? `Duration: ${formData.days} day${
+                          formData.days !== 1 ? 's' : ''
+                        }`
+                      : 'Select dates to see duration (Saturday excluded)'}
+                  </span>
+                </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* File Upload */}
           <div className='space-y-3'>

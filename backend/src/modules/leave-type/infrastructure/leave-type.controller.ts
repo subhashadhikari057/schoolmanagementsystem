@@ -8,21 +8,12 @@ import {
   Delete,
   Query,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { LeaveTypeService } from '../application/leave-type.service';
-import {
-  CreateLeaveTypeDto,
-  CreateLeaveTypeDtoType,
-} from '../dto/create-leave-type.dto';
-import {
-  UpdateLeaveTypeDto,
-  UpdateLeaveTypeDtoType,
-} from '../dto/update-leave-type.dto';
-import {
-  QueryLeaveTypeDto,
-  QueryLeaveTypeDtoType,
-} from '../dto/query-leave-type.dto';
-import { ZodValidationPipe } from 'nestjs-zod';
+import { CreateLeaveTypeDto } from '../dto/create-leave-type.dto';
+import { UpdateLeaveTypeDto } from '../dto/update-leave-type.dto';
+import { QueryLeaveTypeDtoType } from '../dto/query-leave-type.dto';
 import { UserRole } from '@sms/shared-types';
 
 @Controller('api/v1/leave-types')
@@ -30,11 +21,7 @@ export class LeaveTypeController {
   constructor(private readonly leaveTypeService: LeaveTypeService) {}
 
   @Post()
-  async create(
-    @Body(new ZodValidationPipe(CreateLeaveTypeDto))
-    createLeaveTypeDto: CreateLeaveTypeDtoType,
-    @Req() req: any,
-  ) {
+  async create(@Body() body: unknown, @Req() req: any) {
     // Check if user has admin or super admin role
     const userRole = Array.isArray(req.user.roles)
       ? req.user.roles[0]
@@ -44,7 +31,15 @@ export class LeaveTypeController {
       throw new Error('Unauthorized: Only admins can create leave types');
     }
 
-    return this.leaveTypeService.create(createLeaveTypeDto, req.user.id);
+    const parsed = CreateLeaveTypeDto.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: parsed.error.issues,
+      });
+    }
+
+    return this.leaveTypeService.create(parsed.data, req.user.id);
   }
 
   @Get()
@@ -74,6 +69,7 @@ export class LeaveTypeController {
             ? false
             : undefined,
       status: query.status,
+      eligibilityGender: query.eligibilityGender,
     };
 
     return this.leaveTypeService.findAll(transformedQuery);
@@ -122,8 +118,7 @@ export class LeaveTypeController {
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(UpdateLeaveTypeDto))
-    updateLeaveTypeDto: UpdateLeaveTypeDtoType,
+    @Body() body: unknown,
     @Req() req: any,
   ) {
     // Check if user has admin or super admin role
@@ -135,7 +130,15 @@ export class LeaveTypeController {
       throw new Error('Unauthorized: Only admins can update leave types');
     }
 
-    return this.leaveTypeService.update(id, updateLeaveTypeDto, req.user.id);
+    const parsed = UpdateLeaveTypeDto.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: parsed.error.issues,
+      });
+    }
+
+    return this.leaveTypeService.update(id, parsed.data, req.user.id);
   }
 
   @Patch(':id/toggle-status')

@@ -22,6 +22,15 @@ export interface TeacherLeaveRequest {
     name: string;
     description?: string;
     isPaid: boolean;
+    paidDays?: number;
+    maxDays?: number;
+    limitPeriod?: 'YEAR' | 'WEEK' | 'LIFETIME';
+    eligibilityGender?: 'ANY' | 'MALE' | 'FEMALE';
+    prorateOnTenure?: boolean;
+    proratePeriodMonths?: number;
+    carryForwardLimit?: number | null;
+    encashAfterLimit?: number | null;
+    requiresSubstituteCredit?: boolean;
   };
   status: 'PENDING_ADMINISTRATION' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
   startDate: string;
@@ -71,11 +80,27 @@ export interface LeaveUsage {
       description?: string;
       isPaid: boolean;
       maxDays: number;
+      paidDays?: number;
+      limitPeriod?: 'YEAR' | 'WEEK' | 'LIFETIME';
+      eligibilityGender?: 'ANY' | 'MALE' | 'FEMALE';
+      prorateOnTenure?: boolean;
+      proratePeriodMonths?: number;
+      carryForwardLimit?: number | null;
+      encashAfterLimit?: number | null;
+      requiresSubstituteCredit?: boolean;
     };
     usage: {
       totalUsage: number;
       yearlyUsage: number;
       monthlyUsage: number;
+    };
+    balance?: {
+      entitlementDays: number;
+      usedDays: number;
+      remainingDays: number;
+      carryForwardDays: number;
+      periodLabel: string;
+      creditAvailable: number | null;
     };
   }>;
 }
@@ -96,6 +121,14 @@ export interface AllTeachersLeaveUsage {
         totalUsage: number;
         yearlyUsage: number;
         monthlyUsage: number;
+      };
+      balance?: {
+        entitlementDays: number;
+        usedDays: number;
+        remainingDays: number;
+        carryForwardDays: number;
+        periodLabel: string;
+        creditAvailable: number | null;
       };
     }>;
   }>;
@@ -138,6 +171,31 @@ export interface AdminLeaveRequestActionDto {
 export interface ResetLeaveUsageDto {
   leaveTypeId: string;
   resetType: 'YEARLY' | 'MONTHLY' | 'ALL';
+}
+
+export interface CreateTeacherLeaveCreditDto {
+  teacherId: string;
+  leaveTypeId: string;
+  days: number;
+  source?: 'MANUAL' | 'HOLIDAY_WORK';
+  description?: string;
+  expiresAt?: string;
+}
+
+export interface TeacherLeaveCredit {
+  id: string;
+  teacherId: string;
+  leaveTypeId: string;
+  days: number;
+  source: 'MANUAL' | 'HOLIDAY_WORK';
+  description?: string;
+  creditedAt: string;
+  expiresAt?: string | null;
+  leaveType?: {
+    id: string;
+    name: string;
+    requiresSubstituteCredit?: boolean;
+  };
 }
 
 // Teacher Leave Request Service
@@ -376,19 +434,66 @@ export class TeacherLeaveService {
   }
 
   // =====================
+  // Leave Credit Methods
+  // =====================
+
+  async grantLeaveCredit(data: CreateTeacherLeaveCreditDto): Promise<{
+    message: string;
+    credit: TeacherLeaveCredit;
+  }> {
+    const response = await this.httpClient.post<{
+      message: string;
+      credit: TeacherLeaveCredit;
+    }>('api/v1/leave-credits', data);
+    return response.data;
+  }
+
+  async getTeacherCredits(teacherId: string): Promise<{
+    message: string;
+    credits: TeacherLeaveCredit[];
+  }> {
+    const response = await this.httpClient.get<{
+      message: string;
+      credits: TeacherLeaveCredit[];
+    }>(`api/v1/leave-credits/teacher/${teacherId}`);
+    return response.data;
+  }
+
+  async getMyCredits(): Promise<{
+    message: string;
+    credits: TeacherLeaveCredit[];
+  }> {
+    const response = await this.httpClient.get<{
+      message: string;
+      credits: TeacherLeaveCredit[];
+    }>('api/v1/leave-credits/my');
+    return response.data;
+  }
+
+  // =====================
   // Leave Type Methods (if needed)
   // =====================
 
   /**
    * Get all leave types
    */
-  async getLeaveTypes(): Promise<{
+  async getLeaveTypes(query?: {
+    eligibilityGender?: 'ANY' | 'MALE' | 'FEMALE';
+  }): Promise<{
     leaveTypes: Array<{
       id: string;
       name: string;
       description?: string;
       isPaid: boolean;
       maxDays: number;
+      paidDays: number;
+      limitPeriod: 'YEAR' | 'WEEK' | 'LIFETIME';
+      eligibilityGender: 'ANY' | 'MALE' | 'FEMALE';
+      prorateOnTenure: boolean;
+      proratePeriodMonths: number;
+      carryForwardLimit?: number | null;
+      encashAfterLimit?: number | null;
+      requiresSubstituteCredit: boolean;
     }>;
   }> {
     const response = await this.httpClient.get<
@@ -398,8 +503,16 @@ export class TeacherLeaveService {
         description?: string;
         isPaid: boolean;
         maxDays: number;
+        paidDays: number;
+        limitPeriod: 'YEAR' | 'WEEK' | 'LIFETIME';
+        eligibilityGender: 'ANY' | 'MALE' | 'FEMALE';
+        prorateOnTenure: boolean;
+        proratePeriodMonths: number;
+        carryForwardLimit?: number | null;
+        encashAfterLimit?: number | null;
+        requiresSubstituteCredit: boolean;
       }>
-    >('api/v1/leave-types');
+    >('api/v1/leave-types', query);
     return { leaveTypes: response.data };
   }
 
@@ -439,11 +552,17 @@ export class TeacherLeaveService {
         throw new Error('Invalid date values');
       }
 
-      // Calculate difference in milliseconds and convert to days - exact same as backend
-      const timeDiff = endDate.getTime() - startDate.getTime();
-      const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24)) + 1; // +1 for inclusive
+      let count = 0;
+      const cursor = new Date(startDate);
+      while (cursor <= endDate) {
+        const dayOfWeek = cursor.getDay();
+        if (dayOfWeek !== 6) {
+          count += 1;
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
 
-      return daysDiff > 0 ? daysDiff : 0;
+      return count > 0 ? count : 0;
     } catch (error) {
       console.error('Date calculation error:', error);
       throw error;

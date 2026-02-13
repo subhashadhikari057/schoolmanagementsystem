@@ -119,12 +119,30 @@ export default function LeaveRequestModal({
   const calculateDays = () => {
     if (!form.start_date || !form.end_date) return 0;
 
-    const startDate = new Date(form.start_date);
-    const endDate = new Date(form.end_date);
-    const timeDiff = endDate.getTime() - startDate.getTime();
-    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    const startDateMatch = form.start_date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const endDateMatch = form.end_date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
-    return daysDiff > 0 ? daysDiff : 0;
+    if (!startDateMatch || !endDateMatch) return 0;
+
+    const [, startYear, startMonth, startDay] = startDateMatch.map(Number);
+    const [, endYear, endMonth, endDay] = endDateMatch.map(Number);
+
+    const startDate = new Date(startYear, startMonth - 1, startDay);
+    const endDate = new Date(endYear, endMonth - 1, endDay);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return 0;
+    if (startDate > endDate) return 0;
+
+    let count = 0;
+    const cursor = new Date(startDate);
+    while (cursor <= endDate) {
+      if (cursor.getDay() !== 6) {
+        count += 1;
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return count;
   };
 
   // Validate form

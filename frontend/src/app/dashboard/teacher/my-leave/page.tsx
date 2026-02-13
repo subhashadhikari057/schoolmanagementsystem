@@ -322,12 +322,19 @@ export default function MyLeavePage() {
                   }
 
                   const maxDays = Number(usageItem.leaveType?.maxDays || 0);
-                  const usedDays = Number(usageItem.usage?.yearlyUsage || 0);
-                  const remainingDays = maxDays - usedDays;
-
-                  console.log(
-                    `Leave Type: ${usageItem.leaveType?.name}, MaxDays: ${maxDays}, UsedDays: ${usedDays}, Remaining: ${remainingDays}`,
-                  );
+                  const entitlementDays =
+                    usageItem.balance?.entitlementDays ?? maxDays;
+                  const usedDays =
+                    usageItem.balance?.usedDays ??
+                    Number(usageItem.usage?.yearlyUsage || 0);
+                  const remainingDays =
+                    usageItem.balance?.remainingDays ??
+                    Math.max(entitlementDays - usedDays, 0);
+                  const periodLabel =
+                    usageItem.balance?.periodLabel || 'Current period';
+                  const carryForwardDays =
+                    usageItem.balance?.carryForwardDays || 0;
+                  const creditAvailable = usageItem.balance?.creditAvailable;
 
                   return (
                     <div
@@ -347,8 +354,20 @@ export default function MyLeavePage() {
                       <div className='space-y-1 text-sm'>
                         <div className='flex justify-between'>
                           <span className='text-gray-600'>Entitlement:</span>
-                          <span className='font-medium'>{maxDays} days</span>
+                          <span className='font-medium'>
+                            {entitlementDays} days
+                          </span>
                         </div>
+                        {carryForwardDays > 0 && (
+                          <div className='flex justify-between'>
+                            <span className='text-gray-600'>
+                              Carry forward:
+                            </span>
+                            <span className='font-medium'>
+                              {carryForwardDays} days
+                            </span>
+                          </div>
+                        )}
                         <div className='flex justify-between'>
                           <span className='text-gray-600'>Used:</span>
                           <span className='font-medium'>{usedDays} days</span>
@@ -358,6 +377,18 @@ export default function MyLeavePage() {
                           <span className='font-medium text-green-600'>
                             {remainingDays} days
                           </span>
+                        </div>
+                        {creditAvailable !== null &&
+                          creditAvailable !== undefined && (
+                            <div className='flex justify-between'>
+                              <span className='text-gray-600'>Credits:</span>
+                              <span className='font-medium'>
+                                {creditAvailable} days
+                              </span>
+                            </div>
+                          )}
+                        <div className='text-xs text-gray-500 mt-2'>
+                          {periodLabel}
                         </div>
                       </div>
                     </div>

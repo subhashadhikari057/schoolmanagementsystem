@@ -473,6 +473,8 @@ export class TeacherService {
     ApiResponse<{
       id: string;
       userId: string;
+      gender?: string;
+      joiningDate?: string;
       user: { fullName: string; email: string };
     }>
   > {

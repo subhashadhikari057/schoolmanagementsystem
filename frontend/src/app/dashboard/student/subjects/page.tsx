@@ -1,7 +1,6 @@
 'use client';
 // Student Classes Page: Day-wise tabs, real timetable data, teacher info, consistent card UI
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import SectionTitle from '@/components/atoms/display/SectionTitle';
 import Label from '@/components/atoms/display/Label';
 import GenericTabs from '@/components/organisms/tabs/GenericTabs';
@@ -62,13 +61,18 @@ const getSubjectColor = (subjectName: string) => {
 };
 
 export default function StudentClassesPage() {
-  const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timetable, setTimetable] = useState<ProcessedTimetable[]>([]);
   const [hasSchedule, setHasSchedule] = useState(false);
   const [studentProfile, setStudentProfile] = useState<any>(null);
+
+  const formatScheduleError = (message: string, student: any) => {
+    if (!message || !student?.classId) return message;
+    const classLabel = student.className || 'your class';
+    return message.replace(student.classId, classLabel);
+  };
 
   // Load student profile and timetable
   useEffect(() => {
@@ -117,7 +121,7 @@ export default function StudentClassesPage() {
         } else {
           setHasSchedule(false);
           if (timetableResponse.error) {
-            toast.error(timetableResponse.error);
+            toast.error(formatScheduleError(timetableResponse.error, student));
           } else {
             toast.error('Failed to load timetable');
           }

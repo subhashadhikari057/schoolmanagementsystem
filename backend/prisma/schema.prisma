@@ -60,6 +60,8 @@ model User {
   teacherLeaveUsageCreated        TeacherLeaveUsage[]           @relation("TeacherLeaveUsageCreator")
   teacherLeaveUsageDeleted        TeacherLeaveUsage[]           @relation("TeacherLeaveUsageDeleter")
   teacherLeaveUsageUpdated        TeacherLeaveUsage[]           @relation("TeacherLeaveUsageUpdater")
+  teacherLeaveCreditsCreated      TeacherLeaveCredit[]          @relation("TeacherLeaveCreditCreator")
+  teacherLeaveCreditsUpdated      TeacherLeaveCredit[]          @relation("TeacherLeaveCreditUpdater")
   teacherSalaryApprovals          TeacherSalaryHistory[]        @relation("SalaryApprover")
   roles                           UserRole[]
   sessions                        UserSession[]
@@ -578,6 +580,7 @@ model Teacher {
   teacherLeaveRequests           TeacherLeaveRequest[]
   teacherLeaveRequestAttachments TeacherLeaveRequestAttachment[]
   leaveUsage                     TeacherLeaveUsage[]
+  leaveCredits                   TeacherLeaveCredit[]
   profile                        TeacherProfile?
   salaryHistory                  TeacherSalaryHistory[]
   subjectAssignments             TeacherSubject[]                @relation("TeacherSubjectAssignments")
@@ -1922,6 +1925,14 @@ model LeaveType {
   description          String?
   maxDays              Int                   @default(1)
   isPaid               Boolean               @default(false)
+  paidDays             Int                   @default(0)
+  limitPeriod          LeaveTypeLimitPeriod  @default(YEAR)
+  eligibilityGender    LeaveTypeGenderRule   @default(ANY)
+  prorateOnTenure      Boolean               @default(false)
+  proratePeriodMonths  Int                   @default(12)
+  carryForwardLimit    Int?
+  encashAfterLimit     Int?
+  requiresSubstituteCredit Boolean           @default(false)
   status               LeaveTypeStatus       @default(ACTIVE)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime?
@@ -1934,6 +1945,7 @@ model LeaveType {
   updatedBy            User?                 @relation("LeaveTypeUpdater", fields: [updatedById], references: [id])
   teacherLeaveRequests TeacherLeaveRequest[]
   teacherLeaveUsage    TeacherLeaveUsage[]
+  teacherLeaveCredits  TeacherLeaveCredit[]
 
   @@index([name])
   @@index([status])
@@ -2124,6 +2136,35 @@ model TeacherLeaveUsage {
   @@index([deletedById])
 }
 
+model TeacherLeaveCredit {
+  id          String              @id @default(uuid())
+  teacherId   String
+  leaveTypeId String
+  days        Int
+  source      LeaveCreditSource  @default(MANUAL)
+  description String?
+  creditedAt  DateTime            @default(now())
+  expiresAt   DateTime?
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime?
+  teacher     Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  leaveType   LeaveType           @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  createdBy   User?               @relation("TeacherLeaveCreditCreator", fields: [createdById], references: [id])
+  updatedBy   User?               @relation("TeacherLeaveCreditUpdater", fields: [updatedById], references: [id])
+
+  @@index([teacherId])
+  @@index([leaveTypeId])
+  @@index([source])
+  @@index([creditedAt])
+  @@index([expiresAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([deletedAt])
+}
+
 enum IDCardTemplateType {
   STUDENT
   TEACHER
@@ -2291,6 +2332,23 @@ enum LeaveRequestType {
 enum LeaveTypeStatus {
   ACTIVE
   INACTIVE
+}
+
+enum LeaveTypeLimitPeriod {
+  YEAR
+  WEEK
+  LIFETIME
+}
+
+enum LeaveTypeGenderRule {
+  ANY
+  MALE
+  FEMALE
+}
+
+enum LeaveCreditSource {
+  MANUAL
+  HOLIDAY_WORK
 }
 
 enum TeacherLeaveRequestStatus {

@@ -17,6 +17,14 @@ export interface CreateLeaveTypeRequest {
   description?: string;
   maxDays: number;
   isPaid: boolean;
+  paidDays?: number;
+  limitPeriod?: 'YEAR' | 'WEEK' | 'LIFETIME';
+  eligibilityGender?: 'ANY' | 'MALE' | 'FEMALE';
+  prorateOnTenure?: boolean;
+  proratePeriodMonths?: number;
+  carryForwardLimit?: number | null;
+  encashAfterLimit?: number | null;
+  requiresSubstituteCredit?: boolean;
 }
 
 export interface UpdateLeaveTypeRequest {
@@ -24,12 +32,21 @@ export interface UpdateLeaveTypeRequest {
   description?: string;
   maxDays?: number;
   isPaid?: boolean;
+  paidDays?: number;
+  limitPeriod?: 'YEAR' | 'WEEK' | 'LIFETIME';
+  eligibilityGender?: 'ANY' | 'MALE' | 'FEMALE';
+  prorateOnTenure?: boolean;
+  proratePeriodMonths?: number;
+  carryForwardLimit?: number | null;
+  encashAfterLimit?: number | null;
+  requiresSubstituteCredit?: boolean;
 }
 
 export interface QueryLeaveTypeRequest {
   name?: string;
   isPaid?: boolean;
   status?: string;
+  eligibilityGender?: 'ANY' | 'MALE' | 'FEMALE';
 }
 
 export interface LeaveType {
@@ -38,6 +55,14 @@ export interface LeaveType {
   description?: string;
   maxDays: number;
   isPaid: boolean;
+  paidDays: number;
+  limitPeriod: 'YEAR' | 'WEEK' | 'LIFETIME';
+  eligibilityGender: 'ANY' | 'MALE' | 'FEMALE';
+  prorateOnTenure: boolean;
+  proratePeriodMonths: number;
+  carryForwardLimit?: number | null;
+  encashAfterLimit?: number | null;
+  requiresSubstituteCredit: boolean;
   status: 'ACTIVE' | 'INACTIVE';
   createdAt: string;
   updatedAt?: string;
@@ -93,6 +118,8 @@ class LeaveTypeService {
     if (query?.isPaid !== undefined)
       params.append('isPaid', query.isPaid.toString());
     if (query?.status) params.append('status', query.status);
+    if (query?.eligibilityGender)
+      params.append('eligibilityGender', query.eligibilityGender);
 
     const endpoint = params.toString()
       ? `${LEAVE_TYPE_ENDPOINTS.BASE}?${params.toString()}`

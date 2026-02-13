@@ -15,6 +15,10 @@ import { CreateTeacherLeaveRequestDto } from '../dto/create-teacher-leave-reques
 import { TeacherLeaveRequestStatus } from '../enums/teacher-leave-request-status.enum';
 import { AdminLeaveRequestActionDto } from '../dto/admin-leave-request-action.dto';
 import { TeacherLeaveUsageService } from './teacher-leave-usage.service';
+import {
+  LeaveTypeGenderRule,
+  LeaveTypeLimitPeriod,
+} from '../../leave-type/enums';
 
 @Injectable()
 export class LeaveRequestService {
@@ -119,13 +123,9 @@ export class LeaveRequestService {
       );
     }
 
-    // Calculate days between start and end date
+    const days = this.calculateLeaveDays(data.start_date, data.end_date);
     const startDate = new Date(data.start_date);
     const endDate = new Date(data.end_date);
-    const days =
-      Math.ceil(
-        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-      ) + 1;
 
     if (days <= 0) {
       throw new BadRequestException('End date must be after start date');
@@ -193,9 +193,8 @@ export class LeaveRequestService {
     if (data.attachments && data.attachments.length > 0) {
       try {
         // Import the attachment service dynamically to avoid circular dependencies
-        const { LeaveRequestAttachmentService } = await import(
-          './leave-request-attachment.service'
-        );
+        const { LeaveRequestAttachmentService } =
+          await import('./leave-request-attachment.service');
         const attachmentService = new LeaveRequestAttachmentService(
           this.prisma,
           this.auditService,
@@ -531,16 +530,11 @@ export class LeaveRequestService {
     // Calculate days if dates are being updated
     let days = leaveRequest.days;
     if (data.start_date || data.end_date) {
-      const startDate = data.start_date
-        ? new Date(data.start_date)
-        : new Date(leaveRequest.startDate);
-      const endDate = data.end_date
-        ? new Date(data.end_date)
-        : new Date(leaveRequest.endDate);
-      days =
-        Math.ceil(
-          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-        ) + 1;
+      const startDateString =
+        data.start_date ?? this.formatDateOnly(leaveRequest.startDate);
+      const endDateString =
+        data.end_date ?? this.formatDateOnly(leaveRequest.endDate);
+      days = this.calculateLeaveDays(startDateString, endDateString);
 
       if (days <= 0) {
         throw new BadRequestException('End date must be after start date');
@@ -1399,13 +1393,459 @@ export class LeaveRequestService {
         throw new Error('Invalid date values');
       }
 
-      // Calculate difference in milliseconds and convert to days
-      const timeDiff = endDate.getTime() - startDate.getTime();
-      const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24)) + 1; // +1 for inclusive
-
-      return daysDiff > 0 ? daysDiff : 0;
+      return this.countLeaveDaysExcludingSaturday(startDate, endDate);
     } catch (error) {
       throw new BadRequestException(`Date calculation error: ${error.message}`);
+    }
+  }
+
+  private countLeaveDaysExcludingSaturday(
+    startDate: Date,
+    endDate: Date,
+  ): number {
+    const start = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate(),
+    );
+    const end = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth(),
+      endDate.getDate(),
+    );
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new Error('Invalid date values');
+    }
+
+    if (start > end) {
+      return 0;
+    }
+
+    let count = 0;
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const dayOfWeek = cursor.getDay();
+      if (dayOfWeek !== 6) {
+        count += 1;
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return count;
+  }
+
+  private formatDateOnly(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private normalizeGenderValue(
+    gender?: string | null,
+  ): LeaveTypeGenderRule | 'UNKNOWN' {
+    if (!gender) return 'UNKNOWN';
+    const normalized = gender.toString().trim().toLowerCase();
+    if (['male', 'm'].includes(normalized)) return LeaveTypeGenderRule.MALE;
+    if (['female', 'f'].includes(normalized)) return LeaveTypeGenderRule.FEMALE;
+    return 'UNKNOWN';
+  }
+
+  private getWeekKey(date: Date): string {
+    const utcDate = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
+    const dayIndex = utcDate.getUTCDay();
+    const weekStart = new Date(utcDate);
+    weekStart.setUTCDate(weekStart.getUTCDate() - dayIndex);
+    return weekStart.toISOString().slice(0, 10);
+  }
+
+  private buildDayCountByWeek(startDate: Date, endDate: Date) {
+    const map = new Map<string, number>();
+    const cursor = new Date(
+      Date.UTC(
+        startDate.getUTCFullYear(),
+        startDate.getUTCMonth(),
+        startDate.getUTCDate(),
+      ),
+    );
+    const end = new Date(
+      Date.UTC(
+        endDate.getUTCFullYear(),
+        endDate.getUTCMonth(),
+        endDate.getUTCDate(),
+      ),
+    );
+
+    while (cursor <= end) {
+      if (cursor.getUTCDay() !== 6) {
+        const key = this.getWeekKey(cursor);
+        map.set(key, (map.get(key) || 0) + 1);
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+
+    return map;
+  }
+
+  private buildDayCountByYear(startDate: Date, endDate: Date) {
+    const map = new Map<number, number>();
+    const cursor = new Date(
+      Date.UTC(
+        startDate.getUTCFullYear(),
+        startDate.getUTCMonth(),
+        startDate.getUTCDate(),
+      ),
+    );
+    const end = new Date(
+      Date.UTC(
+        endDate.getUTCFullYear(),
+        endDate.getUTCMonth(),
+        endDate.getUTCDate(),
+      ),
+    );
+
+    while (cursor <= end) {
+      if (cursor.getUTCDay() !== 6) {
+        const year = cursor.getUTCFullYear();
+        map.set(year, (map.get(year) || 0) + 1);
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+
+    return map;
+  }
+
+  private calculateTenureMonths(joiningDate: Date, asOfDate: Date) {
+    const start = new Date(
+      Date.UTC(
+        joiningDate.getUTCFullYear(),
+        joiningDate.getUTCMonth(),
+        joiningDate.getUTCDate(),
+      ),
+    );
+    const end = new Date(
+      Date.UTC(
+        asOfDate.getUTCFullYear(),
+        asOfDate.getUTCMonth(),
+        asOfDate.getUTCDate(),
+      ),
+    );
+
+    if (end < start) return 0;
+
+    let months =
+      (end.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+      (end.getUTCMonth() - start.getUTCMonth());
+
+    if (end.getUTCDate() < start.getUTCDate()) {
+      months -= 1;
+    }
+
+    return Math.max(months, 0);
+  }
+
+  private calculateEntitlementForYear(
+    leaveType: any,
+    teacher: any,
+    asOfDate: Date,
+  ) {
+    if (!leaveType.prorateOnTenure) {
+      return leaveType.maxDays;
+    }
+
+    const prorationMonths = leaveType.proratePeriodMonths || 12;
+    const tenureMonths = this.calculateTenureMonths(
+      teacher.joiningDate,
+      asOfDate,
+    );
+
+    if (tenureMonths >= prorationMonths) {
+      return leaveType.maxDays;
+    }
+
+    const prorated = Math.floor(
+      (tenureMonths / prorationMonths) * leaveType.maxDays,
+    );
+
+    return Math.max(prorated, 0);
+  }
+
+  private async getTeacherLeaveRequestsForValidation(params: {
+    teacherId: string;
+    leaveTypeId: string;
+    startDate?: Date;
+    endDate?: Date;
+    excludeRequestId?: string;
+  }) {
+    const where: any = {
+      teacherId: params.teacherId,
+      leaveTypeId: params.leaveTypeId,
+      deletedAt: null,
+      status: {
+        in: [
+          TeacherLeaveRequestStatus.PENDING_ADMINISTRATION,
+          TeacherLeaveRequestStatus.APPROVED,
+        ],
+      },
+    };
+
+    if (params.excludeRequestId) {
+      where.id = { not: params.excludeRequestId };
+    }
+
+    if (params.startDate && params.endDate) {
+      where.startDate = { lte: params.endDate };
+      where.endDate = { gte: params.startDate };
+    }
+
+    return this.prisma.teacherLeaveRequest.findMany({
+      where,
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        days: true,
+        status: true,
+      },
+    });
+  }
+
+  private async calculateCarryForwardDays(
+    leaveType: any,
+    teacher: any,
+    requestYear: number,
+  ) {
+    const carryLimits = [
+      leaveType.carryForwardLimit,
+      leaveType.encashAfterLimit,
+    ].filter(
+      (value: number | null | undefined) => typeof value === 'number',
+    ) as number[];
+    const carryLimit = carryLimits.length > 0 ? Math.min(...carryLimits) : 0;
+    if (!carryLimit || carryLimit <= 0) {
+      return 0;
+    }
+
+    const startYear = teacher.joiningDate
+      ? teacher.joiningDate.getUTCFullYear()
+      : requestYear;
+    let carryForward = 0;
+
+    for (let year = startYear; year < requestYear; year += 1) {
+      const yearEnd = new Date(Date.UTC(year, 11, 31));
+      const entitlement = this.calculateEntitlementForYear(
+        leaveType,
+        teacher,
+        yearEnd,
+      );
+
+      const existingRequests = await this.prisma.teacherLeaveRequest.findMany({
+        where: {
+          teacherId: teacher.id,
+          leaveTypeId: leaveType.id,
+          status: TeacherLeaveRequestStatus.APPROVED,
+          deletedAt: null,
+          startDate: { lte: new Date(Date.UTC(year, 11, 31)) },
+          endDate: { gte: new Date(Date.UTC(year, 0, 1)) },
+        },
+        select: { startDate: true, endDate: true },
+      });
+
+      let usedDays = 0;
+      existingRequests.forEach(request => {
+        const counts = this.buildDayCountByYear(
+          request.startDate,
+          request.endDate,
+        );
+        usedDays += counts.get(year) || 0;
+      });
+
+      const unused = Math.max(entitlement - usedDays, 0);
+      carryForward = Math.min(carryLimit, carryForward + unused);
+    }
+
+    return carryForward;
+  }
+
+  private async getAvailableLeaveCredits(
+    teacherId: string,
+    leaveTypeId: string,
+    excludeRequestId?: string,
+  ) {
+    const now = new Date();
+    const creditSum = await this.prisma.teacherLeaveCredit.aggregate({
+      where: {
+        teacherId,
+        leaveTypeId,
+        deletedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+      _sum: { days: true },
+    });
+
+    const usedSum = await this.prisma.teacherLeaveRequest.aggregate({
+      where: {
+        teacherId,
+        leaveTypeId,
+        deletedAt: null,
+        status: {
+          in: [
+            TeacherLeaveRequestStatus.PENDING_ADMINISTRATION,
+            TeacherLeaveRequestStatus.APPROVED,
+          ],
+        },
+        ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
+      },
+      _sum: { days: true },
+    });
+
+    const credits = creditSum._sum.days || 0;
+    const used = usedSum._sum.days || 0;
+
+    return credits - used;
+  }
+
+  private async validateTeacherLeavePolicy(params: {
+    teacher: any;
+    leaveType: any;
+    startDate: Date;
+    endDate: Date;
+    requestedDays: number;
+    excludeRequestId?: string;
+  }) {
+    const { teacher, leaveType, startDate, endDate, requestedDays } = params;
+
+    if (leaveType.status !== 'ACTIVE') {
+      throw new BadRequestException('Selected leave type is inactive');
+    }
+
+    if (
+      leaveType.eligibilityGender &&
+      leaveType.eligibilityGender !== LeaveTypeGenderRule.ANY
+    ) {
+      const teacherGender = this.normalizeGenderValue(teacher.gender);
+      if (teacherGender === 'UNKNOWN') {
+        throw new BadRequestException(
+          'Teacher gender is missing. Please update your profile before requesting this leave type.',
+        );
+      }
+
+      if (teacherGender !== leaveType.eligibilityGender) {
+        throw new BadRequestException(
+          `This leave type is only available for ${leaveType.eligibilityGender.toLowerCase()} teachers.`,
+        );
+      }
+    }
+
+    if (leaveType.limitPeriod === LeaveTypeLimitPeriod.YEAR) {
+      const startYear = startDate.getUTCFullYear();
+      const endYear = endDate.getUTCFullYear();
+      if (startYear !== endYear) {
+        throw new BadRequestException(
+          'Leave request cannot span multiple years for this leave type. Please split the request by year.',
+        );
+      }
+
+      const entitlement = this.calculateEntitlementForYear(
+        leaveType,
+        teacher,
+        startDate,
+      );
+      const carryForward = await this.calculateCarryForwardDays(
+        leaveType,
+        teacher,
+        startYear,
+      );
+      const existingRequests = await this.getTeacherLeaveRequestsForValidation({
+        teacherId: teacher.id,
+        leaveTypeId: leaveType.id,
+        startDate: new Date(Date.UTC(startYear, 0, 1)),
+        endDate: new Date(Date.UTC(startYear, 11, 31)),
+        excludeRequestId: params.excludeRequestId,
+      });
+
+      let usedDays = 0;
+      existingRequests.forEach(request => {
+        const counts = this.buildDayCountByYear(
+          request.startDate,
+          request.endDate,
+        );
+        usedDays += counts.get(startYear) || 0;
+      });
+
+      const available = Math.max(entitlement + carryForward - usedDays, 0);
+
+      if (requestedDays > available) {
+        throw new BadRequestException(
+          `Insufficient leave balance. Available: ${available} day(s). Requested: ${requestedDays} day(s).`,
+        );
+      }
+    }
+
+    if (leaveType.limitPeriod === LeaveTypeLimitPeriod.WEEK) {
+      const requestedWeekMap = this.buildDayCountByWeek(startDate, endDate);
+      const existingRequests = await this.getTeacherLeaveRequestsForValidation({
+        teacherId: teacher.id,
+        leaveTypeId: leaveType.id,
+        startDate,
+        endDate,
+        excludeRequestId: params.excludeRequestId,
+      });
+
+      const existingWeekMap = new Map<string, number>();
+      existingRequests.forEach(request => {
+        const counts = this.buildDayCountByWeek(
+          request.startDate,
+          request.endDate,
+        );
+        counts.forEach((count, key) => {
+          existingWeekMap.set(key, (existingWeekMap.get(key) || 0) + count);
+        });
+      });
+
+      requestedWeekMap.forEach((requestedCount, key) => {
+        const existingCount = existingWeekMap.get(key) || 0;
+        if (existingCount + requestedCount > leaveType.maxDays) {
+          throw new BadRequestException(
+            `Weekly leave limit exceeded. Week ${key} allows ${leaveType.maxDays} day(s).`,
+          );
+        }
+      });
+    }
+
+    if (leaveType.limitPeriod === LeaveTypeLimitPeriod.LIFETIME) {
+      const existingRequests = await this.getTeacherLeaveRequestsForValidation({
+        teacherId: teacher.id,
+        leaveTypeId: leaveType.id,
+        excludeRequestId: params.excludeRequestId,
+      });
+      const usedDays = existingRequests.reduce(
+        (total, request) => total + request.days,
+        0,
+      );
+      const available = Math.max(leaveType.maxDays - usedDays, 0);
+
+      if (requestedDays > available) {
+        throw new BadRequestException(
+          `Lifetime leave limit exceeded. Available: ${available} day(s).`,
+        );
+      }
+    }
+
+    if (leaveType.requiresSubstituteCredit) {
+      const availableCredits = await this.getAvailableLeaveCredits(
+        teacher.id,
+        leaveType.id,
+        params.excludeRequestId,
+      );
+      if (requestedDays > availableCredits) {
+        throw new BadRequestException(
+          `Insufficient substitute leave credits. Available: ${availableCredits} day(s).`,
+        );
+      }
     }
   }
 
@@ -1488,6 +1928,25 @@ export class LeaveRequestService {
       );
     }
 
+    const leaveType = await this.prisma.leaveType.findFirst({
+      where: {
+        id: createTeacherLeaveRequestDto.leaveTypeId,
+        deletedAt: null,
+      },
+    });
+
+    if (!leaveType) {
+      throw new NotFoundException('Leave type not found');
+    }
+
+    await this.validateTeacherLeavePolicy({
+      teacher,
+      leaveType,
+      startDate,
+      endDate,
+      requestedDays: calculatedDays,
+    });
+
     const teacherLeaveRequest = await this.prisma.teacherLeaveRequest.create({
       data: {
         title: createTeacherLeaveRequestDto.title,
@@ -1512,6 +1971,14 @@ export class LeaveRequestService {
             description: true,
             isPaid: true,
             maxDays: true,
+            paidDays: true,
+            limitPeriod: true,
+            eligibilityGender: true,
+            prorateOnTenure: true,
+            proratePeriodMonths: true,
+            carryForwardLimit: true,
+            encashAfterLimit: true,
+            requiresSubstituteCredit: true,
           },
         },
         teacher: {
@@ -1534,9 +2001,8 @@ export class LeaveRequestService {
     ) {
       try {
         // Import the attachment service dynamically to avoid circular dependencies
-        const { LeaveRequestAttachmentService } = await import(
-          './leave-request-attachment.service'
-        );
+        const { LeaveRequestAttachmentService } =
+          await import('./leave-request-attachment.service');
         const attachmentService = new LeaveRequestAttachmentService(
           this.prisma,
           this.auditService,
@@ -1615,6 +2081,14 @@ export class LeaveRequestService {
             description: true,
             isPaid: true,
             maxDays: true,
+            paidDays: true,
+            limitPeriod: true,
+            eligibilityGender: true,
+            prorateOnTenure: true,
+            proratePeriodMonths: true,
+            carryForwardLimit: true,
+            encashAfterLimit: true,
+            requiresSubstituteCredit: true,
           },
         },
         teacher: {
@@ -1656,6 +2130,14 @@ export class LeaveRequestService {
               description: true,
               isPaid: true,
               maxDays: true,
+              paidDays: true,
+              limitPeriod: true,
+              eligibilityGender: true,
+              prorateOnTenure: true,
+              proratePeriodMonths: true,
+              carryForwardLimit: true,
+              encashAfterLimit: true,
+              requiresSubstituteCredit: true,
             },
           },
           teacher: {
@@ -1720,6 +2202,10 @@ export class LeaveRequestService {
     const teacherLeaveRequest = await this.prisma.teacherLeaveRequest.findFirst(
       {
         where: { id, deletedAt: null },
+        include: {
+          leaveType: true,
+          teacher: true,
+        },
       },
     );
 
@@ -1734,6 +2220,17 @@ export class LeaveRequestService {
       throw new BadRequestException(
         'Leave request is not pending administration approval',
       );
+    }
+
+    if (actionDto.status === TeacherLeaveRequestStatus.APPROVED) {
+      await this.validateTeacherLeavePolicy({
+        teacher: teacherLeaveRequest.teacher,
+        leaveType: teacherLeaveRequest.leaveType,
+        startDate: teacherLeaveRequest.startDate,
+        endDate: teacherLeaveRequest.endDate,
+        requestedDays: teacherLeaveRequest.days,
+        excludeRequestId: teacherLeaveRequest.id,
+      });
     }
 
     const updateData: any = {
@@ -1762,6 +2259,14 @@ export class LeaveRequestService {
               description: true,
               isPaid: true,
               maxDays: true,
+              paidDays: true,
+              limitPeriod: true,
+              eligibilityGender: true,
+              prorateOnTenure: true,
+              proratePeriodMonths: true,
+              carryForwardLimit: true,
+              encashAfterLimit: true,
+              requiresSubstituteCredit: true,
             },
           },
           teacher: {
@@ -1873,6 +2378,14 @@ export class LeaveRequestService {
               description: true,
               isPaid: true,
               maxDays: true,
+              paidDays: true,
+              limitPeriod: true,
+              eligibilityGender: true,
+              prorateOnTenure: true,
+              proratePeriodMonths: true,
+              carryForwardLimit: true,
+              encashAfterLimit: true,
+              requiresSubstituteCredit: true,
             },
           },
           teacher: {

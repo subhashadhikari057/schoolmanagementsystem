@@ -5,6 +5,7 @@ import { GenericList } from '@/components/templates/GenericList';
 import { ActionButtons } from '@/components/atoms/interactive/ActionButtons';
 import Statsgrid from '@/components/organisms/dashboard/Statsgrid';
 import LeaveTypeModal from '@/components/organisms/modals/LeaveTypeModal';
+import LeaveTypeDetailModal from '@/components/organisms/modals/LeaveTypeDetailModal';
 import { Edit, Trash2, Eye, List, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLeaveTypes } from '@/hooks/useLeaveTypes';
@@ -33,6 +34,7 @@ export default function LeaveTypesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedLeaveType, setSelectedLeaveType] = useState<any>(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
 
   // Calculate stats dynamically from hook data
   const statsData = [
@@ -76,8 +78,8 @@ export default function LeaveTypesPage() {
 
   // Handle actions
   const handleViewLeaveType = (leaveType: any) => {
-    toast.info(`Viewing details for ${leaveType.name}`);
-    // TODO: Implement view modal
+    setSelectedLeaveType(leaveType);
+    setViewModalOpen(true);
   };
 
   const handleEditLeaveType = (leaveType: any) => {
@@ -357,6 +359,12 @@ export default function LeaveTypesPage() {
         mode={modalMode}
         onCreateLeaveType={createLeaveType}
         onUpdateLeaveType={updateLeaveType}
+      />
+
+      <LeaveTypeDetailModal
+        open={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        leaveType={selectedLeaveType}
       />
     </div>
   );
