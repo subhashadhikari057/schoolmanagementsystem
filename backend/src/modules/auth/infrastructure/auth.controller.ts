@@ -9,6 +9,7 @@ import {
   HttpStatus,
   UnauthorizedException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthError } from '../../../shared/error-handling/auth-error.util';
@@ -28,6 +29,8 @@ import { Public } from '../../../shared/guards/jwt-auth.guard';
 
 @Controller('api/v1/auth') // ✅ Route prefix with global prefix api/v1
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly otpService: OtpService,
@@ -84,7 +87,10 @@ export class AuthController {
     const ip: string = req.ip || 'unknown';
     const userAgent: string = req.headers['user-agent'] || 'unknown';
 
+    this.logger.log(`Refresh endpoint hit from ip=${ip}`);
+
     if (!refreshToken) {
+      this.logger.warn(`Refresh failed: missing refresh token, ip=${ip}`);
       return res
         .status(401)
         .json(AuthError.unauthorized('Missing refresh token'));
@@ -101,11 +107,16 @@ export class AuthController {
       // ✅ Set new cookies
       setAuthCookies(res, accessToken, newRefreshToken);
 
+      this.logger.log(`Refresh success, ip=${ip}`);
+
       return res.status(200).json({
         message: 'Token refreshed successfully',
         success: true,
       });
     } catch (error) {
+      this.logger.warn(
+        `Refresh failed: ${error instanceof Error ? error.message : 'unknown error'}, ip=${ip}`,
+      );
       // Handle specific error types
       if (error instanceof UnauthorizedException) {
         return res.status(401).json(

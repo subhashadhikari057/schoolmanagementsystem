@@ -387,9 +387,8 @@ export class HttpClient {
           // CRITICAL: Only treat as session expiry if NOT on auth endpoints
 
           if (response.status === 401 && !isAnyAuthEndpoint) {
-            // This is a session expiry, not a login failure
-            // Dispatch API error event for token expiry handlers
-            dispatchApiErrorEvent(apiError);
+            // Attempt silent refresh first. Only emit session-expired if refresh fails
+            // inside handleUnauthorized -> handleRefreshFailure.
             return this.handleUnauthorized(method, url, data, config);
           }
 
