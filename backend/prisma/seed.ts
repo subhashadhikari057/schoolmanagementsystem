@@ -116,53 +116,8 @@ async function main() {
     },
   });
 
-  // 4. Seed Leave Types (teacher leave policy setup)
+  // 4. Seed Leave Types (system-level baseline)
   const leaveTypes = [
-    {
-      name: 'Weekly Leave',
-      description: '1 day leave entitlement for every week.',
-      maxDays: 1,
-      isPaid: true,
-      paidDays: 1,
-      limitPeriod: 'WEEK',
-      eligibilityGender: 'ANY',
-      prorateOnTenure: false,
-      proratePeriodMonths: 12,
-      carryForwardLimit: null,
-      encashAfterLimit: null,
-      requiresSubstituteCredit: false,
-      status: 'ACTIVE',
-    },
-    {
-      name: 'Public Leave (Men)',
-      description: 'Public leave for male teachers: 13 days per year.',
-      maxDays: 13,
-      isPaid: true,
-      paidDays: 13,
-      limitPeriod: 'YEAR',
-      eligibilityGender: 'MALE',
-      prorateOnTenure: false,
-      proratePeriodMonths: 12,
-      carryForwardLimit: null,
-      encashAfterLimit: null,
-      requiresSubstituteCredit: false,
-      status: 'ACTIVE',
-    },
-    {
-      name: 'Public Leave (Women)',
-      description: 'Public leave for female teachers: 14 days per year.',
-      maxDays: 14,
-      isPaid: true,
-      paidDays: 14,
-      limitPeriod: 'YEAR',
-      eligibilityGender: 'FEMALE',
-      prorateOnTenure: false,
-      proratePeriodMonths: 12,
-      carryForwardLimit: null,
-      encashAfterLimit: null,
-      requiresSubstituteCredit: false,
-      status: 'ACTIVE',
-    },
     {
       name: 'Substitute Leave',
       description:
@@ -177,67 +132,6 @@ async function main() {
       carryForwardLimit: null,
       encashAfterLimit: null,
       requiresSubstituteCredit: true,
-      status: 'ACTIVE',
-    },
-    {
-      name: 'Mourning Leave',
-      description: 'Mourning leave entitlement: 13 days.',
-      maxDays: 13,
-      isPaid: true,
-      paidDays: 13,
-      limitPeriod: 'YEAR',
-      eligibilityGender: 'ANY',
-      prorateOnTenure: false,
-      proratePeriodMonths: 12,
-      carryForwardLimit: null,
-      encashAfterLimit: null,
-      requiresSubstituteCredit: false,
-      status: 'ACTIVE',
-    },
-    {
-      name: 'Maternity Leave (Women)',
-      description: 'Women: total 98 days, paid leave 60 days.',
-      maxDays: 98,
-      isPaid: true,
-      paidDays: 60,
-      limitPeriod: 'LIFETIME',
-      eligibilityGender: 'FEMALE',
-      prorateOnTenure: false,
-      proratePeriodMonths: 12,
-      carryForwardLimit: null,
-      encashAfterLimit: null,
-      requiresSubstituteCredit: false,
-      status: 'ACTIVE',
-    },
-    {
-      name: 'Maternity Leave (Men)',
-      description: 'Men: paternity leave entitlement 15 days.',
-      maxDays: 15,
-      isPaid: true,
-      paidDays: 15,
-      limitPeriod: 'LIFETIME',
-      eligibilityGender: 'MALE',
-      prorateOnTenure: false,
-      proratePeriodMonths: 12,
-      carryForwardLimit: null,
-      encashAfterLimit: null,
-      requiresSubstituteCredit: false,
-      status: 'ACTIVE',
-    },
-    {
-      name: 'Sick Leave',
-      description:
-        '12 days per year after one year tenure; prorated for less than one year. Carry forward up to 45 days and encashment threshold set at 45 days.',
-      maxDays: 12,
-      isPaid: true,
-      paidDays: 12,
-      limitPeriod: 'YEAR',
-      eligibilityGender: 'ANY',
-      prorateOnTenure: true,
-      proratePeriodMonths: 12,
-      carryForwardLimit: 45,
-      encashAfterLimit: 45,
-      requiresSubstituteCredit: false,
       status: 'ACTIVE',
     },
   ] as const;
@@ -276,6 +170,20 @@ async function main() {
       },
     });
   }
+
+  // Keep only system-level substitute leave visible from seed baseline
+  await prisma.leaveType.updateMany({
+    where: {
+      name: {
+        not: 'Substitute Leave',
+      },
+      deletedAt: null,
+    },
+    data: {
+      deletedAt: new Date(),
+      status: 'INACTIVE',
+    },
+  });
 
   console.log('✅ Admin seed data created successfully!');
   console.log(`✅ Seeded ${leaveTypes.length} leave types.`);

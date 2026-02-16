@@ -7,6 +7,7 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  Patch,
 } from '@nestjs/common';
 import { TeacherLeaveCreditService } from '../application/teacher-leave-credit.service';
 import { CreateTeacherLeaveCreditDto } from '../dto/create-teacher-leave-credit.dto';
@@ -15,6 +16,22 @@ import { UserRole } from '@sms/shared-types';
 @Controller('api/v1/leave-credits')
 export class LeaveCreditController {
   constructor(private readonly leaveCreditService: TeacherLeaveCreditService) {}
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  async getAllCredits(@Req() req: any) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const credits = await this.leaveCreditService.getAllCredits(userRole);
+
+    return {
+      message: 'All leave credits retrieved successfully',
+      credits,
+    };
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -37,6 +54,33 @@ export class LeaveCreditController {
 
     return {
       message: 'Leave credit granted successfully',
+      credit,
+    };
+  }
+
+  @Patch(':creditId/revoke')
+  @HttpCode(HttpStatus.OK)
+  async revokeCredit(
+    @Param('creditId') creditId: string,
+    @Body() body: { reason?: string },
+    @Req() req: any,
+  ) {
+    const user = req.user;
+    const userRole = Array.isArray(user.roles)
+      ? user.roles[0]
+      : user.role || user.roles;
+
+    const credit = await this.leaveCreditService.revokeCredit(
+      creditId,
+      user.id,
+      userRole,
+      body?.reason,
+      req.ip,
+      req.headers['user-agent'],
+    );
+
+    return {
+      message: 'Leave credit deallocated successfully',
       credit,
     };
   }

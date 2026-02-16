@@ -196,6 +196,13 @@ export interface TeacherLeaveCredit {
     name: string;
     requiresSubstituteCredit?: boolean;
   };
+  teacher?: {
+    id: string;
+    user?: {
+      fullName?: string;
+      email?: string;
+    };
+  };
 }
 
 // Teacher Leave Request Service
@@ -456,6 +463,33 @@ export class TeacherLeaveService {
       message: string;
       credits: TeacherLeaveCredit[];
     }>(`api/v1/leave-credits/teacher/${teacherId}`);
+    return response.data;
+  }
+
+  async getAllCredits(): Promise<{
+    message: string;
+    credits: TeacherLeaveCredit[];
+  }> {
+    const response = await this.httpClient.get<{
+      message: string;
+      credits: TeacherLeaveCredit[];
+    }>('api/v1/leave-credits');
+    return response.data;
+  }
+
+  async revokeCredit(
+    creditId: string,
+    reason?: string,
+  ): Promise<{
+    message: string;
+    credit: TeacherLeaveCredit;
+  }> {
+    const response = await this.httpClient.patch<{
+      message: string;
+      credit: TeacherLeaveCredit;
+    }>(`api/v1/leave-credits/${creditId}/revoke`, {
+      reason,
+    });
     return response.data;
   }
 

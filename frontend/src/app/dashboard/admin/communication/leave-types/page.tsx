@@ -89,6 +89,15 @@ export default function LeaveTypesPage() {
   };
 
   const handleDeleteLeaveType = async (leaveType: any) => {
+    const isSystemSubstituteLeave =
+      leaveType?.name === 'Substitute Leave' ||
+      leaveType?.requiresSubstituteCredit === true;
+
+    if (isSystemSubstituteLeave) {
+      toast.error('Substitute leave is system-level and cannot be deleted');
+      return;
+    }
+
     showConfirmation({
       title: `Delete Leave Type "${leaveType.name}"?`,
       message: 'This action cannot be undone.',
@@ -300,7 +309,12 @@ export default function LeaveTypesPage() {
             <button
               onClick={() => handleDeleteLeaveType(item)}
               className='p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded'
-              title='Delete Leave Type'
+              title={
+                item.name === 'Substitute Leave' ||
+                item.requiresSubstituteCredit
+                  ? 'System leave cannot be deleted'
+                  : 'Delete Leave Type'
+              }
             >
               <Trash2 size={16} />
             </button>

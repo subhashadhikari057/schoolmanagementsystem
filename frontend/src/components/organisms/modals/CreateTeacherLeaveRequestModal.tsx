@@ -70,6 +70,9 @@ export default function CreateTeacherLeaveRequestModal({
   const [teacherGender, setTeacherGender] = useState<
     'MALE' | 'FEMALE' | 'ANY' | null
   >(null);
+  const [creditByLeaveType, setCreditByLeaveType] = useState<
+    Record<string, number>
+  >({});
 
   const formatLeaveTypeLabel = (type: LeaveType) => {
     const tagParts: string[] = [];
@@ -148,7 +151,10 @@ export default function CreateTeacherLeaveRequestModal({
 
   const loadLeaveTypes = async () => {
     try {
-      const teacherResponse = await teacherService.getCurrentTeacher();
+      const [teacherResponse, usageResponse] = await Promise.all([
+        teacherService.getCurrentTeacher(),
+        teacherLeaveService.getMyLeaveUsage().catch(() => null),
+      ]);
       const genderValue =
         (teacherResponse.data as any)?.gender?.toString()?.toUpperCase() ||
         undefined;
@@ -163,8 +169,22 @@ export default function CreateTeacherLeaveRequestModal({
       const response = await teacherLeaveService.getLeaveTypes(
         eligibilityGender ? { eligibilityGender } : undefined,
       );
+
+      const usageData = usageResponse?.usage?.usageData || [];
+      const creditLookup: Record<string, number> = {};
+      usageData.forEach(item => {
+        const leaveTypeId = item?.leaveType?.id;
+        if (!leaveTypeId) return;
+        creditLookup[leaveTypeId] = Number(item?.balance?.creditAvailable ?? 0);
+      });
+      setCreditByLeaveType(creditLookup);
+
       if (response && response.leaveTypes) {
-        setLeaveTypes(response.leaveTypes);
+        const filteredLeaveTypes = response.leaveTypes.filter(type => {
+          if (!type.requiresSubstituteCredit) return true;
+          return (creditLookup[type.id] || 0) > 0;
+        });
+        setLeaveTypes(filteredLeaveTypes);
       } else {
         setLeaveTypes([]);
         console.warn('No leave types returned from API');
@@ -175,6 +195,16 @@ export default function CreateTeacherLeaveRequestModal({
       setLeaveTypes([]); // Set empty array to prevent undefined errors
     }
   };
+
+  useEffect(() => {
+    if (!formData.leaveTypeId) return;
+    const stillAvailable = leaveTypes.some(
+      type => type.id === formData.leaveTypeId,
+    );
+    if (!stillAvailable) {
+      setFormData(prev => ({ ...prev, leaveTypeId: '' }));
+    }
+  }, [leaveTypes, formData.leaveTypeId]);
 
   const resetForm = () => {
     setFormData({
@@ -454,6 +484,12 @@ export default function CreateTeacherLeaveRequestModal({
               {errors.leaveTypeId && (
                 <p className='text-sm text-red-600'>{errors.leaveTypeId}</p>
               )}
+              {Object.keys(creditByLeaveType).length > 0 &&
+                leaveTypes.length === 0 && (
+                  <p className='text-xs text-amber-600'>
+                    No eligible leave types available right now.
+                  </p>
+                )}
               {teacherGender === null && (
                 <p className='text-xs text-amber-600'>
                   Your profile is missing gender. Some leave types may be hidden

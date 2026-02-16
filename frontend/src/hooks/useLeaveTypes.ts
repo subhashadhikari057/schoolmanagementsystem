@@ -15,6 +15,15 @@ export const useLeaveTypes = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const extractErrorMessage = (err: unknown, fallback: string): string => {
+    if (err instanceof Error) return err.message;
+    if (err && typeof err === 'object' && 'message' in err) {
+      const message = (err as { message?: unknown }).message;
+      if (typeof message === 'string' && message.trim()) return message;
+    }
+    return fallback;
+  };
+
   // Fetch all leave types
   const fetchLeaveTypes = useCallback(async (query?: QueryLeaveTypeRequest) => {
     try {
@@ -23,8 +32,10 @@ export const useLeaveTypes = () => {
       const data = await leaveTypeService.getAllLeaveTypes(query);
       setLeaveTypes(data);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch leave types';
+      const errorMessage = extractErrorMessage(
+        err,
+        'Failed to fetch leave types',
+      );
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -55,8 +66,10 @@ export const useLeaveTypes = () => {
         toast.success('Leave type created successfully!');
         return newLeaveType;
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to create leave type';
+        const errorMessage = extractErrorMessage(
+          err,
+          'Failed to create leave type',
+        );
         toast.error(errorMessage);
         throw err;
       } finally {
@@ -83,8 +96,10 @@ export const useLeaveTypes = () => {
         toast.success('Leave type updated successfully!');
         return updatedLeaveType;
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to update leave type';
+        const errorMessage = extractErrorMessage(
+          err,
+          'Failed to update leave type',
+        );
         toast.error(errorMessage);
         throw err;
       } finally {
@@ -105,8 +120,10 @@ export const useLeaveTypes = () => {
         await fetchStats();
         toast.success('Leave type deleted successfully!');
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to delete leave type';
+        const errorMessage = extractErrorMessage(
+          err,
+          'Failed to delete leave type',
+        );
         toast.error(errorMessage);
         throw err;
       } finally {
@@ -133,10 +150,10 @@ export const useLeaveTypes = () => {
         toast.success(`Leave type ${action} successfully!`);
         return updatedLeaveType;
       } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : 'Failed to toggle leave type status';
+        const errorMessage = extractErrorMessage(
+          err,
+          'Failed to toggle leave type status',
+        );
         toast.error(errorMessage);
         throw err;
       } finally {
@@ -153,8 +170,10 @@ export const useLeaveTypes = () => {
       const leaveType = await leaveTypeService.getLeaveTypeById(id);
       return leaveType;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch leave type';
+      const errorMessage = extractErrorMessage(
+        err,
+        'Failed to fetch leave type',
+      );
       toast.error(errorMessage);
       throw err;
     } finally {

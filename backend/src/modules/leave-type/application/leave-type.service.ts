@@ -13,6 +13,7 @@ import { LeaveTypeGenderRule, LeaveTypeStatus } from '../enums';
 @Injectable()
 export class LeaveTypeService {
   constructor(private readonly prisma: PrismaService) {}
+  private static readonly SYSTEM_SUBSTITUTE_LEAVE_NAME = 'Substitute Leave';
 
   private normalizeCreateInput(input: CreateLeaveTypeDtoType) {
     const maxDays = input.maxDays;
@@ -245,7 +246,16 @@ export class LeaveTypeService {
 
   async remove(id: string, userId: string) {
     // Check if leave type exists
-    await this.findOne(id);
+    const leaveType = await this.findOne(id);
+
+    if (
+      leaveType.name === LeaveTypeService.SYSTEM_SUBSTITUTE_LEAVE_NAME ||
+      leaveType.requiresSubstituteCredit
+    ) {
+      throw new BadRequestException(
+        'System substitute leave cannot be deleted',
+      );
+    }
 
     return this.prisma.leaveType.update({
       where: { id },

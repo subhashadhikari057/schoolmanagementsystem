@@ -20,6 +20,7 @@ import {
   teacherLeaveService,
   TeacherLeaveRequest,
   LeaveUsage,
+  TeacherLeaveCredit,
 } from '@/api/services/teacher-leave.service';
 import CreateTeacherLeaveRequestModal from '@/components/organisms/modals/CreateTeacherLeaveRequestModal';
 import { toast } from 'sonner';
@@ -30,11 +31,14 @@ export default function MyLeavePage() {
   const [mainLoading, setMainLoading] = useState(true);
   const [leaveRequests, setLeaveRequests] = useState<TeacherLeaveRequest[]>([]);
   const [leaveUsage, setLeaveUsage] = useState<LeaveUsage | null>(null);
+  const [myCredits, setMyCredits] = useState<TeacherLeaveCredit[]>([]);
+  const [creditsLoading, setCreditsLoading] = useState(false);
+  const [creditsLoaded, setCreditsLoaded] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'requests' | 'statistics'>(
-    'requests',
-  );
+  const [activeTab, setActiveTab] = useState<
+    'requests' | 'statistics' | 'credits'
+  >('requests');
   const [cancelConfirmation, setCancelConfirmation] = useState<{
     isOpen: boolean;
     requestId: string;
@@ -56,13 +60,20 @@ export default function MyLeavePage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (activeTab === 'credits' && !creditsLoaded) {
+      void loadMyCredits();
+    }
+  }, [activeTab, creditsLoaded]);
+
   const loadLeaveData = async () => {
     setLoading(true);
     try {
-      const requestsResponse =
-        await teacherLeaveService.getTeacherLeaveRequests();
+      const [requestsResponse, usageResponse] = await Promise.all([
+        teacherLeaveService.getTeacherLeaveRequests(),
+        teacherLeaveService.getMyLeaveUsage(),
+      ]);
       setLeaveRequests(requestsResponse.teacherLeaveRequests || []);
-      const usageResponse = await teacherLeaveService.getMyLeaveUsage();
       setLeaveUsage(usageResponse.usage);
     } catch (error) {
       console.error('Failed to load leave data:', error);
@@ -70,6 +81,28 @@ export default function MyLeavePage() {
       setLeaveUsage(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMyCredits = async (force = false) => {
+    if (!force && creditsLoaded) return;
+
+    setCreditsLoading(true);
+    try {
+      const creditsResponse = await teacherLeaveService.getMyCredits();
+      const rows = creditsResponse.credits || [];
+      rows.sort(
+        (a, b) =>
+          new Date(b.creditedAt).getTime() - new Date(a.creditedAt).getTime(),
+      );
+      setMyCredits(rows);
+      setCreditsLoaded(true);
+    } catch (error) {
+      console.error('Failed to load credit data:', error);
+      setMyCredits([]);
+      toast.error('Failed to load allocated credits');
+    } finally {
+      setCreditsLoading(false);
     }
   };
 
@@ -143,6 +176,26 @@ export default function MyLeavePage() {
       day: 'numeric',
     });
   };
+
+  const visibleUsageData =
+    leaveUsage?.usageData?.filter(usageItem => {
+      if (!usageItem?.leaveType?.requiresSubstituteCredit) return true;
+      return Number(usageItem?.balance?.creditAvailable ?? 0) > 0;
+    }) || [];
+
+  const totalAllocatedCredits = myCredits.reduce(
+    (sum, credit) => sum + Number(credit.days || 0),
+    0,
+  );
+  const totalAvailableCredits =
+    leaveUsage?.usageData?.reduce((sum, usageItem) => {
+      if (!usageItem?.leaveType?.requiresSubstituteCredit) return sum;
+      return sum + Number(usageItem?.balance?.creditAvailable ?? 0);
+    }, 0) || 0;
+  const totalConsumedCredits = Math.max(
+    totalAllocatedCredits - totalAvailableCredits,
+    0,
+  );
 
   // Tabs configuration using the generic tabs component
   const tabs = [
@@ -306,9 +359,7 @@ export default function MyLeavePage() {
       content: (
         <div className='space-y-4 sm:space-y-5 lg:space-y-6'>
           {/* Leave Usage Summary */}
-          {leaveUsage &&
-          leaveUsage.usageData &&
-          leaveUsage.usageData.length > 0 ? (
+          {leaveUsage && visibleUsageData.length > 0 ? (
             <div className='bg-white rounded-lg border border-gray-200 p-6'>
               <SectionTitle
                 text='Leave Usage Summary'
@@ -316,7 +367,7 @@ export default function MyLeavePage() {
                 className='text-lg font-semibold text-gray-900 mb-4'
               />
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                {leaveUsage.usageData.map(usageItem => {
+                {visibleUsageData.map(usageItem => {
                   if (!usageItem || !usageItem.leaveType) {
                     return null;
                   }
@@ -335,6 +386,15 @@ export default function MyLeavePage() {
                   const carryForwardDays =
                     usageItem.balance?.carryForwardDays || 0;
                   const creditAvailable = usageItem.balance?.creditAvailable;
+                  const isCreditBased =
+                    usageItem.leaveType?.requiresSubstituteCredit === true;
+                  const availableCredits = Math.max(
+                    Number(creditAvailable ?? 0),
+                    0,
+                  );
+                  const displayRemainingDays = isCreditBased
+                    ? availableCredits
+                    : remainingDays;
 
                   return (
                     <div
@@ -355,7 +415,9 @@ export default function MyLeavePage() {
                         <div className='flex justify-between'>
                           <span className='text-gray-600'>Entitlement:</span>
                           <span className='font-medium'>
-                            {entitlementDays} days
+                            {isCreditBased
+                              ? 'Credit based'
+                              : `${entitlementDays} days`}
                           </span>
                         </div>
                         {carryForwardDays > 0 && (
@@ -375,7 +437,7 @@ export default function MyLeavePage() {
                         <div className='flex justify-between'>
                           <span className='text-gray-600'>Remaining:</span>
                           <span className='font-medium text-green-600'>
-                            {remainingDays} days
+                            {displayRemainingDays} days
                           </span>
                         </div>
                         {creditAvailable !== null &&
@@ -396,9 +458,7 @@ export default function MyLeavePage() {
                 })}
               </div>
             </div>
-          ) : leaveUsage &&
-            leaveUsage.usageData &&
-            leaveUsage.usageData.length === 0 ? (
+          ) : leaveUsage && visibleUsageData.length === 0 ? (
             <div className='bg-white rounded-lg border border-gray-200 p-6'>
               <SectionTitle
                 text='Leave Usage Summary'
@@ -421,6 +481,127 @@ export default function MyLeavePage() {
               </div>
             </div>
           )}
+        </div>
+      ),
+    },
+    {
+      name: 'Allocated Credits',
+      content: (
+        <div className='space-y-4 sm:space-y-5 lg:space-y-6'>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div className='bg-white rounded-lg border border-gray-200 p-4'>
+              <p className='text-sm text-gray-600'>Total Allocated</p>
+              <p className='text-2xl font-semibold text-gray-900'>
+                {totalAllocatedCredits} days
+              </p>
+            </div>
+            <div className='bg-white rounded-lg border border-gray-200 p-4'>
+              <p className='text-sm text-gray-600'>Consumed</p>
+              <p className='text-2xl font-semibold text-rose-600'>
+                {totalConsumedCredits} days
+              </p>
+            </div>
+            <div className='bg-white rounded-lg border border-gray-200 p-4'>
+              <p className='text-sm text-gray-600'>Available</p>
+              <p className='text-2xl font-semibold text-emerald-600'>
+                {totalAvailableCredits} days
+              </p>
+            </div>
+          </div>
+
+          <div className='bg-white rounded-lg border border-gray-200'>
+            <div className='p-6 border-b border-gray-200 flex items-center justify-between'>
+              <SectionTitle
+                text='Allocated Credit History'
+                level={2}
+                className='text-lg font-semibold text-gray-900'
+              />
+              <Button
+                onClick={() => loadMyCredits(true)}
+                disabled={creditsLoading}
+                className='px-3 py-2 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md disabled:opacity-50'
+              >
+                Refresh
+              </Button>
+            </div>
+
+            {creditsLoading ? (
+              <div className='p-6'>
+                <div className='animate-pulse space-y-3'>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className='h-10 bg-gray-200 rounded-md'></div>
+                  ))}
+                </div>
+              </div>
+            ) : myCredits.length === 0 ? (
+              <div className='p-6 text-center text-gray-600'>
+                <p>No credits allocated yet by admin.</p>
+              </div>
+            ) : (
+              <div className='overflow-x-auto'>
+                <table className='min-w-full divide-y divide-gray-200'>
+                  <thead className='bg-gray-50'>
+                    <tr>
+                      <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        Leave Type
+                      </th>
+                      <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        Allocated
+                      </th>
+                      <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        Source
+                      </th>
+                      <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        Credited On
+                      </th>
+                      <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        Expires On
+                      </th>
+                      <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                        Notes
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className='bg-white divide-y divide-gray-200'>
+                    {myCredits.map(credit => (
+                      <tr key={credit.id}>
+                        <td className='px-4 py-3 text-sm text-gray-900'>
+                          {credit.leaveType?.name || 'Unknown'}
+                        </td>
+                        <td className='px-4 py-3 text-sm font-medium text-gray-900'>
+                          {credit.days} days
+                        </td>
+                        <td className='px-4 py-3 text-sm'>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              credit.source === 'HOLIDAY_WORK'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {credit.source === 'HOLIDAY_WORK'
+                              ? 'Holiday Work'
+                              : 'Manual'}
+                          </span>
+                        </td>
+                        <td className='px-4 py-3 text-sm text-gray-700'>
+                          {formatDate(credit.creditedAt)}
+                        </td>
+                        <td className='px-4 py-3 text-sm text-gray-700'>
+                          {credit.expiresAt
+                            ? formatDate(credit.expiresAt)
+                            : '-'}
+                        </td>
+                        <td className='px-4 py-3 text-sm text-gray-700 max-w-sm'>
+                          {credit.description || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       ),
     },
@@ -460,10 +641,24 @@ export default function MyLeavePage() {
             <div className='px-6 py-4'>
               <GenericTabs
                 tabs={tabs}
-                selectedIndex={activeTab === 'statistics' ? 1 : 0}
-                onChange={index =>
-                  setActiveTab(index === 0 ? 'requests' : 'statistics')
+                selectedIndex={
+                  activeTab === 'statistics'
+                    ? 1
+                    : activeTab === 'credits'
+                      ? 2
+                      : 0
                 }
+                onChange={index => {
+                  if (index === 1) {
+                    setActiveTab('statistics');
+                    return;
+                  }
+                  if (index === 2) {
+                    setActiveTab('credits');
+                    return;
+                  }
+                  setActiveTab('requests');
+                }}
                 className='w-full'
               />
             </div>
