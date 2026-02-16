@@ -1629,9 +1629,13 @@ export class LeaveRequestService {
       return 0;
     }
 
-    const startYear = teacher.joiningDate
+    const joiningYear = teacher.joiningDate
       ? teacher.joiningDate.getUTCFullYear()
       : requestYear;
+    const leaveTypeCreatedYear = leaveType.createdAt
+      ? new Date(leaveType.createdAt).getUTCFullYear()
+      : requestYear;
+    const startYear = Math.max(joiningYear, leaveTypeCreatedYear);
     let carryForward = 0;
 
     for (let year = startYear; year < requestYear; year += 1) {
