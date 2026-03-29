@@ -20,6 +20,8 @@ export async function createApp() {
       'http://127.0.0.1:3001', // Alternative localhost format
       'https://sms.navneetverma.com', // Production domain
       'https://www.sms.navneetverma.com', // Production domain with www
+      'https://demo.skoolsewa.com', // Production domain
+      'https://www.demo.skoolsewa.com', // Production domain with www
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [

@@ -315,7 +315,7 @@ const ForgotPasswordForm: React.FC = () => {
                 >
                   <Phone className='h-5 w-5' />
                   <div className='text-left'>
-                    <div className='font-medium'>SMS</div>
+                    <div className='font-medium'>SkoolSewa</div>
                     <div className='text-sm text-gray-600'>
                       Send OTP to your phone number
                     </div>

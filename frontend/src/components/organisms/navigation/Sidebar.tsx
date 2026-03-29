@@ -135,7 +135,7 @@ export default function Sidebar({ isOpen = false, onToggle }: SidebarProps) {
               <>
                 <div className='text-xl font-bold text-gray-800 flex items-center gap-2'>
                   <span aria-hidden>🎓</span>
-                  <span>SMS</span>
+                  <span>SkoolSewa</span>
                 </div>
                 <button
                   onClick={toggleSidebar}

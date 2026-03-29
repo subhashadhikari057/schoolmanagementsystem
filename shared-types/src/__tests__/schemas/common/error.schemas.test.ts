@@ -455,7 +455,7 @@ describe("Error Handling Schemas", () => {
 
       test("should apply default timeout value", () => {
         const detail = {
-          service: "SMS Service",
+          service: "SkoolSewa Service",
         };
 
         const parsed = ExternalServiceErrorDetailSchema.parse(detail);

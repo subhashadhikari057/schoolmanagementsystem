@@ -58,7 +58,7 @@ export const APP_CONFIG = {
   NAME: 'School Management System',
   VERSION: '1.0.0',
   DESCRIPTION: 'Comprehensive school management solution',
-  AUTHOR: 'SMS Development Team',
+  AUTHOR: 'SkoolSewa Development Team',
 } as const;
 
 export const UI_CONFIG = {

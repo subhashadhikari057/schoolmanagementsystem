@@ -56,7 +56,7 @@ interface FormProps {
 
 export default function Form({
   description, // Previously 'label'
-  title = 'SMS', // Previously 'heading'
+  title = 'SkoolSewa', // Previously 'heading'
   subtitle = 'Welcome,', // Previously 'subheading'
   showBackButton = false,
   backButtonText = 'Back to login',

@@ -31,7 +31,7 @@ export default function SetPasswordPage() {
         <LoginForm
           description='Your previous password has been reseted. Please set a new password for your account.'
           descriptionClassName='text-[1rem] font-normal leading-[1.5rem] mt-8'
-          title='SMS'
+          title='SkoolSewa'
           subtitle='Set a Password'
           showEmailField={false}
           showPasswordField={true}

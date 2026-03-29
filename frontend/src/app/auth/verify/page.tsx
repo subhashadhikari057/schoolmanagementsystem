@@ -30,7 +30,7 @@ export default function VerifyPage() {
       <div className='flex items-center justify-center px-4 py-8 sm:px-6 md:px-8 lg:px-10 lg:py-16 w-full min-h-screen lg:min-h-0'>
         <Form
           description='An authentication code has been sent to your email.'
-          title='SMS'
+          title='SkoolSewa'
           subtitle='Verify Code'
           descriptionClassName='text-[1rem] font-normal leading-[1.5rem] mt-8'
           showBackButton={true}
