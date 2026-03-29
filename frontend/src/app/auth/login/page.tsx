@@ -230,7 +230,7 @@ export default function LoginPage() {
         <div className='w-full max-w-md'>
           <LoginForm
             description='login to access SMS Portal '
-            title='SMS'
+            title='SkoolSewa'
             subtitle='Welcome👋'
             emailLabel='Email'
             passwordLabel='Password'
